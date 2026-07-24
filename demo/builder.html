@@ -171,6 +171,7 @@
           <select id="opt-actionslayout" disabled><option value="column">Samostatný sloupec</option><option value="menu">Trojtečkové menu ⋮</option></select>
         </div>
       </div>
+      <label class="row" id="row-selrowclick"><input type="checkbox" id="opt-selrowclick" disabled> Výběr i klikem na řádek (jinak jen checkbox)</label>
       <div class="two">
         <label class="row"><input type="checkbox" id="opt-search" checked> Rychlé hledání</label>
         <label class="row" id="row-bulk"><input type="checkbox" id="opt-bulk"> Hromadné akce</label>
@@ -471,6 +472,7 @@ function rebuild() {
   if (val('opt-summary')) inst.summaryRow = val('opt-summary');
   if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
   if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
+  if (chk('opt-selrowclick') && val('opt-select')) inst.selectRowClick = true;
   const sc = scaleColors();
   if (sc) inst.scaleColors = sc;
   const g = val('opt-group');
@@ -594,6 +596,7 @@ function generateJs() {
   if (val('opt-summary')) inst.summaryRow = val('opt-summary');
   if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
   if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
+  if (chk('opt-selrowclick') && val('opt-select')) inst.selectRowClick = true;
   const sc = scaleColors();
   if (sc) inst.scaleColors = sc;
   const g = val('opt-group');
@@ -656,6 +659,7 @@ function applyModeConstraints() {
   if (chk('opt-virtual')) { setDisabled('row-detail', true); setDisabled('row-responsive', true); setDisabled('row-pagpos', true); setDisabled('row-pagesize', true); }
   setDisabled('row-history-size', !chk('opt-history'));
   setDisabled('row-actionslayout', !chk('opt-actions'));
+  setDisabled('row-selrowclick', !val('opt-select'));
   $('mode-hint').innerHTML = MODE_HINT[mode];
 }
 
