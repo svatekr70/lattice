@@ -182,6 +182,8 @@ function resolveColumn(def, saved) {
     // vlastní formátor buňky
     value: typeof def.value === "function" ? def.value : null,
     // odvozená (computed) hodnota z celého řádku
+    validator: def.validator != null ? def.validator : null,
+    // deklarativní validace editace
     cellClass: typeof def.cellClass === "function" ? def.cellClass : null,
     // podmíněné třídy buňky
     cellStyle: typeof def.cellStyle === "function" ? def.cellStyle : null,
@@ -2223,6 +2225,8 @@ var cs_default = {
   edit: { hint: "Dvojklik pro \xFApravu" },
   detail: { toggle: "Zobrazit / skr\xFDt detail" },
   selection: { count: "Vybr\xE1no: {n}", clear: "Zru\u0161it v\xFDb\u011Br" },
+  range: { cells: "{n} bun\u011Bk", sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Min", max: "Max", fill: "T\xE1hni pro vypln\u011Bn\xED" },
+  validate: { required: "Povinn\xE9 pole", invalid: "Neplatn\xE1 hodnota", pattern: "Nespr\xE1vn\xFD form\xE1t", min: "Mus\xED b\xFDt \u2265 {n}", max: "Mus\xED b\xFDt \u2264 {n}", minLen: "Nejm\xE9n\u011B {n} znak\u016F", maxLen: "Nejv\xEDce {n} znak\u016F" },
   empty: "\u017D\xE1dn\xE1 data",
   loading: "Na\u010D\xEDt\xE1n\xED\u2026",
   error: "Chyba na\u010Dten\xED dat"
@@ -2530,6 +2534,8 @@ var en_default = {
   edit: { hint: "Double-click to edit" },
   detail: { toggle: "Show / hide detail" },
   selection: { count: "Selected: {n}", clear: "Clear selection" },
+  range: { cells: "{n} cells", sum: "Sum", avg: "Avg", min: "Min", max: "Max", fill: "Drag to fill" },
+  validate: { required: "Required", invalid: "Invalid value", pattern: "Wrong format", min: "Must be \u2265 {n}", max: "Must be \u2264 {n}", minLen: "At least {n} characters", maxLen: "At most {n} characters" },
   empty: "No data",
   loading: "Loading\u2026",
   error: "Failed to load data"
@@ -2816,6 +2822,49 @@ registerType("progress", (v, col) => {
     label.textContent = Math.round(pct) + " %";
     wrap.appendChild(label);
   }
+  return wrap;
+});
+registerType("sparkline", (v, col) => {
+  const p = col.formatterParams || {};
+  let nums = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;\s]+/) : [];
+  nums = nums.map(toNumber2).filter((x) => x != null);
+  if (!nums.length) return "";
+  const NS = "http://www.w3.org/2000/svg";
+  const w = p.width || 80, h = p.height || 22, pad4 = 2;
+  const iw = w - pad4 * 2, ih = h - pad4 * 2;
+  const min = p.min != null ? p.min : Math.min(...nums);
+  const max = p.max != null ? p.max : Math.max(...nums);
+  const span = max - min || 1;
+  const X = (i) => pad4 + (nums.length === 1 ? iw / 2 : i / (nums.length - 1) * iw);
+  const Y = (val) => pad4 + ih - (val - min) / span * ih;
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "lattice-sparkline");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  if (p.color) svg.style.color = p.color;
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  if (p.type === "bar") {
+    const bw = iw / nums.length;
+    nums.forEach((val, i) => {
+      const bh = Math.max(0.5, (val - min) / span * ih);
+      svg.appendChild(mk("rect", { x: (pad4 + i * bw + bw * 0.1).toFixed(1), y: (pad4 + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: "currentColor" }));
+    });
+  } else {
+    const d = nums.map((val, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(val).toFixed(1)).join(" ");
+    if (p.fill) svg.appendChild(mk("path", { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad4 + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad4 + ih).toFixed(1)} Z`, fill: "currentColor", opacity: "0.15" }));
+    svg.appendChild(mk("path", { d, fill: "none", stroke: "currentColor", "stroke-width": p.strokeWidth || 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    if (p.dot !== false) svg.appendChild(mk("circle", { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: "1.6", fill: "currentColor" }));
+  }
+  const wrap = document.createElement("span");
+  wrap.className = "lattice-sparkline-wrap";
+  wrap.title = nums.join(", ");
+  wrap.appendChild(svg);
   return wrap;
 });
 registerType("link", (v, col) => {
@@ -4391,15 +4440,18 @@ var Renderer = class {
     const groupRow = el("div.lattice-group-row");
     const headerRow = el("div.lattice-header-row");
     const filterRow = el("div.lattice-filter-row");
+    const pinnedTop = el("div.lattice-pinned.lattice-pinned-top");
+    const pinnedBottom = el("div.lattice-pinned.lattice-pinned-bottom");
     const body = el("div.lattice-body");
     const summaryBar = el("div.lattice-summary-bar");
     const footer = el("div.lattice-footer");
     const overlay = el("div.lattice-overlay");
-    header.append(groupRow, headerRow, filterRow);
-    table.append(header, body);
+    header.append(groupRow, headerRow, filterRow, pinnedTop);
+    table.append(header, body, pinnedBottom);
     viewport.append(table);
-    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, overlay);
-    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, body, summaryBar, footer, overlay };
+    const rangeStatus = el("div.lattice-range-status");
+    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
+    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
     let syncing = false;
     topScroll.addEventListener("scroll", () => {
       if (syncing) return;
@@ -5051,6 +5103,7 @@ var Renderer = class {
     }
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
+    this.renderPinned(list);
     this._treeColField = this.grid.tree ? (list.find((c) => !c._rownum && !c._move && !c._select && !c._actions && !c._actionsMenu && !c._rowsum) || {}).field : null;
     this._detailColField = this._hasDetail() && !this.grid.tree ? (list.find((c) => !c._rownum && !c._move && !c._select && !c._actions && !c._actionsMenu && !c._rowsum) || {}).field : null;
     if (this.grid.virtual && !this.grid.groupActive() && rows.length) {
@@ -5271,6 +5324,35 @@ var Renderer = class {
     clearBtn.addEventListener("click", () => grid.clearSelection());
     bar.appendChild(clearBtn);
     bar.classList.add("is-active");
+  }
+  /** Status bar se souhrnem označeného rozsahu buněk (počet, součet, průměr…). */
+  updateRangeStatus(text) {
+    const bar = this.nodes.rangeStatus;
+    if (!bar) return;
+    bar.textContent = text || "";
+    bar.classList.toggle("is-active", !!text);
+  }
+  /**
+   * Připnuté řádky (pinnedTop/pinnedBottom) — vždy viditelné bez ohledu na scroll
+   * a stránku (souhrnný řádek, „nový záznam", zvýrazněný záznam). Vykreslí se jako
+   * datové řádky s třídou is-pinned a nečíselným indexem (nezasahují do editace/výběru).
+   */
+  renderPinned(list) {
+    list = list || this.renderColumns().list;
+    const fill = (container, rows, tag) => {
+      if (!container) return;
+      clear(container);
+      const arr = Array.isArray(rows) ? rows : [];
+      container.style.display = arr.length ? "" : "none";
+      arr.forEach((rowData, i) => {
+        const row = this.buildDataRow(rowData, tag + i, 0, list);
+        row.classList.add("is-pinned");
+        container.appendChild(row);
+      });
+    };
+    fill(this.nodes.pinnedTop, this.grid.pinnedTop, "pt");
+    fill(this.nodes.pinnedBottom, this.grid.pinnedBottom, "pb");
+    if (this.layout) this.styleCells();
   }
   /** Stav hlavičkového checkboxu (checked / indeterminate dle AKTUÁLNÍHO ROZSAHU). */
   updateSelectAllCheckbox() {
@@ -6557,6 +6639,19 @@ var EditManager = class {
     a.cell.classList.remove("is-editing");
     if (val !== void 0 && !equal(val, a.rowData[a.col.field])) {
       const oldValue = a.rowData[a.col.field];
+      const vErr = runValidator(a.col, val, a.rowData, this.grid.i18n);
+      if (vErr) {
+        this.grid.renderer.renderBody();
+        this._flashInvalid(a.idx, a.col.field, vErr);
+        const inv = this.grid.options.onCellInvalid;
+        if (typeof inv === "function") {
+          try {
+            inv({ field: a.col.field, row: a.rowData, rowIndex: a.idx, value: val, error: vErr });
+          } catch {
+          }
+        }
+        return;
+      }
       const validate = this.grid.options.onCellValidate;
       if (typeof validate === "function") {
         let ok = true;
@@ -6584,7 +6679,60 @@ var EditManager = class {
     }
     this.grid.renderer.renderBody();
   }
+  /** Krátce zvýrazní buňku jako neplatnou (červený rámeček + tooltip s chybou). */
+  _flashInvalid(idx, field2, err) {
+    const cell = this.grid.renderer.nodes.body.querySelector('.lattice-row[data-index="' + idx + '"] .lattice-cell[data-field="' + field2 + '"]');
+    if (!cell) return;
+    cell.classList.add("is-invalid");
+    cell.title = err;
+    setTimeout(() => {
+      cell.classList.remove("is-invalid");
+      if (cell.title === err) cell.removeAttribute("title");
+    }, 1800);
+  }
 };
+function runValidator(col, value, row, i18n) {
+  const v = col.validator;
+  if (!v) return null;
+  const rules = Array.isArray(v) ? v : [v];
+  for (const rule of rules) {
+    const err = checkRule(rule, value, row, col, i18n);
+    if (err) return err;
+  }
+  return null;
+}
+function checkRule(rule, value, row, col, i18n) {
+  const t = (k) => i18n ? i18n.t("validate." + k) : k;
+  const empty = value == null || value === "";
+  if (rule === "required") return empty ? t("required") : null;
+  if (typeof rule === "function") {
+    let r;
+    try {
+      r = rule(value, row, col);
+    } catch {
+      return t("invalid");
+    }
+    if (r === true || r == null) return null;
+    return typeof r === "string" ? r : t("invalid");
+  }
+  if (rule instanceof RegExp) return !empty && !rule.test(String(value)) ? t("pattern") : null;
+  if (rule && typeof rule === "object") {
+    if (rule.required && empty) return rule.message || t("required");
+    if (!empty) {
+      const s = String(value);
+      const num4 = Number(s.replace(/\s/g, "").replace(",", "."));
+      if (rule.min != null && !(num4 >= rule.min)) return rule.message || t("min").replace("{n}", rule.min);
+      if (rule.max != null && !(num4 <= rule.max)) return rule.message || t("max").replace("{n}", rule.max);
+      if (rule.minLen != null && s.length < rule.minLen) return rule.message || t("minLen").replace("{n}", rule.minLen);
+      if (rule.maxLen != null && s.length > rule.maxLen) return rule.message || t("maxLen").replace("{n}", rule.maxLen);
+      if (rule.pattern) {
+        const re = rule.pattern instanceof RegExp ? rule.pattern : new RegExp(rule.pattern);
+        if (!re.test(s)) return rule.message || t("pattern");
+      }
+    }
+  }
+  return null;
+}
 function resolveEditor(col) {
   if (col.editor === "multiselect") return multiselectEditor;
   if (col.editor === "select") return selectEditor;
@@ -7434,6 +7582,7 @@ var RangeManager = class {
   }
   destroy() {
     if (this._onUp) window.removeEventListener("mouseup", this._onUp);
+    this.grid.renderer.updateRangeStatus("");
   }
   /** Souřadnice { r, c } z DOM cíle (buňky), nebo null. */
   coordOf(target) {
@@ -7477,6 +7626,39 @@ var RangeManager = class {
     }
     const active = this.cellAt(this.focus);
     if (active) active.classList.add("is-range-active");
+    this.grid.renderer.updateRangeStatus(this.summaryText());
+    this._placeFillHandle(rc);
+  }
+  /** Souhrn označeného rozsahu (počet buněk + agregace čísel) pro status bar. */
+  summaryText() {
+    const rc = this.rect();
+    if (!rc) return "";
+    const cellCount = (rc.r2 - rc.r1 + 1) * (rc.c2 - rc.c1 + 1);
+    if (cellCount <= 1) return "";
+    const cols = this.cols();
+    const nums = [];
+    for (let r = rc.r1; r <= rc.r2; r++) {
+      const row = this.grid.rows[r];
+      if (!row) continue;
+      for (let c = rc.c1; c <= rc.c2; c++) {
+        const n = rangeNum(row[cols[c].field]);
+        if (n != null) nums.push(n);
+      }
+    }
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const loc = this.grid.i18n.locale || void 0;
+    const fmt = (x) => new Intl.NumberFormat(loc, { maximumFractionDigits: 2 }).format(x);
+    const parts = [t("range.cells").replace("{n}", cellCount)];
+    if (nums.length) {
+      const sum = nums.reduce((a, b) => a + b, 0);
+      parts.push(
+        `${t("range.sum")}: ${fmt(sum)}`,
+        `${t("range.avg")}: ${fmt(sum / nums.length)}`,
+        `${t("range.min")}: ${fmt(Math.min(...nums))}`,
+        `${t("range.max")}: ${fmt(Math.max(...nums))}`
+      );
+    }
+    return parts.join("   \xB7   ");
   }
   cellIn(rowEl, col) {
     return col ? rowEl.querySelector('.lattice-cell[data-field="' + col.field + '"]') : null;
@@ -7584,7 +7766,158 @@ var RangeManager = class {
     if (grid.options.onRangePaste) grid.options.onRangePaste(changed);
     return changed;
   }
+  /* ---- fill handle (táhni roh výběru → vyplň/kopíruj s posloupností) ---- */
+  fillEnabled() {
+    const g = this.grid;
+    if (g.options.fillHandle === false) return false;
+    return g.options.editable === true || g.columns.some((c) => c.editable === true);
+  }
+  _placeFillHandle(rc) {
+    const body = this.grid.renderer.nodes.body;
+    body.querySelectorAll(".lattice-fill-handle").forEach((h2) => h2.remove());
+    body.querySelectorAll(".has-fill-handle").forEach((c) => c.classList.remove("has-fill-handle"));
+    if (!rc || !this.fillEnabled()) return;
+    const cols = this.cols();
+    const cornerRow = [...body.querySelectorAll(".lattice-row")].find((r) => Number(r.dataset.index) === rc.r2);
+    const cell = cornerRow && this.cellIn(cornerRow, cols[rc.c2]);
+    if (!cell) return;
+    cell.classList.add("has-fill-handle");
+    const h = document.createElement("div");
+    h.className = "lattice-fill-handle";
+    h.title = this.grid.i18n.t("range.fill");
+    h.addEventListener("mousedown", (e) => this._startFill(e, rc));
+    cell.appendChild(h);
+  }
+  _startFill(e, src) {
+    e.stopPropagation();
+    e.preventDefault();
+    this._fillSrc = src;
+    this._fillTarget = null;
+    const onMove = (ev) => {
+      const coord = this.coordOf(ev.target);
+      if (coord) this._previewFill(coord);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove, true);
+      window.removeEventListener("mouseup", onUp, true);
+      this._commitFill();
+    };
+    window.addEventListener("mousemove", onMove, true);
+    window.addEventListener("mouseup", onUp, true);
+  }
+  _previewFill(coord) {
+    const s = this._fillSrc;
+    if (!s) return;
+    let t = null;
+    if (coord.r > s.r2) t = { r1: s.r2 + 1, r2: coord.r, c1: s.c1, c2: s.c2, axis: "v" };
+    else if (coord.r < s.r1) t = { r1: coord.r, r2: s.r1 - 1, c1: s.c1, c2: s.c2, axis: "v" };
+    else if (coord.c > s.c2) t = { r1: s.r1, r2: s.r2, c1: s.c2 + 1, c2: coord.c, axis: "h" };
+    else if (coord.c < s.c1) t = { r1: s.r1, r2: s.r2, c1: coord.c, c2: s.c1 - 1, axis: "h" };
+    this._fillTarget = t;
+    const body = this.grid.renderer.nodes.body;
+    body.querySelectorAll(".is-fill-preview").forEach((c) => c.classList.remove("is-fill-preview"));
+    if (!t) return;
+    const cols = this.cols();
+    for (const rowEl of body.querySelectorAll(".lattice-row")) {
+      const r = Number(rowEl.dataset.index);
+      if (Number.isNaN(r) || r < t.r1 || r > t.r2) continue;
+      for (let c = t.c1; c <= t.c2; c++) {
+        const cell = this.cellIn(rowEl, cols[c]);
+        if (cell) cell.classList.add("is-fill-preview");
+      }
+    }
+  }
+  _commitFill() {
+    const s = this._fillSrc, t = this._fillTarget;
+    const body = this.grid.renderer.nodes.body;
+    body.querySelectorAll(".is-fill-preview").forEach((c) => c.classList.remove("is-fill-preview"));
+    this._fillSrc = null;
+    this._fillTarget = null;
+    if (!t) {
+      this.apply();
+      return;
+    }
+    const grid = this.grid, cols = this.cols();
+    const editableCol = (col) => col && (col.editable === true || grid.options.editable === true);
+    const changed = [], hist = [];
+    if (t.axis === "v") {
+      for (let c = s.c1; c <= s.c2; c++) {
+        const col = cols[c];
+        if (!editableCol(col)) continue;
+        const sVals = [];
+        for (let r = s.r1; r <= s.r2; r++) sVals.push(grid.rows[r] ? grid.rows[r][col.field] : "");
+        for (let r = t.r1; r <= t.r2; r++) {
+          const row = grid.rows[r];
+          if (row) this._writeFill(row, col, fillSequence(sVals, r - s.r1), changed, hist);
+        }
+      }
+    } else {
+      for (let r = s.r1; r <= s.r2; r++) {
+        const row = grid.rows[r];
+        if (!row) continue;
+        const sVals = [];
+        for (let c = s.c1; c <= s.c2; c++) sVals.push(row[cols[c].field]);
+        for (let c = t.c1; c <= t.c2; c++) {
+          const col = cols[c];
+          if (editableCol(col)) this._writeFill(row, col, fillSequence(sVals, c - s.c1), changed, hist);
+        }
+      }
+    }
+    if (hist.length) grid.history?.record({ type: "batch", entries: hist });
+    if (changed.length) {
+      grid.renderer.renderBody();
+      this.anchor = { r: Math.min(s.r1, t.r1), c: Math.min(s.c1, t.c1) };
+      this.setFocus({ r: Math.max(s.r2, t.r2), c: Math.max(s.c2, t.c2) });
+    } else this.apply();
+    if (grid.options.onFill) grid.options.onFill(changed);
+  }
+  _writeFill(row, col, newValue, changed, hist) {
+    const oldValue = row[col.field];
+    let nv = newValue;
+    if (typeof oldValue === "number" && nv != null && nv !== "" && !Number.isNaN(Number(nv))) nv = Number(nv);
+    if (nv === oldValue) return;
+    row[col.field] = nv;
+    changed.push(row);
+    hist.push({ type: "edit", row, before: { [col.field]: oldValue }, after: { [col.field]: nv } });
+    if (this.grid.options.onCellEdit) this.grid.options.onCellEdit({ field: col.field, row, oldValue, newValue: nv });
+  }
 };
+function rangeNum(v) {
+  if (v == null || v === "" || typeof v === "boolean") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function fillSequence(sVals, offset) {
+  const n = sVals.length;
+  if (!n) return "";
+  const nums = sVals.map(rangeNum);
+  if (nums.every((x) => x != null)) {
+    const step = n >= 2 ? avgStep(nums) : 0;
+    const v = nums[0] + step * offset;
+    return Number.isInteger(step) && Number.isInteger(nums[0]) ? Math.round(v) : v;
+  }
+  const dates = sVals.map(fillDate);
+  if (dates.every((d) => d != null)) {
+    const ms = dates.map((d) => d.getTime());
+    const step = n >= 2 ? avgStep(ms) : 0;
+    return isoDate2(new Date(ms[0] + step * offset));
+  }
+  return sVals[(offset % n + n) % n];
+}
+function avgStep(arr) {
+  let s = 0;
+  for (let i = 1; i < arr.length; i++) s += arr[i] - arr[i - 1];
+  return s / (arr.length - 1);
+}
+function fillDate(v) {
+  if (v == null || v === "" || typeof v === "boolean" || typeof v === "number") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function isoDate2(d) {
+  const p = (x) => String(x).padStart(2, "0");
+  return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate());
+}
 
 // src/features/history.js
 var History = class {
@@ -7747,6 +8080,7 @@ var Lattice = class {
     this.quickSearch = "";
     this.advanced = this.state.advanced || null;
     this.universal = this.state.universal || null;
+    this.urlState = options.urlState ? { key: typeof options.urlState === "object" && options.urlState.key || options.id } : null;
     this.groupsCollapsed = new Set(this.state.groups || []);
     this.tree = options.treeData ? new TreeManager(this, options) : null;
     this.treeView = null;
@@ -7758,6 +8092,8 @@ var Lattice = class {
     this.virtual = options.virtualScroll === true && !options.serverSide && !options.treeData;
     this.detailFn = typeof options.rowDetail === "function" && !options.treeData && !this.virtual ? options.rowDetail : null;
     this.expandedDetails = /* @__PURE__ */ new Set();
+    this.pinnedTop = Array.isArray(options.pinnedTop) ? options.pinnedTop.slice() : [];
+    this.pinnedBottom = Array.isArray(options.pinnedBottom) ? options.pinnedBottom.slice() : [];
     this.responsive = options.responsive === true && !options.treeData && !this.virtual;
     this.loadedRows = [];
     this.loadedPage = 0;
@@ -7774,6 +8110,7 @@ var Lattice = class {
     this.rows = [];
     this.total = 0;
     this.lastPage = 1;
+    this._readUrl();
     this._activePresetId = null;
     this.presets = new PresetStore(this);
     this.gear = new Gear(this);
@@ -7795,6 +8132,53 @@ var Lattice = class {
       this.saveState();
       this._gdJustApplied = false;
     }
+  }
+  /* =================== URL sync (sdílitelné pohledy) =================== */
+  /** Kompaktní payload stavu pro URL (jen neprázdné části). */
+  _urlPayload() {
+    const p = {};
+    if (this.sort && this.sort.length) p.s = this.sort.map((x) => [x.field, x.dir === "desc" ? "d" : "a"]);
+    if (this.filters && Object.keys(this.filters).length) p.f = this.filters;
+    if (this.quickSearch) p.q = this.quickSearch;
+    if (this.page > 1) p.p = this.page;
+    if (this.universal && this.universal.field) p.u = this.universal;
+    if (this.advanced) p.a = this.advanced;
+    return p;
+  }
+  /** Zapíše stav do URL query stringu (replaceState — nezaplní historii). */
+  _writeUrl() {
+    if (!this.urlState || typeof window === "undefined" || !window.history) return;
+    try {
+      const url = new URL(window.location.href);
+      const payload = this._urlPayload();
+      if (Object.keys(payload).length) url.searchParams.set(this.urlState.key, JSON.stringify(payload));
+      else url.searchParams.delete(this.urlState.key);
+      window.history.replaceState(null, "", url);
+    } catch {
+    }
+  }
+  /** Načte stav z URL query stringu (při initu) — přepíše řazení/filtry/hledání/stránku. */
+  _readUrl() {
+    if (!this.urlState || typeof window === "undefined") return;
+    let raw;
+    try {
+      raw = new URL(window.location.href).searchParams.get(this.urlState.key);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    let p;
+    try {
+      p = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (Array.isArray(p.s)) this.sort = p.s.map(([field2, d]) => ({ field: field2, dir: d === "d" ? "desc" : "asc" }));
+    if (p.f && typeof p.f === "object") this.filters = { ...p.f };
+    if (typeof p.q === "string") this.quickSearch = p.q;
+    if (p.p) this.page = Number(p.p) || 1;
+    if (p.u) this.universal = p.u;
+    if (p.a) this.advanced = p.a;
   }
   /* =================== persistence =================== */
   /** Sestaví blob z živého stavu a uloží (jeden zdroj pravdy). */
@@ -7902,6 +8286,7 @@ var Lattice = class {
   /* =================== data =================== */
   /** Znovu načte data dle aktuálního stavu a vykreslí tělo + patičku. */
   async refresh() {
+    this._writeUrl();
     if (this.tree) return this.renderTree();
     if (this.progressive) {
       this.page = 1;
@@ -8204,6 +8589,12 @@ var Lattice = class {
     else this.groupsCollapsed.add(key);
     this.saveState();
     this.renderer.renderBody();
+  }
+  /** Nastaví připnuté řádky (nahoře/dole) a překreslí. `{ top?, bottom? }`. */
+  setPinnedRows(patch = {}) {
+    if ("top" in patch) this.pinnedTop = Array.isArray(patch.top) ? patch.top.slice() : [];
+    if ("bottom" in patch) this.pinnedBottom = Array.isArray(patch.bottom) ? patch.bottom.slice() : [];
+    this.renderer.renderPinned();
   }
   /* =================== rozbalovací detail řádku (master-detail) =================== */
   /** Je pod řádkem (dle klíče) rozbalený detail? */

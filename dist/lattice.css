@@ -790,6 +790,16 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice.is-range-mode, .lattice.is-range-mode * { user-select: none; }
 .lattice-body .lattice-row .lattice-cell.is-range { background: var(--lattice-accent-soft); }
 .lattice-body .lattice-row .lattice-cell.is-range-active { box-shadow: inset 0 0 0 2px var(--lattice-accent); }
+.lattice-body .lattice-row .lattice-cell.is-fill-preview { background: var(--lattice-accent-soft); box-shadow: inset 0 0 0 1px var(--lattice-accent); }
+/* fill handle — úchyt v pravém dolním rohu výběru */
+.lattice-cell.has-fill-handle { position: relative; }
+.lattice-fill-handle {
+  position: absolute; right: -1px; bottom: -1px;
+  width: 7px; height: 7px;
+  background: var(--lattice-accent);
+  border: 1px solid var(--lattice-bg);
+  cursor: crosshair; z-index: 3;
+}
 
 /* levá skupina toolbaru (historie + tree ovládání) */
 .lattice-toolbar-left { display: flex; align-items: center; gap: 14px; margin-right: auto; }
@@ -1075,6 +1085,40 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-color-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lattice-bool.is-true { color: var(--lattice-bool-true, #42a05a); }
 .lattice-bool.is-false { color: var(--lattice-bool-false, #e5534b); }
+
+/* neplatná buňka (deklarativní validace) */
+.lattice-cell.is-invalid { box-shadow: inset 0 0 0 2px var(--lattice-danger); background: var(--lattice-danger-soft) !important; animation: lattice-invalid-flash 0.2s ease; }
+@keyframes lattice-invalid-flash { from { transform: translateX(-2px); } 25% { transform: translateX(2px); } 75% { transform: translateX(-1px); } to { transform: translateX(0); } }
+
+/* připnuté řádky (pinned top/bottom) */
+.lattice-pinned { background: var(--lattice-header-bg); }
+.lattice-pinned:empty { display: none; }
+.lattice-pinned-bottom { position: sticky; bottom: 0; z-index: 2; box-shadow: 0 -1px 0 var(--lattice-border); }
+.lattice-pinned-top { box-shadow: 0 1px 0 var(--lattice-border); }
+.lattice-row.is-pinned .lattice-cell { background: var(--lattice-header-bg); font-weight: 600; }
+.lattice-row.is-pinned:hover .lattice-cell { background: var(--lattice-header-bg); }
+.lattice-row.is-pinned .lattice-select-cell,
+.lattice-row.is-pinned .lattice-rownum { visibility: hidden; }
+
+/* status bar souhrnu rozsahu (selection summary) */
+.lattice-range-status { display: none; }
+.lattice-range-status.is-active {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  margin-top: 6px;
+  background: var(--lattice-header-bg);
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  color: var(--lattice-muted);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* sparkline (mini graf) */
+.lattice-sparkline-wrap { display: inline-flex; align-items: center; vertical-align: middle; }
+.lattice-sparkline { color: var(--lattice-accent); display: block; overflow: visible; }
 
 /* progress bar */
 .lattice-progress {
