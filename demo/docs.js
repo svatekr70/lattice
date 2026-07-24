@@ -61,9 +61,20 @@ function docZaciname(root, ctx) {
     h2('Začínáme'),
     lead('Lattice je datová mřížka ve vanilla JS — <b>ESM modul bez build kroku a bez závislostí</b>. Naimportuješ třídu, dáš jí sloupce a data, a tabulka žije.'),
 
-    h3('Instalace / import'),
-    p('Zkopíruj složku <code>src/</code> do projektu a importuj přímo:'),
-    code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';   // styly (nebo přes <link>)"),
+    h3('Instalace'),
+    p('<b>Nejrychleji z CDN</b> — celá knihovna jedním requestem (sbalený ESM soubor), bez buildu:'),
+    code(`<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.css">
+<div id="grid"></div>
+<script type="module">
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
+  new Lattice('#grid', { id: 'kampane', columns, data });
+</script>`),
+    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v0.1.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
+    p('<b>Přes npm</b> (bundler / vlastní build):'),
+    code("npm i lattice"),
+    code("import { Lattice } from 'lattice';\nimport 'lattice/css';"),
+    p('<b>Nebo bez CDN i npm</b> — zkopíruj složku <code>src/</code> do projektu a importuj přímo (čisté ESM, jen víc requestů):'),
+    code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';"),
     note('Žádný bundler není potřeba. Funguje i přes <code>&lt;script type="module"&gt;</code> přímo v prohlížeči.'),
 
     h3('První tabulka'),

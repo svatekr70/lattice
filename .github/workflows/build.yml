@@ -1,0 +1,54 @@
+name: Build bundle
+
+# Při každé změně zdrojáků v src/ (nebo package.json) přegeneruje dist/ bundle
+# a commitne ho zpět. Uživatel na build nemusí myslet.
+#
+# Smyčce se vyhýbá filtrem `paths` — bot commituje jen dist/**, což trigger
+# nespouští (+ [skip ci] pro jistotu).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-bundle
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build bundle
+        run: npm run build
+
+      - name: Commit dist if changed
+        run: |
+          if [ -n "$(git status --porcelain dist)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist
+            git commit -m "chore: rebuild dist bundle [skip ci]"
+            git push
+          else
+            echo "dist beze změny — nic ke commitu"
+          fi
