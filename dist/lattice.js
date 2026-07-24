@@ -4520,8 +4520,13 @@ var Renderer = class {
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
     const grid = this.grid;
-    if (grid.hasActions() && grid.instance.actionsLayout === "menu" && !rn) left.push(this.actionsMenuColumn());
     const grouped = new Set(grid.groupFields());
+    this._menuIdField = null;
+    if (grid.hasActions() && grid.instance.actionsLayout === "menu" && !rn) {
+      const idCol = grid.columns.find((c) => c.visible && c.type === "id" && !grouped.has(c.field));
+      if (idCol) this._menuIdField = idCol.field;
+      else left.push(this.rowNumberColumn(true));
+    }
     const collapsed = grid.responsive && this._collapsed ? this._collapsed : null;
     this._collapsedCols = [];
     for (const c of grid.columns) {
@@ -4648,10 +4653,14 @@ var Renderer = class {
       _actionsMenu: true
     };
   }
-  /** Syntetický sloupec s čísly řádků (nebo null když je vypnutý). */
-  rowNumberColumn() {
-    const mode = this.grid.instance.rowNumbers;
-    if (!mode || mode === "none") return null;
+  /**
+   * Syntetický sloupec s čísly řádků (nebo null když je vypnutý).
+   * `force` = vynutí sloupec i při rowNumbers 'none' (režim ⋮ menu bez ID sloupce).
+   */
+  rowNumberColumn(force = false) {
+    const set = this.grid.instance.rowNumbers;
+    const mode = set && set !== "none" ? set : force ? "continuous" : null;
+    if (!mode) return null;
     const maxNum = mode === "perPage" ? Math.min(this.grid.pageSize, this.grid.total || this.grid.pageSize) : this.grid.total || 0;
     const digits = Math.max(2, String(Math.max(1, maxNum)).length);
     const menuActions = this.grid.hasActions() && this.grid.instance.actionsLayout === "menu";
@@ -5867,6 +5876,14 @@ var Renderer = class {
       }
     }
     applyCond(cell, col.cellClass, col.cellStyle, [value, rowData, col]);
+    if (this._menuIdField && col.field === this._menuIdField) {
+      const txt = cell.textContent;
+      cell.textContent = "";
+      cell.classList.add("has-actions-menu");
+      cell.appendChild(el("span.lattice-rownum-num", { text: txt }));
+      const btn = this.buildActionsMenuButton(rowData, index);
+      if (btn) cell.appendChild(btn);
+    }
     if (col.type === "id" && typeof this.grid.options.rowContextMenu === "function") {
       this._attachRowMenuTrigger(cell, rowData, index);
     } else if (typeof this.grid.options.cellContextMenu === "function") {

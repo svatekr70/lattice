@@ -843,7 +843,7 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   font-size: 16px; line-height: 1; padding: 0 3px; border-radius: var(--lattice-control-radius);
 }
 .lattice-actions-menu-btn:hover { color: var(--lattice-accent); background: var(--lattice-accent-soft); }
-.lattice-rownum.has-actions-menu { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.lattice-cell.has-actions-menu { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 .lattice-menu-item.is-disabled { color: var(--lattice-muted); opacity: 0.5; cursor: default; }
 .lattice-menu-item.is-danger { color: var(--lattice-danger); }
 
