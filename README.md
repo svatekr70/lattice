@@ -5,6 +5,22 @@ Bez runtime závislostí, s jedním zdrojem pravdy pro persistenci a determinist
 
 ## Instalace
 
+**Z CDN — jeden soubor, bez buildu** (nejrychlejší začátek):
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.css">
+<div id="grid"></div>
+<script type="module">
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
+  new Lattice('#grid', { columns, data });
+</script>
+```
+
+Pro produkci připni verzi místo `@main` (tag `@v0.1.0` nebo konkrétní commit).
+Celá knihovna je jeden sbalený ESM soubor — načte se **jedním requestem**.
+
+**Přes npm:**
+
 ```bash
 npm i lattice
 ```
@@ -29,9 +45,14 @@ new Lattice('#grid', {
 });
 ```
 
-## Stav vývoje
+## Build
 
-Rozpracováno — viz [`nova-grid-komponenta-zadani.md`](./nova-grid-komponenta-zadani.md).
+Runtime je bez závislostí. Sbalený `dist/` se generuje esbuildem:
+
+```bash
+npm install   # dev závislost esbuild
+npm run build # → dist/lattice.js, dist/lattice.min.js, dist/lattice.css
+```
 
 ## Licence
 

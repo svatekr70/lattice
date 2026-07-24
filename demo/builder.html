@@ -194,7 +194,7 @@
       <div class="code-head"><span>Kompletní kód — zkopíruj a vlož</span><button id="copy-btn">Kopírovat</button></div>
       <pre class="code" id="code-out"></pre>
     </div>
-    <p class="hint" style="margin-top:10px">Kompletní stránka bez build kroku — jen uprav <b>cesty</b> ke knihovně (<code>./lattice/src/…</code>). Další volby si uživatel mění v UI „Nastavení tabulky" (ozubené kolo).</p>
+    <p class="hint" style="margin-top:10px">Kompletní stránka bez build kroku — celá Lattice se načte <b>jedním requestem z CDN</b> (jsDelivr). Pro produkci připni verzi místo <code>@main</code>. Další volby si uživatel mění v UI „Nastavení tabulky" (ozubené kolo).</p>
   </div>
 </div>
 
@@ -507,7 +507,7 @@ function dataLiteral() {
 }
 function generateJs() {
   const L = [];
-  L.push("import { Lattice } from './lattice/src/index.js';");
+  L.push("import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';");
   L.push('');
   L.push('const columns = [');
   activeColumns().forEach((c) => L.push(colToCode(c)));
@@ -587,7 +587,7 @@ function generateJs() {
 function generateCode() {
   const js = reindent(generateJs(), '    ');
   return ['<!doctype html>', '<html lang="cs">', '<head>', '  <meta charset="utf-8">',
-    '  <!-- Styl Lattice — uprav cestu podle umístění knihovny -->', '  <link rel="stylesheet" href="./lattice/src/lattice.css">',
+    '  <!-- Styl Lattice z CDN (jeden request; pro produkci připni verzi místo @main) -->', '  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.css">',
     '</head>', '<body>', '  <!-- Sem se vykreslí tabulka -->', '  <div id="grid"></div>', '',
     '  <!-- Lattice je čisté ESM — bez build kroku, jen type="module" -->',
     '  <script type="module">', js, '  <\/script>', '</body>', '</html>'].join('\n');

@@ -5,8 +5,11 @@
   "type": "module",
   "main": "src/index.js",
   "module": "src/index.js",
+  "unpkg": "dist/lattice.min.js",
+  "jsdelivr": "dist/lattice.min.js",
   "exports": {
     ".": "./src/index.js",
+    "./bundle": "./dist/lattice.js",
     "./css": "./src/lattice.css"
   },
   "files": [
@@ -15,7 +18,8 @@
   ],
   "scripts": {
     "test": "node --test",
-    "demo": "node demo/server.js"
+    "demo": "node demo/server.js",
+    "build": "esbuild src/index.js --bundle --format=esm --outfile=dist/lattice.js && esbuild src/index.js --bundle --format=esm --minify --outfile=dist/lattice.min.js && cp src/lattice.css dist/lattice.css"
   },
   "keywords": [
     "grid",
@@ -28,5 +32,8 @@
   "license": "MIT",
   "sideEffects": [
     "*.css"
-  ]
+  ],
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
 }
