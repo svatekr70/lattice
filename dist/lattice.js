@@ -5822,9 +5822,9 @@ var Renderer = class {
       });
       if (col._menuActions) {
         cell2.classList.add("has-actions-menu");
+        cell2.appendChild(el("span.lattice-rownum-num", { text: String(num4) }));
         const btn = this.buildActionsMenuButton(rowData, index);
         if (btn) cell2.appendChild(btn);
-        cell2.appendChild(el("span.lattice-rownum-num", { text: String(num4) }));
       } else {
         cell2.textContent = String(num4);
         if (typeof this.grid.options.rowContextMenu === "function") this._attachRowMenuTrigger(cell2, rowData, index);
