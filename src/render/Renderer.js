@@ -138,10 +138,16 @@ export class Renderer {
     if (sc) left.push(sc);
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
-    // Akce v režimu 'menu' bez číslování řádků → samostatný úzký gutter s ⋮ vlevo.
     const grid = this.grid;
-    if (grid.hasActions() && grid.instance.actionsLayout === 'menu' && !rn) left.push(this.actionsMenuColumn());
     const grouped = new Set(grid.groupFields()); // sloupce použité k seskupení se nezobrazují jako běžné
+    // Akce v režimu 'menu' bez zapnutého číslování řádků: ⋮ tlačítko dej do ID
+    // sloupce (je-li zobrazen), jinak vynuť číslovací sloupec a dej ⋮ do něj.
+    this._menuIdField = null;
+    if (grid.hasActions() && grid.instance.actionsLayout === 'menu' && !rn) {
+      const idCol = grid.columns.find((c) => c.visible && c.type === 'id' && !grouped.has(c.field));
+      if (idCol) this._menuIdField = idCol.field;
+      else left.push(this.rowNumberColumn(true)); // žádné ID → vynucené číslování s ⋮
+    }
     const collapsed = (grid.responsive && this._collapsed) ? this._collapsed : null;
     this._collapsedCols = [];
     for (const c of grid.columns) {
@@ -222,10 +228,14 @@ export class Renderer {
     };
   }
 
-  /** Syntetický sloupec s čísly řádků (nebo null když je vypnutý). */
-  rowNumberColumn() {
-    const mode = this.grid.instance.rowNumbers;
-    if (!mode || mode === 'none') return null;
+  /**
+   * Syntetický sloupec s čísly řádků (nebo null když je vypnutý).
+   * `force` = vynutí sloupec i při rowNumbers 'none' (režim ⋮ menu bez ID sloupce).
+   */
+  rowNumberColumn(force = false) {
+    const set = this.grid.instance.rowNumbers;
+    const mode = (set && set !== 'none') ? set : (force ? 'continuous' : null);
+    if (!mode) return null;
     // Šířka dle nejdelšího čísla na stránce.
     const maxNum = mode === 'perPage'
       ? Math.min(this.grid.pageSize, this.grid.total || this.grid.pageSize)
@@ -1511,6 +1521,16 @@ export class Renderer {
     }
     // Podmíněné formátování buňky (od aplikace): třídy / inline styl dle hodnoty.
     applyCond(cell, col.cellClass, col.cellStyle, [value, rowData, col]);
+
+    // ⋮ menu akcí hostované v ID sloupci (režim 'menu' bez číslování řádků).
+    if (this._menuIdField && col.field === this._menuIdField) {
+      const txt = cell.textContent;
+      cell.textContent = '';
+      cell.classList.add('has-actions-menu');
+      cell.appendChild(el('span.lattice-rownum-num', { text: txt }));
+      const btn = this.buildActionsMenuButton(rowData, index);
+      if (btn) cell.appendChild(btn);
+    }
 
     // Buňka typu 'id' spouští menu ŘÁDKU (needituje se, nemá cell menu).
     if (col.type === 'id' && typeof this.grid.options.rowContextMenu === 'function') {
