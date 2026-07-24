@@ -1464,12 +1464,12 @@ export class Renderer {
       const cell = el('div.lattice-cell.lattice-rownum', {
         dataset: { field: col.field }, class: 'is-' + (col.align || 'right'),
       });
-      // V režimu 'menu' je uvnitř číslovacího sloupce ⋮ tlačítko akcí, jinak jen číslo.
+      // V režimu 'menu' je uvnitř číslovacího sloupce ⋮ tlačítko akcí (za číslem), jinak jen číslo.
       if (col._menuActions) {
         cell.classList.add('has-actions-menu');
+        cell.appendChild(el('span.lattice-rownum-num', { text: String(num) }));
         const btn = this.buildActionsMenuButton(rowData, index);
         if (btn) cell.appendChild(btn);
-        cell.appendChild(el('span.lattice-rownum-num', { text: String(num) }));
       } else {
         cell.textContent = String(num);
         // Číslovací sloupec jako spouštěč menu řádku (levý klik) — nekoliduje s buňkami.
