@@ -17,3 +17,6 @@ export { I18n, registerLanguage, availableLanguages } from './i18n/index.js';
 export { Store } from './core/Store.js';
 export { buildColumns, serializeColumns } from './core/ColumnModel.js';
 export { ClientData, ServerData, encodeParams } from './core/DataSource.js';
+
+/** Verze knihovny (odpovídá package.json). */
+export const VERSION = '0.1.0';
