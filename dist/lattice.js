@@ -9163,12 +9163,16 @@ function resolveAjax(options) {
   if (options.ajaxUrl) return { url: options.ajaxUrl };
   throw new Error("Lattice: serverSide=true vy\u017Eaduje `ajax` nebo `ajaxUrl`.");
 }
+
+// src/index.js
+var VERSION = "0.1.0";
 export {
   ClientData,
   I18n,
   Lattice,
   ServerData,
   Store,
+  VERSION,
   availableLanguages,
   buildColumns,
   encodeParams,
