@@ -270,7 +270,7 @@ function deriveAvailableFilters(def) {
   return [...new Set(list)];
 }
 function defaultAlign(type) {
-  if (type === "number" || type === "money" || type === "date" || type === "datetime") return "right";
+  if (type === "id" || type === "number" || type === "money" || type === "date" || type === "datetime") return "right";
   if (type === "boolean" || type === "tick" || type === "icon" || type === "color") return "center";
   return null;
 }
