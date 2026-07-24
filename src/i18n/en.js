@@ -285,6 +285,8 @@ export default {
   edit: { hint: 'Double-click to edit' },
   detail: { toggle: 'Show / hide detail' },
   selection: { count: 'Selected: {n}', clear: 'Clear selection' },
+  range: { cells: '{n} cells', sum: 'Sum', avg: 'Avg', min: 'Min', max: 'Max', fill: 'Drag to fill' },
+  validate: { required: 'Required', invalid: 'Invalid value', pattern: 'Wrong format', min: 'Must be ≥ {n}', max: 'Must be ≤ {n}', minLen: 'At least {n} characters', maxLen: 'At most {n} characters' },
   empty: 'No data',
   loading: 'Loading…',
   error: 'Failed to load data',

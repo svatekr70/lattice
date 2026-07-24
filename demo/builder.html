@@ -179,6 +179,7 @@
         <label class="row" id="row-detail"><input type="checkbox" id="opt-detail"> Detail řádku</label>
         <label class="row"><input type="checkbox" id="opt-movable"> Přesouvání řádků</label>
         <label class="row"><input type="checkbox" id="opt-range"> Výběr rozsahu buněk</label>
+        <label class="row"><input type="checkbox" id="opt-urlstate"> Sdílitelný stav v URL</label>
         <label class="row"><input type="checkbox" id="opt-rowmenu"> Kontextové menu řádku</label>
         <label class="row"><input type="checkbox" id="opt-cellmenu"> Kontextové menu buňky</label>
       </div>
@@ -423,6 +424,7 @@ function rebuild() {
   if (chk('opt-responsive')) opts.responsive = true;
   if (chk('opt-movable')) opts.movableRows = true;
   if (chk('opt-range')) opts.rangeSelection = true;
+  if (chk('opt-urlstate')) opts.urlState = true;
   if (chk('opt-history')) { opts.history = true; opts.historySize = Number($('opt-historysize').value) || 30; }
   if (chk('opt-actions')) opts.actions = [
     { name: 'view', onClick: (row) => alert('Zobrazit #' + row.id) },
@@ -534,6 +536,7 @@ function generateJs() {
   if (chk('opt-responsive')) L.push('  responsive: true,');
   if (chk('opt-movable')) L.push('  movableRows: true,');
   if (chk('opt-range')) L.push('  rangeSelection: true,');
+  if (chk('opt-urlstate')) L.push('  urlState: true,');
   if (chk('opt-history')) { L.push('  history: true,'); L.push(`  historySize: ${Number($('opt-historysize').value) || 30},`); }
   if (chk('opt-actions')) {
     L.push('  actions: [');

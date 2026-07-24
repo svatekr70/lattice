@@ -556,7 +556,7 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
       {
         id: 'ex-range',
         title: 'Výběr rozsahu + schránka',
-        blurb: 'Spreadsheet-like výběr obdélníku buněk: táhni myší, shift-klik rozšíří, šipky / shift+šipky posouvají. Ctrl/⌘+C zkopíruje rozsah jako TSV (vlož do Excelu/Sheets), Ctrl/⌘+V vloží TSV do editovatelných buněk. Ctrl/⌘+A vybere vše.',
+        blurb: 'Spreadsheet-like výběr obdélníku buněk: táhni myší, shift-klik rozšíří, šipky / shift+šipky posouvají. Ctrl/⌘+C zkopíruje rozsah jako TSV (vlož do Excelu/Sheets), Ctrl/⌘+V vloží TSV do editovatelných buněk. Ctrl/⌘+A vybere vše. Dole naskočí <b>souhrn výběru</b> (počet, součet, průměr, min/max). A táhnutím <b>rohu výběru</b> (fill handle) hodnoty vyplníš přes rozsah — čísla/data se dopočítají jako posloupnost, ostatní se kopírují.',
         code: `new Lattice('#grid', {\n  id: 'ex-range', columns, data,\n  rangeSelection: true,   // výběr rozsahu buněk + Ctrl+C/V\n  editable: true,         // aby šlo vkládat (paste)\n  onRangeCopy: (data, tsv) => {},   // rozsah zkopírován\n  onCellEdit: ({ field, row, newValue }) => save(...),\n})`,
         mount: (el, ctx) => rangeExample(el, ctx),
       },
@@ -680,6 +680,57 @@ columns = [
           ],
         })),
       },
+      {
+        id: 'ex-sparkline',
+        title: 'Sparkline (mini graf v buňce)',
+        blurb: 'Typ sloupce <code>sparkline</code> vykreslí z pole hodnot malý graf — čárový nebo sloupcový, čisté SVG bez závislosti. Barva se dědí z motivu, přepíše <code>color</code>.',
+        code: `columns = [
+  { field: 'trend', title: 'Trend', type: 'sparkline',
+    formatterParams: { type: 'line', fill: true } },
+  { field: 'weekly', title: 'Týdny', type: 'sparkline',
+    formatterParams: { type: 'bar', color: '#16a34a' } },
+]
+// data: { trend: [3, 5, 4, 8, 6, 9, 7], … }`,
+        mount: (el, ctx) => sparklineExample(el, ctx),
+      },
+      {
+        id: 'ex-pinned',
+        title: 'Připnuté řádky (nahoře/dole)',
+        blurb: 'Řádky připnuté nad/pod tabulku — vždy viditelné bez ohledu na scroll a stránku. Ideální pro souhrnný řádek nebo zvýrazněný záznam. Dodáš je jako pole objektů.',
+        code: `new Lattice('#grid', {
+  id: 'ex-pinned', columns, data, keyField: 'id',
+  pinnedTop:    [{ name: '★ Prioritní kampaň', budget: 999000 }],
+  pinnedBottom: [{ name: 'Σ Celkem', budget: totalBudget }],
+})
+// za běhu: grid.setPinnedRows({ top, bottom })`,
+        mount: (el, ctx) => pinnedExample(el, ctx),
+      },
+      {
+        id: 'ex-validation',
+        title: 'Deklarativní validace',
+        blurb: 'Pravidla validace přímo na sloupci (<code>validator</code>): povinné, rozsah, délka, regulární výraz nebo vlastní funkce. Neplatná editace se zamítne a buňka blikne červeně. Zkus vymazat Název nebo dát Skóre mimo 0–100.',
+        code: `columns = [
+  { field: 'name',   editable: true, validator: ['required', { minLen: 3 }] },
+  { field: 'score',  editable: true, validator: { min: 0, max: 100 } },
+  { field: 'email',  editable: true, validator: { pattern: /.+@.+\\..+/ } },
+  { field: 'budget', editable: true, validator: (v) => v >= 0 || 'Nesmí být záporné' },
+]
+// onCellInvalid: ({ field, error }) => toast(error)`,
+        mount: (el, ctx) => validationExample(el, ctx),
+      },
+      {
+        id: 'ex-urlstate',
+        title: 'Sdílitelný pohled (URL sync)',
+        blurb: 'Řazení, filtry, hledání i stránka se promítají do <b>URL</b> — zkopíruj adresu a pošli kolegovi, uvidí přesně tentýž pohled. Zapíná se <code>urlState: true</code>. Zkus seřadit/filtrovat a koukni do adresního řádku.',
+        code: `new Lattice('#grid', {
+  id: 'ex-urlstate', columns, data,
+  urlState: true,   // stav → ?ex-urlstate={…}; sdílitelný odkaz
+})`,
+        mount: (el, ctx) => new Lattice(el, base(ctx, {
+          id: 'ex-urlstate', columns: campaignColumns(), data: ctx.data, pageSize: 15,
+          quickSearch: true, urlState: true,
+        })),
+      },
     ],
   },
 ];
@@ -690,7 +741,7 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-computed', 'ex-rowdetail', 'ex-responsive', 'ex-bulk'],
+  'Novinky': ['ex-sparkline', 'ex-pinned', 'ex-validation', 'ex-urlstate', 'ex-computed', 'ex-rowdetail', 'ex-responsive', 'ex-bulk'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
     'ex-pagination', 'ex-grouping', 'ex-summary', 'ex-tree-nested', 'ex-tree-flat', 'ex-tree-nestedset',
@@ -1095,6 +1146,53 @@ function exportExample(el, ctx) {
 }
 
 /* ---------------- příklad „Responsivní skládání" ---------------- */
+
+/* ---------------- Novinky: sparkline / pinned / validace ---------------- */
+
+function sparklineExample(el, ctx) {
+  let s = 7;
+  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const data = ctx.data.slice(0, 30).map((r) => ({
+    ...r,
+    trend: Array.from({ length: 8 }, () => Math.round(rnd() * 100)),
+    weekly: Array.from({ length: 6 }, () => Math.round(rnd() * 50)),
+  }));
+  return new Lattice(el, base(ctx, {
+    id: 'ex-sparkline', keyField: 'id', pageSize: 10, data,
+    columns: [
+      { field: 'id', title: 'ID', type: 'id', width: 70 },
+      { field: 'name', title: 'Kampaň', type: 'text', width: 190 },
+      { field: 'trend', title: 'Trend (skóre)', type: 'sparkline', width: 140, formatterParams: { type: 'line', fill: true } },
+      { field: 'weekly', title: 'Týdny', type: 'sparkline', width: 120, formatterParams: { type: 'bar', color: '#16a34a' } },
+      { field: 'budget', title: 'Rozpočet', type: 'money', width: 140, formatterParams: { currency: 'CZK' } },
+    ],
+  }));
+}
+
+function pinnedExample(el, ctx) {
+  const data = ctx.data.slice(0, 60);
+  const total = data.reduce((a, r) => a + (r.budget || 0), 0);
+  const avg = Math.round(data.reduce((a, r) => a + (r.score || 0), 0) / (data.length || 1));
+  return new Lattice(el, base(ctx, {
+    id: 'ex-pinned', keyField: 'id', pageSize: 12, data,
+    columns: coreColumns(),
+    pinnedTop: [{ id: 'top', name: '★ Prioritní: Jarní výprodej', category: 'PPC', owner: 'Nováková', region: 'Praha', budget: 999000, score: 100, status: 'Běží' }],
+    pinnedBottom: [{ id: 'sum', name: 'Σ Celkem / ø skóre', budget: total, score: avg, status: '' }],
+  }));
+}
+
+function validationExample(el, ctx) {
+  return new Lattice(el, base(ctx, {
+    id: 'ex-validation', keyField: 'id', pageSize: 10, data: ctx.data.slice(0, 40),
+    columns: [
+      { field: 'id', title: 'ID', type: 'id', width: 70 },
+      { field: 'name', title: 'Název (povinné, ≥3)', type: 'text', width: 210, editable: true, validator: ['required', { minLen: 3 }] },
+      { field: 'score', title: 'Skóre (0–100)', type: 'number', width: 140, editable: true, validator: { min: 0, max: 100 } },
+      { field: 'budget', title: 'Rozpočet (≥0)', type: 'money', width: 160, editable: true, formatterParams: { currency: 'CZK' }, validator: (v) => Number(v) >= 0 || 'Nesmí být záporné' },
+    ],
+    onCellInvalid: ({ field, error }) => console.log('[invalid]', field, '→', error),
+  }));
+}
 
 function responsiveExample(el, ctx) {
   const hint = document.createElement('div');

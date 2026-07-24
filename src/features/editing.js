@@ -70,7 +70,16 @@ export class EditManager {
     a.cell.classList.remove('is-editing');
     if (val !== undefined && !equal(val, a.rowData[a.col.field])) {
       const oldValue = a.rowData[a.col.field];
-      // Validace PŘED přijetím — aplikace může edit zamítnout vrácením false.
+      // 1) Deklarativní validace sloupce (col.validator) — PŘED přijetím.
+      const vErr = runValidator(a.col, val, a.rowData, this.grid.i18n);
+      if (vErr) {
+        this.grid.renderer.renderBody();
+        this._flashInvalid(a.idx, a.col.field, vErr);
+        const inv = this.grid.options.onCellInvalid;
+        if (typeof inv === 'function') { try { inv({ field: a.col.field, row: a.rowData, rowIndex: a.idx, value: val, error: vErr }); } catch { /* no-op */ } }
+        return;
+      }
+      // 2) Imperativní validace aplikace — může edit zamítnout vrácením false.
       const validate = this.grid.options.onCellValidate;
       if (typeof validate === 'function') {
         let ok = true;
@@ -88,6 +97,58 @@ export class EditManager {
     }
     this.grid.renderer.renderBody(); // překreslí buňku (formát) i souhrn
   }
+
+  /** Krátce zvýrazní buňku jako neplatnou (červený rámeček + tooltip s chybou). */
+  _flashInvalid(idx, field, err) {
+    const cell = this.grid.renderer.nodes.body.querySelector('.lattice-row[data-index="' + idx + '"] .lattice-cell[data-field="' + field + '"]');
+    if (!cell) return;
+    cell.classList.add('is-invalid');
+    cell.title = err;
+    setTimeout(() => { cell.classList.remove('is-invalid'); if (cell.title === err) cell.removeAttribute('title'); }, 1800);
+  }
+}
+
+/* ============ deklarativní validace sloupce (col.validator) ============ */
+
+/**
+ * Spustí `col.validator` nad hodnotou. Vrací null (OK) nebo chybovou hlášku.
+ * validator: 'required' | RegExp | fn(value,row,col)→true|false|string |
+ *            { required, min, max, minLen, maxLen, pattern, message } | pole pravidel.
+ */
+export function runValidator(col, value, row, i18n) {
+  const v = col.validator;
+  if (!v) return null;
+  const rules = Array.isArray(v) ? v : [v];
+  for (const rule of rules) {
+    const err = checkRule(rule, value, row, col, i18n);
+    if (err) return err;
+  }
+  return null;
+}
+
+function checkRule(rule, value, row, col, i18n) {
+  const t = (k) => (i18n ? i18n.t('validate.' + k) : k);
+  const empty = value == null || value === '';
+  if (rule === 'required') return empty ? t('required') : null;
+  if (typeof rule === 'function') {
+    let r; try { r = rule(value, row, col); } catch { return t('invalid'); }
+    if (r === true || r == null) return null;
+    return typeof r === 'string' ? r : t('invalid');
+  }
+  if (rule instanceof RegExp) return (!empty && !rule.test(String(value))) ? t('pattern') : null;
+  if (rule && typeof rule === 'object') {
+    if (rule.required && empty) return rule.message || t('required');
+    if (!empty) {
+      const s = String(value);
+      const num = Number(s.replace(/\s/g, '').replace(',', '.'));
+      if (rule.min != null && !(num >= rule.min)) return rule.message || t('min').replace('{n}', rule.min);
+      if (rule.max != null && !(num <= rule.max)) return rule.message || t('max').replace('{n}', rule.max);
+      if (rule.minLen != null && s.length < rule.minLen) return rule.message || t('minLen').replace('{n}', rule.minLen);
+      if (rule.maxLen != null && s.length > rule.maxLen) return rule.message || t('maxLen').replace('{n}', rule.maxLen);
+      if (rule.pattern) { const re = rule.pattern instanceof RegExp ? rule.pattern : new RegExp(rule.pattern); if (!re.test(s)) return rule.message || t('pattern'); }
+    }
+  }
+  return null;
 }
 
 /* ============ výběr editoru dle sloupce ============ */

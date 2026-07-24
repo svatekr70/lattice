@@ -106,6 +106,7 @@ function resolveColumn(def, saved) {
     filterUrl: def.filterUrl || null,    // pro select/multiselect z API
     formatter: def.formatter || null,    // vlastní formátor buňky
     value: typeof def.value === 'function' ? def.value : null,   // odvozená (computed) hodnota z celého řádku
+    validator: def.validator != null ? def.validator : null,     // deklarativní validace editace
     cellClass: typeof def.cellClass === 'function' ? def.cellClass : null,   // podmíněné třídy buňky
     cellStyle: typeof def.cellStyle === 'function' ? def.cellStyle : null,   // podmíněný inline styl buňky
     editor: def.editor || null,

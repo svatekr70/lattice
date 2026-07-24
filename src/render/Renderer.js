@@ -57,17 +57,20 @@ export class Renderer {
     const groupRow = el('div.lattice-group-row');
     const headerRow = el('div.lattice-header-row');
     const filterRow = el('div.lattice-filter-row');
+    const pinnedTop = el('div.lattice-pinned.lattice-pinned-top');
+    const pinnedBottom = el('div.lattice-pinned.lattice-pinned-bottom');
     const body = el('div.lattice-body');
     const summaryBar = el('div.lattice-summary-bar');
     const footer = el('div.lattice-footer');
     const overlay = el('div.lattice-overlay');
 
-    header.append(groupRow, headerRow, filterRow);
-    table.append(header, body);
+    header.append(groupRow, headerRow, filterRow, pinnedTop); // pinnedTop se lepí spolu s hlavičkou
+    table.append(header, body, pinnedBottom);
     viewport.append(table);
-    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, overlay);
+    const rangeStatus = el('div.lattice-range-status');
+    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
 
-    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, body, summaryBar, footer, overlay };
+    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
 
     // Horní vodorovný scrollbar synchronizovaný s viewportem (obousměrně).
     let syncing = false;
@@ -710,6 +713,8 @@ export class Renderer {
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
 
+    this.renderPinned(list); // připnuté řádky (nahoře/dole) — nezávislé na těle
+
     // Tree režim: dekorace (odsazení + šipka) patří do prvního datového sloupce.
     // Stromová dekorace (odsazení + šipka) patří do prvního REÁLNÉHO datového
     // sloupce — ne do syntetických (přesun/výběr/číslování/akce).
@@ -938,6 +943,37 @@ export class Renderer {
     clearBtn.addEventListener('click', () => grid.clearSelection());
     bar.appendChild(clearBtn);
     bar.classList.add('is-active');
+  }
+
+  /** Status bar se souhrnem označeného rozsahu buněk (počet, součet, průměr…). */
+  updateRangeStatus(text) {
+    const bar = this.nodes.rangeStatus;
+    if (!bar) return;
+    bar.textContent = text || '';
+    bar.classList.toggle('is-active', !!text);
+  }
+
+  /**
+   * Připnuté řádky (pinnedTop/pinnedBottom) — vždy viditelné bez ohledu na scroll
+   * a stránku (souhrnný řádek, „nový záznam", zvýrazněný záznam). Vykreslí se jako
+   * datové řádky s třídou is-pinned a nečíselným indexem (nezasahují do editace/výběru).
+   */
+  renderPinned(list) {
+    list = list || this.renderColumns().list;
+    const fill = (container, rows, tag) => {
+      if (!container) return;
+      clear(container);
+      const arr = Array.isArray(rows) ? rows : [];
+      container.style.display = arr.length ? '' : 'none';
+      arr.forEach((rowData, i) => {
+        const row = this.buildDataRow(rowData, tag + i, 0, list);
+        row.classList.add('is-pinned');
+        container.appendChild(row);
+      });
+    };
+    fill(this.nodes.pinnedTop, this.grid.pinnedTop, 'pt');
+    fill(this.nodes.pinnedBottom, this.grid.pinnedBottom, 'pb');
+    if (this.layout) this.styleCells();
   }
 
   /** Stav hlavičkového checkboxu (checked / indeterminate dle AKTUÁLNÍHO ROZSAHU). */

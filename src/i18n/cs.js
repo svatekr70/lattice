@@ -285,6 +285,8 @@ export default {
   edit: { hint: 'Dvojklik pro úpravu' },
   detail: { toggle: 'Zobrazit / skrýt detail' },
   selection: { count: 'Vybráno: {n}', clear: 'Zrušit výběr' },
+  range: { cells: '{n} buněk', sum: 'Součet', avg: 'Průměr', min: 'Min', max: 'Max', fill: 'Táhni pro vyplnění' },
+  validate: { required: 'Povinné pole', invalid: 'Neplatná hodnota', pattern: 'Nesprávný formát', min: 'Musí být ≥ {n}', max: 'Musí být ≤ {n}', minLen: 'Nejméně {n} znaků', maxLen: 'Nejvíce {n} znaků' },
   empty: 'Žádná data',
   loading: 'Načítání…',
   error: 'Chyba načtení dat',

@@ -121,6 +121,52 @@ registerType('progress', (v, col) => {
   return wrap;
 });
 
+/**
+ * Sparkline — mini graf z pole hodnot (nebo CSV/mezerami odděleného řetězce).
+ * Čisté SVG, bez závislosti. Barva se dědí z motivu (currentColor), přepíše `color`.
+ * formatterParams: { type:'line'|'bar', color, width=80, height=22, min, max, fill, dot }
+ */
+registerType('sparkline', (v, col) => {
+  const p = col.formatterParams || {};
+  let nums = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(/[,;\s]+/) : []);
+  nums = nums.map(toNumber).filter((x) => x != null);
+  if (!nums.length) return '';
+  const NS = 'http://www.w3.org/2000/svg';
+  const w = p.width || 80, h = p.height || 22, pad = 2;
+  const iw = w - pad * 2, ih = h - pad * 2;
+  const min = p.min != null ? p.min : Math.min(...nums);
+  const max = p.max != null ? p.max : Math.max(...nums);
+  const span = (max - min) || 1;
+  const X = (i) => pad + (nums.length === 1 ? iw / 2 : (i / (nums.length - 1)) * iw);
+  const Y = (val) => pad + ih - ((val - min) / span) * ih;
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'lattice-sparkline');
+  svg.setAttribute('width', w); svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  if (p.color) svg.style.color = p.color;
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  if (p.type === 'bar') {
+    const bw = iw / nums.length;
+    nums.forEach((val, i) => {
+      const bh = Math.max(0.5, ((val - min) / span) * ih);
+      svg.appendChild(mk('rect', { x: (pad + i * bw + bw * 0.1).toFixed(1), y: (pad + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: 'currentColor' }));
+    });
+  } else {
+    const d = nums.map((val, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(val).toFixed(1)).join(' ');
+    if (p.fill) svg.appendChild(mk('path', { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad + ih).toFixed(1)} Z`, fill: 'currentColor', opacity: '0.15' }));
+    svg.appendChild(mk('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': p.strokeWidth || 1.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    if (p.dot !== false) svg.appendChild(mk('circle', { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: '1.6', fill: 'currentColor' }));
+  }
+  const wrap = document.createElement('span');
+  wrap.className = 'lattice-sparkline-wrap';
+  wrap.title = nums.join(', ');
+  wrap.appendChild(svg);
+  return wrap;
+});
+
 /** Odkaz (anchor). formatterParams: { urlPrefix, target, label, rel } */
 registerType('link', (v, col) => {
   if (v == null || v === '') return '';

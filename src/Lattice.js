@@ -106,6 +106,8 @@ export class Lattice {
     this.quickSearch = ''; // rychlé hledání přes vše (transientní, nepersistuje se)
     this.advanced = this.state.advanced || null; // aktivní rozšířený filtr (strom)
     this.universal = this.state.universal || null; // univerzální filtr { field, op, value }
+    // Synchronizace stavu do URL query stringu (sdílitelné filtrované pohledy).
+    this.urlState = options.urlState ? { key: (typeof options.urlState === 'object' && options.urlState.key) || options.id } : null;
     this.groupsCollapsed = new Set(this.state.groups || []); // sbalené skupiny řádků
     // Tree data (hierarchie) — když je zapnuté, nahrazuje stránkovaný datový zdroj.
     this.tree = options.treeData ? new TreeManager(this, options) : null;
@@ -129,6 +131,9 @@ export class Lattice {
     // Jen ploché řádky (ne strom, ne virtuální scroll). Stav rozbalení je transientní.
     this.detailFn = (typeof options.rowDetail === 'function' && !options.treeData && !this.virtual) ? options.rowDetail : null;
     this.expandedDetails = new Set();
+    // Připnuté řádky (vždy viditelné nahoře/dole) — pole objektů řádků.
+    this.pinnedTop = Array.isArray(options.pinnedTop) ? options.pinnedTop.slice() : [];
+    this.pinnedBottom = Array.isArray(options.pinnedBottom) ? options.pinnedBottom.slice() : [];
     // Responsivní skládání: při úzkém viewportu se přetečené (nefixované) sloupce
     // schovají do rozbalovacího detailu řádku. Jen ploché řádky (ne strom/virtuál).
     this.responsive = options.responsive === true && !options.treeData && !this.virtual;
@@ -152,6 +157,10 @@ export class Lattice {
     this.rows = [];
     this.total = 0;
     this.lastPage = 1;
+
+    // 6b) přepiš řazení/filtry/hledání/stránku z URL (sdílitelné pohledy) — až po
+    //     inicializaci stránky, ať ji URL může nastavit.
+    this._readUrl();
 
     // 7) features + render
     this._activePresetId = null;
@@ -182,6 +191,48 @@ export class Lattice {
     // Po aplikaci globálních defaultů persistuj (verze + přepsaný stav), aby se
     // příště nepřepisovalo a uživatelovy úpravy se držely do další verze.
     if (this._gdJustApplied) { this.saveState(); this._gdJustApplied = false; }
+  }
+
+  /* =================== URL sync (sdílitelné pohledy) =================== */
+
+  /** Kompaktní payload stavu pro URL (jen neprázdné části). */
+  _urlPayload() {
+    const p = {};
+    if (this.sort && this.sort.length) p.s = this.sort.map((x) => [x.field, x.dir === 'desc' ? 'd' : 'a']);
+    if (this.filters && Object.keys(this.filters).length) p.f = this.filters;
+    if (this.quickSearch) p.q = this.quickSearch;
+    if (this.page > 1) p.p = this.page;
+    if (this.universal && this.universal.field) p.u = this.universal;
+    if (this.advanced) p.a = this.advanced;
+    return p;
+  }
+
+  /** Zapíše stav do URL query stringu (replaceState — nezaplní historii). */
+  _writeUrl() {
+    if (!this.urlState || typeof window === 'undefined' || !window.history) return;
+    try {
+      const url = new URL(window.location.href);
+      const payload = this._urlPayload();
+      if (Object.keys(payload).length) url.searchParams.set(this.urlState.key, JSON.stringify(payload));
+      else url.searchParams.delete(this.urlState.key);
+      window.history.replaceState(null, '', url);
+    } catch { /* no-op */ }
+  }
+
+  /** Načte stav z URL query stringu (při initu) — přepíše řazení/filtry/hledání/stránku. */
+  _readUrl() {
+    if (!this.urlState || typeof window === 'undefined') return;
+    let raw;
+    try { raw = new URL(window.location.href).searchParams.get(this.urlState.key); } catch { return; }
+    if (!raw) return;
+    let p;
+    try { p = JSON.parse(raw); } catch { return; }
+    if (Array.isArray(p.s)) this.sort = p.s.map(([field, d]) => ({ field, dir: d === 'd' ? 'desc' : 'asc' }));
+    if (p.f && typeof p.f === 'object') this.filters = { ...p.f };
+    if (typeof p.q === 'string') this.quickSearch = p.q;
+    if (p.p) this.page = Number(p.p) || 1;
+    if (p.u) this.universal = p.u;
+    if (p.a) this.advanced = p.a;
   }
 
   /* =================== persistence =================== */
@@ -305,6 +356,7 @@ export class Lattice {
 
   /** Znovu načte data dle aktuálního stavu a vykreslí tělo + patičku. */
   async refresh() {
+    this._writeUrl(); // promítni aktuální stav do URL (je-li urlState zapnutý)
     // Tree režim: data jsou hierarchická, žádné stránkování/dotaz na server.
     if (this.tree) return this.renderTree();
     // Progresivní režim: refresh = RESET (nový sort/filtr) → od stránky 1, čistý akumulátor.
@@ -620,6 +672,13 @@ export class Lattice {
     else this.groupsCollapsed.add(key);
     this.saveState();
     this.renderer.renderBody();
+  }
+
+  /** Nastaví připnuté řádky (nahoře/dole) a překreslí. `{ top?, bottom? }`. */
+  setPinnedRows(patch = {}) {
+    if ('top' in patch) this.pinnedTop = Array.isArray(patch.top) ? patch.top.slice() : [];
+    if ('bottom' in patch) this.pinnedBottom = Array.isArray(patch.bottom) ? patch.bottom.slice() : [];
+    this.renderer.renderPinned();
   }
 
   /* =================== rozbalovací detail řádku (master-detail) =================== */
