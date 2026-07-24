@@ -481,7 +481,7 @@ function docApi(root) {
       ['<code>editable</code>', 'Globální povolení editace.'],
       ['<code>movableRows</code> / <code>acceptExternalRows</code>', 'Přesun / příjem řádků.'],
       ['<code>treeData</code>', 'Hierarchická data (strom).'],
-      ['<code>rangeSelection</code>', 'Výběr rozsahu buněk + schránka.'],
+      ['<code>rangeSelection</code>', 'Výběr rozsahu buněk + schránka. Automaticky přidá <b>souhrn výběru</b> (počet/součet/průměr/min/max) a <b>fill handle</b>.'],
       ['<code>history</code>', 'Undo/redo (client-side).'],
       ['<code>actions</code>', 'Sloupec akcí (ikony / ⋮ menu).'],
       ['<code>i18n</code>', "'cs' | 'en' | vlastní slovník."],

@@ -158,6 +158,7 @@
         <select id="opt-group"><option value="">— žádné —</option></select>
       </div>
       <label class="row" id="row-subtotals"><input type="checkbox" id="opt-subtotals"> Mezisoučty za skupiny</label>
+      <label class="row" id="row-pinsum"><input type="checkbox" id="opt-pinsum"> Připnout souhrnný řádek dole (Σ)</label>
     </fieldset>
 
     <fieldset>
@@ -218,6 +219,7 @@ function sampleCampaigns(n = 60) {
     budget: ((rnd() * 900000) | 0) + 10000, score: (rnd() * 100) | 0,
     status: statuses[(rnd() * statuses.length) | 0],
     createdAt: '2026-' + pad(1 + ((rnd() * 12) | 0)) + '-' + pad(1 + ((rnd() * 28) | 0)), active: rnd() > 0.5,
+    trend: Array.from({ length: 8 }, () => (rnd() * 100) | 0),
   });
   return out;
 }
@@ -234,7 +236,7 @@ const TREE_DATA = [
 ];
 
 /* ============ katalogy sloupců ============ */
-const nc = (o) => ({ align: '', editable: false, condFormat: false, rowSummary: false, resp: '', group: '', frozen: '', headerMenu: false, ...o });
+const nc = (o) => ({ align: '', editable: false, condFormat: false, rowSummary: false, resp: '', group: '', frozen: '', headerMenu: false, required: false, ...o });
 const CAMPAIGN_CATALOG = [
   nc({ field: 'id', title: 'ID', type: 'id', filter: '', on: true, width: 70 }),
   nc({ field: 'name', title: 'Název', type: 'text', filter: 'text', on: true, width: 190 }),
@@ -246,6 +248,7 @@ const CAMPAIGN_CATALOG = [
   nc({ field: 'status', title: 'Stav', type: 'text', filter: 'select', on: true }),
   nc({ field: 'createdAt', title: 'Vytvořeno', type: 'date', filter: 'date-range', on: false }),
   nc({ field: 'active', title: 'Aktivní', type: 'boolean', filter: 'boolean', on: true }),
+  nc({ field: 'trend', title: 'Trend', type: 'sparkline', filter: '', on: false, width: 130 }),
 ];
 const ORG_CATALOG = [
   nc({ field: 'name', title: 'Jméno', type: 'text', filter: 'text', on: true, width: 240 }),
@@ -254,7 +257,7 @@ const ORG_CATALOG = [
   nc({ field: 'location', title: 'Lokalita', type: 'text', filter: 'select', on: true }),
   nc({ field: 'employees', title: 'Podřízených', type: 'number', filter: 'number', on: true, width: 120 }),
 ];
-const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'progress', 'rating', 'link'];
+const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'progress', 'rating', 'sparkline', 'link'];
 const FILTERS = ['', 'text', 'select', 'multiselect', 'number', 'number-range', 'date-range', 'boolean'];
 const FROZEN = [['', '—'], ['left', 'Vlevo'], ['right', 'Vpravo']];
 const ALIGN = [['', 'auto'], ['left', 'Vlevo'], ['center', 'Střed'], ['right', 'Vpravo']];
@@ -297,6 +300,7 @@ function advPanel(c) {
   p.innerHTML =
     `<label><span class="lbl">Zarovnání</span><select data-k="align">${ALIGN.map(([v, l]) => `<option value="${v}" ${v === c.align ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` +
     `<label><input type="checkbox" data-k="editable" ${c.editable ? 'checked' : ''}> editovatelný</label>` +
+    `<label><input type="checkbox" data-k="required" ${c.required ? 'checked' : ''}> povinné (validace)</label>` +
     (isNum(c.type) ? `<label><input type="checkbox" data-k="condFormat" ${c.condFormat ? 'checked' : ''}> barevná škála</label>` : '') +
     (isNum(c.type) ? `<label><input type="checkbox" data-k="rowSummary" ${c.rowSummary ? 'checked' : ''}> souhrn řádku (Σ vpravo)</label>` : '') +
     `<label><input type="checkbox" data-k="headerMenu" ${c.headerMenu ? 'checked' : ''}> menu hlavičky</label>` +
@@ -376,6 +380,7 @@ function activeColumns() {
     if (c.frozen) o.frozen = c.frozen;
     if (c.headerMenu) o.headerMenu = true;
     if (c.editable) o.editable = true;
+    if (c.required) o.validator = 'required';
     if (c.condFormat && isNum(c.type)) o.condFormat = { on: true, levels: 5, reverse: false };
     if (c.rowSummary && isNum(c.type)) o.rowSummary = ['sum'];
     if (c.resp === 'false') o.responsive = false; else if (c.resp) o.responsive = Number(c.resp);
@@ -406,6 +411,7 @@ function rebuild() {
     const cc = { ...c }; delete cc.__computed;
     if (c.__computed) cc.value = (r) => (r.score ? Math.round(r.budget / r.score) : 0);
     if (cc.type === 'money') cc.formatterParams = { currency: 'CZK' };
+    if (cc.type === 'sparkline') cc.formatterParams = { type: 'line', fill: true };
     return cc;
   });
   const opts = { id: $('opt-id').value || 'grid', keyField: 'id', i18n: lang(), columns, storage: memStorage() };
@@ -425,6 +431,13 @@ function rebuild() {
   if (chk('opt-movable')) opts.movableRows = true;
   if (chk('opt-range')) opts.rangeSelection = true;
   if (chk('opt-urlstate')) opts.urlState = true;
+  if (chk('opt-pinsum') && mode !== 'tree') {
+    const ac = activeColumns();
+    const row = {};
+    for (const c of ac) if (c.type === 'money' || c.type === 'number') row[c.field] = CAMPAIGNS.reduce((a, r) => a + (Number(r[c.field]) || 0), 0);
+    const lbl = ac.find((c) => c.type === 'text'); if (lbl) row[lbl.field] = 'Σ Celkem';
+    opts.pinnedBottom = [row];
+  }
   if (chk('opt-history')) { opts.history = true; opts.historySize = Number($('opt-historysize').value) || 30; }
   if (chk('opt-actions')) opts.actions = [
     { name: 'view', onClick: (row) => alert('Zobrazit #' + row.id) },
@@ -492,7 +505,9 @@ function colToCode(c) {
   if (c.frozen) p.push(`frozen: ${q(c.frozen)}`);
   if (c.headerMenu) p.push('headerMenu: true');
   if (c.type === 'money') p.push(`formatterParams: { currency: 'CZK' }`);
+  if (c.type === 'sparkline') p.push(`formatterParams: { type: 'line', fill: true }`);
   if (c.editable) p.push('editable: true');
+  if (c.validator) p.push(`validator: ${q(c.validator)}`);
   if (c.condFormat) p.push(`condFormat: { on: true, levels: 5, reverse: false }`);
   if (c.summary) p.push(`summary: ['sum']`);
   if (c.rowSummary) p.push(`rowSummary: ['sum']`);
@@ -537,6 +552,7 @@ function generateJs() {
   if (chk('opt-movable')) L.push('  movableRows: true,');
   if (chk('opt-range')) L.push('  rangeSelection: true,');
   if (chk('opt-urlstate')) L.push('  urlState: true,');
+  if (chk('opt-pinsum') && mode !== 'tree') L.push("  pinnedBottom: [{ name: 'Σ Celkem', budget: totalBudget }],");
   if (chk('opt-history')) { L.push('  history: true,'); L.push(`  historySize: ${Number($('opt-historysize').value) || 30},`); }
   if (chk('opt-actions')) {
     L.push('  actions: [');
@@ -620,7 +636,7 @@ function refreshGroupOptions() {
 /* ============ omezení podle režimu ============ */
 const MODE_ONLY = {
   'row-virtual': ['client'], 'row-pagpos': ['client', 'server'], 'row-pagesize': ['client', 'server'],
-  'row-summary': ['client', 'server'], 'row-group': ['client', 'server'], 'row-subtotals': ['client', 'server'],
+  'row-summary': ['client', 'server'], 'row-group': ['client', 'server'], 'row-subtotals': ['client', 'server'], 'row-pinsum': ['client', 'server'],
   'row-responsive': ['client', 'server'], 'row-detail': ['client', 'server'], 'row-bulk': ['client', 'server'],
   'row-computed': ['client', 'server'], 'row-progressive': ['server'],
 };
