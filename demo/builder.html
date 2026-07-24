@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lattice — generátor inicializace</title>
+<link href="../src/lattice.css" rel="stylesheet">
+<style>
+  :root { --ink:#1f2733; --muted:#6b7583; --line:#e5e8ee; --accent:#2563eb; --bg:#f7f8fb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:18px 24px; background:#fff; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 3px; font-size:19px; }
+  header p { margin:0; color:var(--muted); font-size:13px; }
+  header a { color:var(--accent); }
+  .wrap { display:grid; grid-template-columns:540px 1fr; gap:0; align-items:start; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns:1fr; } }
+  .panel { padding:18px 22px; }
+  .side { border-right:1px solid var(--line); background:#fff; min-height:calc(100vh - 58px); position:sticky; top:0; align-self:start; max-height:100vh; overflow:auto; }
+  .main { min-width:0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:0 0 16px; }
+  legend { font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:0 6px; }
+  label.row { display:flex; align-items:center; gap:8px; margin:6px 0; cursor:pointer; }
+  label.row.disabled { opacity:.4; cursor:default; }
+  label.row input[type=checkbox] { width:16px; height:16px; }
+  .field { display:flex; flex-direction:column; gap:4px; margin:8px 0; }
+  .field.disabled { opacity:.4; }
+  .field > span { font-size:12px; color:var(--muted); }
+  input[type=text], input[type=number], select { padding:6px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+  .seg { display:flex; gap:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { flex:1; padding:8px 6px; border:0; background:#fff; cursor:pointer; font:inherit; font-size:13px; color:var(--muted); }
+  .seg button.on { background:var(--accent); color:#fff; font-weight:600; }
+  .cols-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .cols-table th { text-align:left; font-size:10.5px; text-transform:uppercase; color:var(--muted); padding:2px 3px; font-weight:600; }
+  .cols-table td { padding:2px 3px; vertical-align:middle; }
+  .cols-table input[type=text] { width:100%; padding:3px 5px; }
+  .cols-table select { padding:3px 3px; font-size:11.5px; max-width:80px; }
+  .cols-table .drag { cursor:grab; color:var(--muted); user-select:none; padding:0 2px; }
+  .cols-table .gear { cursor:pointer; color:var(--muted); text-align:center; user-select:none; }
+  .cols-table .gear.on { color:var(--accent); }
+  .cols-table tr.off td:not(.inc) { opacity:.4; }
+  .cols-table tr.adv td { background:#f4f6fa; border-radius:6px; }
+  .cols-table tr.drop-above td { box-shadow: inset 0 2px 0 0 var(--accent); }
+  .cols-table tr.drop-below td { box-shadow: inset 0 -2px 0 0 var(--accent); }
+  .adv-panel { display:flex; flex-wrap:wrap; gap:6px 14px; padding:6px 8px; align-items:center; }
+  .adv-panel label { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--ink); }
+  .adv-panel .lbl { color:var(--muted); }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .preview-box { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:18px; }
+  .code-box { background:#1e2632; border-radius:12px; overflow:hidden; }
+  .code-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid #2c3849; }
+  .code-head span { color:#94a2b8; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .code-head button { padding:6px 14px; border:0; border-radius:6px; background:var(--accent); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .code-head button.copied { background:#2f9e56; }
+  pre.code { margin:0; padding:14px 16px; color:#e6edf3; font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; max-height:540px; }
+  .tok-key { color:#7ec0ff; } .tok-str { color:#9ee493; } .tok-num { color:#f2c96b; } .tok-com { color:#6b7c93; font-style:italic; } .tok-bool { color:#e59bff; }
+  .hint { font-size:12px; color:var(--muted); margin:2px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lattice — generátor inicializace</h1>
+  <p>Zaškrtej, co chceš. Vlevo nastavuješ, vpravo je živý náhled a hotový kód ke zkopírování. <a href="index.html">← zpět na ukázky</a></p>
+</header>
+<div class="wrap">
+  <div class="panel side">
+    <fieldset>
+      <legend>Zdroj dat</legend>
+      <div class="seg" id="mode">
+        <button data-mode="client" class="on" type="button">Client-side</button>
+        <button data-mode="server" type="button">Server-side (API)</button>
+        <button data-mode="tree" type="button">Strom</button>
+      </div>
+      <p class="hint" id="mode-hint">Data přímo v <code>data: […]</code>.</p>
+      <div class="field" id="row-progressive"><span>Server: donačítání</span>
+        <select id="opt-progressive"><option value="">Klasické stránkování</option><option value="scroll">Nekonečný scroll</option><option value="load">Tlačítko „Načíst další"</option></select>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Základ</legend>
+      <div class="field"><span>ID tabulky (klíč persistence)</span><input type="text" id="opt-id" value="moje-tabulka"></div>
+      <div class="two">
+        <div class="field"><span>Motiv</span>
+          <select id="opt-theme">
+            <option value="default">Výchozí</option><option value="auto">Automaticky (systém)</option>
+            <option value="minimal">Minimalistický</option><option value="compact">Kompaktní</option>
+            <option value="slate">Tmavý</option><option value="ocean">Oceán</option>
+            <option value="warm">Teplý</option><option value="contrast">Vysoký kontrast</option>
+          </select>
+        </div>
+        <div class="field"><span>Jazyk</span><select id="opt-lang"><option value="cs">Čeština</option><option value="en">English</option></select></div>
+      </div>
+      <div class="two">
+        <div class="field"><span>Hustota</span><select id="opt-density"><option value="comfortable">Vzdušná</option><option value="compact">Hustá</option></select></div>
+        <div class="field"><span>Prázdná buňka</span><input type="text" id="opt-empty" placeholder="např. —"></div>
+      </div>
+      <div class="two">
+        <label class="row"><input type="checkbox" id="opt-zebra" checked> Pruhované řádky</label>
+        <label class="row"><input type="checkbox" id="opt-wrap"> Zalamovat text</label>
+      </div>
+      <div class="field"><span>Barevná škála (semafor) — dolní / střed / horní; ovlivní i ✓/✕ boolean</span>
+        <div style="display:flex; gap:8px; align-items:center">
+          <input type="color" id="opt-sc-low" value="#e5534b" title="Nejnižší / nepravda (✕)">
+          <input type="color" id="opt-sc-mid" value="#f2c037" title="Střed">
+          <input type="color" id="opt-sc-high" value="#42a05a" title="Nejvyšší / pravda (✓)">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sloupce</legend>
+      <table class="cols-table"><thead><tr><th></th><th></th><th>Titulek</th><th>Typ</th><th>Filtr</th><th>Skupina</th><th>Ukotvit</th><th></th></tr></thead>
+        <tbody id="cols-body"></tbody>
+      </table>
+      <p class="hint">Přetažením <b>⠿</b> pořadí · <b>⚙</b> = pokročilé (zarovnání, editace, barevná škála, souhrn řádku, responsivita) · „Skupina" spojí sousední sloupce · „Ukotvit" zmrazí sloupec.</p>
+      <label class="row" id="row-computed" style="margin-top:8px"><input type="checkbox" id="opt-computed"> Přidat ukázkový <b>computed</b> sloupec (Cena za bod)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Filtry</legend>
+      <div class="field"><span>Umístění filtrů</span>
+        <select id="opt-filterlayout"><option value="header">V záhlaví sloupců</option><option value="external">Panel nad tabulkou</option><option value="universal">Univerzální (jedno pole)</option><option value="none">Skryté</option></select>
+      </div>
+      <label class="row"><input type="checkbox" id="opt-advanced"> Předvyplnit ukázkový <b>rozšířený filtr</b> (strom pravidel)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rozvržení</legend>
+      <div class="two">
+        <div class="field"><span>Šířka sloupců (layout)</span>
+          <select id="opt-layout"><option value="fitData">Dle obsahu</option><option value="fitDataFill">Dle obsahu + výplň</option><option value="fitDataStretch">Dle obsahu, poslední roztáhnout</option><option value="fitColumns">Rozprostřít do šířky</option></select>
+        </div>
+        <div class="field"><span>Číslování řádků</span>
+          <select id="opt-rownumbers"><option value="none">Vypnuto</option><option value="continuous">Průběžné</option><option value="perPage">Od 1 na stránku</option></select>
+        </div>
+      </div>
+      <div class="two">
+        <div class="field"><span>Otočení hlaviček</span>
+          <select id="opt-rotate"><option value="none">Vodorovně</option><option value="90">90°</option><option value="270">270°</option></select>
+        </div>
+        <div class="field" id="row-pagpos"><span>Stránkování</span>
+          <select id="opt-pagpos"><option value="footer">Dole</option><option value="header">Nahoře</option><option value="both">Nahoře i dole</option><option value="none">Bez stránkování</option></select>
+        </div>
+      </div>
+      <div class="field" id="row-pagesize"><span>Velikost stránky</span><input type="number" id="opt-pagesize" value="15" min="1" max="500"></div>
+      <label class="row"><input type="checkbox" id="opt-resizeguide"> Vodicí čára při změně šířky</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Data & souhrny</legend>
+      <label class="row" id="row-virtual"><input type="checkbox" id="opt-virtual"> Virtuální scrollování (velké datasety)</label>
+      <div class="field" id="row-summary"><span>Souhrnný řádek</span>
+        <select id="opt-summary"><option value="">Vypnuto</option><option value="page">Za stránku</option><option value="all">Za všechny záznamy</option></select>
+      </div>
+      <div class="field" id="row-group"><span>Seskupení řádků podle</span>
+        <select id="opt-group"><option value="">— žádné —</option></select>
+      </div>
+      <label class="row" id="row-subtotals"><input type="checkbox" id="opt-subtotals"> Mezisoučty za skupiny</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Funkce</legend>
+      <div class="two">
+        <div class="field"><span>Výběr řádků</span>
+          <select id="opt-select"><option value="">Vypnuto</option><option value="true">Vícenásobný</option><option value="single">Jednotlivý</option></select>
+        </div>
+        <div class="field" id="row-actionslayout"><span>Styl sloupce akcí</span>
+          <select id="opt-actionslayout" disabled><option value="column">Samostatný sloupec</option><option value="menu">Trojtečkové menu ⋮</option></select>
+        </div>
+      </div>
+      <div class="two">
+        <label class="row"><input type="checkbox" id="opt-search" checked> Rychlé hledání</label>
+        <label class="row" id="row-bulk"><input type="checkbox" id="opt-bulk"> Hromadné akce</label>
+        <label class="row"><input type="checkbox" id="opt-editable"> Inline editace</label>
+        <label class="row"><input type="checkbox" id="opt-actions"> Sloupec akcí</label>
+        <label class="row" id="row-responsive"><input type="checkbox" id="opt-responsive"> Responsivní skládání</label>
+        <label class="row" id="row-detail"><input type="checkbox" id="opt-detail"> Detail řádku</label>
+        <label class="row"><input type="checkbox" id="opt-movable"> Přesouvání řádků</label>
+        <label class="row"><input type="checkbox" id="opt-range"> Výběr rozsahu buněk</label>
+        <label class="row"><input type="checkbox" id="opt-rowmenu"> Kontextové menu řádku</label>
+        <label class="row"><input type="checkbox" id="opt-cellmenu"> Kontextové menu buňky</label>
+      </div>
+      <label class="row" style="margin-top:6px"><input type="checkbox" id="opt-history"> Undo / redo (historie změn)</label>
+      <div class="field" id="row-history-size" style="margin:4px 0 0 24px"><span>Počet kroků historie</span><input type="number" id="opt-historysize" value="30" min="1" max="500" disabled style="max-width:120px"></div>
+    </fieldset>
+  </div>
+
+  <div class="panel main">
+    <h2>Živý náhled</h2>
+    <div class="preview-box"><div id="grid"></div></div>
+    <div class="code-box">
+      <div class="code-head"><span>Kompletní kód — zkopíruj a vlož</span><button id="copy-btn">Kopírovat</button></div>
+      <pre class="code" id="code-out"></pre>
+    </div>
+    <p class="hint" style="margin-top:10px">Kompletní stránka bez build kroku — jen uprav <b>cesty</b> ke knihovně (<code>./lattice/src/…</code>). Další volby si uživatel mění v UI „Nastavení tabulky" (ozubené kolo).</p>
+  </div>
+</div>
+
+<script type="module">
+import { Lattice } from '../src/index.js';
+
+/* ============ ukázková data ============ */
+function sampleCampaigns(n = 60) {
+  let s = 20260724;
+  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const pad = (x) => String(x).padStart(2, '0');
+  const cats = ['PPC', 'Bannery', 'Email', 'Social', 'Video'];
+  const owners = ['Nováková', 'Svoboda', 'Dvořák', 'Černá', 'Kučera'];
+  const regions = ['Praha', 'Brno', 'Ostrava', 'Plzeň'];
+  const statuses = ['Plánováno', 'Běží', 'Pozastaveno', 'Dokončeno'];
+  const out = [];
+  for (let i = 0; i < n; i++) out.push({
+    id: i + 1, name: 'Kampaň ' + (i + 1), category: cats[(rnd() * cats.length) | 0],
+    owner: owners[(rnd() * owners.length) | 0], region: regions[(rnd() * regions.length) | 0],
+    budget: ((rnd() * 900000) | 0) + 10000, score: (rnd() * 100) | 0,
+    status: statuses[(rnd() * statuses.length) | 0],
+    createdAt: '2026-' + pad(1 + ((rnd() * 12) | 0)) + '-' + pad(1 + ((rnd() * 28) | 0)), active: rnd() > 0.5,
+  });
+  return out;
+}
+const CAMPAIGNS = sampleCampaigns();
+const TREE_DATA = [
+  { id: 1, name: 'Jana Nováková', role: 'CEO', dept: 'Vedení', location: 'Praha', employees: 8, _children: [
+    { id: 2, name: 'Petr Svoboda', role: 'CTO', dept: 'Vývoj', location: 'Brno', employees: 4, _children: [
+      { id: 3, name: 'Eva Dvořáková', role: 'Lead FE', dept: 'Vývoj', location: 'Brno', employees: 2, _children: [
+        { id: 4, name: 'Tomáš Černý', role: 'FE vývojář', dept: 'Vývoj', location: 'Brno', employees: 0 },
+        { id: 5, name: 'Lucie Malá', role: 'FE vývojář', dept: 'Vývoj', location: 'Praha', employees: 0 } ] },
+      { id: 6, name: 'Karel Kučera', role: 'BE vývojář', dept: 'Vývoj', location: 'Ostrava', employees: 0 } ] },
+    { id: 7, name: 'Marie Veselá', role: 'CFO', dept: 'Finance', location: 'Praha', employees: 2, _children: [
+      { id: 8, name: 'Jan Horák', role: 'Účetní', dept: 'Finance', location: 'Praha', employees: 0 } ] } ] },
+];
+
+/* ============ katalogy sloupců ============ */
+const nc = (o) => ({ align: '', editable: false, condFormat: false, rowSummary: false, resp: '', group: '', frozen: '', headerMenu: false, ...o });
+const CAMPAIGN_CATALOG = [
+  nc({ field: 'id', title: 'ID', type: 'id', filter: '', on: true, width: 70 }),
+  nc({ field: 'name', title: 'Název', type: 'text', filter: 'text', on: true, width: 190 }),
+  nc({ field: 'category', title: 'Kategorie', type: 'text', filter: 'select', on: true }),
+  nc({ field: 'owner', title: 'Vlastník', type: 'text', filter: 'select', on: true }),
+  nc({ field: 'region', title: 'Region', type: 'text', filter: 'select', on: false }),
+  nc({ field: 'budget', title: 'Rozpočet', type: 'money', filter: 'number-range', on: true }),
+  nc({ field: 'score', title: 'Skóre', type: 'number', filter: 'number', on: true }),
+  nc({ field: 'status', title: 'Stav', type: 'text', filter: 'select', on: true }),
+  nc({ field: 'createdAt', title: 'Vytvořeno', type: 'date', filter: 'date-range', on: false }),
+  nc({ field: 'active', title: 'Aktivní', type: 'boolean', filter: 'boolean', on: true }),
+];
+const ORG_CATALOG = [
+  nc({ field: 'name', title: 'Jméno', type: 'text', filter: 'text', on: true, width: 240 }),
+  nc({ field: 'role', title: 'Pozice', type: 'text', filter: 'text', on: true, width: 180 }),
+  nc({ field: 'dept', title: 'Oddělení', type: 'text', filter: 'select', on: true }),
+  nc({ field: 'location', title: 'Lokalita', type: 'text', filter: 'select', on: true }),
+  nc({ field: 'employees', title: 'Podřízených', type: 'number', filter: 'number', on: true, width: 120 }),
+];
+const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'progress', 'rating', 'link'];
+const FILTERS = ['', 'text', 'select', 'multiselect', 'number', 'number-range', 'date-range', 'boolean'];
+const FROZEN = [['', '—'], ['left', 'Vlevo'], ['right', 'Vpravo']];
+const ALIGN = [['', 'auto'], ['left', 'Vlevo'], ['center', 'Střed'], ['right', 'Vpravo']];
+const RESP = [['', 'výchozí'], ['false', 'nikdy neschovat'], ['10', 'schovat dřív']];
+const NUM_TYPES = ['money', 'number', 'progress', 'rating'];
+const isNum = (t) => NUM_TYPES.includes(t);
+const ADVANCED_SAMPLE = { combinator: 'AND', rules: [
+  { combinator: 'OR', rules: [ { field: 'category', op: 'eq', value: 'PPC' }, { field: 'category', op: 'eq', value: 'Email' } ] },
+  { field: 'budget', op: 'gte', value: 100000 } ] };
+
+let mode = 'client';
+let cols = CAMPAIGN_CATALOG.map((c) => ({ ...c }));
+
+const $ = (id) => document.getElementById(id);
+const lang = () => $('opt-lang').value;
+const chk = (id) => { const e = $(id); return e && e.checked && !e.disabled; };
+const val = (id) => { const e = $(id); return e && !e.disabled ? e.value : ''; };
+function catalogFor(m) { return (m === 'tree' ? ORG_CATALOG : CAMPAIGN_CATALOG).map((c) => ({ ...c })); }
+
+/** Ploché řádky aktuálního datasetu (strom zploští přes _children) — pro odvození hodnot. */
+function flatData(m) {
+  if (m !== 'tree') return CAMPAIGNS;
+  const out = []; const walk = (a) => a.forEach((n) => { out.push(n); if (n._children) walk(n._children); });
+  walk(TREE_DATA); return out;
+}
+/** Distinktní hodnoty pole (pro filterValues select/multiselect filtrů i select editoru). */
+function distinctValues(field, m) {
+  const seen = new Set(), out = [];
+  for (const r of flatData(m)) { const v = r[field]; if (v != null && v !== '' && !seen.has(v)) { seen.add(v); out.push(v); } }
+  return out;
+}
+
+/* ============ tabulka sloupců ============ */
+const colsBody = $('cols-body');
+function advPanel(c) {
+  const td = document.createElement('td');
+  td.colSpan = 8;
+  const p = document.createElement('div');
+  p.className = 'adv-panel';
+  p.innerHTML =
+    `<label><span class="lbl">Zarovnání</span><select data-k="align">${ALIGN.map(([v, l]) => `<option value="${v}" ${v === c.align ? 'selected' : ''}>${l}</option>`).join('')}</select></label>` +
+    `<label><input type="checkbox" data-k="editable" ${c.editable ? 'checked' : ''}> editovatelný</label>` +
+    (isNum(c.type) ? `<label><input type="checkbox" data-k="condFormat" ${c.condFormat ? 'checked' : ''}> barevná škála</label>` : '') +
+    (isNum(c.type) ? `<label><input type="checkbox" data-k="rowSummary" ${c.rowSummary ? 'checked' : ''}> souhrn řádku (Σ vpravo)</label>` : '') +
+    `<label><input type="checkbox" data-k="headerMenu" ${c.headerMenu ? 'checked' : ''}> menu hlavičky</label>` +
+    `<label><span class="lbl">Responsivita</span><select data-k="resp">${RESP.map(([v, l]) => `<option value="${v}" ${v === c.resp ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  p.querySelectorAll('[data-k]').forEach((inp) => inp.addEventListener('change', () => {
+    c[inp.dataset.k] = inp.type === 'checkbox' ? inp.checked : inp.value;
+    rebuild();
+  }));
+  td.appendChild(p);
+  const tr = document.createElement('tr');
+  tr.className = 'adv';
+  tr.appendChild(td);
+  return tr;
+}
+function renderColsTable() {
+  colsBody.innerHTML = '';
+  cols.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    tr.className = c.on ? '' : 'off';
+    tr.draggable = true;
+    tr.innerHTML =
+      `<td class="drag" title="Přetáhni">⠿</td>` +
+      `<td class="inc"><input type="checkbox" ${c.on ? 'checked' : ''} data-k="on"></td>` +
+      `<td><input type="text" value="${c.title.replace(/"/g, '&quot;')}" data-k="title"></td>` +
+      `<td><select data-k="type">${TYPES.map((t) => `<option ${t === c.type ? 'selected' : ''}>${t}</option>`).join('')}</select></td>` +
+      `<td><select data-k="filter">${FILTERS.map((f) => `<option value="${f}" ${f === c.filter ? 'selected' : ''}>${f || '—'}</option>`).join('')}</select></td>` +
+      `<td><input type="text" value="${(c.group || '').replace(/"/g, '&quot;')}" data-k="group" placeholder="—" style="width:60px"></td>` +
+      `<td><select data-k="frozen">${FROZEN.map(([v, l]) => `<option value="${v}" ${v === c.frozen ? 'selected' : ''}>${l}</option>`).join('')}</select></td>` +
+      `<td class="gear ${c._adv ? 'on' : ''}" title="Pokročilé">⚙</td>`;
+    tr.querySelectorAll('[data-k]').forEach((inp) => {
+      const ev = inp.type === 'checkbox' || inp.tagName === 'SELECT' ? 'change' : 'input';
+      inp.addEventListener(ev, () => {
+        const k = inp.dataset.k;
+        c[k] = inp.type === 'checkbox' ? inp.checked : inp.value;
+        if (k === 'on') { tr.className = c.on ? '' : 'off'; refreshGroupOptions(); }
+        if (k === 'type') { renderColsTable(); } // typ mění dostupné pokročilé volby
+        rebuild();
+      });
+    });
+    tr.querySelector('.gear').addEventListener('click', () => { c._adv = !c._adv; renderColsTable(); });
+    tr.addEventListener('dragstart', (e) => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); tr.style.opacity = '.4'; });
+    tr.addEventListener('dragend', () => { tr.style.opacity = ''; clearDropMarks(); dragFrom = null; });
+    tr.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const rect = tr.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      clearDropMarks();
+      if (dragFrom !== i) tr.classList.add(after ? 'drop-below' : 'drop-above');
+    });
+    tr.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const rect = tr.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      const from = dragFrom != null ? dragFrom : Number(e.dataTransfer.getData('text/plain'));
+      clearDropMarks();
+      let to = after ? i + 1 : i;
+      if (from === i || from == null) return;
+      const [m] = cols.splice(from, 1);
+      if (from < to) to--; // po odebrání zdroje se cílový index posune
+      cols.splice(to, 0, m);
+      renderColsTable(); rebuild();
+    });
+    colsBody.appendChild(tr);
+    if (c._adv) colsBody.appendChild(advPanel(c));
+  });
+}
+
+/* ============ konfigurace → sloupce ============ */
+function activeColumns() {
+  const list = cols.filter((c) => c.on).map((c) => {
+    const o = { field: c.field, title: c.title, type: c.type };
+    if (c.width) o.width = c.width;
+    if (c.align) o.align = c.align;
+    if (c.filter) o.filter = c.filter;
+    if (c.filter === 'select' || c.filter === 'multiselect') o.filterValues = distinctValues(c.field, mode);
+    if (c.group) o.group = c.group;
+    if (c.frozen) o.frozen = c.frozen;
+    if (c.headerMenu) o.headerMenu = true;
+    if (c.editable) o.editable = true;
+    if (c.condFormat && isNum(c.type)) o.condFormat = { on: true, levels: 5, reverse: false };
+    if (c.rowSummary && isNum(c.type)) o.rowSummary = ['sum'];
+    if (c.resp === 'false') o.responsive = false; else if (c.resp) o.responsive = Number(c.resp);
+    if (val('opt-summary') && isNum(c.type)) o.summary = ['sum'];
+    return o;
+  });
+  if (mode !== 'tree' && $('opt-computed').checked) {
+    const cc = { field: 'perScore', title: 'Cena za bod', type: 'money', filter: 'number-range', __computed: true };
+    if (val('opt-summary')) cc.summary = ['sum'];
+    list.push(cc);
+  }
+  return list;
+}
+
+/* ============ živý náhled ============ */
+let grid = null;
+let dragFrom = null;
+const DEFAULT_SCALE = ['#e5534b', '#f2c037', '#42a05a'];
+/** Barvy semaforu z pickerů, nebo null když jsou výchozí. */
+function scaleColors() {
+  const sc = [$('opt-sc-low').value, $('opt-sc-mid').value, $('opt-sc-high').value];
+  return sc.join().toLowerCase() === DEFAULT_SCALE.join() ? null : sc;
+}
+const clearDropMarks = () => colsBody.querySelectorAll('tr').forEach((r) => r.classList.remove('drop-above', 'drop-below'));
+function memStorage() { const m = new Map(); return { getItem: (k) => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; }
+function rebuild() {
+  const columns = activeColumns().map((c) => {
+    const cc = { ...c }; delete cc.__computed;
+    if (c.__computed) cc.value = (r) => (r.score ? Math.round(r.budget / r.score) : 0);
+    if (cc.type === 'money') cc.formatterParams = { currency: 'CZK' };
+    return cc;
+  });
+  const opts = { id: $('opt-id').value || 'grid', keyField: 'id', i18n: lang(), columns, storage: memStorage() };
+
+  if (mode === 'server') { opts.serverSide = true; opts.ajaxUrl = '/api/campaigns'; if (val('opt-progressive')) opts.progressiveLoad = val('opt-progressive'); }
+  else if (mode === 'tree') { opts.data = TREE_DATA; opts.treeData = true; opts.treeStartExpanded = 1; }
+  else { opts.data = CAMPAIGNS; }
+
+  const pos = val('opt-pagpos');
+  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'none') opts.pageSize = Number($('opt-pagesize').value) || 15;
+  if (chk('opt-virtual')) opts.virtualScroll = true;
+  if (chk('opt-search')) opts.quickSearch = true;
+  const sel = val('opt-select');
+  if (sel === 'true') opts.selectable = true; else if (sel === 'single') opts.selectable = 'single';
+  if (chk('opt-editable')) opts.editable = true;
+  if (chk('opt-responsive')) opts.responsive = true;
+  if (chk('opt-movable')) opts.movableRows = true;
+  if (chk('opt-range')) opts.rangeSelection = true;
+  if (chk('opt-history')) { opts.history = true; opts.historySize = Number($('opt-historysize').value) || 30; }
+  if (chk('opt-actions')) opts.actions = [
+    { name: 'view', onClick: (row) => alert('Zobrazit #' + row.id) },
+    { name: 'delete', danger: true, onClick: (row) => grid.deleteRow(row.id) },
+  ];
+  if (chk('opt-rowmenu')) opts.rowContextMenu = (row) => [
+    { label: 'Smazat řádek', action: (r) => grid.deleteRow(r.id) },
+  ];
+  if (chk('opt-cellmenu')) opts.cellContextMenu = ({ field, index }) => [
+    { label: 'Kopírovat hodnotu', action: () => { const v = grid.rows[index] && grid.rows[index][field]; navigator.clipboard && navigator.clipboard.writeText(String(v == null ? '' : v)); } },
+  ];
+  if (chk('opt-detail')) opts.rowDetail = (row) =>
+    `<b>${row.name}</b>${row.status ? ' — ' + row.status : ''}<br>` +
+    (row.owner ? `Vlastník: ${row.owner} (${row.region})<br>` : '') + (row.budget ? `Rozpočet: ${Number(row.budget).toLocaleString('cs')} Kč` : '');
+  if (chk('opt-bulk')) opts.selectionActions = [
+    { label: lang() === 'en' ? 'Mark done' : 'Označit dokončené', onClick: (rows, keys, g) => g.updateData(keys.map((id) => ({ id, status: 'Dokončeno' }))) },
+    { label: lang() === 'en' ? 'Delete' : 'Smazat', danger: true, onClick: (rows, keys, g) => { keys.forEach((id) => g.deleteRow(id)); g.clearSelection(); } },
+  ];
+
+  const inst = {};
+  if (val('opt-theme') !== 'default') inst.theme = val('opt-theme');
+  if (val('opt-density') !== 'comfortable') inst.density = val('opt-density');
+  if (val('opt-layout') !== 'fitData') inst.layout = val('opt-layout');
+  if (val('opt-rownumbers') !== 'none') inst.rowNumbers = val('opt-rownumbers');
+  if (val('opt-rotate') !== 'none') inst.headerRotate = val('opt-rotate');
+  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'footer') inst.paginationPosition = pos;
+  if (chk('opt-resizeguide')) inst.resizeGuide = true;
+  if (!$('opt-zebra').checked) inst.zebra = false;
+  if (chk('opt-wrap')) inst.wrapText = true;
+  if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
+  if (val('opt-summary')) inst.summaryRow = val('opt-summary');
+  if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
+  if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
+  const sc = scaleColors();
+  if (sc) inst.scaleColors = sc;
+  const g = val('opt-group');
+  if (g && mode !== 'tree') { inst.groupBy = [g]; if (chk('opt-subtotals')) inst.groupSubtotals = true; }
+  if (Object.keys(inst).length) opts.instance = inst;
+
+  if (grid) { try { grid.destroy(); } catch {} }
+  $('grid').innerHTML = '';
+  try {
+    grid = new Lattice($('grid'), opts);
+    if (chk('opt-advanced') && mode !== 'tree') grid.applyAdvanced(ADVANCED_SAMPLE);
+  } catch (e) { $('grid').innerHTML = '<div style="color:#c0392b;padding:12px">Chyba: ' + e.message + '</div>'; }
+  renderCode();
+}
+
+/* ============ generování kódu ============ */
+function jsVal(v) {
+  if (typeof v === 'string') return `'${v.replace(/'/g, "\\'")}'`;
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+  if (Array.isArray(v)) return '[' + v.map((x) => jsVal(x)).join(', ') + ']';
+  if (v && typeof v === 'object') return '{ ' + Object.entries(v).map(([k, x]) => `${k}: ${jsVal(x)}`).join(', ') + ' }';
+  return String(v);
+}
+const q = (s) => `'${String(s).replace(/'/g, "\\'")}'`;
+function colToCode(c) {
+  const p = [`field: ${q(c.field)}`, `title: ${q(c.title)}`, `type: ${q(c.type)}`];
+  if (c.width) p.push(`width: ${c.width}`);
+  if (c.align) p.push(`align: ${q(c.align)}`);
+  if (c.filter) p.push(`filter: ${q(c.filter)}`);
+  if (c.filterValues) p.push(`filterValues: ${jsVal(c.filterValues)}`);
+  if (c.group) p.push(`group: ${q(c.group)}`);
+  if (c.frozen) p.push(`frozen: ${q(c.frozen)}`);
+  if (c.headerMenu) p.push('headerMenu: true');
+  if (c.type === 'money') p.push(`formatterParams: { currency: 'CZK' }`);
+  if (c.editable) p.push('editable: true');
+  if (c.condFormat) p.push(`condFormat: { on: true, levels: 5, reverse: false }`);
+  if (c.summary) p.push(`summary: ['sum']`);
+  if (c.rowSummary) p.push(`rowSummary: ['sum']`);
+  if (c.responsive === false) p.push('responsive: false'); else if (c.responsive != null) p.push(`responsive: ${c.responsive}`);
+  if (c.__computed) p.push(`value: (r) => r.score ? Math.round(r.budget / r.score) : 0`);
+  return '  { ' + p.join(', ') + ' },';
+}
+function reindent(str, pad) { return str.split('\n').map((l) => l ? pad + l : l).join('\n'); }
+function dataLiteral() {
+  if (mode === 'tree') return JSON.stringify(TREE_DATA, null, 2);
+  const fields = activeColumns().filter((c) => !c.__computed).map((c) => c.field);
+  const rows = CAMPAIGNS.slice(0, 2).map((r) => '  { ' + fields.map((f) => `${f}: ${jsVal(r[f])}`).join(', ') + ' },');
+  return '[\n' + rows.join('\n') + '\n  // … další řádky …\n]';
+}
+function generateJs() {
+  const L = [];
+  L.push("import { Lattice } from './lattice/src/index.js';");
+  L.push('');
+  L.push('const columns = [');
+  activeColumns().forEach((c) => L.push(colToCode(c)));
+  L.push('];');
+  L.push('');
+  if (mode === 'server') { L.push('// Server-side: knihovna posílá page, size, sort[], filter[], search'); L.push('// a čeká { data: [...], total }. Viz demo/server.js.'); }
+  else { L.push(mode === 'tree' ? '// Stromová data (hierarchie přes _children):' : '// Vaše data (pole objektů). Tady ukázkové řádky:'); L.push('const data = ' + dataLiteral() + ';'); }
+  L.push('');
+  L.push("const grid = new Lattice('#grid', {");
+  L.push(`  id: ${q($('opt-id').value || 'grid')},`);
+  L.push('  columns,');
+  L.push(`  i18n: ${q(lang())},`);
+  L.push(`  keyField: 'id',`);
+  if (mode === 'server') { L.push('  serverSide: true,'); L.push("  ajaxUrl: '/api/campaigns',"); if (val('opt-progressive')) L.push(`  progressiveLoad: ${q(val('opt-progressive'))},`); }
+  else L.push('  data,');
+  if (mode === 'tree') { L.push('  treeData: true,'); L.push('  treeStartExpanded: 1,'); }
+  const pos = val('opt-pagpos');
+  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'none') L.push(`  pageSize: ${Number($('opt-pagesize').value) || 15},`);
+  if (chk('opt-virtual')) L.push('  virtualScroll: true,');
+  if (chk('opt-search')) L.push('  quickSearch: true,');
+  const sel = val('opt-select');
+  if (sel === 'true') L.push('  selectable: true,'); else if (sel === 'single') L.push("  selectable: 'single',");
+  if (chk('opt-editable')) L.push('  editable: true,');
+  if (chk('opt-responsive')) L.push('  responsive: true,');
+  if (chk('opt-movable')) L.push('  movableRows: true,');
+  if (chk('opt-range')) L.push('  rangeSelection: true,');
+  if (chk('opt-history')) { L.push('  history: true,'); L.push(`  historySize: ${Number($('opt-historysize').value) || 30},`); }
+  if (chk('opt-actions')) {
+    L.push('  actions: [');
+    L.push("    { name: 'view', onClick: (row) => open(row) },");
+    L.push("    { name: 'edit', onClick: (row) => edit(row), disabled: (row) => row.status === 'Běží' },");
+    L.push("    { name: 'delete', danger: true, onClick: (row) => grid.deleteRow(row.id) },");
+    L.push('  ],');
+  }
+  if (chk('opt-rowmenu')) {
+    L.push('  rowContextMenu: (row) => [');
+    L.push("    { label: 'Smazat řádek', action: (r) => grid.deleteRow(r.id) },");
+    L.push('  ],');
+  }
+  if (chk('opt-cellmenu')) {
+    L.push('  cellContextMenu: ({ field, index, col }) => [');
+    L.push("    { label: 'Editovat zde', disabled: !col.editable, action: (c) => grid.editCell(c.index, c.field) },");
+    L.push('  ],');
+  }
+  if (chk('opt-detail')) { L.push('  rowDetail: (row) =>'); L.push('    `<b>${row.name}</b> — ${row.status}<br>` +'); L.push('    `Vlastník: ${row.owner} (${row.region})`,'); }
+  if (chk('opt-bulk')) {
+    L.push('  selectionActions: [');
+    L.push("    { label: 'Označit dokončené', onClick: (rows, keys, grid) =>");
+    L.push("        grid.updateData(keys.map((id) => ({ id, status: 'Dokončeno' }))) },");
+    L.push("    { label: 'Smazat', danger: true, onClick: (rows, keys, grid) => {");
+    L.push('        keys.forEach((id) => grid.deleteRow(id)); grid.clearSelection(); } },');
+    L.push('  ],');
+  }
+  const inst = {};
+  if (val('opt-theme') !== 'default') inst.theme = val('opt-theme');
+  if (val('opt-density') !== 'comfortable') inst.density = val('opt-density');
+  if (val('opt-layout') !== 'fitData') inst.layout = val('opt-layout');
+  if (val('opt-rownumbers') !== 'none') inst.rowNumbers = val('opt-rownumbers');
+  if (val('opt-rotate') !== 'none') inst.headerRotate = val('opt-rotate');
+  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'footer') inst.paginationPosition = pos;
+  if (chk('opt-resizeguide')) inst.resizeGuide = true;
+  if (!$('opt-zebra').checked) inst.zebra = false;
+  if (chk('opt-wrap')) inst.wrapText = true;
+  if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
+  if (val('opt-summary')) inst.summaryRow = val('opt-summary');
+  if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
+  if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
+  const sc = scaleColors();
+  if (sc) inst.scaleColors = sc;
+  const g = val('opt-group');
+  if (g && mode !== 'tree') { inst.groupBy = [g]; if (chk('opt-subtotals')) inst.groupSubtotals = true; }
+  if (Object.keys(inst).length) L.push(`  instance: ${jsVal(inst)},`);
+  L.push('});');
+  if (chk('opt-advanced') && mode !== 'tree') { L.push(''); L.push('// Rozšířený filtr (strom pravidel) — aktivuje se za běhu:'); L.push('grid.applyAdvanced(' + jsVal(ADVANCED_SAMPLE) + ');'); }
+  return L.join('\n');
+}
+function generateCode() {
+  const js = reindent(generateJs(), '    ');
+  return ['<!doctype html>', '<html lang="cs">', '<head>', '  <meta charset="utf-8">',
+    '  <!-- Styl Lattice — uprav cestu podle umístění knihovny -->', '  <link rel="stylesheet" href="./lattice/src/lattice.css">',
+    '</head>', '<body>', '  <!-- Sem se vykreslí tabulka -->', '  <div id="grid"></div>', '',
+    '  <!-- Lattice je čisté ESM — bez build kroku, jen type="module" -->',
+    '  <script type="module">', js, '  <\/script>', '</body>', '</html>'].join('\n');
+}
+function highlight(code) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc(code)
+    .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="tok-com">$1</span>')
+    .replace(/(\/\/[^\n]*)/g, '<span class="tok-com">$1</span>')
+    .replace(/('(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>')
+    .replace(/`(?:[^`\\]|\\.)*`/g, (m) => '<span class="tok-str">' + m + '</span>')
+    .replace(/(&lt;\/?[a-zA-Z][\w-]*)/g, '<span class="tok-key">$1</span>')
+    .replace(/\b(true|false)\b/g, '<span class="tok-bool">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span class="tok-num">$1</span>')
+    .replace(/\b(import|from|const|new)\b/g, '<span class="tok-key">$1</span>');
+}
+function renderCode() { $('code-out').innerHTML = highlight(generateCode()); }
+
+/* ============ „seskupit podle" ============ */
+function refreshGroupOptions() {
+  const sel = $('opt-group'); const cur = sel.value;
+  sel.innerHTML = '<option value="">— žádné —</option>' +
+    cols.filter((c) => c.on && (c.type === 'text' || c.type === 'boolean')).map((c) => `<option value="${c.field}">${c.title}</option>`).join('');
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+}
+
+/* ============ omezení podle režimu ============ */
+const MODE_ONLY = {
+  'row-virtual': ['client'], 'row-pagpos': ['client', 'server'], 'row-pagesize': ['client', 'server'],
+  'row-summary': ['client', 'server'], 'row-group': ['client', 'server'], 'row-subtotals': ['client', 'server'],
+  'row-responsive': ['client', 'server'], 'row-detail': ['client', 'server'], 'row-bulk': ['client', 'server'],
+  'row-computed': ['client', 'server'], 'row-progressive': ['server'],
+};
+const MODE_HINT = {
+  client: 'Data přímo v <code>data: […]</code>.',
+  server: 'Živý náhled táhne z mock API <code>/api/campaigns</code> (demo/server.js).',
+  tree: 'Hierarchie přes <code>_children</code>. Stránkování/virtuál/seskupení se ve stromu nepoužijí.',
+};
+function setDisabled(rowId, off) {
+  const row = $(rowId); if (!row) return;
+  const input = row.matches('input,select') ? row : row.querySelector('input,select');
+  if (input) { input.disabled = off; if (off && input.type === 'checkbox') input.checked = false; }
+  row.classList.toggle('disabled', off);
+}
+function applyModeConstraints() {
+  for (const [rowId, modes] of Object.entries(MODE_ONLY)) setDisabled(rowId, !modes.includes(mode));
+  if (chk('opt-virtual')) { setDisabled('row-detail', true); setDisabled('row-responsive', true); setDisabled('row-pagpos', true); setDisabled('row-pagesize', true); }
+  setDisabled('row-history-size', !chk('opt-history'));
+  setDisabled('row-actionslayout', !chk('opt-actions'));
+  $('mode-hint').innerHTML = MODE_HINT[mode];
+}
+
+/* ============ napojení ============ */
+for (const b of document.querySelectorAll('#mode button')) {
+  b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    for (const x of document.querySelectorAll('#mode button')) x.classList.toggle('on', x === b);
+    cols = catalogFor(mode);
+    renderColsTable(); refreshGroupOptions(); applyModeConstraints(); rebuild();
+  });
+}
+for (const el of document.querySelectorAll('.side input, .side select')) {
+  el.addEventListener('change', () => { applyModeConstraints(); refreshGroupOptions(); rebuild(); });
+  if (el.type === 'text' || el.type === 'number' || el.type === 'color') el.addEventListener('input', rebuild);
+}
+$('copy-btn').addEventListener('click', async () => {
+  const text = generateCode(); let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch { /* fallback */ }
+  if (!ok) { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch {} ta.remove(); }
+  const b = $('copy-btn'); b.textContent = ok ? 'Zkopírováno ✓' : 'Vyber a zkopíruj ⌘C'; b.classList.toggle('copied', ok);
+  setTimeout(() => { b.textContent = 'Kopírovat'; b.classList.remove('copied'); }, 1600);
+});
+
+renderColsTable(); refreshGroupOptions(); applyModeConstraints(); rebuild();
+</script>
+</body>
+</html>

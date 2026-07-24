@@ -1,0 +1,14 @@
+# Lattice demo — routing /api/* na api.php (Apache / Wedos).
+# Klient volá /api/presets a /api/defaults; tady se to přesměruje na api.php,
+# které endpoint pozná z cesty. QSA zachová query (?grid=…, ?id=…).
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^api/(presets|defaults)$ api.php [QSA,L]
+</IfModule>
+
+# JSON úložiště (složka data/) nikdy neservírovat přímo.
+<IfModule mod_authz_core.c>
+  <Directory "data">
+    Require all denied
+  </Directory>
+</IfModule>

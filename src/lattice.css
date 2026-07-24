@@ -1,0 +1,1445 @@
+/* ============================================================
+   Lattice — styly gridu. Themeovatelné přes CSS proměnné níže;
+   hostitelská app (např. EverFLOW / Bootstrap) je může přepsat.
+   ============================================================ */
+
+/* --- barvy (výchozí motiv) ---
+   Definované na :root, aby je dědil grid i plovoucí panely (menu, dropdowny,
+   popupy, nastavení) — ty se renderují do document.body, mimo .lattice.
+   Motiv se přepíná atributem data-lattice-theme na <html> (viz níže).
+   Hostitelská app může proměnné přepsat na .lattice nebo globálně. */
+:root {
+  --lattice-bg: #fff;
+  --lattice-row-odd: #f8f9fb;
+  --lattice-row-hover: #eef4ff;
+  --lattice-header-bg: #f1f3f6;
+  --lattice-border: #dfe3e8;
+  --lattice-group-border: #9aa1ac;   /* výraznější svislá hrana skupin */
+  --lattice-text: #1f2733;
+  --lattice-muted: #6b7583;
+  --lattice-accent: #2563eb;
+  --lattice-accent-soft: #dbeafe;
+
+  /* --- sémantické barvy (danger/success) + stavové prvky; přebírají motivy --- */
+  --lattice-danger: #dc2626;        /* mazání, záporná čísla, chyby */
+  --lattice-danger-soft: #fdecec;   /* jemné pozadí/okraj danger stavů */
+  --lattice-success: #16a34a;       /* úspěch (ikony, badge) */
+  --lattice-success-soft: #d9f2e1;
+  --lattice-star-on: #f5b301;       /* hvězdičky rating */
+  --lattice-star-off: #d0d5dd;
+  --lattice-progress-track: #e6e9ee;
+  --lattice-progress-fill: #42a05a;
+
+  /* --- typografie & tvar (přepisují motivy) --- */
+  --lattice-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --lattice-font-size: 14px;
+  --lattice-radius: 8px;            /* vnější rám gridu, panely, popupy */
+  --lattice-control-radius: 6px;    /* inputy, tlačítka, dropdowny, položky menu */
+  --lattice-cell-pad-y: 8px;
+  --lattice-cell-pad-x: 10px;
+  --lattice-header-pad-y: 8px;
+  --lattice-cell-vborder: 1px solid var(--lattice-border);  /* svislé linky buněk (Material je ruší) */
+  --lattice-header-weight: 600;
+  --lattice-header-transform: none; /* uppercase u některých motivů */
+  --lattice-header-spacing: normal; /* letter-spacing hlaviček */
+  --lattice-header-size: 1em;
+  --lattice-header-color: var(--lattice-text);
+  --lattice-frozen-line: #8b95a5;   /* dělící linka ukotveného sloupce (tmavá; v tmavém motivu světlá) */
+}
+
+/* ---------- motivy (vzhledy) ----------
+   Přepnutí: document.documentElement.dataset.latticeTheme = 'slate' (JS to řeší
+   instance nastavení). Motivy mění barvy i strukturu (font, zaoblení, padding,
+   styl hlavičky, svislé linky). */
+:root[data-lattice-theme="minimal"] {  /* čisté, bez zeber a svislých linek */
+  --lattice-bg: #fff;
+  --lattice-row-odd: #fff;           /* bez zebry */
+  --lattice-row-hover: #f3f5f8;
+  --lattice-header-bg: #fff;
+  --lattice-border: #e9ecf1;
+  --lattice-group-border: #cfd5dd;
+  --lattice-text: #2b333f;
+  --lattice-muted: #8b95a5;
+  --lattice-accent: #475569;         /* střídmá břidlicová */
+  --lattice-accent-soft: #eef2f7;
+  --lattice-radius: 4px;
+  --lattice-control-radius: 4px;
+  --lattice-cell-vborder: none;      /* jen vodorovné linky */
+  --lattice-header-color: var(--lattice-muted);
+  --lattice-header-weight: 500;
+}
+:root[data-lattice-theme="compact"] {  /* maximálně hustý — minimální padding buněk */
+  --lattice-cell-pad-y: 2px;
+  --lattice-cell-pad-x: 7px;
+  --lattice-header-pad-y: 3px;
+  --lattice-radius: 4px;
+  --lattice-control-radius: 3px;
+  --lattice-header-size: 0.92em;
+}
+:root[data-lattice-theme="slate"] {  /* tmavý */
+  --lattice-bg: #1e2632;
+  --lattice-row-odd: #232d3b;
+  --lattice-row-hover: #2c3849;
+  --lattice-header-bg: #273143;
+  --lattice-border: #384457;
+  --lattice-group-border: #55627a;
+  --lattice-text: #e6edf5;
+  --lattice-muted: #94a2b8;
+  --lattice-accent: #5b9bff;
+  --lattice-accent-soft: #23375c;
+  --lattice-frozen-line: #97a6bd;   /* světlá linka na tmavém pozadí */
+  --lattice-danger: #f87171;
+  --lattice-danger-soft: #3b2626;
+  --lattice-success: #4ade80;
+  --lattice-success-soft: #1e3a2b;
+  --lattice-star-off: #4a5568;
+  --lattice-progress-track: #33405a;
+  --lattice-progress-fill: #4ade80;
+}
+/* auto — sleduje systémový režim: světlý = výchozí paleta, tmavý = paleta jako „slate".
+   V světlém režimu žádné pravidlo → dědí se výchozí :root. */
+@media (prefers-color-scheme: dark) {
+  :root[data-lattice-theme="auto"] {
+    --lattice-bg: #1e2632;
+    --lattice-row-odd: #232d3b;
+    --lattice-row-hover: #2c3849;
+    --lattice-header-bg: #273143;
+    --lattice-border: #384457;
+    --lattice-group-border: #55627a;
+    --lattice-text: #e6edf5;
+    --lattice-muted: #94a2b8;
+    --lattice-accent: #5b9bff;
+    --lattice-accent-soft: #23375c;
+    --lattice-frozen-line: #97a6bd;
+    --lattice-danger: #f87171;
+    --lattice-danger-soft: #3b2626;
+    --lattice-success: #4ade80;
+    --lattice-success-soft: #1e3a2b;
+    --lattice-star-off: #4a5568;
+    --lattice-progress-track: #33405a;
+    --lattice-progress-fill: #4ade80;
+  }
+}
+:root[data-lattice-theme="ocean"] {
+  --lattice-bg: #f6fbfc;
+  --lattice-row-odd: #eef7f9;
+  --lattice-row-hover: #dcf0f4;
+  --lattice-header-bg: #e2f1f4;
+  --lattice-border: #c3dde3;
+  --lattice-group-border: #86b8c2;
+  --lattice-text: #103b44;
+  --lattice-muted: #5a828b;
+  --lattice-accent: #0e8aa3;
+  --lattice-accent-soft: #cceaf0;
+}
+:root[data-lattice-theme="warm"] {
+  --lattice-bg: #fffdf9;
+  --lattice-row-odd: #fbf6ee;
+  --lattice-row-hover: #f6ecdb;
+  --lattice-header-bg: #f7efe2;
+  --lattice-border: #e8ddc9;
+  --lattice-group-border: #c9b48f;
+  --lattice-text: #43371f;
+  --lattice-muted: #8a7a5c;
+  --lattice-accent: #c1791a;
+  --lattice-accent-soft: #f6e6c9;
+}
+:root[data-lattice-theme="contrast"] {  /* vysoký kontrast — silné okraje, černý text */
+  --lattice-bg: #fff;
+  --lattice-row-odd: #f0f0f0;
+  --lattice-row-hover: #d7e4ff;
+  --lattice-header-bg: #e4e4e4;
+  --lattice-border: #4a4a4a;
+  --lattice-group-border: #000000;
+  --lattice-text: #000000;
+  --lattice-muted: #3a3a3a;
+  --lattice-accent: #0b5cff;
+  --lattice-accent-soft: #cfe0ff;
+  --lattice-radius: 0;               /* ostré rohy */
+  --lattice-control-radius: 0;
+  --lattice-header-weight: 700;
+}
+
+/* --- odvážnější motivy podle design systémů (font, tvar, padding, hlavičky) --- */
+:root[data-lattice-theme="bootstrap5"] {
+  --lattice-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --lattice-bg: #fff;
+  --lattice-row-odd: #fcfcfd;
+  --lattice-row-hover: #f1f3f5;
+  --lattice-header-bg: #f8f9fa;
+  --lattice-border: #dee2e6;
+  --lattice-group-border: #adb5bd;
+  --lattice-text: #212529;
+  --lattice-muted: #6c757d;
+  --lattice-accent: #0d6efd;         /* bootstrap primary */
+  --lattice-accent-soft: #cfe2ff;
+  --lattice-radius: 6px;             /* .375rem */
+  --lattice-control-radius: 6px;
+  --lattice-cell-pad-y: 9px;
+  --lattice-cell-pad-x: 12px;
+  --lattice-header-pad-y: 9px;
+  --lattice-header-weight: 600;
+}
+:root[data-lattice-theme="tailwind"] {  /* moderní admin: uppercase muted hlavičky, jen vodorovné linky */
+  --lattice-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --lattice-bg: #fff;
+  --lattice-row-odd: #fff;
+  --lattice-row-hover: #f8fafc;
+  --lattice-header-bg: #f8fafc;      /* slate-50 */
+  --lattice-border: #e2e8f0;         /* slate-200 */
+  --lattice-group-border: #cbd5e1;
+  --lattice-text: #0f172a;           /* slate-900 */
+  --lattice-muted: #64748b;          /* slate-500 */
+  --lattice-accent: #4f46e5;         /* indigo-600 */
+  --lattice-accent-soft: #e0e7ff;    /* indigo-100 */
+  --lattice-radius: 8px;             /* rounded-lg */
+  --lattice-control-radius: 6px;     /* rounded-md */
+  --lattice-cell-vborder: none;
+  --lattice-cell-pad-y: 10px;
+  --lattice-cell-pad-x: 14px;
+  --lattice-header-pad-y: 8px;
+  --lattice-header-color: var(--lattice-muted);
+  --lattice-header-transform: uppercase;
+  --lattice-header-spacing: 0.05em;
+  --lattice-header-size: 0.75em;     /* text-xs */
+  --lattice-header-weight: 600;
+}
+:root[data-lattice-theme="material"] {  /* Material data table: Roboto, bez zeber i svislých linek */
+  --lattice-font: Roboto, "Helvetica Neue", Arial, sans-serif;
+  --lattice-bg: #fff;
+  --lattice-row-odd: #fff;
+  --lattice-row-hover: #f5f5f5;
+  --lattice-header-bg: #fff;
+  --lattice-border: #e0e0e0;
+  --lattice-group-border: #bdbdbd;
+  --lattice-text: #212121;           /* rgba(0,0,0,.87) */
+  --lattice-muted: #757575;
+  --lattice-accent: #6200ee;         /* material purple */
+  --lattice-accent-soft: #ede7f6;
+  --lattice-radius: 4px;
+  --lattice-control-radius: 4px;
+  --lattice-cell-vborder: none;
+  --lattice-cell-pad-y: 13px;
+  --lattice-cell-pad-x: 16px;        /* 16dp */
+  --lattice-header-pad-y: 13px;
+  --lattice-header-color: var(--lattice-muted);
+  --lattice-header-size: 0.86em;
+  --lattice-header-weight: 500;
+}
+
+.lattice {
+  position: relative;
+  font-size: var(--lattice-font-size);
+  color: var(--lattice-text);
+  font-family: var(--lattice-font);
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-radius);
+  background: var(--lattice-bg);
+  box-sizing: border-box;
+}
+.lattice *, .lattice *::before, .lattice *::after { box-sizing: border-box; }
+
+/* hustota: compact zmenší paddingy */
+.lattice.is-compact {
+  --lattice-cell-pad-y: 3px;
+  --lattice-header-pad-y: 4px;
+}
+
+/* ---------- toolbar ---------- */
+.lattice-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--lattice-border);
+}
+.lattice-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--lattice-control-radius);
+  background: transparent;
+  color: var(--lattice-muted);
+  cursor: pointer;
+}
+.lattice-tool-btn:hover { background: var(--lattice-header-bg); color: var(--lattice-text); border-color: var(--lattice-border); }
+.lattice-tool-btn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
+.lattice-adv-quick {
+  max-width: 200px; height: 26px; padding: 0 6px;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.9em; cursor: pointer;
+}
+
+/* ---------- rozšířený filtr (query builder) ---------- */
+.lattice-adv-panel { width: 540px; max-width: 92vw; max-height: 78vh; overflow: auto; }
+.lattice-adv-saved-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.lattice-adv-saved { flex: 1 1 auto; padding: 5px 8px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: var(--lattice-bg); color: var(--lattice-text); }
+.lattice-adv-builder { border: 1px solid var(--lattice-border); border-radius: var(--lattice-radius); padding: 8px; background: var(--lattice-row-odd); }
+.lattice-adv-group { border-left: 3px solid var(--lattice-accent-soft); padding: 6px 0 6px 8px; }
+.lattice-adv-group .lattice-adv-group { margin-top: 6px; border-left-color: var(--lattice-border); background: var(--lattice-bg); border-radius: var(--lattice-control-radius); }
+.lattice-adv-group-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.lattice-adv-comb { padding: 4px 6px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: var(--lattice-bg); color: var(--lattice-text); font-weight: 600; }
+.lattice-adv-add {
+  padding: 3px 8px; border: 1px dashed var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-accent); cursor: pointer; font-size: 0.9em;
+}
+.lattice-adv-add:hover { background: var(--lattice-accent-soft); }
+.lattice-adv-rules { display: flex; flex-direction: column; gap: 5px; }
+.lattice-adv-cond { display: flex; align-items: center; gap: 5px; }
+.lattice-adv-field, .lattice-adv-op, .lattice-adv-value {
+  padding: 4px 6px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.92em; min-width: 0;
+}
+.lattice-adv-field { flex: 0 0 34%; }
+.lattice-adv-op { flex: 0 0 30%; }
+.lattice-adv-value { flex: 1 1 auto; }
+.lattice-adv-rm {
+  flex: 0 0 auto; width: 22px; height: 24px; border: none; background: none; cursor: pointer;
+  color: var(--lattice-muted); font-size: 16px; line-height: 1; border-radius: var(--lattice-control-radius);
+}
+.lattice-adv-rm:hover { background: var(--lattice-danger-soft); color: var(--lattice-danger); }
+.lattice-adv-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.lattice-adv-saverow { display: flex; gap: 6px; flex: 1 1 auto; }
+.lattice-adv-name { flex: 1 1 auto; min-width: 120px; padding: 5px 8px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: var(--lattice-bg); color: var(--lattice-text); }
+.lattice-adv-footer-btns { display: flex; gap: 6px; }
+
+/* ---------- externí filtry (nad tabulkou) ---------- */
+.lattice-external-filters {
+  display: none; /* zapíná se z JS na 'block' */
+  border-bottom: 1px solid var(--lattice-border);
+  background: var(--lattice-header-bg);
+}
+.lattice-ext-head { padding: 6px 12px; }
+.lattice-ext-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; background: none; cursor: pointer; padding: 2px 0;
+  font-family: inherit; font-size: 0.82em; font-weight: 600;
+  color: var(--lattice-muted); text-transform: uppercase; letter-spacing: .04em;
+}
+/* ---------- lišta hromadných akcí (bulk actions nad výběrem) ---------- */
+.lattice-selection-bar { display: none; }
+.lattice-selection-bar.is-active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: var(--lattice-accent-soft);
+  border: 1px solid var(--lattice-accent);
+  border-radius: var(--lattice-radius);
+  color: var(--lattice-text);
+}
+.lattice-selbar-count { font-weight: 600; margin-right: 4px; }
+.lattice-selbar-spacer { flex: 1 1 auto; }
+.lattice-selbar-action, .lattice-selbar-clear {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text);
+  cursor: pointer; font: inherit; font-size: 0.92em;
+}
+.lattice-selbar-action:hover { border-color: var(--lattice-accent); color: var(--lattice-accent); }
+.lattice-selbar-action.is-danger:hover { border-color: var(--lattice-danger); color: var(--lattice-danger); }
+.lattice-selbar-ico { display: inline-flex; line-height: 0; }
+.lattice-selbar-clear { background: none; border-color: transparent; color: var(--lattice-muted); }
+.lattice-selbar-clear:hover { color: var(--lattice-text); }
+
+.lattice-ext-toggle:hover { color: var(--lattice-text); }
+.lattice-ext-chevron { display: inline-flex; align-items: center; line-height: 0; transition: transform .15s ease; }
+.lattice-ext-chevron.is-collapsed { transform: rotate(-90deg); }
+.lattice-ext-badge {
+  font-size: 0.92em; font-weight: 600; letter-spacing: normal; text-transform: none;
+  padding: 0 6px; border-radius: 9px;
+  background: var(--lattice-accent-soft); color: var(--lattice-accent);
+}
+.lattice-ext-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px 16px;
+  padding: 8px 12px 10px;
+}
+.lattice-ext-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lattice-ext-label { font-size: 0.82em; font-weight: 600; color: var(--lattice-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- horní vodorovný scrollbar (nad tabulkou) ---------- */
+.lattice-top-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--lattice-border);
+}
+.lattice-top-scroll-inner { height: 1px; }
+/* Oba scrollbary (horní i viewport) stylujeme stejným CSS → shodná výška.
+   Zároveň vynutí viditelnost i na macOS overlay scrollbarech. */
+.lattice-top-scroll::-webkit-scrollbar,
+.lattice-viewport::-webkit-scrollbar { height: 6px; width: 6px; -webkit-appearance: none; }
+.lattice-top-scroll::-webkit-scrollbar-thumb,
+.lattice-viewport::-webkit-scrollbar-thumb { background: rgba(120, 130, 145, 0.55); border-radius: 3px; }
+.lattice-top-scroll::-webkit-scrollbar-thumb:hover,
+.lattice-viewport::-webkit-scrollbar-thumb:hover { background: rgba(120, 130, 145, 0.8); }
+.lattice-top-scroll::-webkit-scrollbar-track,
+.lattice-viewport::-webkit-scrollbar-track { background: var(--lattice-header-bg); }
+/* scrollbar-width bere jen auto/thin/none (ne px); 'thin' by v Chromu přebilo
+   ::-webkit-scrollbar height → necháme 'auto', přesnou výšku řídí ::-webkit-scrollbar */
+
+/* horní pager (paginace v záhlaví) — čára dole místo nahoře */
+.lattice-top-pager { border-top: none; border-bottom: 1px solid var(--lattice-border); }
+
+/* univerzální filtr */
+.lattice-universal-bar {
+  display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 10px; border-bottom: 1px solid var(--lattice-border); background: var(--lattice-header-bg);
+}
+.lattice-uni-label { color: var(--lattice-muted); font-size: 0.9em; }
+.lattice-uni-field, .lattice-uni-type, .lattice-uni-value {
+  height: 28px; padding: 2px 6px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.92em;
+}
+.lattice-uni-value { flex: 1 1 220px; min-width: 140px; }
+.lattice-uni-value:focus, .lattice-uni-field:focus, .lattice-uni-type:focus { outline: none; border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+.lattice-uni-clear {
+  height: 28px; padding: 0 12px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer; font-size: 0.92em;
+}
+.lattice-uni-clear:hover { background: var(--lattice-accent-soft); color: var(--lattice-accent); border-color: var(--lattice-accent); }
+
+/* ---------- viewport (jediný scroll kontejner) ---------- */
+.lattice-viewport {
+  position: relative;
+  overflow: auto;
+  max-height: var(--lattice-max-height, 60vh);
+}
+.lattice-table {
+  position: relative;
+  min-width: 100%;
+}
+
+/* ---------- header ---------- */
+.lattice-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--lattice-header-bg);
+}
+.lattice-header-row, .lattice-filter-row, .lattice-row, .lattice-group-row { display: flex; }
+
+/* ---------- řádek skupin sloupců ---------- */
+.lattice-gcell {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  font-weight: 600;
+  background: var(--lattice-header-bg);
+  border-right: 1px solid var(--lattice-border);
+  border-bottom: 1px solid var(--lattice-border);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.lattice-gcell-title { overflow: hidden; text-overflow: ellipsis; }
+.lattice-gcell-x {
+  flex: 0 0 auto; margin-left: 6px;
+  border: none; background: none; cursor: pointer; padding: 0 2px;
+  color: var(--lattice-muted); font-size: 15px; line-height: 1; opacity: 0.6;
+}
+.lattice-gcell-x:hover { color: var(--lattice-danger); opacity: 1; }
+.lattice-gcell:not(.is-empty) { cursor: grab; user-select: none; }
+/* neseskupený sloupec: pás má spodní linku (jako u skupin) a žádný vnitřní svislý oddělovač */
+.lattice-gcell.is-empty { border-right-color: transparent; }
+.lattice-gcell.is-frozen { position: sticky; z-index: 6; }
+
+/* výrazná svislá hrana na okraji skupiny (skupina↔skupina i skupina↔neseskupený) —
+   táhne se přes celou výšku: řádek skupin, hlavička, filtry i tělo.
+   Vyšší specificita (0,3,0) přebije základní 1px okraj buněk (i filtrů). */
+.lattice-group-row .lattice-gcell.is-gedge,
+.lattice-header-row .lattice-hcell.is-gedge,
+.lattice-filter-row .lattice-fcell.is-gedge,
+.lattice-body .lattice-cell.is-gedge {
+  border-right: 2px solid var(--lattice-group-border);
+}
+.lattice-gcell.is-dragging { opacity: 0.5; }
+.lattice-gcell.drop-before { box-shadow: inset 3px 0 0 var(--lattice-accent); }
+.lattice-gcell.drop-after { box-shadow: inset -3px 0 0 var(--lattice-accent); }
+
+.lattice-hcell {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--lattice-header-pad-y) var(--lattice-cell-pad-x);
+  font-family: var(--lattice-header-font, inherit);
+  font-weight: var(--lattice-header-weight);
+  font-size: var(--lattice-header-size);
+  text-transform: var(--lattice-header-transform);
+  letter-spacing: var(--lattice-header-spacing);
+  color: var(--lattice-header-color);
+  background: var(--lattice-header-bg);
+  border-right: var(--lattice-cell-vborder);
+  border-bottom: 1px solid var(--lattice-border);
+  user-select: none;
+  overflow: hidden;
+}
+.lattice-hcell-title {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lattice-hcell.is-sortable .lattice-hcell-title { cursor: pointer; }
+.lattice-hcell.is-center { justify-content: center; text-align: center; }
+.lattice-hcell.is-right { justify-content: flex-end; text-align: right; }
+.lattice-sort { color: var(--lattice-accent); font-size: 0.8em; }
+.lattice-sort-order { font-size: 0.85em; font-weight: 700; margin-left: 1px; }
+/* klávesová navigace — viditelný focus buňky */
+.lattice-body .lattice-cell:focus { outline: 2px solid var(--lattice-accent); outline-offset: -2px; z-index: 1; }
+.lattice-body .lattice-cell:focus-visible { outline: 2px solid var(--lattice-accent); outline-offset: -2px; }
+/* virtuální scrollování — rozpěrky nad/pod viditelným oknem */
+.lattice-vspacer { flex: 0 0 auto; width: 100%; }
+
+/* otočené (svislé) popisky hlaviček — jen datové sloupce, ne skupiny.
+   writing-mode → výška hlavičky se sama přizpůsobí délce názvu (ne pevná). */
+.lattice-hcell.is-rot-90, .lattice-hcell.is-rot-270 { position: relative; justify-content: center; }
+/* 90° → název ke spodnímu okraji, 270° → k hornímu (šipka řazení zůstává na svislém středu) */
+.lattice-hcell.is-rot-90 { align-items: flex-end; }
+.lattice-hcell.is-rot-270 { align-items: flex-start; }
+.lattice-hcell.is-rot-90 .lattice-hcell-title,
+.lattice-hcell.is-rot-270 .lattice-hcell-title {
+  writing-mode: vertical-rl;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  padding: 2px 0;
+}
+.lattice-hcell.is-rot-90 .lattice-hcell-title { transform: rotate(180deg); } /* 90° = zdola nahoru */
+/* 270° = writing-mode as-is = shora dolů */
+/* řadicí šipka u otočené hlavičky: pravý okraj sloupce, svisle na střed řádku */
+.lattice-hcell.is-rot-90 .lattice-sort,
+.lattice-hcell.is-rot-270 .lattice-sort { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
+
+.lattice-hcell.is-dragging { opacity: 0.5; }
+.lattice-hcell.drop-before { box-shadow: inset 3px 0 0 var(--lattice-accent); }
+.lattice-hcell.drop-after  { box-shadow: inset -3px 0 0 var(--lattice-accent); }
+
+/* resize handle na pravém okraji hlavičky */
+.lattice-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 6;
+}
+.lattice-resize-handle:hover { background: var(--lattice-accent-soft); }
+body.lattice-resizing { cursor: col-resize; user-select: none; }
+
+/* ---------- filtry v hlavičce ---------- */
+.lattice-filter-row .lattice-fcell {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  background: var(--lattice-header-bg);
+  border-right: 1px solid var(--lattice-border);
+  border-bottom: 1px solid var(--lattice-border);
+  overflow: hidden;
+}
+.lattice-filter-input {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.92em;
+  padding: 3px 6px;
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg);
+  color: var(--lattice-text);
+}
+.lattice-filter-input:focus { outline: none; border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+/* textový filtr s křížkem pro vyčištění */
+.lattice-filter-clearable { position: relative; display: block; width: 100%; }
+.lattice-filter-clearable .lattice-filter-input { padding-right: 18px; }
+.lattice-filter-clear {
+  position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer; color: var(--lattice-muted);
+  font-size: 15px; line-height: 1; padding: 0 2px;
+}
+.lattice-filter-clear:hover { color: var(--lattice-accent); }
+.lattice-filter-input.is-multi { height: auto; min-height: 26px; }
+.lattice-filter-range { display: flex; gap: 4px; }
+.lattice-filter-input.is-half { width: 50%; }
+/* Rozsah Od/Do (datum i číslo) — dvě pole pod sebou s popiskem */
+.lattice-filter-stacked { display: flex; flex-direction: column; gap: 3px; width: 100%; min-width: 0; }
+.lattice-stacked-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.lattice-stacked-lbl { flex: 0 0 auto; width: 16px; font-size: 0.82em; color: var(--lattice-muted); }
+.lattice-filter-stacked .lattice-filter-input { flex: 1 1 auto; width: auto; min-width: 0; }
+
+/* filtr = ovládací prvek + přepínač typu (sdílené záhlaví i externí panel) */
+.lattice-filter-wrap { display: flex; align-items: center; gap: 3px; width: 100%; min-width: 0; }
+.lattice-fcell-control { flex: 1 1 auto; min-width: 0; }
+.lattice-ftype-btn {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 22px; padding: 0;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-muted);
+  cursor: pointer;
+}
+.lattice-ftype-btn:hover { background: var(--lattice-accent-soft); color: var(--lattice-accent); border-color: var(--lattice-accent); }
+
+/* rozbalovací menu (výběr typu filtru) */
+.lattice-menu {
+  position: absolute;
+  z-index: 1100;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--lattice-bg, #fff);
+  color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8);
+  border-radius: var(--lattice-radius);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  font-size: 14px;
+  font-family: var(--lattice-font);
+}
+.lattice-menu-item { padding: 6px 10px; border-radius: var(--lattice-control-radius); cursor: pointer; white-space: nowrap; }
+.lattice-menu-item:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-menu-item.is-active { background: var(--lattice-accent-soft, #dbeafe); color: var(--lattice-accent, #2563eb); font-weight: 600; }
+
+/* ---------- multiselect (Select2-like) ---------- */
+.lattice-ms {
+  display: flex; align-items: center; gap: 4px;
+  width: 100%; min-width: 0; min-height: 24px;
+  padding: 1px 4px; cursor: pointer;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text);
+  font-size: 0.92em;
+}
+.lattice-ms.is-open { border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+.lattice-ms-chips { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; overflow: hidden; }
+.lattice-ms-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-ms-single-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-ms-muted { color: var(--lattice-muted, #6b7583); }
+.lattice-ms-placeholder { color: var(--lattice-text); }
+.lattice-ms-chip {
+  display: inline-flex; align-items: center; gap: 3px; max-width: 100%;
+  padding: 0 4px; border-radius: 3px; font-size: 0.9em;
+  background: var(--lattice-accent-soft); color: var(--lattice-accent);
+}
+.lattice-ms-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-ms-chip-x { cursor: pointer; font-weight: 700; line-height: 1; }
+.lattice-ms-chip-x:hover { color: var(--lattice-danger); }
+.lattice-ms-more { background: var(--lattice-header-bg); color: var(--lattice-muted); font-weight: 600; }
+.lattice-ms-caret { flex: 0 0 auto; display: inline-flex; color: var(--lattice-muted); }
+
+.lattice-ms-panel {
+  position: absolute; z-index: 1100; max-width: 300px;
+  padding: 4px;
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-radius);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  font-family: var(--lattice-font);
+  font-size: 14px;
+}
+.lattice-ms-search {
+  width: 100%; box-sizing: border-box; padding: 5px 8px; margin-bottom: 4px;
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733); font-size: 0.95em;
+}
+.lattice-ms-search:focus { outline: none; border-color: var(--lattice-accent, #2563eb); box-shadow: 0 0 0 2px var(--lattice-accent-soft, #dbeafe); }
+.lattice-ms-list { max-height: 220px; overflow: auto; }
+.lattice-ms-option { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: var(--lattice-control-radius); cursor: pointer; white-space: nowrap; }
+.lattice-ms-option:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-ms-option.is-selected { color: var(--lattice-accent, #2563eb); font-weight: 600; }
+.lattice-ms-check { width: 14px; display: inline-flex; justify-content: center; color: var(--lattice-accent, #2563eb); }
+.lattice-ms-empty { padding: 6px 8px; color: var(--lattice-muted, #6b7583); font-size: 0.9em; }
+
+/* ---------- date-range picker ---------- */
+.lattice-dr {
+  display: flex; align-items: center; gap: 4px;
+  width: 100%; min-width: 0; height: 26px;
+  padding: 2px 6px; cursor: pointer;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.92em;
+}
+.lattice-dr.is-open { border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+.lattice-dr-text { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-dr-text.is-placeholder { color: var(--lattice-muted); }
+.lattice-dr-icon { flex: 0 0 auto; display: inline-flex; color: var(--lattice-muted); }
+.lattice-dr-clear {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; padding: 0; border: none; border-radius: 3px;
+  background: transparent; color: var(--lattice-muted); cursor: pointer;
+  font-size: 14px; line-height: 1;
+}
+.lattice-dr-clear:hover { background: var(--lattice-danger-soft); color: var(--lattice-danger); }
+
+.lattice-dr-panel {
+  position: absolute; z-index: 1100;
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+  font-family: var(--lattice-font);
+  font-size: 14px;
+}
+.lattice-dr-body { display: flex; }
+.lattice-dr-presets {
+  min-width: 180px; max-height: 360px; overflow: auto;
+  padding: 8px; border-right: 1px solid var(--lattice-border, #dfe3e8);
+}
+.lattice-dr-preset { padding: 7px 10px; border-radius: var(--lattice-control-radius); cursor: pointer; white-space: nowrap; }
+.lattice-dr-preset:hover { background: var(--lattice-accent, #2563eb); color: #fff; }
+.lattice-dr-preset.is-clear { color: var(--lattice-muted, #6b7583); margin-top: 4px; border-top: 1px solid var(--lattice-border, #dfe3e8); border-radius: 0 0 6px 6px; }
+.lattice-dr-preset.is-clear:hover { background: var(--lattice-danger); color: #fff; }
+
+.lattice-dr-cals { display: flex; gap: 16px; padding: 12px 16px; }
+.lattice-dr-cal { width: 224px; }
+.lattice-dr-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.lattice-dr-cal-title { font-weight: 600; }
+.lattice-dr-nav {
+  width: 26px; height: 26px; border: none; border-radius: var(--lattice-control-radius); cursor: pointer;
+  background: transparent; color: var(--lattice-text, #1f2733); font-size: 16px; line-height: 1;
+}
+.lattice-dr-nav:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-dr-weekdays, .lattice-dr-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.lattice-dr-weekdays span { text-align: center; font-size: 0.82em; color: var(--lattice-muted, #6b7583); padding: 4px 0; }
+.lattice-dr-day {
+  height: 30px; border: none; background: transparent; cursor: pointer;
+  color: var(--lattice-text, #1f2733); border-radius: var(--lattice-control-radius); font-size: 0.9em;
+}
+.lattice-dr-day:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-dr-day.is-out { color: var(--lattice-muted, #b6bcc6); }
+.lattice-dr-day.is-in-range { background: var(--lattice-accent-soft, #dbeafe); border-radius: 0; }
+.lattice-dr-day.is-selected { background: var(--lattice-accent, #2563eb); color: #fff; }
+.lattice-dr-day.is-from { border-radius: var(--lattice-control-radius) 0 0 6px; }
+.lattice-dr-day.is-to { border-radius: 0 6px 6px 0; }
+.lattice-dr-day.is-from.is-to { border-radius: var(--lattice-control-radius); }
+
+.lattice-dr-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 16px; border-top: 1px solid var(--lattice-border, #dfe3e8);
+}
+.lattice-dr-range { color: var(--lattice-muted, #6b7583); }
+.lattice-dr-footer-btns { display: flex; gap: 8px; }
+.lattice-dr-btn {
+  padding: 6px 14px; border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733); cursor: pointer; font-size: 0.95em;
+}
+.lattice-dr-btn:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-dr-btn.is-primary { background: var(--lattice-accent, #2563eb); color: #fff; border-color: var(--lattice-accent, #2563eb); }
+.lattice-dr-btn.is-primary:hover { filter: brightness(0.95); }
+
+/* ---------- tělo ---------- */
+.lattice-cell {
+  flex: 0 0 auto;
+  padding: var(--lattice-cell-pad-y) var(--lattice-cell-pad-x);
+  background: var(--lattice-bg);
+  border-right: var(--lattice-cell-vborder);
+  border-bottom: 1px solid var(--lattice-border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lattice-cell.is-center { text-align: center; }
+.lattice-cell.is-right { text-align: right; }
+.lattice-row.is-odd .lattice-cell { background: var(--lattice-row-odd); }
+.lattice-row.is-clickable { cursor: pointer; }
+.lattice-row:hover .lattice-cell { background: var(--lattice-row-hover); }
+
+/* progresivní načítání (patička místo paginátoru) */
+.lattice-load-more {
+  padding: 5px 14px; border: 1px solid var(--lattice-accent); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-accent); color: #fff; cursor: pointer; font-size: 13px;
+}
+.lattice-load-more:hover { filter: brightness(1.05); }
+.lattice-load-more:disabled { opacity: 0.6; cursor: default; }
+.lattice-progressive-done { color: var(--lattice-muted); font-size: 13px; }
+
+/* vodicí čára při změně šířky sloupce (resize guide) */
+.lattice-resize-guide {
+  position: absolute; top: 0; width: 2px;
+  background: var(--lattice-accent); z-index: 6; pointer-events: none;
+}
+
+/* popup panel (klik na buňku / hlavičku) */
+/* Popup je appendovaný na document.body (mimo .lattice) → CSS proměnné nedědí,
+   proto explicitní fallbacky, ať není pozadí průhledné. */
+.lattice-popup {
+  position: absolute; z-index: 1000;
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-radius);
+  box-shadow: 0 8px 24px rgba(20, 30, 45, 0.18);
+  padding: 12px 14px; min-width: 180px; max-width: 340px; font-size: 13px; line-height: 1.5;
+}
+.lattice-cell.is-popup { cursor: pointer; }
+.lattice-cell.is-popup:hover { background: var(--lattice-accent-soft); }
+.lattice-hcell-popup, .lattice-hcell-menu {
+  border: none; background: none; cursor: pointer; color: var(--lattice-muted);
+  padding: 0 3px; font-size: 12px; line-height: 1;
+}
+.lattice-hcell-popup:hover, .lattice-hcell-menu:hover { color: var(--lattice-accent); }
+.lattice-hcell-menu { margin-right: 4px; font-size: 14px; flex: 0 0 auto; }
+.lattice-menu-sep { height: 1px; margin: 4px 0; background: var(--lattice-border); }
+
+/* výběr rozsahu buněk (spreadsheet-like) */
+.lattice.is-range-mode, .lattice.is-range-mode * { user-select: none; }
+.lattice-body .lattice-row .lattice-cell.is-range { background: var(--lattice-accent-soft); }
+.lattice-body .lattice-row .lattice-cell.is-range-active { box-shadow: inset 0 0 0 2px var(--lattice-accent); }
+
+/* levá skupina toolbaru (historie + tree ovládání) */
+.lattice-toolbar-left { display: flex; align-items: center; gap: 14px; margin-right: auto; }
+.lattice-quicksearch {
+  padding: 5px 10px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font: inherit; font-size: 0.9em; min-width: 200px;
+}
+.lattice-quicksearch:focus { outline: none; border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+.lattice-hist-controls { display: flex; align-items: center; gap: 4px; }
+.lattice-hist-btn {
+  padding: 4px 9px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.lattice-hist-btn:hover:not(:disabled) { background: var(--lattice-accent-soft); color: var(--lattice-accent); border-color: var(--lattice-accent); }
+.lattice-hist-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ovládání úrovní stromu v toolbaru */
+.lattice-tree-controls { display: flex; align-items: center; gap: 4px; }
+.lattice-tree-btn {
+  padding: 4px 8px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer; font-size: 12.5px; line-height: 1.2;
+}
+.lattice-tree-btn:hover { background: var(--lattice-accent-soft); color: var(--lattice-accent); border-color: var(--lattice-accent); }
+.lattice-tree-level-wrap { display: inline-flex; align-items: center; gap: 4px; color: var(--lattice-muted); font-size: 12.5px; padding: 0 2px; }
+.lattice-tree-level { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--lattice-text); }
+
+/* řádkové akce (sloupec 'column' i ⋮ menu) */
+.lattice-actions-cell { display: flex; align-items: center; justify-content: center; padding: 0; }
+.lattice-actions { display: inline-flex; align-items: center; gap: 2px; }
+.lattice-action-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0; border: none; border-radius: var(--lattice-control-radius);
+  background: none; color: var(--lattice-muted); cursor: pointer;
+}
+.lattice-action-btn:hover { background: var(--lattice-accent-soft); color: var(--lattice-accent); }
+.lattice-action-btn.is-danger:hover { background: var(--lattice-danger-soft); color: var(--lattice-danger); }
+.lattice-action-btn:disabled { opacity: 0.35; cursor: default; }
+.lattice-action-btn:disabled:hover { background: none; color: var(--lattice-muted); }
+.lattice-actions-menu-btn {
+  border: none; background: none; cursor: pointer; color: var(--lattice-muted);
+  font-size: 16px; line-height: 1; padding: 0 3px; border-radius: var(--lattice-control-radius);
+}
+.lattice-actions-menu-btn:hover { color: var(--lattice-accent); background: var(--lattice-accent-soft); }
+.lattice-rownum.has-actions-menu { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.lattice-menu-item.is-disabled { color: var(--lattice-muted); opacity: 0.5; cursor: default; }
+.lattice-menu-item.is-danger { color: var(--lattice-danger); }
+
+/* sloupec s úchytem pro přesun řádků + indikátory dropu */
+.lattice-move-cell { display: flex; align-items: center; justify-content: center; padding: 0; }
+.lattice-move-grip { cursor: grab; color: var(--lattice-muted); font-size: 12px; line-height: 1; user-select: none; }
+.lattice-move-grip:hover { color: var(--lattice-accent); }
+.lattice-move-grip:active { cursor: grabbing; }
+.lattice-row.drop-before .lattice-cell { box-shadow: inset 0 2px 0 0 var(--lattice-accent); }
+.lattice-row.drop-after .lattice-cell { box-shadow: inset 0 -2px 0 0 var(--lattice-accent); }
+.lattice-row.drop-inside .lattice-cell { background: var(--lattice-accent-soft); box-shadow: inset 0 0 0 1px var(--lattice-accent); }
+.lattice-rowgroup.drop-group { box-shadow: inset 0 0 0 2px var(--lattice-accent); background: var(--lattice-accent-soft); }
+.lattice-viewport.is-drop-target { box-shadow: inset 0 0 0 2px var(--lattice-accent); }
+
+/* výběrový sloupec (checkboxy) */
+.lattice-select-cell { display: flex; align-items: center; justify-content: center; gap: 1px; padding: 0; }
+.lattice-select-cell input { cursor: pointer; margin: 0; }
+.lattice-select-menu {
+  border: none; background: none; cursor: pointer; padding: 0 1px;
+  color: var(--lattice-muted); font-size: 10px; line-height: 1;
+}
+.lattice-select-menu:hover { color: var(--lattice-accent); }
+.lattice-row.is-selected .lattice-cell { background: var(--lattice-accent-soft); }
+.lattice-row.is-selected:hover .lattice-cell { background: var(--lattice-accent-soft); }
+
+/* sloupec s čísly řádků (row header / gutter) */
+.lattice-rownum-cell { justify-content: flex-end; color: var(--lattice-muted); background: var(--lattice-header-bg); }
+.lattice-rownum,
+.lattice-row.is-odd .lattice-rownum,
+.lattice-row:hover .lattice-rownum {
+  color: var(--lattice-muted);
+  background: var(--lattice-header-bg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- hlavička skupiny řádků (row grouping) ---------- */
+.lattice-rowgroup {
+  width: 100%;
+  background: var(--lattice-header-bg);
+  border-top: 1px solid var(--lattice-group-border);
+  border-bottom: 1px solid var(--lattice-border);
+  cursor: pointer;
+  user-select: none;
+}
+.lattice-rowgroup:hover { background: var(--lattice-accent-soft); }
+.lattice-rowgroup:focus-visible { outline: 2px solid var(--lattice-accent); outline-offset: -2px; }
+.lattice-rowgroup-inner {
+  position: sticky;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px var(--lattice-cell-pad-x);
+  font-weight: 600;
+  color: var(--lattice-text);
+}
+.lattice-rowgroup-toggle {
+  display: inline-flex;
+  color: var(--lattice-muted);
+  transition: transform 0.12s ease;
+}
+.lattice-rowgroup.is-collapsed .lattice-rowgroup-toggle { transform: rotate(-90deg); }
+
+/* ---------- rozbalovací detail řádku (master-detail) ---------- */
+.lattice-detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lattice-muted);
+  cursor: pointer;
+  transform: rotate(-90deg);
+  transition: transform 0.12s ease;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+.lattice-detail-toggle.is-expanded { transform: rotate(0deg); color: var(--lattice-accent); }
+.lattice-cell.is-detail-cell { display: flex; align-items: center; }
+.lattice-detail-row {
+  width: 100%;
+  background: var(--lattice-row-odd);
+  border-bottom: 1px solid var(--lattice-border);
+}
+.lattice-detail-inner {
+  position: sticky;
+  left: 0;
+  padding: 12px var(--lattice-cell-pad-x);
+  color: var(--lattice-text);
+  box-sizing: border-box;
+}
+.lattice-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 20px;
+}
+.lattice-detail-field { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.lattice-detail-label { color: var(--lattice-muted); font-size: 0.85em; flex: 0 0 auto; }
+.lattice-detail-val { overflow: hidden; text-overflow: ellipsis; }
+.lattice-detail-custom { margin-top: 8px; }
+.lattice-detail-fields + .lattice-detail-custom { border-top: 1px solid var(--lattice-border); padding-top: 8px; }
+.lattice-rowgroup-field { color: var(--lattice-muted); font-weight: 500; }
+.lattice-rowgroup-count {
+  font-size: 0.8em;
+  color: var(--lattice-muted);
+  background: var(--lattice-bg);
+  border: 1px solid var(--lattice-border);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* badge s pořadím úrovně u přepínače řádkového seskupení v dialogu Sloupce */
+.lattice-rgbtn { position: relative; overflow: visible; }
+.lattice-rg-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 14px; height: 14px; padding: 0 2px;
+  border-radius: 7px;
+  background: var(--lattice-accent); color: #fff;
+  font-size: 9px; line-height: 14px; text-align: center; font-weight: 700;
+}
+
+/* ---------- tree data (hierarchie s rozbalováním) ---------- */
+.lattice-cell.is-tree-cell { display: flex; align-items: center; gap: 3px; }
+.lattice-tree-indent { flex: 0 0 auto; }
+.lattice-tree-toggle {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px;
+  color: var(--lattice-muted); cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.lattice-tree-toggle:not(.is-expanded) { transform: rotate(-90deg); }
+.lattice-tree-toggle.is-leaf { transform: none; cursor: default; }
+.lattice-tree-toggle:hover:not(.is-leaf) { color: var(--lattice-accent); }
+
+/* ---------- souhrnné řádky (jeden na funkci) ---------- */
+.lattice-summary { position: sticky; bottom: 0; z-index: 3; }
+.lattice-summary-row { display: flex; }
+.lattice-summary-cell {
+  background: var(--lattice-header-bg);
+  display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+  white-space: nowrap; overflow: hidden;
+  font-weight: 700; /* stejná velikost jako data, jen tučně */
+}
+.lattice-summary-row.is-first .lattice-summary-cell { border-top: 2px solid var(--lattice-group-border); }
+/* mezisoučet skupiny — v proudu řádků (ne sticky), jemně odlišený */
+.lattice-summary-row.lattice-group-subtotal { position: static; }
+.lattice-group-subtotal .lattice-summary-cell { background: var(--lattice-accent-soft); border-top: 1px solid var(--lattice-group-border); font-style: italic; }
+.lattice-summary-cell.is-frozen { z-index: 4; }
+.lattice-summary-sym { color: var(--lattice-muted); font-weight: 400; }
+.lattice-summary-val { font-variant-numeric: tabular-nums; }
+/* plovoucí popisek funkce — sticky vlevo, nezabírá místo (# sloupec zůstane úzký) */
+.lattice-summary-label-wrap { order: -1; position: sticky; left: 0; width: 0; z-index: 6; overflow: visible; }
+.lattice-summary-rowlabel {
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%); white-space: nowrap;
+  color: var(--lattice-muted); font-weight: 600; background: var(--lattice-header-bg); padding-right: 8px;
+}
+.lattice-summary-menu { min-width: 220px; }
+.lattice-summary-menu-sym { display: inline-block; min-width: 20px; color: var(--lattice-muted); font-size: 0.85em; }
+.lattice-summary-menu-head { padding: 6px 10px 3px; font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--lattice-muted); }
+.lattice-summary-menu-sep { height: 1px; margin: 4px 6px; background: var(--lattice-border); }
+
+/* pravý syntetický sloupec se souhrnem řádků */
+.lattice-hcell.lattice-rowsum-cell { color: var(--lattice-accent); font-weight: 700; }
+.lattice-cell.lattice-rowsum-cell { background: var(--lattice-accent-soft); font-weight: 600; font-variant-numeric: tabular-nums; }
+.lattice-row.is-odd .lattice-cell.lattice-rowsum-cell,
+.lattice-row:hover .lattice-cell.lattice-rowsum-cell { background: var(--lattice-accent-soft); }
+
+/* pruh nad dolní paticí — přepínač rozsahu souhrnu */
+.lattice-summary-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px; border-top: 1px solid var(--lattice-border);
+  background: var(--lattice-row-odd); font-size: 0.92em;
+}
+.lattice-summary-bar-label { color: var(--lattice-muted); }
+.lattice-summary-bar-toggle {
+  padding: 3px 12px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer; font-weight: 600;
+}
+.lattice-summary-bar-toggle:hover { background: var(--lattice-accent-soft); color: var(--lattice-accent); border-color: var(--lattice-accent); }
+
+/* ---------- inline editace ---------- */
+.lattice-cell.is-editable { cursor: cell; }
+.lattice-cell.is-editing { padding: 0; overflow: visible; }
+.lattice-edit-input {
+  width: 100%; height: 100%; min-height: 24px; box-sizing: border-box;
+  padding: 2px 6px; border: 2px solid var(--lattice-accent); border-radius: 3px;
+  background: var(--lattice-bg); color: var(--lattice-text); font: inherit; outline: none;
+}
+.lattice-edit-input.is-number { text-align: right; }
+.lattice-edit-num {
+  width: 48px; padding: 2px 4px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font: inherit;
+}
+/* rating editor */
+.lattice-edit-rating { cursor: pointer; white-space: nowrap; letter-spacing: 2px; font-size: 1.15em; }
+.lattice-edit-rating .lattice-star.is-on { color: var(--lattice-star-on, #f5b301); }
+.lattice-edit-rating .lattice-star.is-off { color: var(--lattice-star-off, #d0d5dd); }
+/* progress editor */
+.lattice-edit-progress-wrap { display: flex; align-items: center; gap: 6px; width: 100%; padding: 0 4px; }
+.lattice-edit-progress { position: relative; flex: 1 1 auto; height: 16px; background: var(--lattice-progress-track, #e6e9ee); border-radius: var(--lattice-control-radius); cursor: ew-resize; }
+.lattice-edit-progress-bar { height: 100%; background: var(--lattice-progress-fill, #62c462); border-radius: var(--lattice-control-radius); }
+.lattice-edit-progress-label { font-size: 0.8em; min-width: 34px; text-align: right; }
+/* popup editory (link, color, date, select) */
+.lattice-edit-popup { padding: 8px; min-width: 200px; }
+.lattice-edit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.lattice-edit-row > span { flex: 0 0 46px; color: var(--lattice-muted); font-size: 0.9em; }
+.lattice-edit-row .lattice-edit-input { border-width: 1px; border-color: var(--lattice-border); }
+.lattice-edit-popup-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+.lattice-edit-color-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.lattice-edit-color-top input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: none; cursor: pointer; }
+.lattice-edit-color-top label { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; }
+.lattice-edit-color-grp { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+.lattice-edit-color-lbl { flex: 0 0 44px; color: var(--lattice-muted); font-size: 0.85em; }
+.lattice-edit-date .lattice-edit-cal { width: 232px; }
+.lattice-edit-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.lattice-edit-time { display: flex; align-items: center; gap: 5px; margin-top: 8px; border-top: 1px solid var(--lattice-border); padding-top: 8px; }
+.lattice-edit-select .lattice-ms-list { max-height: 220px; overflow: auto; }
+
+.lattice-bool { font-weight: 700; }
+.lattice-num-neg { color: var(--lattice-danger); }
+/* podmíněná barevná škála (semafor) — tmavý text kvůli čitelnosti na světlé výplni */
+.lattice-cell.is-condscale { color: #1f2733; }
+.lattice-cond-thresholds { display: flex; gap: 4px; flex-wrap: wrap; }
+.lattice-cond-th { width: 62px; }
+.lattice-cond-preview { display: flex; gap: 3px; padding: 4px 2px; }
+.lattice-cond-swatch { width: 22px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
+.lattice-cond-swatch.is-text { border: none; font-weight: 700; text-align: center; line-height: 14px; }
+.lattice-scale-colors { display: inline-flex; gap: 6px; }
+.lattice-scale-color { width: 34px; height: 24px; padding: 0; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: none; cursor: pointer; }
+.lattice-color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 8px 6px; }
+.lattice-color-cell { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; min-width: 0; }
+.lattice-color-cell .lattice-scale-color { flex: 0 0 auto; width: 30px; height: 22px; }
+.lattice-color-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-bool.is-true { color: var(--lattice-bool-true, #42a05a); }
+.lattice-bool.is-false { color: var(--lattice-bool-false, #e5534b); }
+
+/* progress bar */
+.lattice-progress {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: var(--lattice-progress-track, #e6e9ee);
+  border-radius: var(--lattice-control-radius);
+  overflow: hidden;
+}
+.lattice-progress-bar {
+  height: 100%;
+  min-width: 2px;
+  background: var(--lattice-progress-fill, #62c462);
+  border-radius: var(--lattice-control-radius);
+}
+.lattice-progress-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78em;
+  color: var(--lattice-text);
+}
+
+/* odkaz / obrázek / ikona / barva */
+.lattice-link { color: var(--lattice-link, var(--lattice-accent)); text-decoration: none; }
+.lattice-link:hover { text-decoration: underline; }
+.lattice-img { max-height: 100%; vertical-align: middle; object-fit: contain; border-radius: 3px; }
+.lattice-img.is-zoomable { cursor: zoom-in; }
+.lattice-icon { display: inline-flex; align-items: center; line-height: 1; }
+.lattice-icon-img { height: 1.3em; width: auto; vertical-align: middle; }
+.lattice-cell:has(> .lattice-color-fill) { padding: 3px 6px; }
+.lattice-color-fill { width: 100%; height: 18px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.12); }
+
+/* lightbox (proklik obrázku na detail) */
+.lattice-lightbox {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.75); cursor: zoom-out;
+}
+.lattice-lightbox-img { max-width: 90vw; max-height: 90vh; border-radius: var(--lattice-control-radius); box-shadow: 0 10px 50px rgba(0,0,0,0.5); cursor: default; }
+.lattice-lightbox-close {
+  position: fixed; top: 16px; right: 20px; width: 40px; height: 40px;
+  border: none; border-radius: 50%; background: rgba(255,255,255,0.15); color: #fff;
+  font-size: 26px; line-height: 1; cursor: pointer;
+}
+.lattice-lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+/* rating (hvězdičky) */
+.lattice-rating { white-space: nowrap; letter-spacing: 1px; }
+.lattice-star { color: var(--lattice-star-off, #d0d5dd); }
+.lattice-star.is-on { color: var(--lattice-star-on, #f5b301); }
+
+/* ---------- frozen (ukotvené) sloupce ---------- */
+.lattice-cell.is-frozen, .lattice-hcell.is-frozen, .lattice-fcell.is-frozen {
+  position: sticky;
+}
+.lattice-cell.is-frozen { z-index: 2; }
+.lattice-hcell.is-frozen, .lattice-fcell.is-frozen { z-index: 4; }
+/* dělící 2px linka na vnitřní hraně frozen bloku (bez stínu, inset = žádný posun layoutu) */
+.is-frozen-edge-left { box-shadow: inset -2px 0 0 var(--lattice-frozen-line); }
+.is-frozen-edge-right { box-shadow: inset 2px 0 0 var(--lattice-frozen-line); }
+
+/* ---------- patička / paginace ---------- */
+.lattice-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--lattice-border);
+  font-size: 0.92em;
+  color: var(--lattice-muted);
+  flex-wrap: wrap;
+}
+.lattice-page-info { flex: 0 0 auto; }
+.lattice-page-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lattice-page-size-label { color: var(--lattice-muted); }
+.lattice-page-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.lattice-page-size, .lattice-set-input {
+  padding: 3px 6px;
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg);
+  color: var(--lattice-text);
+}
+.lattice-page-btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg);
+  color: var(--lattice-text);
+  cursor: pointer;
+  font-size: 0.95em;
+}
+.lattice-page-btn:hover:not(:disabled):not(.is-active) { background: var(--lattice-header-bg); }
+.lattice-page-btn:disabled { opacity: 0.4; cursor: default; }
+.lattice-page-btn.is-active {
+  background: var(--lattice-accent);
+  color: #fff;
+  border-color: var(--lattice-accent);
+  cursor: default;
+  font-weight: 600;
+}
+.lattice-page-jump-wrap { display: flex; align-items: center; gap: 4px; }
+.lattice-page-jump {
+  width: 56px; height: 28px; padding: 3px 6px;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.95em;
+}
+.lattice-page-jump:focus { outline: none; border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+
+/* ---------- overlay (loading / empty / error) ---------- */
+.lattice-overlay {
+  position: absolute;
+  inset: 40px 0 0 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: var(--lattice-muted);
+  background: color-mix(in srgb, var(--lattice-bg) 70%, transparent);
+  font-size: 0.95em;
+}
+.lattice-overlay.is-error { color: var(--lattice-danger); }
+
+/* ---------- panely (gear / nastavení) ---------- */
+.lattice-panel {
+  z-index: 1000;
+  min-width: 230px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 6px;
+  background: var(--lattice-bg, #fff);
+  color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8);
+  border-radius: var(--lattice-radius);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  font-size: 14px;
+  font-family: var(--lattice-font);
+}
+.lattice-gear-panel { min-width: 350px; }
+.lattice-gear-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--lattice-control-radius);
+}
+.lattice-gear-label { min-width: 0; } /* ať se název zkrátí, ne aby tlačil ikony */
+.lattice-gear-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-gear-row:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-gear-row.is-dragging { opacity: 0.5; }
+.lattice-gear-row.drop-before { box-shadow: inset 0 3px 0 var(--lattice-accent, #2563eb); }
+.lattice-gear-row.drop-after { box-shadow: inset 0 -3px 0 var(--lattice-accent, #2563eb); }
+.lattice-grip { cursor: grab; color: var(--lattice-muted, #6b7583); letter-spacing: -2px; }
+.lattice-gear-label { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.lattice-gear-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; }
+/* Prázdný slot místo nedostupné ikony — každá ikona má tak pevný sloupec a řady se zarovnají. */
+.lattice-gslot-empty { flex: 0 0 auto; width: 22px; height: 22px; }
+.lattice-pin { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: none; background: none; cursor: pointer; opacity: 0.5; font-size: 0.95em; }
+.lattice-pin.is-active { opacity: 1; }
+/* ukotveno vpravo → pin zrcadlově (ukazuje na opačnou stranu než při ukotvení vlevo) */
+.lattice-pin.is-right { transform: scaleX(-1); }
+.lattice-pin:disabled { opacity: 0.2; cursor: default; }
+.lattice-fbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; border: none; border-radius: var(--lattice-control-radius);
+  background: none; cursor: pointer; color: var(--lattice-muted, #6b7583); opacity: 0.45;
+}
+.lattice-fbtn:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-fbtn.is-active { opacity: 1; color: var(--lattice-accent, #2563eb); }
+.lattice-gbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; border: none; border-radius: var(--lattice-control-radius);
+  background: none; cursor: pointer; color: var(--lattice-muted, #6b7583); opacity: 0.45;
+}
+.lattice-gbtn:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-gbtn.is-active { opacity: 1; color: var(--lattice-accent, #2563eb); }
+.lattice-group-menu { min-width: 180px; }
+.lattice-group-newrow { display: flex; gap: 4px; padding: 4px; border-top: 1px solid var(--lattice-border, #dfe3e8); margin-top: 4px; }
+.lattice-group-new {
+  flex: 1 1 auto; min-width: 0; padding: 4px 8px;
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733); font-size: 0.92em;
+}
+.lattice-group-new:focus { outline: none; border-color: var(--lattice-accent, #2563eb); box-shadow: 0 0 0 2px var(--lattice-accent-soft, #dbeafe); }
+
+.lattice-panel-footer { margin-top: 4px; padding: 6px; border-top: 1px solid var(--lattice-border, #dfe3e8); }
+.lattice-link-btn { border: none; background: none; color: var(--lattice-accent, #2563eb); cursor: pointer; padding: 0; }
+
+.lattice-set-row { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 10px; padding: 6px; }
+.lattice-set-label { color: var(--lattice-muted, #6b7583); }
+.lattice-set-row .lattice-set-input { width: 100%; }
+.lattice-set-range { display: flex; align-items: center; gap: 6px; }
+.lattice-set-range > input[type="range"] { flex: 1 1 auto; }
+.lattice-set-range-val { min-width: 34px; text-align: right; }
+
+/* ---------- modal nastavení tabulky ---------- */
+.lattice-modal-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(15, 20, 28, 0.45);
+  display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px;
+  overflow: auto;
+}
+.lattice-modal {
+  width: 100%; max-width: 640px; margin: auto;
+  background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733);
+  border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-radius, 10px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  font-family: var(--lattice-font); font-size: 14px;
+  display: flex; flex-direction: column; max-height: calc(100vh - 80px);
+}
+.lattice-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--lattice-border, #dfe3e8);
+}
+.lattice-modal-title { font-size: 16px; font-weight: 700; }
+.lattice-modal-x {
+  border: none; background: none; cursor: pointer; font-size: 22px; line-height: 1;
+  color: var(--lattice-muted, #6b7583); padding: 0 4px;
+}
+.lattice-modal-x:hover { color: var(--lattice-text, #1f2733); }
+.lattice-modal-body { padding: 6px 18px 12px; overflow-y: auto; }
+.lattice-modal-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px;
+  border-top: 1px solid var(--lattice-border, #dfe3e8);
+}
+.lattice-modal-foot > .lattice-modal-done { margin-left: auto; }
+.lattice-modal-global {
+  padding: 7px 14px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer; font: inherit; font-weight: 600;
+}
+.lattice-modal-global:hover:not(:disabled) { border-color: var(--lattice-accent); color: var(--lattice-accent); }
+.lattice-modal-global:disabled { opacity: .7; cursor: default; }
+.lattice-modal-done {
+  padding: 7px 18px; border: 1px solid var(--lattice-accent, #2563eb); border-radius: var(--lattice-control-radius, 6px);
+  background: var(--lattice-accent, #2563eb); color: #fff; cursor: pointer; font: inherit; font-weight: 600;
+}
+.lattice-modal-done:hover { filter: brightness(1.08); }
+.lattice-set-group { padding: 8px 0; }
+.lattice-set-group + .lattice-set-group { border-top: 1px solid var(--lattice-border, #dfe3e8); }
+.lattice-set-group-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--lattice-accent, #2563eb); margin: 6px 6px 2px;
+}
+/* taby v nastavení */
+.lattice-set-tabs {
+  display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 12px;
+  border-bottom: 1px solid var(--lattice-border, #dfe3e8);
+}
+.lattice-set-tab {
+  border: none; background: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--lattice-muted, #6b7583); padding: 8px 12px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.lattice-set-tab:hover { color: var(--lattice-text, #1f2733); }
+.lattice-set-tab.is-active { color: var(--lattice-accent, #2563eb); border-bottom-color: var(--lattice-accent, #2563eb); }
+.lattice-set-panel { padding: 2px 0 4px; }
+.lattice-set-hint { font-size: 12.5px; color: var(--lattice-muted, #6b7583); margin: 2px 6px 10px; line-height: 1.5; }
+.lattice-set-subhead {
+  grid-column: 1 / -1; margin: 8px 6px 0; font-weight: 600; font-size: 0.9em;
+  color: var(--lattice-muted, #6b7583);
+}
+/* nabídka globálního výchozího nastavení od správce */
+.lattice-set-gdnote {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 8px 0 4px; padding: 9px 12px; border-radius: var(--lattice-control-radius);
+  background: var(--lattice-header-bg); color: var(--lattice-muted);
+  border: 1px solid var(--lattice-border);
+}
+/* výrazný stav — je nová verze */
+.lattice-set-gdnote.is-new {
+  background: var(--lattice-accent-soft); color: var(--lattice-text);
+  border-color: var(--lattice-accent);
+}
+.lattice-set-gdnote-txt { flex: 1 1 auto; font-size: 0.92em; }
+.lattice-set-gdnote-apply, .lattice-set-gdnote-keep {
+  padding: 5px 12px; border-radius: var(--lattice-control-radius); cursor: pointer; font: inherit; font-size: 0.9em; font-weight: 600;
+  border: 1px solid var(--lattice-accent);
+}
+.lattice-set-gdnote-apply { background: var(--lattice-accent); color: #fff; }
+.lattice-set-gdnote-keep { background: var(--lattice-bg); color: var(--lattice-accent); }
+/* tečka na tlačítku nastavení, když je k dispozici globální nastavení */
+.lattice-tool-btn.has-gd-note { position: relative; }
+.lattice-tool-btn.has-gd-note::after {
+  content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--lattice-accent); border: 1px solid var(--lattice-bg);
+}
+.lattice-fmt-preview { color: var(--lattice-accent, #2563eb); font-variant-numeric: tabular-nums; }
+.lattice-modal .lattice-set-input { padding: 5px 8px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); background: var(--lattice-bg); color: var(--lattice-text); font: inherit; font-size: 13px; }
+
+/* placeholder prázdné buňky + volby zobrazení */
+.lattice-empty-cell { color: var(--lattice-muted, #6b7583); }
+.lattice.no-zebra .lattice-row.is-odd .lattice-cell { background: var(--lattice-bg); }
+.lattice.wrap-text .lattice-cell { white-space: normal; overflow-wrap: anywhere; }
+
+/* per-column formát: tlačítko „0.0" + popover */
+.lattice-fmtbtn { font-size: 0.62em; font-weight: 700; letter-spacing: -0.03em; }
+.lattice-format-menu { min-width: 250px; padding: 8px; }
+.lattice-format-menu .lattice-set-row { grid-template-columns: 110px 1fr; padding: 4px 2px; }
+.lattice-fmt-radio { display: flex; align-items: center; gap: 6px; padding: 4px 6px; }
+.lattice-fmt-radio input { margin: 0; }
+.lattice-fmt-fields { margin-top: 4px; border-top: 1px solid var(--lattice-border); padding-top: 4px; }
+
+/* ---------- panel hlavička + nástroje ---------- */
+.lattice-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid var(--lattice-border, #dfe3e8);
+  margin-bottom: 6px;
+}
+.lattice-panel-title { font-weight: 600; }
+.lattice-panel-tools { display: flex; gap: 4px; }
+.lattice-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 26px; padding: 0;
+  border: 1px solid var(--lattice-border, #dfe3e8);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg, #fff);
+  color: var(--lattice-muted, #6b7583);
+  cursor: pointer;
+}
+.lattice-icon-btn:hover { background: var(--lattice-header-bg, #f1f3f6); color: var(--lattice-text, #1f2733); }
+.lattice-icon-btn.is-danger { color: var(--lattice-danger); border-color: var(--lattice-danger-soft); }
+.lattice-icon-btn.is-danger:hover { background: var(--lattice-danger-soft); }
+.lattice-icon-btn.is-success { color: var(--lattice-success); border-color: var(--lattice-success-soft); }
+.lattice-icon-btn.is-success:hover { background: #e9f8ee; }
+
+/* ---------- presety ---------- */
+.lattice-preset-box { margin-bottom: 8px; }
+.lattice-preset-empty { color: var(--lattice-muted, #6b7583); font-size: 0.9em; padding: 2px 6px 6px; }
+.lattice-preset-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; max-height: 160px; overflow: auto; }
+.lattice-preset-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px; border-radius: var(--lattice-control-radius); cursor: default;
+}
+.lattice-preset-row:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-preset-row.is-active { background: var(--lattice-accent-soft, #dbeafe); }
+.lattice-preset-name { flex: 1 1 auto; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lattice-preset-row.is-active .lattice-preset-name { font-weight: 600; color: var(--lattice-accent, #2563eb); }
+.lattice-preset-badge { display: inline-flex; color: var(--lattice-success); }
+.lattice-preset-del {
+  border: none; background: none; cursor: pointer;
+  color: var(--lattice-muted, #6b7583); font-size: 16px; line-height: 1; padding: 0 4px;
+}
+.lattice-preset-del:hover { color: var(--lattice-danger); }
+.lattice-preset-save { display: flex; gap: 4px; }
+.lattice-preset-input, .lattice-col-search {
+  flex: 1 1 auto; min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--lattice-border, #dfe3e8);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg, #fff);
+  color: var(--lattice-text, #1f2733);
+  font-size: 0.95em;
+}
+.lattice-preset-input:focus, .lattice-col-search:focus {
+  outline: none; border-color: var(--lattice-accent, #2563eb);
+  box-shadow: 0 0 0 2px var(--lattice-accent-soft, #dbeafe);
+}
+.lattice-col-search { width: 100%; margin-bottom: 6px; }

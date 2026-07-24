@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lattice — ukázky a dokumentace</title>
+  <link rel="stylesheet" href="../src/lattice.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #eef1f5; color: #1f2733;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .app { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+
+    /* ---------- postranní panel ---------- */
+    .side {
+      background: #1f2733; color: #cdd4de; padding: 16px 0 40px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .side h1 { font-size: 18px; margin: 0 16px 4px; color: #fff; }
+    .side .tag { font-size: 12px; margin: 0 16px 16px; color: #8b95a5; }
+    .nav-cat {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      width: 100%; border: none; background: none; text-align: left; font-family: inherit;
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+      color: #fff; margin: 12px 0 2px; padding: 4px 16px; cursor: pointer;
+    }
+    .nav-cat:hover { background: #28303d; }
+    .nav-chevron { display: inline-flex; align-items: center; color: #cdd4de; line-height: 0; transition: transform .15s ease; }
+    .nav-cat:hover .nav-chevron { color: #fff; }
+    .nav-cat.is-collapsed .nav-chevron { transform: rotate(-90deg); }
+    .nav-item {
+      display: block; padding: 3px 16px; color: #cdd4de; text-decoration: none;
+      font-size: 12.5px; line-height: 1.35; border-left: 3px solid transparent; cursor: pointer;
+    }
+    .nav-item:hover { background: #28303d; color: #fff; }
+    .nav-item.active { background: #28303d; color: #fff; border-left-color: #2563eb; }
+
+    /* ---------- obsah ---------- */
+    .main { padding: 16px 26px 40px; min-width: 0; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+    .tab {
+      padding: 7px 16px; border: 1px solid #cfd5dd; border-radius: 20px; background: #fff;
+      cursor: pointer; font-size: 13px; font-weight: 600; color: #55606f;
+    }
+    .tab.is-active { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .tabs .spacer { flex: 1; }
+    .tabs select, .tabs > button:not(.tab) {
+      padding: 6px 12px; border: 1px solid #cfd5dd; border-radius: 6px;
+      background: #fff; cursor: pointer; font-size: 13px;
+    }
+    .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; margin-bottom: 6px; }
+    .head h2 { margin: 0; font-size: 22px; }
+    .blurb { margin: 0 0 16px; color: #55606f; max-width: 900px; line-height: 1.5; }
+    #grid { --lattice-max-height: 60vh; margin-bottom: 18px; }
+    details.code { max-width: 900px; }
+    details.code summary { cursor: pointer; color: #6b7583; font-size: 13px; margin-bottom: 8px; user-select: none; }
+    pre#ex-code, .doc-code {
+      margin: 0; padding: 14px 16px; background: #1f2733; color: #e6edf3;
+      border-radius: 8px; overflow-x: auto; font-size: 12.5px; line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    /* ---------- dokumentace ---------- */
+    .doc { max-width: 900px; }
+    .doc-lead { font-size: 15px; color: #55606f; line-height: 1.6; margin: 0 0 20px; }
+    .doc h2 { font-size: 26px; margin: 0 0 6px; }
+    .doc h3 { font-size: 18px; margin: 28px 0 8px; padding-top: 6px; border-top: 1px solid #e0e4ea; }
+    .doc h4 { font-size: 15px; margin: 18px 0 6px; }
+    .doc-p { line-height: 1.65; color: #2b333f; margin: 10px 0; }
+    .doc-p code, .doc-li code, td code, .doc-note code { background: #e7ebf1; color: #b1003e; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .doc-code { margin: 12px 0; }
+    .doc-ul { margin: 10px 0; padding-left: 22px; line-height: 1.6; }
+    .doc-li { margin: 4px 0; color: #2b333f; }
+    .doc-note {
+      margin: 14px 0; padding: 12px 14px; border-left: 4px solid #2563eb;
+      background: #eef3fe; border-radius: 0 8px 8px 0; line-height: 1.6; font-size: 14px; color: #2b333f;
+    }
+    .doc-note.warn { border-left-color: #d97706; background: #fef6ec; }
+    .doc-live { margin: 14px 0 18px; }
+    .doc-live-label { font-size: 12px; color: #6b7583; margin-bottom: 6px; }
+    table.doc-table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 13.5px; }
+    table.doc-table th, table.doc-table td { border: 1px solid #dfe3e8; padding: 7px 10px; text-align: left; vertical-align: top; }
+    table.doc-table th { background: #f1f3f6; font-weight: 600; }
+    table.doc-table td:first-child { white-space: nowrap; }
+    .doc-scroll { overflow-x: auto; }
+
+    @media (max-width: 800px) {
+      .app { grid-template-columns: 1fr; }
+      .side { position: static; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="side">
+      <h1>Lattice</h1>
+      <p class="tag">Vlastní grid — ukázky a dokumentace</p>
+      <p class="tag" style="margin-top:6px">
+        <a href="builder.html" style="color:#7ab3ff; text-decoration:none">⚙ Generátor kódu</a>
+      </p>
+      <nav id="nav"></nav>
+    </aside>
+
+    <main class="main">
+      <div class="tabs">
+        <button id="tab-examples" class="tab is-active" type="button">Příklady</button>
+        <button id="tab-docs" class="tab" type="button">Dokumentace</button>
+        <a class="tab" href="builder.html" style="text-decoration:none; display:inline-block">⚙ Konfigurátor</a>
+        <span class="spacer"></span>
+        <select id="lang">
+          <option value="cs">Čeština</option>
+          <option value="en">English</option>
+        </select>
+        <button id="reset" type="button">Vymazat uložený stav</button>
+      </div>
+
+      <div id="ex-view">
+        <div class="head"><h2 id="ex-title">—</h2></div>
+        <p class="blurb" id="ex-blurb"></p>
+        <div id="grid"></div>
+        <details class="code" open>
+          <summary>Konfigurace</summary>
+          <pre id="ex-code"></pre>
+        </details>
+      </div>
+
+      <div id="docs-view" hidden></div>
+    </main>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

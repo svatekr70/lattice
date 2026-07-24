@@ -1,0 +1,32 @@
+{
+  "name": "lattice",
+  "version": "0.1.0",
+  "description": "Moderní, štíhlá a framework-agnostická datová tabulka (grid) ve vanilla JS (ESM). Vlastní implementace s jedním zdrojem pravdy pro persistenci a deterministickým initem.",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./css": "./src/lattice.css"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "demo": "node demo/server.js"
+  },
+  "keywords": [
+    "grid",
+    "table",
+    "datagrid",
+    "datatable",
+    "vanilla-js",
+    "esm"
+  ],
+  "license": "MIT",
+  "sideEffects": [
+    "*.css"
+  ]
+}
