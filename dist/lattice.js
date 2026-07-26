@@ -1767,6 +1767,24 @@ var ClientData = class {
 function searchableCol(c) {
   return c && c.field && c.visible !== false && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._rowsum;
 }
+function rowMatches(row, { filters, search, columns, universal, advanced } = {}) {
+  const colByField = indexColumns(columns);
+  for (const [field2, value] of Object.entries(filters || {})) {
+    const col = colByField.get(field2);
+    if (!col || !col.filter) continue;
+    const def = getFilter(col.filter);
+    if (!def || def.isEmpty(value)) continue;
+    if (!def.match(value, cellValue(row, col), row, col)) return false;
+  }
+  if (universal && universal.field && !evalCondition(universal, row)) return false;
+  if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
+  if (search && String(search).trim()) {
+    const needle = norm3(search).trim();
+    const text = (columns || []).filter(searchableCol).map((c) => norm3(cellValue(row, c))).join("");
+    if (!text.includes(needle)) return false;
+  }
+  return true;
+}
 function indexColumns(columns) {
   const m = /* @__PURE__ */ new Map();
   for (const c of columns || []) m.set(c.field, c);
@@ -7370,6 +7388,27 @@ var TreeManager = class {
     walk(this.roots);
     return out;
   }
+  /**
+   * Viditelné řádky s aplikovaným filtrem. Uzel se zobrazí, pokud sám vyhovuje
+   * `predicate`, nebo má vyhovujícího potomka (zachová cestu k shodě). Větve se
+   * shodou se automaticky rozbalí, ať jsou nálezy vidět. Bez shody → prázdno.
+   */
+  filteredRows(predicate) {
+    const rec = (nodes) => {
+      const rows = [];
+      let anyKept = false;
+      for (const n of nodes) {
+        const child = rec(n.children);
+        if (predicate(n.row) || child.kept) {
+          anyKept = true;
+          rows.push({ row: n.row, depth: n.depth, hasChildren: child.kept, expanded: true, key: n.key });
+          if (child.kept) rows.push(...child.rows);
+        }
+      }
+      return { kept: anyKept, rows };
+    };
+    return rec(this.roots).rows;
+  }
   isExpanded(key) {
     return this.expanded.has(key);
   }
@@ -8352,7 +8391,20 @@ var Lattice = class {
   }
   /** Tree režim: sestaví ploché pořadí viditelných uzlů a vykreslí (bez stránkování). */
   renderTree() {
-    const view = this.tree.visibleRows();
+    const anyFilter = Object.keys(this.filters).length > 0 || !!(this.quickSearch && this.quickSearch.trim()) || this.universalActive() || this.advancedActive();
+    let view;
+    if (anyFilter) {
+      const predicate = (row) => rowMatches(row, {
+        filters: this.filters,
+        search: this.quickSearch || "",
+        columns: this.columns,
+        universal: this.universalActive() ? this.universal : null,
+        advanced: this.advancedActive() ? this.advanced : null
+      });
+      view = this.tree.filteredRows(predicate);
+    } else {
+      view = this.tree.visibleRows();
+    }
     this.treeView = view;
     this.rows = view.map((v) => v.row);
     this.total = this.rows.length;
