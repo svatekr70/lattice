@@ -1180,9 +1180,9 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 }
 .lattice-cell.is-frozen { z-index: 2; }
 .lattice-hcell.is-frozen, .lattice-fcell.is-frozen { z-index: 4; }
-/* dělící 2px linka na vnitřní hraně frozen bloku (bez stínu, inset = žádný posun layoutu) */
-.is-frozen-edge-left { box-shadow: inset -2px 0 0 var(--lattice-frozen-line); }
-.is-frozen-edge-right { box-shadow: inset 2px 0 0 var(--lattice-frozen-line); }
+/* dělící 1px linka na vnitřní hraně frozen bloku, tmavší než běžné okraje (inset = žádný posun layoutu) */
+.is-frozen-edge-left { box-shadow: inset -1px 0 0 var(--lattice-frozen-line); }
+.is-frozen-edge-right { box-shadow: inset 1px 0 0 var(--lattice-frozen-line); }
 
 /* ---------- patička / paginace ---------- */
 .lattice-footer {
