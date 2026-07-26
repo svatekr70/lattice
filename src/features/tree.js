@@ -130,6 +130,28 @@ export class TreeManager {
     return out;
   }
 
+  /**
+   * Viditelné řádky s aplikovaným filtrem. Uzel se zobrazí, pokud sám vyhovuje
+   * `predicate`, nebo má vyhovujícího potomka (zachová cestu k shodě). Větve se
+   * shodou se automaticky rozbalí, ať jsou nálezy vidět. Bez shody → prázdno.
+   */
+  filteredRows(predicate) {
+    const rec = (nodes) => {
+      const rows = [];
+      let anyKept = false;
+      for (const n of nodes) {
+        const child = rec(n.children);
+        if (predicate(n.row) || child.kept) {
+          anyKept = true;
+          rows.push({ row: n.row, depth: n.depth, hasChildren: child.kept, expanded: true, key: n.key });
+          if (child.kept) rows.push(...child.rows);
+        }
+      }
+      return { kept: anyKept, rows };
+    };
+    return rec(this.roots).rows;
+  }
+
   isExpanded(key) { return this.expanded.has(key); }
 
   /* ---- přesun uzlů (drag & drop) ---- */

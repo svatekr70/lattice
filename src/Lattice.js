@@ -14,7 +14,7 @@ import { deriveColumns, columnsFor } from './core/autoColumns.js';
 import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImport.js';
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
 import { printTable } from './features/print.js';
-import { ClientData, ServerData } from './core/DataSource.js';
+import { ClientData, ServerData, rowMatches } from './core/DataSource.js';
 import { I18n } from './i18n/index.js';
 import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
@@ -409,7 +409,22 @@ export class Lattice {
 
   /** Tree režim: sestaví ploché pořadí viditelných uzlů a vykreslí (bez stránkování). */
   renderTree() {
-    const view = this.tree.visibleRows();
+    // Aktivní filtr? Ve stromu se nefiltruje přes dotaz — projedeme uzly ručně
+    // (zachová se cesta k shodě a větve se shodou se rozbalí).
+    const anyFilter = Object.keys(this.filters).length > 0
+      || !!(this.quickSearch && this.quickSearch.trim())
+      || this.universalActive() || this.advancedActive();
+    let view;
+    if (anyFilter) {
+      const predicate = (row) => rowMatches(row, {
+        filters: this.filters, search: this.quickSearch || '', columns: this.columns,
+        universal: this.universalActive() ? this.universal : null,
+        advanced: this.advancedActive() ? this.advanced : null,
+      });
+      view = this.tree.filteredRows(predicate);
+    } else {
+      view = this.tree.visibleRows();
+    }
     this.treeView = view;
     this.rows = view.map((v) => v.row);
     this.total = this.rows.length;

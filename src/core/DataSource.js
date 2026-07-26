@@ -156,6 +156,30 @@ function searchableCol(c) {
     && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._rowsum;
 }
 
+/**
+ * Projde JEDEN řádek proti aktivním filtrům (stejná sémantika jako client query).
+ * Vrací true, když řádek prochází VŠEMI zapnutými filtry. Používá tree režim,
+ * kde se nefiltruje přes dotaz (data jsou hierarchická).
+ */
+export function rowMatches(row, { filters, search, columns, universal, advanced } = {}) {
+  const colByField = indexColumns(columns);
+  for (const [field, value] of Object.entries(filters || {})) {
+    const col = colByField.get(field);
+    if (!col || !col.filter) continue;
+    const def = getFilter(col.filter);
+    if (!def || def.isEmpty(value)) continue;
+    if (!def.match(value, cellValue(row, col), row, col)) return false;
+  }
+  if (universal && universal.field && !evalCondition(universal, row)) return false;
+  if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
+  if (search && String(search).trim()) {
+    const needle = norm(search).trim();
+    const text = (columns || []).filter(searchableCol).map((c) => norm(cellValue(row, c))).join('');
+    if (!text.includes(needle)) return false;
+  }
+  return true;
+}
+
 function indexColumns(columns) {
   const m = new Map();
   for (const c of columns || []) m.set(c.field, c);

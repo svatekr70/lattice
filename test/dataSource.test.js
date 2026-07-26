@@ -121,3 +121,18 @@ test('buildSearchIndex: přepočet po změně množiny sloupců', async () => {
   r = await cd.query({ page: 1, pageSize: 10, paginate: false, sort: [], filters: {}, search: 'tajné', columns: [{ field: 'name', type: 'text' }, { field: 'note', type: 'text' }] });
   assert.equal(r.rows.length, 1, 'po přidání sloupce note se index přepočítá a najde');
 });
+
+/* ---- rowMatches: jednořádkový matcher (tree filtrování) ---- */
+import { rowMatches } from '../src/core/DataSource.js';
+
+test('rowMatches: text filtr + quickSearch', () => {
+  const cols = [{ field: 'name', type: 'text', filter: 'text' }, { field: 'city', type: 'text' }];
+  assert.equal(rowMatches({ name: 'Dvořák', city: 'Brno' }, { filters: { name: 'dvo' }, columns: cols }), true);
+  assert.equal(rowMatches({ name: 'Novák', city: 'Brno' }, { filters: { name: 'dvo' }, columns: cols }), false);
+  assert.equal(rowMatches({ name: 'Novák', city: 'Brno' }, { search: 'brno', columns: cols }), true);
+  assert.equal(rowMatches({ name: 'Novák', city: 'Praha' }, { search: 'brno', columns: cols }), false);
+});
+
+test('rowMatches: prázdné filtry → vždy true', () => {
+  assert.equal(rowMatches({ a: 1 }, { filters: {}, search: '', columns: [{ field: 'a' }] }), true);
+});
