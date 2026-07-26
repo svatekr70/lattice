@@ -391,10 +391,10 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
       {
         id: 'ex-tree-nested',
         title: 'Tree — zanořené _children',
-        blurb: 'Organizační struktura ze zanořených dat: každý záznam má pole _children s podřízenými stejného tvaru. Rozbalovací šipka + odsazení v prvním sloupci. Stav rozbalení se ukládá.',
+        blurb: 'Organizační struktura ze zanořených dat: každý záznam má pole _children s podřízenými stejného tvaru. Rozbalovací šipka + odsazení v prvním sloupci. Stav rozbalení se ukládá. Filtry v záhlaví i rychlé hledání fungují — zachovají cestu k nálezu (rodiče) a větev se shodou se rozbalí.',
         code: `new Lattice('#grid', {\n  id: 'ex-tree-nested',\n  columns: orgColumns(),\n  data: orgNested(),   // [{ name, role, _children:[…] }]\n  treeData: true,\n  treeStartExpanded: 1,\n})`,
         mount: (el, ctx) => new Lattice(el, base(ctx, {
-          id: 'ex-tree-nested', columns: orgColumns(), data: orgNested(),
+          id: 'ex-tree-nested', columns: orgColumns(), data: orgNested(), quickSearch: true,
           treeData: true, treeIdField: 'id', treeStartExpanded: 1,
         })),
       },

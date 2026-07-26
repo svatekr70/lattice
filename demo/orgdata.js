@@ -69,11 +69,11 @@ export function orgNestedSet() {
 /** Sloupce pro org strukturu (první sloupec = jméno nese strom). */
 export function orgColumns() {
   return [
-    { field: 'name',      title: 'Jméno',        type: 'text',   width: 240 },
-    { field: 'role',      title: 'Pozice',       type: 'text',   width: 190 },
-    { field: 'dept',      title: 'Oddělení',     type: 'text',   width: 140 },
-    { field: 'location',  title: 'Lokalita',     type: 'text',   width: 120 },
-    { field: 'employees', title: 'Podřízených',  type: 'number', width: 120, align: 'right' },
+    { field: 'name',      title: 'Jméno',        type: 'text',   width: 240, filter: 'text' },
+    { field: 'role',      title: 'Pozice',       type: 'text',   width: 190, filter: 'text' },
+    { field: 'dept',      title: 'Oddělení',     type: 'text',   width: 140, filter: 'select' },
+    { field: 'location',  title: 'Lokalita',     type: 'text',   width: 120, filter: 'select' },
+    { field: 'employees', title: 'Podřízených',  type: 'number', width: 120, align: 'right', filter: 'number-range' },
   ];
 }
 
