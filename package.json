@@ -14,7 +14,8 @@
   },
   "files": [
     "src",
-    "dist"
+    "dist",
+    "docs"
   ],
   "scripts": {
     "test": "node --test",
