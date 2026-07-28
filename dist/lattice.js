@@ -6259,7 +6259,7 @@ var UNIVERSAL_OPS = [
   { op: "ncontains", label: "!like" }
 ];
 var FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
-var ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h14l-5 6.5v5l-4 2v-7z"/><path fill="var(--lattice-star-on, #f5b301)" d="M18 10.6l1.55 3.55 3.85.3-2.95 2.5.92 3.75L18 17.2l-3.37 1.5.92-3.75-2.95-2.5 3.85-.3z"/></svg>';
+var ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h14l-5 6.5v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
 var GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
 var CLEAR_FILTER_SVG2 = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
 var UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
