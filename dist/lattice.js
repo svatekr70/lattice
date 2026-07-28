@@ -262,9 +262,7 @@ function deriveAvailableFilters(def) {
   } else {
     const type = def.type || "text";
     list = (FILTERS_BY_TYPE[type] || []).slice();
-    if (type === "text" && (def.filterValues || def.filterUrl)) {
-      list.push("select", "multiselect");
-    }
+    if (type === "text") list.push("select", "multiselect");
   }
   if (def.filter && !list.includes(def.filter)) list.unshift(def.filter);
   return [...new Set(list)];
@@ -1082,6 +1080,7 @@ function fetchOptions(column, ctx) {
   if (column.filterUrl && ctx.fetchJson) {
     return ctx.fetchJson(column.filterUrl).then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx)).catch(() => []);
   }
+  if (typeof ctx.distinctValues === "function") return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
   return Promise.resolve([]);
 }
 registerFilter("text", {
@@ -5092,7 +5091,20 @@ var Renderer = class {
       value: this.grid.filters[col.field],
       debounceMs: this.grid.options.filterDebounce ?? 300,
       fetchJson: (url) => fetch(url).then((r) => r.json()),
-      onChange: (value) => this.grid.setFilter(col.field, value)
+      onChange: (value) => this.grid.setFilter(col.field, value),
+      // Distinktní hodnoty sloupce z dat — fallback pro select/multiselect bez filterValues.
+      distinctValues: () => {
+        const src = this.grid.dataSource.allRows && this.grid.dataSource.allRows() || this.grid.rows || [];
+        const seen = /* @__PURE__ */ new Set(), out = [];
+        for (const r of src) {
+          const v = cellValue(r, col);
+          if (v != null && v !== "" && !seen.has(v)) {
+            seen.add(v);
+            out.push(v);
+          }
+        }
+        return out;
+      }
     };
     const control = def.build(col, ctx);
     control.classList.add("lattice-fcell-control");
