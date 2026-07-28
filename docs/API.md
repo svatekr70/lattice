@@ -136,7 +136,7 @@ const grid = new Lattice('#grid', {
 | `progress` | Vodorovný pruh (`formatterParams: { max, color, showValue }`). |
 | `rating` | Hvězdičky (`formatterParams: { max }`). |
 | `sparkline` | Mini graf z pole hodnot — SVG bez závislosti (`formatterParams: { type:'line'\|'bar', color, fill, height, width }`). |
-| `link` | Odkaz (`formatterParams: { urlPrefix, target, label }`). |
+| `link` | Odkaz (`formatterParams: { urlPrefix, urlSuffix, target, label, rel }`). Nová karta globálně přes `instance.linkNewTab` (přebije `target`); v nové kartě se přidá ikona externího odkazu. |
 | `image` | Obrázek z URL/`data:` (+ lightbox). |
 | `icon` | Ikona/emoji (`formatterParams: { icons: { hodnota: emoji } }`). |
 | `color` | Barevná výplň buňky. |
@@ -186,6 +186,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
 | `zebra` / `wrapText` / `emptyText` | pruhování / zalamování / placeholder prázdné buňky |
+| `linkNewTab` | odkazy (typ `link`) otevírat v nové kartě + ikona externího odkazu. Per-sloupec přebije `formatterParams.target`. |
 | `scaleColors` | kotevní barvy semaforu `[low, mid, high]` (ovlivní condFormat i boolean ✓/✕) |
 | `cssVars` | vlastní CSS proměnné `{ '--lattice-accent': '#e91e63', … }` |
 | `fontSize` / `fontFamily` | velikost / rodina písma |

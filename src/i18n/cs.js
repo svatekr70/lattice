@@ -78,6 +78,7 @@ export default {
     zebra: 'Pruhované řádky',
     scaleColors: 'Barvy škály (semafor)',
     wrapText: 'Zalamovat text',
+    linkNewTab: 'Odkazy otevírat v nové kartě',
     emptyText: 'Náhrada prázdné buňky',
     emptyTextPlaceholder: 'např. —',
     pageSizeDefault: 'Výchozí velikost stránky',

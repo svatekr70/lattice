@@ -78,6 +78,7 @@ export default {
     zebra: 'Zebra rows',
     scaleColors: 'Scale colors (traffic light)',
     wrapText: 'Wrap text',
+    linkNewTab: 'Open links in new tab',
     emptyText: 'Empty cell placeholder',
     emptyTextPlaceholder: 'e.g. —',
     pageSizeDefault: 'Default page size',

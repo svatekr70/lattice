@@ -52,6 +52,7 @@ const INSTANCE_DEFAULTS = {
   zebra: true,            // pruhované řádky
   wrapText: false,        // zalamovat text v buňkách (jinak … ořez)
   emptyText: '',          // placeholder pro prázdné buňky (např. '—')
+  linkNewTab: false,      // odkazy (typ 'link') otevírat v nové kartě (+ ikona); per-sloupec přebije formatterParams.target
   locale: '',             // BCP-47 locale pro formát čísel/měny ('' = dle prohlížeče)
   scaleColors: null,      // kotevní barvy podmíněné škály [low, mid, high]; null = výchozí (červená/žlutá/zelená)
   cssVars: {},            // vlastní CSS proměnné (přepíšou motiv): { '--lattice-accent': '#e91e63', … }
@@ -1632,7 +1633,7 @@ export class Lattice {
     if ('rowNumbers' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('headerRotate' in patch) { this.renderer.renderHeader(); this.renderer.applyLayout(); }
     if ('summaryRow' in patch || 'groupSubtotals' in patch) { this.renderer.renderBody(); }
-    if ('emptyText' in patch || 'wrapText' in patch || 'locale' in patch || 'scaleColors' in patch) { this.renderer.renderBody(); }
+    if ('emptyText' in patch || 'wrapText' in patch || 'locale' in patch || 'scaleColors' in patch || 'linkNewTab' in patch) { this.renderer.renderBody(); }
     if ('groupBy' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }
     if ('selectColumn' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('selectRowClick' in patch) { this.renderer.renderBody(); }

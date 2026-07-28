@@ -1150,6 +1150,10 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 /* odkaz / obrázek / ikona / barva */
 .lattice-link { color: var(--lattice-link, var(--lattice-accent)); text-decoration: none; }
 .lattice-link:hover { text-decoration: underline; }
+/* odkaz s ikonou nové karty: text vlevo, ikona zarovnaná na pravý okraj sloupce */
+.lattice-link:has(.lattice-link-ext) { display: flex; align-items: center; width: 100%; }
+.lattice-link-ext { display: inline-flex; align-items: center; margin-left: auto; padding-left: 6px; vertical-align: middle; opacity: 0.7; }
+.lattice-link:hover .lattice-link-ext { opacity: 1; text-decoration: none; }
 .lattice-img { max-height: 100%; vertical-align: middle; object-fit: contain; border-radius: 3px; }
 .lattice-img.is-zoomable { cursor: zoom-in; }
 .lattice-icon { display: inline-flex; align-items: center; line-height: 1; }

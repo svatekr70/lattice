@@ -212,10 +212,11 @@ const RAW_GROUPS = [
       {
         id: 'ex-datatypes',
         title: 'Datové typy',
-        blurb: 'Formátovače: text, number, money, date/datetime, boolean, tick, progress, rating, link, image (+ lightbox), icon, color, html.',
-        code: `columns = [\n  { field: 'budget', type: 'money' },\n  { field: 'progress', type: 'progress' },\n  { field: 'rating', type: 'rating' },\n  { field: 'image', type: 'image' },\n  { field: 'color', type: 'color' },\n]`,
+        blurb: 'Formátovače: text, number, money, date/datetime, boolean, tick, progress, rating, link, image (+ lightbox), icon, color, html. Odkazy tu díky <code>instance.linkNewTab</code> míří do nové karty (ikona externího odkazu vpravo).',
+        code: `columns = [\n  { field: 'web', type: 'link', formatterParams: { urlPrefix: 'https://lattice.dev/' } },\n  { field: 'budget', type: 'money' },\n  { field: 'progress', type: 'progress' },\n  { field: 'rating', type: 'rating' },\n  { field: 'image', type: 'image' },\n]\n// odkazy otevírat v nové kartě + ikona:\ninstance = { linkNewTab: true }`,
         mount: (el, ctx) => new Lattice(el, base(ctx, {
           id: 'ex-datatypes', columns: campaignColumns(), data: ctx.data, pageSize: 10,
+          instance: { linkNewTab: true },
         })),
       },
       {
@@ -741,14 +742,16 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-sparkline', 'ex-pinned', 'ex-validation', 'ex-urlstate', 'ex-computed', 'ex-rowdetail', 'ex-responsive', 'ex-bulk'],
-  'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize'],
+  'Novinky': ['ex-datatypes', 'ex-filter-universal', 'ex-filter-advanced'],
+  'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
+    'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
     'ex-pagination', 'ex-grouping', 'ex-summary', 'ex-tree-nested', 'ex-tree-flat', 'ex-tree-nestedset',
-    'ex-file', 'ex-web', 'ex-progressive', 'ex-virtual', 'ex-export'],
+    'ex-file', 'ex-web', 'ex-progressive', 'ex-virtual', 'ex-export', 'ex-computed'],
   'Interakce': ['ex-editing', 'ex-a11y', 'ex-callbacks', 'ex-select', 'ex-range', 'ex-popup', 'ex-menu', 'ex-history', 'ex-actions', 'ex-move-flat',
-    'ex-move-groups', 'ex-move-children', 'ex-move-parentid', 'ex-move-nestedset', 'ex-between'],
-  'Pokročilé': ['ex-presets', 'ex-reactive', 'ex-i18n'],
+    'ex-move-groups', 'ex-move-children', 'ex-move-parentid', 'ex-move-nestedset', 'ex-between',
+    'ex-pinned', 'ex-validation', 'ex-rowdetail', 'ex-bulk'],
+  'Pokročilé': ['ex-presets', 'ex-reactive', 'ex-i18n', 'ex-urlstate'],
 };
 const BY_ID = Object.fromEntries(RAW_GROUPS.flatMap((g) => g.items).map((it) => [it.id, it]));
 

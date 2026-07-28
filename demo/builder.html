@@ -99,6 +99,7 @@
       <div class="two">
         <label class="row"><input type="checkbox" id="opt-zebra" checked> Pruhované řádky</label>
         <label class="row"><input type="checkbox" id="opt-wrap"> Zalamovat text</label>
+        <label class="row"><input type="checkbox" id="opt-linknewtab"> Odkazy v nové kartě</label>
       </div>
       <div class="field"><span>Barevná škála (semafor) — dolní / střed / horní; ovlivní i ✓/✕ boolean</span>
         <div style="display:flex; gap:8px; align-items:center">
@@ -221,6 +222,7 @@ function sampleCampaigns(n = 60) {
     status: statuses[(rnd() * statuses.length) | 0],
     createdAt: '2026-' + pad(1 + ((rnd() * 12) | 0)) + '-' + pad(1 + ((rnd() * 28) | 0)), active: rnd() > 0.5,
     trend: Array.from({ length: 8 }, () => (rnd() * 100) | 0),
+    web: 'kampan-' + (i + 1) + '.example.com',
   });
   return out;
 }
@@ -250,6 +252,7 @@ const CAMPAIGN_CATALOG = [
   nc({ field: 'createdAt', title: 'Vytvořeno', type: 'date', filter: 'date-range', on: false }),
   nc({ field: 'active', title: 'Aktivní', type: 'boolean', filter: 'boolean', on: true }),
   nc({ field: 'trend', title: 'Trend', type: 'sparkline', filter: '', on: false, width: 130 }),
+  nc({ field: 'web', title: 'Web', type: 'link', filter: 'text', on: false, width: 170 }),
 ];
 const ORG_CATALOG = [
   nc({ field: 'name', title: 'Jméno', type: 'text', filter: 'text', on: true, width: 240 }),
@@ -413,6 +416,7 @@ function rebuild() {
     if (c.__computed) cc.value = (r) => (r.score ? Math.round(r.budget / r.score) : 0);
     if (cc.type === 'money') cc.formatterParams = { currency: 'CZK' };
     if (cc.type === 'sparkline') cc.formatterParams = { type: 'line', fill: true };
+    if (cc.type === 'link') cc.formatterParams = { urlPrefix: 'https://' };
     return cc;
   });
   const opts = { id: $('opt-id').value || 'grid', keyField: 'id', i18n: lang(), columns, storage: memStorage() };
@@ -468,6 +472,7 @@ function rebuild() {
   if (chk('opt-resizeguide')) inst.resizeGuide = true;
   if (!$('opt-zebra').checked) inst.zebra = false;
   if (chk('opt-wrap')) inst.wrapText = true;
+  if (chk('opt-linknewtab')) inst.linkNewTab = true;
   if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
   if (val('opt-summary')) inst.summaryRow = val('opt-summary');
   if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
@@ -508,6 +513,7 @@ function colToCode(c) {
   if (c.headerMenu) p.push('headerMenu: true');
   if (c.type === 'money') p.push(`formatterParams: { currency: 'CZK' }`);
   if (c.type === 'sparkline') p.push(`formatterParams: { type: 'line', fill: true }`);
+  if (c.type === 'link') p.push(`formatterParams: { urlPrefix: 'https://' }`);
   if (c.editable) p.push('editable: true');
   if (c.validator) p.push(`validator: ${q(c.validator)}`);
   if (c.condFormat) p.push(`condFormat: { on: true, levels: 5, reverse: false }`);
@@ -592,6 +598,7 @@ function generateJs() {
   if (chk('opt-resizeguide')) inst.resizeGuide = true;
   if (!$('opt-zebra').checked) inst.zebra = false;
   if (chk('opt-wrap')) inst.wrapText = true;
+  if (chk('opt-linknewtab')) inst.linkNewTab = true;
   if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
   if (val('opt-summary')) inst.summaryRow = val('opt-summary');
   if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');

@@ -726,7 +726,7 @@ export class Renderer {
     clear(body);
     // Efektivní formát (číslo/měna/datum) navěsíme na sloupce, ať k němu formátovače
     // i souhrny mají přístup (nedostávají grid/instance přímo).
-    for (const c of this.grid.columns) { c._fmt = this.grid.effectiveFormat(c); c._i18n = this.grid.i18n; }
+    for (const c of this.grid.columns) { c._fmt = this.grid.effectiveFormat(c); c._i18n = this.grid.i18n; c._linkNewTab = this.grid.instance.linkNewTab; }
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
 

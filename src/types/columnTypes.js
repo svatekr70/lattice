@@ -167,7 +167,11 @@ registerType('sparkline', (v, col) => {
   return wrap;
 });
 
-/** Odkaz (anchor). formatterParams: { urlPrefix, target, label, rel } */
+/**
+ * Odkaz (anchor). formatterParams: { urlPrefix, urlSuffix, target, label, rel }
+ * Cíl: explicitní `formatterParams.target` vyhrává; jinak globální `instance.linkNewTab`.
+ * Při otevírání v nové kartě se vpravo přidá ikona externího odkazu.
+ */
 registerType('link', (v, col) => {
   if (v == null || v === '') return '';
   const p = col.formatterParams || {};
@@ -175,9 +179,26 @@ registerType('link', (v, col) => {
   a.className = 'lattice-link';
   a.href = (p.urlPrefix || '') + String(v) + (p.urlSuffix || '');
   a.textContent = p.label != null ? p.label : String(v);
-  if (p.target) { a.target = p.target; if (p.target === '_blank') a.rel = p.rel || 'noopener noreferrer'; }
+  let target = p.target;
+  if (target == null) target = col._linkNewTab ? '_blank' : '_self';
+  if (target === '_blank') {
+    a.target = '_blank';
+    a.rel = p.rel || 'noopener noreferrer';
+    a.appendChild(extLinkIcon());
+  } else if (target && target !== '_self') {
+    a.target = target;
+  }
   return a;
 });
+
+/** Malá ikona „externí odkaz" (šipka z rámečku) — vpravo za textem odkazu. */
+function extLinkIcon() {
+  const s = document.createElement('span');
+  s.className = 'lattice-link-ext';
+  s.setAttribute('aria-hidden', 'true');
+  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
+  return s;
+}
 
 /**
  * Obrázek z URL nebo data: URI. formatterParams: { height, width, alt, lightbox }

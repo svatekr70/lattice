@@ -9,7 +9,7 @@ export function campaignColumns() {
   return [
     { field: 'id',        title: 'ID',           type: 'number',   filter: 'number',       width: 80,  align: 'right' },
     { field: 'name',      title: 'Název',        type: 'text',     filter: 'text',         width: 210 },
-    { field: 'web',       title: 'Odkaz',        type: 'link',     filter: 'text',         width: 130, formatterParams: { urlPrefix: 'https://lattice.dev/', target: '_blank' } },
+    { field: 'web',       title: 'Odkaz',        type: 'link',     filter: 'text',         width: 130, formatterParams: { urlPrefix: 'https://lattice.dev/' } },
     { field: 'image',     title: 'Náhled',       type: 'image',    width: 80, align: 'center', formatterParams: { height: 34, lightbox: true, alt: 'Náhled kampaně' } },
     { field: 'icon',      title: 'Typ',          type: 'icon',     width: 70,  formatterParams: { icons: CATEGORY_ICONS, size: 18 } },
     { field: 'category',  title: 'Kategorie',    type: 'text',     filter: 'multiselect',  filterValues: OPTIONS.categories, width: 150 },
