@@ -74,6 +74,8 @@ function fetchOptions(column, ctx) {
       .then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx))
       .catch(() => []);
   }
+  // Bez filterValues/filterUrl: odvoď hodnoty z dat (distinktní hodnoty sloupce).
+  if (typeof ctx.distinctValues === 'function') return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
   return Promise.resolve([]);
 }
 

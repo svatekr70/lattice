@@ -682,6 +682,13 @@ export class Renderer {
       debounceMs: this.grid.options.filterDebounce ?? 300,
       fetchJson: (url) => fetch(url).then((r) => r.json()),
       onChange: (value) => this.grid.setFilter(col.field, value),
+      // Distinktní hodnoty sloupce z dat — fallback pro select/multiselect bez filterValues.
+      distinctValues: () => {
+        const src = (this.grid.dataSource.allRows && this.grid.dataSource.allRows()) || this.grid.rows || [];
+        const seen = new Set(), out = [];
+        for (const r of src) { const v = cellValue(r, col); if (v != null && v !== '' && !seen.has(v)) { seen.add(v); out.push(v); } }
+        return out;
+      },
     };
     const control = def.build(col, ctx);
     control.classList.add('lattice-fcell-control');

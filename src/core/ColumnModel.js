@@ -187,9 +187,9 @@ export function deriveAvailableFilters(def) {
     // color, link, tick, id) nemají žádný — pokud si ho def.filter nevynutí.
     const type = def.type || 'text';
     list = (FILTERS_BY_TYPE[type] || []).slice();
-    if (type === 'text' && (def.filterValues || def.filterUrl)) {
-      list.push('select', 'multiselect');
-    }
+    // Textové sloupce vždy nabídnou trojici Text / Výběr / Více hodnot (select
+    // i multiselect si hodnoty odvodí z dat, když nejsou filterValues/filterUrl).
+    if (type === 'text') list.push('select', 'multiselect');
   }
   if (def.filter && !list.includes(def.filter)) list.unshift(def.filter);
   return [...new Set(list)];
