@@ -2021,6 +2021,7 @@ var cs_default = {
     zebra: "Pruhovan\xE9 \u0159\xE1dky",
     scaleColors: "Barvy \u0161k\xE1ly (semafor)",
     wrapText: "Zalamovat text",
+    linkNewTab: "Odkazy otev\xEDrat v nov\xE9 kart\u011B",
     emptyText: "N\xE1hrada pr\xE1zdn\xE9 bu\u0148ky",
     emptyTextPlaceholder: "nap\u0159. \u2014",
     pageSizeDefault: "V\xFDchoz\xED velikost str\xE1nky",
@@ -2330,6 +2331,7 @@ var en_default = {
     zebra: "Zebra rows",
     scaleColors: "Scale colors (traffic light)",
     wrapText: "Wrap text",
+    linkNewTab: "Open links in new tab",
     emptyText: "Empty cell placeholder",
     emptyTextPlaceholder: "e.g. \u2014",
     pageSizeDefault: "Default page size",
@@ -2891,12 +2893,24 @@ registerType("link", (v, col) => {
   a.className = "lattice-link";
   a.href = (p.urlPrefix || "") + String(v) + (p.urlSuffix || "");
   a.textContent = p.label != null ? p.label : String(v);
-  if (p.target) {
-    a.target = p.target;
-    if (p.target === "_blank") a.rel = p.rel || "noopener noreferrer";
+  let target = p.target;
+  if (target == null) target = col._linkNewTab ? "_blank" : "_self";
+  if (target === "_blank") {
+    a.target = "_blank";
+    a.rel = p.rel || "noopener noreferrer";
+    a.appendChild(extLinkIcon());
+  } else if (target && target !== "_self") {
+    a.target = target;
   }
   return a;
 });
+function extLinkIcon() {
+  const s = document.createElement("span");
+  s.className = "lattice-link-ext";
+  s.setAttribute("aria-hidden", "true");
+  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
+  return s;
+}
 registerType("image", (v, col) => {
   if (v == null || v === "") return "";
   const p = col.formatterParams || {};
@@ -3466,6 +3480,7 @@ var InstanceSettings = class {
       ["guide", t("instance.resizeGuide")]
     ], (v) => set({ resizeGuide: v === "guide" })));
     gL.appendChild(rowToggle(t("instance.wrapText"), inst.wrapText === true, (v) => set({ wrapText: v })));
+    gL.appendChild(rowToggle(t("instance.linkNewTab"), inst.linkNewTab === true, (v) => set({ linkNewTab: v })));
     gL.appendChild(rowText(t("instance.emptyText"), inst.emptyText || "", t("instance.emptyTextPlaceholder"), (v) => set({ emptyText: v })));
     const gP = makeTab(t("instance.groupPagination"));
     gP.appendChild(rowSelect(t("instance.pagination"), inst.paginationPosition || "footer", [
@@ -5139,6 +5154,7 @@ var Renderer = class {
     for (const c of this.grid.columns) {
       c._fmt = this.grid.effectiveFormat(c);
       c._i18n = this.grid.i18n;
+      c._linkNewTab = this.grid.instance.linkNewTab;
     }
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
@@ -8121,6 +8137,8 @@ var INSTANCE_DEFAULTS = {
   // zalamovat text v buňkách (jinak … ořez)
   emptyText: "",
   // placeholder pro prázdné buňky (např. '—')
+  linkNewTab: false,
+  // odkazy (typ 'link') otevírat v nové kartě (+ ikona); per-sloupec přebije formatterParams.target
   locale: "",
   // BCP-47 locale pro formát čísel/měny ('' = dle prohlížeče)
   scaleColors: null,
@@ -9602,7 +9620,7 @@ var Lattice = class {
     if ("summaryRow" in patch || "groupSubtotals" in patch) {
       this.renderer.renderBody();
     }
-    if ("emptyText" in patch || "wrapText" in patch || "locale" in patch || "scaleColors" in patch) {
+    if ("emptyText" in patch || "wrapText" in patch || "locale" in patch || "scaleColors" in patch || "linkNewTab" in patch) {
       this.renderer.renderBody();
     }
     if ("groupBy" in patch) {
