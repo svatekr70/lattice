@@ -3802,7 +3802,7 @@ var Gear = class {
     fitBtn.addEventListener("click", () => grid.autoFitColumns());
     tools.appendChild(fitBtn);
     const clearBtn = el("button.lattice-icon-btn", { type: "button", title: t("columns.clearFilters"), html: CLEAR_FILTER_SVG });
-    clearBtn.addEventListener("click", () => grid.clearFilters());
+    clearBtn.addEventListener("click", () => grid.clearAllFilters());
     tools.appendChild(clearBtn);
     const resetBtn = el("button.lattice-icon-btn.is-danger", { type: "button", title: t("columns.reset"), html: RESET_SVG });
     resetBtn.addEventListener("click", () => {
@@ -4231,7 +4231,7 @@ var ROWGROUP_EXCLUDE = /* @__PURE__ */ new Set(["image", "html", "progress", "ra
 var ROTATE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7.5 4l4.5 12h-2l-1-3H5l-1 3H2L6.5 4h1zM6 5.9L4.6 11h2.8L6 5.9zM20 13l-4 4-4-4h3V4h2v9h3z"/></svg>';
 var FUNNEL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 var FIT_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M4 7v10H2V7h2zm18 0v10h-2V7h2zM8 11l-3 1 3 1v-2zm8 0v2l3-1-3-1zM6 11h12v2H6v-2z"/></svg>';
-var CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4zm14.7 9.3l1.4 1.4-1.8 1.8 1.8 1.8-1.4 1.4-1.8-1.8-1.8 1.8-1.4-1.4 1.8-1.8-1.8-1.8 1.4-1.4 1.8 1.8 1.8-1.8z"/></svg>';
+var CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="var(--lattice-danger)" d="M17.7 13.3l1.4 1.4-1.8 1.8 1.8 1.8-1.4 1.4-1.8-1.8-1.8 1.8-1.4-1.4 1.8-1.8-1.8-1.8 1.4-1.4 1.8 1.8 1.8-1.8z"/></svg>';
 var RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 var GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
 var BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
@@ -6092,6 +6092,13 @@ var Renderer = class {
       leftGroup.appendChild(search);
     }
     if (leftGroup.children.length) toolbar.appendChild(leftGroup);
+    const clearBtn = el("button.lattice-tool-btn.lattice-clear-filters" + (this.grid.hasActiveFilters() ? ".is-visible" : ""), {
+      type: "button",
+      title: this.grid.i18n.t("columns.clearFilters"),
+      html: CLEAR_FILTER_SVG2
+    });
+    clearBtn.addEventListener("click", () => this.grid.clearAllFilters());
+    toolbar.appendChild(clearBtn);
     if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
@@ -6131,6 +6138,11 @@ var Renderer = class {
       setBtn.addEventListener("click", () => this.grid.instanceSettings.toggle(setBtn));
       toolbar.appendChild(setBtn);
     }
+  }
+  /** Ukáže/skryje mazací ikonu filtrů v záhlaví podle toho, zda je nějaký aplikován. */
+  updateFilterClearBtn() {
+    const btn = this.nodes.toolbar && this.nodes.toolbar.querySelector(".lattice-clear-filters");
+    if (btn) btn.classList.toggle("is-visible", this.grid.hasActiveFilters());
   }
   /* -------- overlay stavy -------- */
   setLoading(on) {
@@ -6237,6 +6249,7 @@ var UNIVERSAL_OPS = [
 var FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 var ADV_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="currentColor" d="M18 13l.7 1.8 1.8.2-1.4 1.3.4 1.9L18 17.3 16.5 18.2l.4-1.9-1.4-1.3 1.8-.2z"/></svg>';
 var GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
+var CLEAR_FILTER_SVG2 = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="var(--lattice-danger)" d="M17.7 13.3l1.4 1.4-1.8 1.8 1.8 1.8-1.4 1.4-1.8-1.8-1.8 1.8-1.4-1.4 1.8-1.8-1.8-1.8 1.4-1.4 1.8 1.8 1.8-1.8z"/></svg>';
 var UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
 var REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';
 var CLEAR_HIST_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -8558,12 +8571,26 @@ var Lattice = class {
     this._emitFilter();
   }
   clearFilters() {
+    this.clearAllFilters();
+  }
+  /** Je aplikovaný nějaký filtr (sloupcový / univerzální / rozšířený)? Ne quickSearch. */
+  hasActiveFilters() {
+    return Object.keys(this.filters).length > 0 || this.universalActive() || this.advancedActive();
+  }
+  /**
+   * Zruší všechny APLIKOVANÉ filtry — sloupcové, univerzální i aktivní rozšířený
+   * (a rychlé hledání). ULOŽENÉ rozšířené filtry zůstávají (jen se deaktivují).
+   */
+  clearAllFilters() {
     this.filters = {};
     this.quickSearch = "";
+    this.universal = null;
+    this.advanced = null;
     this.page = 1;
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
+    this.renderer.renderToolbar();
     this.refresh();
     this._emitFilter();
   }
@@ -9508,6 +9535,7 @@ var Lattice = class {
   }
   /** Filtry se změnily → options.onFilter({filters, universal, advanced}). */
   _emitFilter() {
+    this.renderer.updateFilterClearBtn();
     if (this.options.onFilter) this.options.onFilter({
       filters: JSON.parse(JSON.stringify(this.filters)),
       universal: this.universal ? { ...this.universal } : null,
