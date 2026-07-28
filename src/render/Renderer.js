@@ -1904,7 +1904,7 @@ const UNIVERSAL_OPS = [
 const FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 // nálevka s ozubením/hvězdičkou = rozšířený filtr
 // Rozšířený filtr: trychtýř s výraznější hvězdičkou (větší, čitelnější).
-const ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="var(--lattice-star-on, #f5b301)" d="M18 11.5l1.25 2.85 3.1.25-2.36 2.02.74 3.03L18 18.05l-2.73 1.6.74-3.03-2.36-2.02 3.1-.25z"/></svg>';
+const ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h14l-5 6.5v5l-4 2v-7z"/><path fill="var(--lattice-star-on, #f5b301)" d="M18 10.6l1.55 3.55 3.85.3-2.95 2.5.92 3.75L18 17.2l-3.37 1.5.92-3.75-2.95-2.5 3.85-.3z"/></svg>';
 const GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
 // Trychtýř s výrazným ČERVENÝM křížkem — zrušení všech filtrů (danger barva).
 const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
