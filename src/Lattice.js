@@ -575,12 +575,28 @@ export class Lattice {
   }
 
   clearFilters() {
+    this.clearAllFilters();
+  }
+
+  /** Je aplikovaný nějaký filtr (sloupcový / univerzální / rozšířený)? Ne quickSearch. */
+  hasActiveFilters() {
+    return Object.keys(this.filters).length > 0 || this.universalActive() || this.advancedActive();
+  }
+
+  /**
+   * Zruší všechny APLIKOVANÉ filtry — sloupcové, univerzální i aktivní rozšířený
+   * (a rychlé hledání). ULOŽENÉ rozšířené filtry zůstávají (jen se deaktivují).
+   */
+  clearAllFilters() {
     this.filters = {};
     this.quickSearch = '';
+    this.universal = null;
+    this.advanced = null;
     this.page = 1;
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
+    this.renderer.renderToolbar();
     this.refresh();
     this._emitFilter();
   }
@@ -1567,6 +1583,7 @@ export class Lattice {
 
   /** Filtry se změnily → options.onFilter({filters, universal, advanced}). */
   _emitFilter() {
+    this.renderer.updateFilterClearBtn(); // ukázat/skrýt mazací ikonu v záhlaví
     if (this.options.onFilter) this.options.onFilter({
       filters: JSON.parse(JSON.stringify(this.filters)),
       universal: this.universal ? { ...this.universal } : null,

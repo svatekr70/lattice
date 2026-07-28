@@ -267,6 +267,8 @@
   cursor: pointer;
 }
 .lattice-tool-btn:hover { background: var(--lattice-header-bg); color: var(--lattice-text); border-color: var(--lattice-border); }
+.lattice-clear-filters { display: none; }
+.lattice-clear-filters.is-visible { display: inline-flex; }
 .lattice-tool-btn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
 .lattice-adv-quick {
   max-width: 200px; height: 26px; padding: 0 6px;

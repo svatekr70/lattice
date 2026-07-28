@@ -1719,6 +1719,14 @@ export class Renderer {
       leftGroup.appendChild(search);
     }
     if (leftGroup.children.length) toolbar.appendChild(leftGroup);
+    // Mazací ikona (trychtýř s červeným křížkem): zruší VŠECHNY aplikované filtry
+    // (sloupcové/univerzální/rozšířený). Viditelná jen když nějaký filtr platí.
+    // Uložené rozšířené filtry nemaže.
+    const clearBtn = el('button.lattice-tool-btn.lattice-clear-filters' + (this.grid.hasActiveFilters() ? '.is-visible' : ''), {
+      type: 'button', title: this.grid.i18n.t('columns.clearFilters'), html: CLEAR_FILTER_SVG,
+    });
+    clearBtn.addEventListener('click', () => this.grid.clearAllFilters());
+    toolbar.appendChild(clearBtn);
     if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
@@ -1756,6 +1764,12 @@ export class Renderer {
       setBtn.addEventListener('click', () => this.grid.instanceSettings.toggle(setBtn));
       toolbar.appendChild(setBtn);
     }
+  }
+
+  /** Ukáže/skryje mazací ikonu filtrů v záhlaví podle toho, zda je nějaký aplikován. */
+  updateFilterClearBtn() {
+    const btn = this.nodes.toolbar && this.nodes.toolbar.querySelector('.lattice-clear-filters');
+    if (btn) btn.classList.toggle('is-visible', this.grid.hasActiveFilters());
   }
 
   /* -------- overlay stavy -------- */
@@ -1884,6 +1898,8 @@ const FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden=
 // nálevka s ozubením/hvězdičkou = rozšířený filtr
 const ADV_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="currentColor" d="M18 13l.7 1.8 1.8.2-1.4 1.3.4 1.9L18 17.3 16.5 18.2l.4-1.9-1.4-1.3 1.8-.2z"/></svg>';
 const GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
+// Trychtýř s ČERVENÝM křížkem — zrušení všech filtrů. Křížek přes proměnnou danger.
+const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="var(--lattice-danger)" d="M17.7 13.3l1.4 1.4-1.8 1.8 1.8 1.8-1.4 1.4-1.8-1.8-1.8 1.8-1.4-1.4 1.8-1.8-1.8-1.8 1.4-1.4 1.8 1.8 1.8-1.8z"/></svg>';
 // Undo/redo — zakřivené šipky; ✕ pro vymazání historie.
 const UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
 const REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';
