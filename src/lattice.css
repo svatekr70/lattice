@@ -257,8 +257,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 26px;
+  width: 30px;
+  height: 28px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: var(--lattice-control-radius);

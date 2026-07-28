@@ -1903,10 +1903,11 @@ const UNIVERSAL_OPS = [
 
 const FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 // nálevka s ozubením/hvězdičkou = rozšířený filtr
-const ADV_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="currentColor" d="M18 13l.7 1.8 1.8.2-1.4 1.3.4 1.9L18 17.3 16.5 18.2l.4-1.9-1.4-1.3 1.8-.2z"/></svg>';
+// Rozšířený filtr: trychtýř s výraznější hvězdičkou (větší, čitelnější).
+const ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="var(--lattice-star-on, #f5b301)" d="M18 11.5l1.25 2.85 3.1.25-2.36 2.02.74 3.03L18 18.05l-2.73 1.6.74-3.03-2.36-2.02 3.1-.25z"/></svg>';
 const GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
-// Trychtýř s ČERVENÝM křížkem — zrušení všech filtrů. Křížek přes proměnnou danger.
-const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M3 4h18l-7 8v5l-4 2v-7L3 4z"/><path fill="var(--lattice-danger)" d="M17.7 13.3l1.4 1.4-1.8 1.8 1.8 1.8-1.4 1.4-1.8-1.8-1.8 1.8-1.4-1.4 1.8-1.8-1.8-1.8 1.4-1.4 1.8 1.8 1.8-1.8z"/></svg>';
+// Trychtýř s výrazným ČERVENÝM křížkem — zrušení všech filtrů (danger barva).
+const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
 // Undo/redo — zakřivené šipky; ✕ pro vymazání historie.
 const UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
 const REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';
