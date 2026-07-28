@@ -17,10 +17,10 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v0.2.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v0.3.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v0.2.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v0.3.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
