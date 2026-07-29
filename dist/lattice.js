@@ -3115,28 +3115,47 @@ function measureColumnWidth(col, grid) {
   const table = grid.renderer.nodes.table;
   const hcell = table.querySelector(`.lattice-hcell[data-field="${cssEscape(col.field)}"]`);
   const cells = table.querySelectorAll(`.lattice-cell[data-field="${cssEscape(col.field)}"]`);
+  const host = grid.renderer.nodes.root || table;
+  const meas = document.createElement("div");
+  meas.setAttribute("aria-hidden", "true");
+  meas.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;";
+  host.appendChild(meas);
+  const cellH = cells[0]?.clientHeight || 0;
   let max = 0;
-  if (hcell) {
-    const title = hcell.querySelector(".lattice-hcell-title");
-    max = Math.max(max, textWidth(title?.textContent ?? col.title, fontOf(title || hcell)));
+  try {
+    if (hcell) max = Math.max(max, measureRendered(meas, hcell, cellH));
+    for (const cell of cells) max = Math.max(max, measureRendered(meas, cell, cellH));
+  } finally {
+    meas.remove();
   }
-  for (const cell of cells) {
-    max = Math.max(max, textWidth(cell.textContent, fontOf(cell)));
-  }
-  const PAD = 28;
-  return Math.max(col.minWidth, Math.ceil(max) + PAD);
+  const RESERVE = 4;
+  let w = Math.ceil(max) + RESERVE;
+  if (col.minWidth) w = Math.max(w, col.minWidth);
+  if (col.maxWidth) w = Math.min(w, col.maxWidth);
+  return w;
 }
-var _ctx = null;
-function textWidth(text, font) {
-  if (!text) return 0;
-  if (!_ctx) _ctx = document.createElement("canvas").getContext("2d");
-  _ctx.font = font;
-  return _ctx.measureText(text).width;
-}
-function fontOf(node) {
-  if (!node) return "14px sans-serif";
-  const s = getComputedStyle(node);
-  return `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+function measureRendered(meas, srcNode, cellH) {
+  const clone2 = srcNode.cloneNode(true);
+  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
+  const s = clone2.style;
+  s.width = "auto";
+  s.maxWidth = "none";
+  s.minWidth = "0";
+  s.flex = "0 0 auto";
+  s.display = "inline-flex";
+  s.alignItems = "center";
+  s.whiteSpace = "nowrap";
+  s.overflow = "visible";
+  s.textOverflow = "clip";
+  if (cellH) s.height = cellH + "px";
+  clone2.querySelectorAll?.(".lattice-link").forEach((a) => {
+    a.style.width = "auto";
+    a.style.display = "inline-flex";
+  });
+  meas.appendChild(clone2);
+  const w = clone2.getBoundingClientRect().width;
+  meas.removeChild(clone2);
+  return w;
 }
 function cssEscape(s) {
   return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
