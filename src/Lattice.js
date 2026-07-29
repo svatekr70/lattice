@@ -11,6 +11,15 @@
 import { Store, emptyState } from './core/Store.js';
 import { buildColumns, serializeColumns, flattenGroups } from './core/ColumnModel.js';
 import { dateBucket } from './core/dateParts.js';
+
+/** Porovnání hodnot skupin (řazení SKUPIN): prázdné poslední, čísla numericky, jinak locale. */
+function cmpGroupValues(a, b) {
+  const ae = a == null || a === '', be = b == null || b === '';
+  if (ae || be) return ae === be ? 0 : (ae ? 1 : -1);
+  const na = Number(a), nb = Number(b);
+  if (Number.isFinite(na) && Number.isFinite(nb) && String(a).trim() !== '' && String(b).trim() !== '') return na - nb;
+  return String(a).localeCompare(String(b), undefined, { numeric: true });
+}
 import { deriveColumns, columnsFor } from './core/autoColumns.js';
 import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImport.js';
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
@@ -45,6 +54,7 @@ const INSTANCE_DEFAULTS = {
   rowNumberWidth: null,   // uživatelská šířka číslovacího sloupce (null = auto)
   groupBy: null,          // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: 'headers',// jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
+  groupSort: {},          // směr řazení SKUPIN dle úrovně: { <id>: 'asc' | 'desc' } (id = field nebo field@part)
   selectColumn: true,     // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,  // klik na řádek = výběr (false = vybírá jen checkbox)
   actionsLayout: 'column', // sloupec akcí: 'column' (poslední sloupec) | 'menu' (⋮ v číslování řádků)
@@ -546,6 +556,25 @@ export class Lattice {
     this._setSort(dir ? [{ field, dir }] : []);
   }
 
+  /**
+   * Řazení SKUPIN z hlavičky skupiny (i pro pole skryté seskupením). Nastaví
+   * pole jako PRIMÁRNÍ řadicí klíč (skupiny se podle něj seřadí) a zachová
+   * ostatní řazení jako sekundární (řazení řádků uvnitř skupin). Cyklus asc↔desc.
+   */
+  cycleGroupSort(field) {
+    this._clearActivePreset();
+    const cur = this.sort.find((s) => s.field === field);
+    const dir = !cur || cur.dir === 'desc' ? 'asc' : 'desc';
+    const others = this.sort.filter((s) => s.field !== field);
+    this._setSort([{ field, dir }, ...others]);
+  }
+
+  /** Aktuální směr řazení pole ('asc'|'desc'|null). */
+  sortDir(field) {
+    const s = this.sort.find((x) => x.field === field);
+    return s ? s.dir : null;
+  }
+
   /** Přizpůsobí šířku jednoho sloupce obsahu. */
   autoFitColumn(field) {
     const col = this.columns.find((c) => c.field === field);
@@ -675,6 +704,22 @@ export class Lattice {
     return part ? field + '@' + part : field;
   }
 
+  /** Efektivní směr řazení SKUPIN dané úrovně: explicitní groupSort, jinak 'asc'. */
+  groupSortDir(id) {
+    const v = this.instance.groupSort && this.instance.groupSort[id];
+    return v === 'desc' ? 'desc' : 'asc';
+  }
+
+  /** Přepne směr řazení skupin dané úrovně (asc ↔ desc) a překreslí tělo. */
+  toggleGroupSort(id) {
+    const cur = this.groupSortDir(id);
+    const next = cur === 'asc' ? 'desc' : 'asc';
+    this.instance.groupSort = { ...(this.instance.groupSort || {}), [id]: next };
+    this.saveState();
+    this.renderer.renderBody();
+    this.renderer.applyLayout();
+  }
+
   /** Je daná úroveň (field + volitelný part) použita k seskupení? */
   isRowGrouped(field, part = null) {
     const id = this.groupId(field, part);
@@ -727,13 +772,19 @@ export class Lattice {
       g.items.push(it);
     }
     let groups = [...map.values()];
-    // Datumové úrovně seřadíme dle kbelíku; směr převezmeme z řazení seskupeného
-    // sloupce (klik na hlavičku → roky/kvartály/… vzestupně/sestupně). Syrová pole
-    // nechají pořadí výskytu (které už kopíruje aktivní řazení řádků).
+    // Pořadí SKUPIN. Explicitní volba (tlačítko v hlavičce skupiny) přes groupSort;
+    // jinak datumové úrovně dědí směr řazení viditelného sloupce, syrová pole nechají
+    // pořadí výskytu (které kopíruje aktivní řazení řádků).
+    const id = part ? field + '@' + part : field;
+    const explicit = this.instance.groupSort && this.instance.groupSort[id];
     if (part) {
-      const sorted = this.sort.find((s) => s.field === field);
-      const dir = sorted && sorted.dir === 'desc' ? -1 : 1;
+      let dir;
+      if (explicit === 'asc' || explicit === 'desc') dir = explicit === 'desc' ? -1 : 1;
+      else { const s = this.sort.find((x) => x.field === field); dir = s && s.dir === 'desc' ? -1 : 1; }
       groups.sort((a, b) => dir * ((a.sort ?? 0) - (b.sort ?? 0)));
+    } else if (explicit === 'asc' || explicit === 'desc') {
+      const dir = explicit === 'desc' ? -1 : 1;
+      groups.sort((a, b) => dir * cmpGroupValues(a.value, b.value));
     }
     return groups.map((g) => {
       const key = parentKey ? parentKey + '\u0000' + g.vkey : g.vkey;

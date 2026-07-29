@@ -270,6 +270,7 @@ export default {
   group: {
     empty: '(prázdné)',
     weekLabel: 'Týden',
+    sort: 'Seřadit skupiny (vzestupně/sestupně)',
     by: 'Seskupit podle',
     display: 'Úrovně seskupení',
     displayHeaders: 'Vnořené hlavičky',

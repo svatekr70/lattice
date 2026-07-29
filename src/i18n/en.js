@@ -270,6 +270,7 @@ export default {
   group: {
     empty: '(empty)',
     weekLabel: 'Week',
+    sort: 'Sort groups (ascending/descending)',
     by: 'Group by',
     display: 'Grouping levels',
     displayHeaders: 'Nested headers',

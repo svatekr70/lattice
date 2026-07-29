@@ -1277,6 +1277,16 @@ export class Renderer {
       class: 'is-level-' + node.level,
       title: (levelTitle ? levelTitle + ': ' : '') + label,
     });
+    // Řadicí šipka: řadí pořadí SKUPIN podle tohoto pole (i když je sloupec
+    // skrytý seskupením). Klik nešíří dál, aby neroztahoval/nesbaloval skupinu.
+    const dir = grid.sortDir(node.field);
+    const sortBtn = el('button.lattice-rowgroup-sort' + (dir ? '.is-' + dir : ''), {
+      type: 'button', title: grid.i18n.t('group.sort'),
+      text: dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : '⇅',
+    });
+    sortBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    sortBtn.addEventListener('click', (e) => { e.stopPropagation(); grid.cycleGroupSort(node.field); });
+
     const inner = el('div.lattice-rowgroup-inner', {
       style: { paddingLeft: (10 + node.level * 20) + 'px' },
     }, [
@@ -1284,6 +1294,7 @@ export class Renderer {
       levelTitle ? el('span.lattice-rowgroup-field', { text: levelTitle + ':' }) : null,
       el('span.lattice-rowgroup-title', { text: label }),
       el('span.lattice-rowgroup-count', { text: String(node.count) }),
+      sortBtn,
     ]);
     row.appendChild(inner);
     const toggle = () => grid.toggleGroup(node.key);
