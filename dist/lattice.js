@@ -311,6 +311,66 @@ function numberOr(...vals) {
   return DEFAULT_WIDTH;
 }
 
+// src/core/dateParts.js
+var DATE_PARTS = ["year", "quarter", "month", "week", "weekday", "day", "hour", "minute"];
+function toDate(v) {
+  if (v == null || v === "") return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+var pad2 = (n) => String(n).padStart(2, "0");
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day2 = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - day2 + 3);
+  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const firstDay = (firstThu.getUTCDay() + 6) % 7;
+  return 1 + Math.round(((t - firstThu) / 864e5 - 3 + firstDay) / 7);
+}
+function dateBucket(value, part, i18n) {
+  const d = toDate(value);
+  if (!d) return null;
+  const months = i18n && i18n.list("dateRange.months") || [];
+  const weekdays = i18n && i18n.list("dateRange.weekdaysLong") || [];
+  const wk = i18n && i18n.t("group.weekLabel") || "T\xFDden";
+  switch (part) {
+    case "year": {
+      const y = d.getFullYear();
+      return { sort: y, label: String(y) };
+    }
+    case "quarter": {
+      const q = Math.floor(d.getMonth() / 3) + 1;
+      return { sort: q, label: "Q" + q };
+    }
+    case "month": {
+      const m = d.getMonth();
+      return { sort: m, label: months[m] || String(m + 1) };
+    }
+    case "week": {
+      const w = isoWeek(d);
+      return { sort: w, label: wk + " " + w };
+    }
+    case "weekday": {
+      const wd = (d.getDay() + 6) % 7;
+      return { sort: wd, label: weekdays[wd] || String(wd) };
+    }
+    case "day": {
+      const dm = d.getDate();
+      return { sort: dm, label: dm + "." };
+    }
+    case "hour": {
+      const h = d.getHours();
+      return { sort: h, label: pad2(h) + ":00" };
+    }
+    case "minute": {
+      const mi = d.getMinutes();
+      return { sort: mi, label: pad2(d.getHours()) + ":" + pad2(mi) };
+    }
+    default:
+      return null;
+  }
+}
+
 // src/core/autoColumns.js
 var DEFAULT_FILTER = { text: "text", number: "number", date: "date-range", boolean: "boolean" };
 function deriveColumns(rows, opts = {}) {
@@ -2217,7 +2277,15 @@ var cs_default = {
     }
   },
   universal: { field: "Pole", type: "Typ", valueLabel: "Hodnota", value: "hodnota k filtrov\xE1n\xED\u2026", clear: "Zru\u0161it filtr" },
-  group: { empty: "(pr\xE1zdn\xE9)" },
+  group: {
+    empty: "(pr\xE1zdn\xE9)",
+    weekLabel: "T\xFDden",
+    by: "Seskupit podle",
+    display: "\xDArovn\u011B seskupen\xED",
+    displayHeaders: "Vno\u0159en\xE9 hlavi\u010Dky",
+    displayColumns: "Vedouc\xED sloupce",
+    parts: { year: "Rok", quarter: "Kvart\xE1l", month: "M\u011Bs\xEDc", week: "T\xFDden", weekday: "Den v t\xFDdnu", day: "Den v m\u011Bs\xEDci", hour: "Hodina", minute: "Minuta" }
+  },
   select: { scopePage: "Str\xE1nka", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
   move: { drag: "P\u0159et\xE1hnout \u0159\xE1dek" },
   actions: { title: "Akce", view: "Zobrazit", edit: "Upravit", delete: "Smazat" },
@@ -2527,7 +2595,15 @@ var en_default = {
     }
   },
   universal: { field: "Field", type: "Type", valueLabel: "Value", value: "value to filter\u2026", clear: "Clear filter" },
-  group: { empty: "(empty)" },
+  group: {
+    empty: "(empty)",
+    weekLabel: "Week",
+    by: "Group by",
+    display: "Grouping levels",
+    displayHeaders: "Nested headers",
+    displayColumns: "Leading columns",
+    parts: { year: "Year", quarter: "Quarter", month: "Month", week: "Week", weekday: "Weekday", day: "Day of month", hour: "Hour", minute: "Minute" }
+  },
   select: { scopePage: "Page", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
   move: { drag: "Drag to reorder" },
   actions: { title: "Actions", view: "View", edit: "Edit", delete: "Delete" },
@@ -2675,7 +2751,7 @@ var CURRENCIES = ["CZK", "EUR", "USD", "GBP", "PLN", "CHF", "JPY"];
 var DATE_PRESETS = ["dd.mm.yyyy", "d.m.yyyy", "yyyy-mm-dd", "dd/mm/yyyy", "d. mmmm yyyy", "d. mmm yyyy", "ddd d.m.yyyy"];
 var DATETIME_PRESETS = ["dd.mm.yyyy HH:nn", "d.m.yyyy H:nn", "yyyy-mm-dd HH:nn", "dd.mm.yyyy HH:nn:ss", "d. mmmm yyyy H:nn"];
 var TIME_PRESETS = ["HH:nn", "H:nn", "HH:nn:ss", "h:nn a"];
-var pad2 = (x) => String(x).padStart(2, "0");
+var pad22 = (x) => String(x).padStart(2, "0");
 function applyNegative(absText, neg, style) {
   if (!neg) return { text: absText, red: false };
   switch (style) {
@@ -2738,19 +2814,19 @@ function formatDate(d, pattern, i18n) {
     yy: String(d.getFullYear()).slice(-2),
     mmmm: months[mo],
     mmm: monthsShort[mo] || (months[mo] || "").slice(0, 3),
-    mm: pad2(mo + 1),
+    mm: pad22(mo + 1),
     m: mo + 1,
     dddd: weekdaysLong[wd],
     ddd: weekdays[wd],
-    dd: pad2(d.getDate()),
+    dd: pad22(d.getDate()),
     d: d.getDate(),
-    HH: pad2(h24),
+    HH: pad22(h24),
     H: h24,
-    hh: pad2(h12),
+    hh: pad22(h12),
     h: h12,
-    nn: pad2(d.getMinutes()),
+    nn: pad22(d.getMinutes()),
     n: d.getMinutes(),
-    ss: pad2(d.getSeconds()),
+    ss: pad22(d.getSeconds()),
     s: d.getSeconds(),
     A: h24 < 12 ? "AM" : "PM",
     a: h24 < 12 ? "am" : "pm"
@@ -2786,7 +2862,7 @@ function toNumber2(v) {
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
-function toDate(v) {
+function toDate2(v) {
   if (v == null || v === "") return null;
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -2804,15 +2880,15 @@ registerType("money", (v, col) => {
   return negText(formatMoney(n, effFmt(col, "money")));
 });
 registerType("date", (v, col) => {
-  const d = toDate(v);
+  const d = toDate2(v);
   return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
 });
 registerType("datetime", (v, col) => {
-  const d = toDate(v);
+  const d = toDate2(v);
   return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
 });
 registerType("time", (v, col) => {
-  const d = toDate(v);
+  const d = toDate2(v);
   return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
 });
 registerType("boolean", (v) => {
@@ -3551,6 +3627,10 @@ var InstanceSettings = class {
       ["all", t("instance.summaryAll")]
     ], (v) => set({ summaryRow: v })));
     gC.appendChild(rowToggle(t("instance.groupSubtotals"), inst.groupSubtotals === true, (v) => set({ groupSubtotals: v })));
+    gC.appendChild(rowSelect(t("group.display"), inst.groupDisplay || "headers", [
+      ["headers", t("group.displayHeaders")],
+      ["columns", t("group.displayColumns")]
+    ], (v) => set({ groupDisplay: v })));
     if (grid.isSelectable()) {
       gC.appendChild(rowToggle(t("instance.selectColumn"), inst.selectColumn !== false, (v) => set({ selectColumn: v })));
       gC.appendChild(rowSelect(t("instance.selectTrigger"), inst.selectRowClick ? "row" : "checkbox", [
@@ -4018,14 +4098,30 @@ var Gear = class {
       tools.appendChild(el("span.lattice-gslot-empty"));
     }
     if (!ROWGROUP_EXCLUDE.has(col.type)) {
-      const level = grid.rowGroupLevel(col.field);
+      const isDate2 = DATE_TYPES.has(col.type);
+      const activeParts = isDate2 ? DATE_PARTS.filter((p) => grid.isRowGrouped(col.field, p)) : [];
+      const level = isDate2 ? activeParts.length : grid.rowGroupLevel(col.field);
       const rgBtn = el("button.lattice-gbtn.lattice-rgbtn", {
         type: "button",
-        title: t("columns.rowGroupToggle"),
+        title: isDate2 ? t("group.by") : t("columns.rowGroupToggle"),
         class: level ? "is-active" : "",
         html: ROWGROUP_SVG + (level ? '<span class="lattice-rg-badge">' + level + "</span>" : "")
       });
-      rgBtn.addEventListener("click", () => grid.toggleRowGroup(col.field));
+      if (isDate2) {
+        rgBtn.addEventListener("click", () => {
+          const items = DATE_PARTS.map((p) => ({
+            value: p,
+            label: t("group.parts." + p),
+            active: grid.isRowGrouped(col.field, p)
+          }));
+          openMenu(rgBtn, items, (part) => grid.toggleRowGroup(col.field, part), {
+            multi: true,
+            isActive: (part) => grid.isRowGrouped(col.field, part)
+          });
+        });
+      } else {
+        rgBtn.addEventListener("click", () => grid.toggleRowGroup(col.field));
+      }
       tools.appendChild(rgBtn);
     } else {
       tools.appendChild(el("span.lattice-gslot-empty"));
@@ -4266,6 +4362,7 @@ function csSelect(value, options, onChange) {
 var GROUP_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h8v6H3V5zm10 0h8v2h-8V5zm0 4h8v2h-8V9zM3 13h18v2H3v-2zm0 4h18v2H3v-2z"/></svg>';
 var ROWGROUP_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"/></svg>';
 var ROWGROUP_EXCLUDE = /* @__PURE__ */ new Set(["image", "html", "progress", "rating", "color"]);
+var DATE_TYPES = /* @__PURE__ */ new Set(["date", "datetime", "time"]);
 var ROTATE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7.5 4l4.5 12h-2l-1-3H5l-1 3H2L6.5 4h1zM6 5.9L4.6 11h2.8L6 5.9zM20 13l-4 4-4-4h3V4h2v9h3z"/></svg>';
 var FUNNEL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 var FIT_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M4 7v10H2V7h2zm18 0v10h-2V7h2zM8 11l-3 1 3 1v-2zm8 0v2l3-1-3-1zM6 11h12v2H6v-2z"/></svg>';
@@ -4275,12 +4372,12 @@ var GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="tr
 var BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
 
 // src/features/menu.js
-function openMenu(anchor, items, onPick) {
-  const menu = buildMenu(items, () => close(), onPick);
+function openMenu(anchor, items, onPick, opts = {}) {
+  const menu = buildMenu(items, () => close(), onPick, opts);
   document.body.appendChild(menu);
   positionUnder(menu, anchor);
   const off = onOutside(menu, (e) => {
-    if (!anchor.contains(e.target)) close();
+    if (opts.multi || !anchor.contains(e.target)) close();
   });
   function close() {
     off();
@@ -4307,19 +4404,31 @@ function openMenuAt(x, y, items, onPick) {
   }
   return close;
 }
-function buildMenu(items, close, onPick) {
-  const menu = el("div.lattice-menu");
+function buildMenu(items, close, onPick, opts = {}) {
+  const multi = !!opts.multi;
+  const menu = el("div.lattice-menu" + (multi ? ".lattice-menu-multi" : ""));
   for (const it of items) {
     if (it.separator) {
       menu.appendChild(el("div.lattice-menu-sep"));
       continue;
     }
     const cls = [it.active ? "is-active" : "", it.disabled ? "is-disabled" : "", it.danger ? "is-danger" : ""].filter(Boolean).join(" ");
-    const row = el("div.lattice-menu-item", { class: cls, text: it.label });
-    if (!it.disabled) row.addEventListener("click", () => {
-      close();
-      onPick(it.value, it);
-    });
+    const row = el("div.lattice-menu-item" + (multi ? ".is-checkable" : ""), { class: cls });
+    if (multi) row.appendChild(el("span.lattice-menu-check", { "aria-hidden": "true" }));
+    row.appendChild(el("span.lattice-menu-label", { text: it.label }));
+    if (!it.disabled) {
+      row.addEventListener("click", (e) => {
+        if (multi) {
+          e.stopPropagation();
+          onPick(it.value, it);
+          const now = opts.isActive ? opts.isActive(it.value) : !row.classList.contains("is-active");
+          row.classList.toggle("is-active", now);
+        } else {
+          close();
+          onPick(it.value, it);
+        }
+      });
+    }
     menu.appendChild(row);
   }
   return menu;
@@ -4576,12 +4685,15 @@ var Renderer = class {
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
     const grid = this.grid;
-    const grouped = new Set(grid.groupFields());
+    const grouped = new Set(grid.instance.groupDisplay === "columns" ? [] : grid.groupedRawFields());
     this._menuIdField = null;
     if (grid.hasActions() && grid.instance.actionsLayout === "menu" && !rn) {
       const idCol = grid.columns.find((c) => c.visible && c.type === "id" && !grouped.has(c.field));
       if (idCol) this._menuIdField = idCol.field;
       else left.push(this.rowNumberColumn(true));
+    }
+    if (grid.groupActive() && grid.instance.groupDisplay === "columns") {
+      for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = grid.responsive && this._collapsed ? this._collapsed : null;
     this._collapsedCols = [];
@@ -4596,6 +4708,41 @@ var Renderer = class {
     if (grid.hasActions() && grid.instance.actionsLayout === "column") right.push(this.actionsColumn());
     for (const rs of this.rowSummaryColumns()) right.push(rs);
     return { list: [...left, ...mid, ...right], left, mid, right };
+  }
+  /**
+   * Vedoucí syntetické sloupce pro režim 'columns' — jeden na každou úroveň
+   * seskupení, vlevo a ukotvené, s hodnotou kbelíku (rok/kvartál/…) na řádku.
+   */
+  groupLevelColumns() {
+    const grid = this.grid;
+    const i18n = grid.i18n;
+    return grid.groupDescriptors().map((desc) => {
+      const col = grid.columns.find((c) => c.field === desc.field);
+      const title = col ? this.groupLevelTitle({ part: desc.part }, col) : desc.field;
+      return {
+        field: "__group__" + desc.id,
+        title,
+        type: "text",
+        filter: null,
+        group: null,
+        headerSort: false,
+        frozen: "left",
+        frozenAllowed: false,
+        visible: true,
+        minWidth: 90,
+        width: 130,
+        align: "left",
+        availableFilters: [],
+        filterEnabled: false,
+        _groupCol: desc,
+        formatter: (_v, _col, row) => {
+          const raw = row ? row[desc.field] : null;
+          if (!desc.part) return raw == null ? "" : String(raw);
+          const b = dateBucket(raw, desc.part, i18n);
+          return b ? b.label : "";
+        }
+      };
+    });
   }
   /** Syntetický sloupec s úchytem pro přetahování řádků (nebo null). */
   moveColumn() {
@@ -5199,8 +5346,12 @@ var Renderer = class {
       return;
     }
     const frag = document.createDocumentFragment();
-    if (this.grid.groupActive()) {
+    const colsMode = this.grid.instance.groupDisplay === "columns";
+    if (this.grid.groupActive() && !colsMode) {
       this.renderGroupNodes(this.grid.buildGroups(rows), list, frag, { n: 0 });
+    } else if (this.grid.groupActive()) {
+      const items = flattenGroupItems(this.grid.buildGroups(rows));
+      items.forEach(({ row, index }, i) => this._appendRow(frag, row, index, i, list));
     } else {
       rows.forEach((rowData, i) => this._appendRow(frag, rowData, i, i, list));
     }
@@ -5654,18 +5805,19 @@ var Renderer = class {
     const grid = this.grid;
     const col = grid.columns.find((c) => c.field === node.field);
     const label = this.groupLabel(node.value, col);
+    const levelTitle = this.groupLevelTitle(node, col);
     const row = el("div.lattice-rowgroup" + (collapsed ? ".is-collapsed" : ""), {
       dataset: { key: node.key },
       role: "button",
       tabindex: "0",
       class: "is-level-" + node.level,
-      title: (col ? col.title + ": " : "") + label
+      title: (levelTitle ? levelTitle + ": " : "") + label
     });
     const inner = el("div.lattice-rowgroup-inner", {
       style: { paddingLeft: 10 + node.level * 20 + "px" }
     }, [
       el("span.lattice-rowgroup-toggle", { html: CHEVRON_SVG }),
-      col ? el("span.lattice-rowgroup-field", { text: col.title + ":" }) : null,
+      levelTitle ? el("span.lattice-rowgroup-field", { text: levelTitle + ":" }) : null,
       el("span.lattice-rowgroup-title", { text: label }),
       el("span.lattice-rowgroup-count", { text: String(node.count) })
     ]);
@@ -5680,6 +5832,13 @@ var Renderer = class {
     });
     if (grid.isMovable()) attachGroupDropZone(row, this, node);
     return row;
+  }
+  /** Titulek úrovně seskupení: název sloupce, u datumové úrovně + část (např. „Vytvořeno · Kvartál"). */
+  groupLevelTitle(node, col) {
+    if (!col) return "";
+    if (!node.part) return col.title;
+    const part = this.grid.i18n.t("group.parts." + node.part);
+    return col.title + " \xB7 " + part;
   }
   /** Čitelný popisek hodnoty skupiny (prázdné → placeholder, boolean → Ano/Ne). */
   groupLabel(value, col) {
@@ -6286,6 +6445,13 @@ function collectGroupRows(node) {
   if (node.rows) return node.rows.map((r) => r.row);
   const out = [];
   for (const g of node.groups || []) out.push(...collectGroupRows(g));
+  return out;
+}
+function flattenGroupItems(nodes, out = []) {
+  for (const node of nodes) {
+    if (node.rows) out.push(...node.rows);
+    else flattenGroupItems(node.groups || [], out);
+  }
   return out;
 }
 var UNIVERSAL_OPS = [
@@ -8142,7 +8308,9 @@ var INSTANCE_DEFAULTS = {
   rowNumberWidth: null,
   // uživatelská šířka číslovacího sloupce (null = auto)
   groupBy: null,
-  // seskupení řádků podle pole (field) nebo null (row grouping)
+  // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
+  groupDisplay: "headers",
+  // jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
   selectColumn: true,
   // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,
@@ -8671,30 +8839,63 @@ var Lattice = class {
    * instance.groupBy (string kvůli zpětné kompatibilitě nebo pole) a vyfiltruje
    * jen platná, neopakující se pole odpovídající existujícímu sloupci.
    */
-  groupFields() {
+  /**
+   * Normalizované deskriptory seskupení (víceúrovňově). Položka instance.groupBy
+   * může být `field` (string) nebo `{ field, part }` (datumová úroveň — rok,
+   * kvartál, …). Vrací `[{ field, part, id }]`; `id` je stabilní klíč
+   * (`field` nebo `field@part`), unikátní a odpovídající existujícímu sloupci.
+   */
+  groupDescriptors() {
     const g = this.instance.groupBy;
     const arr = Array.isArray(g) ? g : g ? [g] : [];
-    return arr.filter((f, i) => arr.indexOf(f) === i && this.columns.some((c) => c.field === f));
+    const seen = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const item of arr) {
+      const field2 = typeof item === "string" ? item : item && item.field;
+      const part = typeof item === "string" ? null : item && item.part || null;
+      if (!field2 || !this.columns.some((c) => c.field === field2)) continue;
+      const id = part ? field2 + "@" + part : field2;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push({ field: field2, part, id });
+    }
+    return out;
   }
-  /** Je seskupení řádků aktivní (aspoň jedno platné pole)? */
+  /** Zpětně kompatibilní: jen názvy polí použitých k seskupení (bez ohledu na part). */
+  groupFields() {
+    return this.groupDescriptors().map((d) => d.field);
+  }
+  /** Pole, jejichž SYROVÁ hodnota je seskupení (part == null) → skryjí se jako běžný sloupec. */
+  groupedRawFields() {
+    return this.groupDescriptors().filter((d) => !d.part).map((d) => d.field);
+  }
+  /** Je seskupení řádků aktivní (aspoň jedna platná úroveň)? */
   groupActive() {
-    return this.groupFields().length > 0;
+    return this.groupDescriptors().length > 0;
   }
-  /** Je sloupec použit jako řádkové seskupení? */
-  isRowGrouped(field2) {
-    return this.groupFields().includes(field2);
+  /** Stabilní id deskriptoru pro (field, part). */
+  groupId(field2, part = null) {
+    return part ? field2 + "@" + part : field2;
   }
-  /** Úroveň (1-based) seskupení pro sloupec, nebo 0 když se podle něj neseskupuje. */
-  rowGroupLevel(field2) {
-    return this.groupFields().indexOf(field2) + 1;
+  /** Je daná úroveň (field + volitelný part) použita k seskupení? */
+  isRowGrouped(field2, part = null) {
+    const id = this.groupId(field2, part);
+    return this.groupDescriptors().some((d) => d.id === id);
   }
-  /** Přepne, zda se podle sloupce seskupuje (přidá na konec pořadí / odebere). */
-  toggleRowGroup(field2) {
-    const arr = this.groupFields();
-    const i = arr.indexOf(field2);
-    if (i === -1) arr.push(field2);
+  /** Úroveň (1-based) seskupení pro (field, part), nebo 0 když se neseskupuje. */
+  rowGroupLevel(field2, part = null) {
+    const id = this.groupId(field2, part);
+    return this.groupDescriptors().findIndex((d) => d.id === id) + 1;
+  }
+  /** Přepne, zda se podle úrovně (field + volitelný part) seskupuje (přidá na konec / odebere). */
+  toggleRowGroup(field2, part = null) {
+    const id = this.groupId(field2, part);
+    const arr = this.groupDescriptors();
+    const i = arr.findIndex((d) => d.id === id);
+    if (i === -1) arr.push({ field: field2, part, id });
     else arr.splice(i, 1);
-    this.setInstance({ groupBy: arr.length ? arr : null });
+    const groupBy = arr.map((d) => d.part ? { field: d.field, part: d.part } : d.field);
+    this.setInstance({ groupBy: groupBy.length ? groupBy : null });
   }
   /**
    * Rozdělí řádky do (případně vnořeného) stromu skupin dle groupFields().
@@ -8705,29 +8906,34 @@ var Lattice = class {
    * v grid.rows (editace / rowClick / číslování).
    */
   buildGroups(rows) {
-    const fields = this.groupFields();
+    const descriptors = this.groupDescriptors();
     const indexed = rows.map((row, index) => ({ row, index }));
-    return this._groupLevel(indexed, fields, 0, "", []);
+    return this._groupLevel(indexed, descriptors, 0, "", []);
   }
-  _groupLevel(items, fields, level, parentKey, parentPath) {
-    const field2 = fields[level];
-    const last = level === fields.length - 1;
+  _groupLevel(items, descriptors, level, parentKey, parentPath) {
+    const desc = descriptors[level];
+    const { field: field2, part } = desc;
+    const last = level === descriptors.length - 1;
     const map = /* @__PURE__ */ new Map();
     for (const it of items) {
-      const value = it.row[field2];
+      const raw = it.row[field2];
+      const bucket = part ? dateBucket(raw, part, this.i18n) : null;
+      const value = bucket ? bucket.label : it.row[field2];
       const vkey = value == null || value === "" ? "\0empty" : String(value);
       let g = map.get(vkey);
       if (!g) {
-        g = { value, vkey, items: [] };
+        g = { value, vkey, sort: bucket ? bucket.sort : null, items: [] };
         map.set(vkey, g);
       }
       g.items.push(it);
     }
-    return [...map.values()].map((g) => {
+    let groups = [...map.values()];
+    if (part) groups.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    return groups.map((g) => {
       const key = parentKey ? parentKey + "\0" + g.vkey : g.vkey;
-      const path = [...parentPath, { field: field2, value: g.value }];
-      const base = { field: field2, value: g.value, key, level, count: g.items.length, path };
-      return last ? { ...base, rows: g.items } : { ...base, groups: this._groupLevel(g.items, fields, level + 1, key, path) };
+      const path = [...parentPath, { field: field2, part, value: g.value }];
+      const base = { field: field2, part, value: g.value, key, level, count: g.items.length, path };
+      return last ? { ...base, rows: g.items } : { ...base, groups: this._groupLevel(g.items, descriptors, level + 1, key, path) };
     });
   }
   isGroupCollapsed(key) {
@@ -9647,7 +9853,7 @@ var Lattice = class {
     if ("emptyText" in patch || "wrapText" in patch || "locale" in patch || "scaleColors" in patch || "linkNewTab" in patch) {
       this.renderer.renderBody();
     }
-    if ("groupBy" in patch) {
+    if ("groupBy" in patch || "groupDisplay" in patch) {
       this.renderer.renderHeader();
       this.renderer.renderBody();
       this.renderer.applyLayout();
