@@ -175,7 +175,7 @@ function docTypy(root, ctx) {
       ['<code>progress</code>', 'Vodorovný pruh (<code>formatterParams: { max, color, showValue }</code>).'],
       ['<code>rating</code>', 'Hvězdičky (<code>formatterParams: { max }</code>).'],
       ['<code>sparkline</code>', 'Mini graf z pole hodnot — SVG, bez závislosti (<code>formatterParams: { type:\'line\'|\'bar\', color, fill }</code>).'],
-      ['<code>link</code>', 'Odkaz (<code>{ urlPrefix, target, label }</code>). Nová karta globálně přes <code>instance: { linkNewTab: true }</code> (v nové kartě se přidá ikona externího odkazu).'],
+      ['<code>link</code>', 'Odkaz (<code>{ urlPrefix, urlSuffix, urlField, url, target, label }</code>). Text = hodnota sloupce; URL lze skládat z jiného pole přes <code>urlField</code> (např. text=název, odkaz přes <code>id</code>) nebo funkcí <code>url:(v,row)=&gt;…</code>. Nová karta globálně přes <code>instance: { linkNewTab: true }</code> (v nové kartě se přidá ikona externího odkazu).'],
       ['<code>image</code>', 'Obrázek z URL/data: (+ lightbox).'],
       ['<code>icon</code>', 'Ikona/emoji (<code>{ icons: {hodnota: emoji} }</code>).'],
       ['<code>color</code>', 'Barevná výplň buňky.'],

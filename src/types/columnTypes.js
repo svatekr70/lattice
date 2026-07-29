@@ -168,16 +168,26 @@ registerType('sparkline', (v, col) => {
 });
 
 /**
- * Odkaz (anchor). formatterParams: { urlPrefix, urlSuffix, target, label, rel }
+ * Odkaz (anchor). formatterParams: { urlPrefix, urlSuffix, urlField, url, target, label, rel }
+ * Zobrazený text = hodnota sloupce (nebo statický `label`).
+ * URL se skládá takto (první, co je definované):
+ *   - `url(value, row, col)` — builder funkce vracející celé href,
+ *   - jinak `urlPrefix + (row[urlField] ?? value) + urlSuffix` — `urlField` umožní
+ *     odkazovat přes jiné pole (např. ID), než které se zobrazuje (např. název).
  * Cíl: explicitní `formatterParams.target` vyhrává; jinak globální `instance.linkNewTab`.
  * Při otevírání v nové kartě se vpravo přidá ikona externího odkazu.
  */
-registerType('link', (v, col) => {
+registerType('link', (v, col, row) => {
   if (v == null || v === '') return '';
   const p = col.formatterParams || {};
   const a = document.createElement('a');
   a.className = 'lattice-link';
-  a.href = (p.urlPrefix || '') + String(v) + (p.urlSuffix || '');
+  if (typeof p.url === 'function') {
+    a.href = String(p.url(v, row, col) ?? '');
+  } else {
+    const base = p.urlField != null && row ? row[p.urlField] : v;
+    a.href = (p.urlPrefix || '') + String(base ?? '') + (p.urlSuffix || '');
+  }
   a.textContent = p.label != null ? p.label : String(v);
   let target = p.target;
   if (target == null) target = col._linkNewTab ? '_blank' : '_self';

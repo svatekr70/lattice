@@ -136,7 +136,7 @@ const grid = new Lattice('#grid', {
 | `progress` | Vodorovný pruh (`formatterParams: { max, color, showValue }`). |
 | `rating` | Hvězdičky (`formatterParams: { max }`). |
 | `sparkline` | Mini graf z pole hodnot — SVG bez závislosti (`formatterParams: { type:'line'\|'bar', color, fill, height, width }`). |
-| `link` | Odkaz (`formatterParams: { urlPrefix, urlSuffix, target, label, rel }`). Nová karta globálně přes `instance.linkNewTab` (přebije `target`); v nové kartě se přidá ikona externího odkazu. |
+| `link` | Odkaz (`formatterParams: { urlPrefix, urlSuffix, urlField, url, target, label, rel }`). Zobrazený text = hodnota sloupce (nebo `label`); URL se skládá `urlPrefix + hodnota + urlSuffix`. **`urlField`** vezme pro URL jiné pole řádku než zobrazené (např. text = název, odkaz přes ID: `field:'name', formatterParams:{ urlField:'id', urlPrefix:'/clients/edit/' }`). **`url(value, row, col)`** = builder vracející celé href. Nová karta globálně přes `instance.linkNewTab` (přebije `target`); v nové kartě se přidá ikona externího odkazu. |
 | `image` | Obrázek z URL/`data:` (+ lightbox). |
 | `icon` | Ikona/emoji (`formatterParams: { icons: { hodnota: emoji } }`). |
 | `color` | Barevná výplň buňky. |
