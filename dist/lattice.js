@@ -9948,7 +9948,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "0.4.1";
+var VERSION = "0.5.0";
 export {
   ClientData,
   I18n,
