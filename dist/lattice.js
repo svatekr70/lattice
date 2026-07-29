@@ -8928,7 +8928,11 @@ var Lattice = class {
       g.items.push(it);
     }
     let groups = [...map.values()];
-    if (part) groups.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    if (part) {
+      const sorted = this.sort.find((s) => s.field === field2);
+      const dir = sorted && sorted.dir === "desc" ? -1 : 1;
+      groups.sort((a, b) => dir * ((a.sort ?? 0) - (b.sort ?? 0)));
+    }
     return groups.map((g) => {
       const key = parentKey ? parentKey + "\0" + g.vkey : g.vkey;
       const path = [...parentPath, { field: field2, part, value: g.value }];
