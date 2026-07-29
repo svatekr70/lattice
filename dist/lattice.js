@@ -2886,12 +2886,17 @@ registerType("sparkline", (v, col) => {
   wrap.appendChild(svg);
   return wrap;
 });
-registerType("link", (v, col) => {
+registerType("link", (v, col, row) => {
   if (v == null || v === "") return "";
   const p = col.formatterParams || {};
   const a = document.createElement("a");
   a.className = "lattice-link";
-  a.href = (p.urlPrefix || "") + String(v) + (p.urlSuffix || "");
+  if (typeof p.url === "function") {
+    a.href = String(p.url(v, row, col) ?? "");
+  } else {
+    const base = p.urlField != null && row ? row[p.urlField] : v;
+    a.href = (p.urlPrefix || "") + String(base ?? "") + (p.urlSuffix || "");
+  }
   a.textContent = p.label != null ? p.label : String(v);
   let target = p.target;
   if (target == null) target = col._linkNewTab ? "_blank" : "_self";
