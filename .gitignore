@@ -10,3 +10,7 @@ reference/
 .claude/
 nova-grid-komponenta-zadani.md
 /data/
+
+# Depka deploy (tajnosti + lokální stav)
+deploy/deploy.neon
+deploy/checksums_*.json
