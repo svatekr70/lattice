@@ -8299,13 +8299,6 @@ var History = class {
 };
 
 // src/Lattice.js
-function cmpGroupValues(a, b) {
-  const ae = a == null || a === "", be = b == null || b === "";
-  if (ae || be) return ae === be ? 0 : ae ? 1 : -1;
-  const na = Number(a), nb = Number(b);
-  if (Number.isFinite(na) && Number.isFinite(nb) && String(a).trim() !== "" && String(b).trim() !== "") return na - nb;
-  return String(a).localeCompare(String(b), void 0, { numeric: true });
-}
 var INSTANCE_DEFAULTS = {
   paginationPosition: "footer",
   // 'footer' | 'header' | 'both' | 'none'
@@ -8332,8 +8325,6 @@ var INSTANCE_DEFAULTS = {
   // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: "headers",
   // jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
-  groupSort: {},
-  // směr řazení SKUPIN dle úrovně: { <id>: 'asc' | 'desc' } (id = field nebo field@part)
   selectColumn: true,
   // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,
@@ -8917,20 +8908,6 @@ var Lattice = class {
   groupId(field2, part = null) {
     return part ? field2 + "@" + part : field2;
   }
-  /** Efektivní směr řazení SKUPIN dané úrovně: explicitní groupSort, jinak 'asc'. */
-  groupSortDir(id) {
-    const v = this.instance.groupSort && this.instance.groupSort[id];
-    return v === "desc" ? "desc" : "asc";
-  }
-  /** Přepne směr řazení skupin dané úrovně (asc ↔ desc) a překreslí tělo. */
-  toggleGroupSort(id) {
-    const cur = this.groupSortDir(id);
-    const next = cur === "asc" ? "desc" : "asc";
-    this.instance.groupSort = { ...this.instance.groupSort || {}, [id]: next };
-    this.saveState();
-    this.renderer.renderBody();
-    this.renderer.applyLayout();
-  }
   /** Je daná úroveň (field + volitelný part) použita k seskupení? */
   isRowGrouped(field2, part = null) {
     const id = this.groupId(field2, part);
@@ -8982,19 +8959,10 @@ var Lattice = class {
       g.items.push(it);
     }
     let groups = [...map.values()];
-    const id = part ? field2 + "@" + part : field2;
-    const explicit = this.instance.groupSort && this.instance.groupSort[id];
     if (part) {
-      let dir;
-      if (explicit === "asc" || explicit === "desc") dir = explicit === "desc" ? -1 : 1;
-      else {
-        const s = this.sort.find((x) => x.field === field2);
-        dir = s && s.dir === "desc" ? -1 : 1;
-      }
+      const sorted = this.sort.find((s) => s.field === field2);
+      const dir = sorted && sorted.dir === "desc" ? -1 : 1;
       groups.sort((a, b) => dir * ((a.sort ?? 0) - (b.sort ?? 0)));
-    } else if (explicit === "asc" || explicit === "desc") {
-      const dir = explicit === "desc" ? -1 : 1;
-      groups.sort((a, b) => dir * cmpGroupValues(a.value, b.value));
     }
     return groups.map((g) => {
       const key = parentKey ? parentKey + "\0" + g.vkey : g.vkey;
