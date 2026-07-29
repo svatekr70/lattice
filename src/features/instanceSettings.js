@@ -180,6 +180,9 @@ export class InstanceSettings {
       ['none', t('instance.summaryNone')], ['page', t('instance.summaryPage')], ['all', t('instance.summaryAll')],
     ], (v) => set({ summaryRow: v })));
     gC.appendChild(rowToggle(t('instance.groupSubtotals'), inst.groupSubtotals === true, (v) => set({ groupSubtotals: v })));
+    gC.appendChild(rowSelect(t('group.display'), inst.groupDisplay || 'headers', [
+      ['headers', t('group.displayHeaders')], ['columns', t('group.displayColumns')],
+    ], (v) => set({ groupDisplay: v })));
     if (grid.isSelectable()) {
       gC.appendChild(rowToggle(t('instance.selectColumn'), inst.selectColumn !== false, (v) => set({ selectColumn: v })));
       gC.appendChild(rowSelect(t('instance.selectTrigger'), inst.selectRowClick ? 'row' : 'checkbox', [

@@ -305,6 +305,23 @@ const RAW_GROUPS = [
         },
       },
       {
+        id: 'ex-date-group',
+        title: 'Seskupení podle data',
+        blurb: 'Datumový sloupec lze seskupit podle úrovní — rok, kvartál, měsíc, týden, den v týdnu, den v měsíci, hodina, minuta — i víc úrovní najednou (Rok → Kvartál → Den v týdnu). Knihovna kbelík odvodí a seřadí chronologicky. V dialogu Sloupce klikni na „seskupit" u datumového sloupce → vyber úrovně. Zobrazení řídí Nastavení tabulky → „Úrovně seskupení": <b>vnořené hlavičky</b>, nebo <b>vedoucí sloupce</b> (rok/kvartál/… zleva u každého řádku).',
+        code: `new Lattice('#grid', {\n  columns: [{ field: 'createdAt', type: 'date' }, …],\n  instance: {\n    // víc úrovní jednoho data → { field, part }\n    groupBy: [\n      { field: 'createdAt', part: 'year' },\n      { field: 'createdAt', part: 'quarter' },\n      { field: 'createdAt', part: 'weekday' },\n    ],\n    groupDisplay: 'columns', // nebo 'headers'\n  },\n})`,
+        mount: (el, ctx) => new Lattice(el, base(ctx, {
+          id: 'ex-date-group', columns: campaignColumns(), data: ctx.data, pageSize: 100,
+          instance: {
+            groupBy: [
+              { field: 'createdAt', part: 'year' },
+              { field: 'createdAt', part: 'quarter' },
+              { field: 'createdAt', part: 'weekday' },
+            ],
+            groupDisplay: 'columns',
+          },
+        })),
+      },
+      {
         id: 'ex-summary',
         title: 'Souhrny sloupců i řádků',
         blurb: 'Křížové souhrny jako v tabulkovém procesoru. Dole souhrn SLOUPCŮ (součet/průměr každého kvartálu), vpravo souhrn ŘÁDKŮ (roční součet a průměr kvartálů daného produktu). Ikona Σ v dialogu „Sloupce" nabízí obě sady — „Pro sloupce" a „Pro řádky".',
@@ -742,11 +759,11 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-datatypes', 'ex-filter-universal', 'ex-filter-advanced'],
+  'Novinky': ['ex-date-group', 'ex-datatypes', 'ex-filter-universal', 'ex-filter-advanced'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
-    'ex-pagination', 'ex-grouping', 'ex-summary', 'ex-tree-nested', 'ex-tree-flat', 'ex-tree-nestedset',
+    'ex-pagination', 'ex-grouping', 'ex-date-group', 'ex-summary', 'ex-tree-nested', 'ex-tree-flat', 'ex-tree-nestedset',
     'ex-file', 'ex-web', 'ex-progressive', 'ex-virtual', 'ex-export', 'ex-computed'],
   'Interakce': ['ex-editing', 'ex-a11y', 'ex-callbacks', 'ex-select', 'ex-range', 'ex-popup', 'ex-menu', 'ex-history', 'ex-actions', 'ex-move-flat',
     'ex-move-groups', 'ex-move-children', 'ex-move-parentid', 'ex-move-nestedset', 'ex-between',

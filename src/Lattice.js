@@ -10,6 +10,7 @@
  */
 import { Store, emptyState } from './core/Store.js';
 import { buildColumns, serializeColumns, flattenGroups } from './core/ColumnModel.js';
+import { dateBucket } from './core/dateParts.js';
 import { deriveColumns, columnsFor } from './core/autoColumns.js';
 import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImport.js';
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
@@ -42,7 +43,8 @@ const INSTANCE_DEFAULTS = {
   summaryRow: 'none',     // souhrnný řádek: 'none' | 'page' (zobrazená stránka) | 'all' (všechny záznamy)
   groupSubtotals: false,  // mezisoučty za každou skupinu řádků (dle col.summary)
   rowNumberWidth: null,   // uživatelská šířka číslovacího sloupce (null = auto)
-  groupBy: null,          // seskupení řádků podle pole (field) nebo null (row grouping)
+  groupBy: null,          // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
+  groupDisplay: 'headers',// jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
   selectColumn: true,     // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,  // klik na řádek = výběr (false = vybírá jen checkbox)
   actionsLayout: 'column', // sloupec akcí: 'column' (poslední sloupec) | 'menu' (⋮ v číslování řádků)
@@ -630,33 +632,70 @@ export class Lattice {
    * instance.groupBy (string kvůli zpětné kompatibilitě nebo pole) a vyfiltruje
    * jen platná, neopakující se pole odpovídající existujícímu sloupci.
    */
-  groupFields() {
+  /**
+   * Normalizované deskriptory seskupení (víceúrovňově). Položka instance.groupBy
+   * může být `field` (string) nebo `{ field, part }` (datumová úroveň — rok,
+   * kvartál, …). Vrací `[{ field, part, id }]`; `id` je stabilní klíč
+   * (`field` nebo `field@part`), unikátní a odpovídající existujícímu sloupci.
+   */
+  groupDescriptors() {
     const g = this.instance.groupBy;
     const arr = Array.isArray(g) ? g : (g ? [g] : []);
-    return arr.filter((f, i) => arr.indexOf(f) === i && this.columns.some((c) => c.field === f));
+    const seen = new Set();
+    const out = [];
+    for (const item of arr) {
+      const field = typeof item === 'string' ? item : (item && item.field);
+      const part = typeof item === 'string' ? null : (item && item.part) || null;
+      if (!field || !this.columns.some((c) => c.field === field)) continue;
+      const id = part ? field + '@' + part : field;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push({ field, part, id });
+    }
+    return out;
   }
 
-  /** Je seskupení řádků aktivní (aspoň jedno platné pole)? */
+  /** Zpětně kompatibilní: jen názvy polí použitých k seskupení (bez ohledu na part). */
+  groupFields() {
+    return this.groupDescriptors().map((d) => d.field);
+  }
+
+  /** Pole, jejichž SYROVÁ hodnota je seskupení (part == null) → skryjí se jako běžný sloupec. */
+  groupedRawFields() {
+    return this.groupDescriptors().filter((d) => !d.part).map((d) => d.field);
+  }
+
+  /** Je seskupení řádků aktivní (aspoň jedna platná úroveň)? */
   groupActive() {
-    return this.groupFields().length > 0;
+    return this.groupDescriptors().length > 0;
   }
 
-  /** Je sloupec použit jako řádkové seskupení? */
-  isRowGrouped(field) {
-    return this.groupFields().includes(field);
+  /** Stabilní id deskriptoru pro (field, part). */
+  groupId(field, part = null) {
+    return part ? field + '@' + part : field;
   }
 
-  /** Úroveň (1-based) seskupení pro sloupec, nebo 0 když se podle něj neseskupuje. */
-  rowGroupLevel(field) {
-    return this.groupFields().indexOf(field) + 1;
+  /** Je daná úroveň (field + volitelný part) použita k seskupení? */
+  isRowGrouped(field, part = null) {
+    const id = this.groupId(field, part);
+    return this.groupDescriptors().some((d) => d.id === id);
   }
 
-  /** Přepne, zda se podle sloupce seskupuje (přidá na konec pořadí / odebere). */
-  toggleRowGroup(field) {
-    const arr = this.groupFields();
-    const i = arr.indexOf(field);
-    if (i === -1) arr.push(field); else arr.splice(i, 1);
-    this.setInstance({ groupBy: arr.length ? arr : null });
+  /** Úroveň (1-based) seskupení pro (field, part), nebo 0 když se neseskupuje. */
+  rowGroupLevel(field, part = null) {
+    const id = this.groupId(field, part);
+    return this.groupDescriptors().findIndex((d) => d.id === id) + 1;
+  }
+
+  /** Přepne, zda se podle úrovně (field + volitelný part) seskupuje (přidá na konec / odebere). */
+  toggleRowGroup(field, part = null) {
+    const id = this.groupId(field, part);
+    const arr = this.groupDescriptors();
+    const i = arr.findIndex((d) => d.id === id);
+    if (i === -1) arr.push({ field, part, id }); else arr.splice(i, 1);
+    // Zpět na serializovatelný tvar (string pro syrové pole, {field,part} pro datumovou úroveň).
+    const groupBy = arr.map((d) => (d.part ? { field: d.field, part: d.part } : d.field));
+    this.setInstance({ groupBy: groupBy.length ? groupBy : null });
   }
 
   /**
@@ -668,29 +707,35 @@ export class Lattice {
    * v grid.rows (editace / rowClick / číslování).
    */
   buildGroups(rows) {
-    const fields = this.groupFields();
+    const descriptors = this.groupDescriptors();
     const indexed = rows.map((row, index) => ({ row, index }));
-    return this._groupLevel(indexed, fields, 0, '', []);
+    return this._groupLevel(indexed, descriptors, 0, '', []);
   }
 
-  _groupLevel(items, fields, level, parentKey, parentPath) {
-    const field = fields[level];
-    const last = level === fields.length - 1;
+  _groupLevel(items, descriptors, level, parentKey, parentPath) {
+    const desc = descriptors[level];
+    const { field, part } = desc;
+    const last = level === descriptors.length - 1;
     const map = new Map();
     for (const it of items) {
-      const value = it.row[field];
+      const raw = it.row[field];
+      const bucket = part ? dateBucket(raw, part, this.i18n) : null;
+      const value = bucket ? bucket.label : it.row[field];
       const vkey = value == null || value === '' ? '\u0000empty' : String(value);
       let g = map.get(vkey);
-      if (!g) { g = { value, vkey, items: [] }; map.set(vkey, g); }
+      if (!g) { g = { value, vkey, sort: bucket ? bucket.sort : null, items: [] }; map.set(vkey, g); }
       g.items.push(it);
     }
-    return [...map.values()].map((g) => {
+    let groups = [...map.values()];
+    // Datumové úrovně seřadíme chronologicky dle kbelíku; syrová pole nechají pořadí výskytu.
+    if (part) groups.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    return groups.map((g) => {
       const key = parentKey ? parentKey + '\u0000' + g.vkey : g.vkey;
-      const path = [...parentPath, { field, value: g.value }]; // cesta field→hodnota (pro přesun mezi skupinami)
-      const base = { field, value: g.value, key, level, count: g.items.length, path };
+      const path = [...parentPath, { field, part, value: g.value }]; // cesta úroveň→hodnota (pro přesun mezi skupinami)
+      const base = { field, part, value: g.value, key, level, count: g.items.length, path };
       return last
         ? { ...base, rows: g.items }
-        : { ...base, groups: this._groupLevel(g.items, fields, level + 1, key, path) };
+        : { ...base, groups: this._groupLevel(g.items, descriptors, level + 1, key, path) };
     });
   }
 
@@ -1634,7 +1679,7 @@ export class Lattice {
     if ('headerRotate' in patch) { this.renderer.renderHeader(); this.renderer.applyLayout(); }
     if ('summaryRow' in patch || 'groupSubtotals' in patch) { this.renderer.renderBody(); }
     if ('emptyText' in patch || 'wrapText' in patch || 'locale' in patch || 'scaleColors' in patch || 'linkNewTab' in patch) { this.renderer.renderBody(); }
-    if ('groupBy' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }
+    if ('groupBy' in patch || 'groupDisplay' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }
     if ('selectColumn' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('selectRowClick' in patch) { this.renderer.renderBody(); }
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }

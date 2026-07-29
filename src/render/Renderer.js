@@ -28,6 +28,7 @@ import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
 import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
 import { levelColor, levelIndex, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
+import { dateBucket } from '../core/dateParts.js';
 import { cellValue, isComputed } from '../core/cellValue.js';
 
 export class Renderer {
@@ -139,7 +140,9 @@ export class Renderer {
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
     const grid = this.grid;
-    const grouped = new Set(grid.groupFields()); // sloupce použité k seskupení se nezobrazují jako běžné
+    // Skryjí se jen sloupce seskupené podle SYROVÉ hodnoty; datumové úrovní (part)
+    // sloupec zůstává (seskupuješ podle roku, ale pořád vidíš celé datum).
+    const grouped = new Set(grid.instance.groupDisplay === 'columns' ? [] : grid.groupedRawFields());
     // Akce v režimu 'menu' bez zapnutého číslování řádků: ⋮ tlačítko dej do ID
     // sloupce (je-li zobrazen), jinak vynuť číslovací sloupec a dej ⋮ do něj.
     this._menuIdField = null;
@@ -147,6 +150,10 @@ export class Renderer {
       const idCol = grid.columns.find((c) => c.visible && c.type === 'id' && !grouped.has(c.field));
       if (idCol) this._menuIdField = idCol.field;
       else left.push(this.rowNumberColumn(true)); // žádné ID → vynucené číslování s ⋮
+    }
+    // Režim 'columns': vedoucí syntetické sloupce úrovní seskupení (vlevo, ukotvené).
+    if (grid.groupActive() && grid.instance.groupDisplay === 'columns') {
+      for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = (grid.responsive && this._collapsed) ? this._collapsed : null;
     this._collapsedCols = [];
@@ -163,6 +170,32 @@ export class Renderer {
     // Souhrn řádků → syntetické sloupce zcela vpravo (jeden na každou aktivní funkci).
     for (const rs of this.rowSummaryColumns()) right.push(rs);
     return { list: [...left, ...mid, ...right], left, mid, right };
+  }
+
+  /**
+   * Vedoucí syntetické sloupce pro režim 'columns' — jeden na každou úroveň
+   * seskupení, vlevo a ukotvené, s hodnotou kbelíku (rok/kvartál/…) na řádku.
+   */
+  groupLevelColumns() {
+    const grid = this.grid;
+    const i18n = grid.i18n;
+    return grid.groupDescriptors().map((desc) => {
+      const col = grid.columns.find((c) => c.field === desc.field);
+      const title = col ? this.groupLevelTitle({ part: desc.part }, col) : desc.field;
+      return {
+        field: '__group__' + desc.id, title,
+        type: 'text', filter: null, group: null, headerSort: false,
+        frozen: 'left', frozenAllowed: false, visible: true,
+        minWidth: 90, width: 130, align: 'left',
+        availableFilters: [], filterEnabled: false, _groupCol: desc,
+        formatter: (_v, _col, row) => {
+          const raw = row ? row[desc.field] : null;
+          if (!desc.part) return raw == null ? '' : String(raw);
+          const b = dateBucket(raw, desc.part, i18n);
+          return b ? b.label : '';
+        },
+      };
+    });
   }
 
   /** Syntetický sloupec s úchytem pro přetahování řádků (nebo null). */
@@ -761,10 +794,15 @@ export class Renderer {
     }
 
     const frag = document.createDocumentFragment();
-    if (this.grid.groupActive()) {
+    const colsMode = this.grid.instance.groupDisplay === 'columns';
+    if (this.grid.groupActive() && !colsMode) {
       // Řádky rozdělené do (i vnořeného) stromu skupin; každá skupina má
       // klikací hlavičku (sbalení/rozbalení). Číslo pruhu (zebra) běží průběžně.
       this.renderGroupNodes(this.grid.buildGroups(rows), list, frag, { n: 0 });
+    } else if (this.grid.groupActive()) {
+      // Režim 'columns': ploché řádky seřazené dle skupin, hodnota úrovní ve vedoucích sloupcích.
+      const items = flattenGroupItems(this.grid.buildGroups(rows));
+      items.forEach(({ row, index }, i) => this._appendRow(frag, row, index, i, list));
     } else {
       rows.forEach((rowData, i) => this._appendRow(frag, rowData, i, i, list));
     }
@@ -1233,16 +1271,17 @@ export class Renderer {
     const grid = this.grid;
     const col = grid.columns.find((c) => c.field === node.field);
     const label = this.groupLabel(node.value, col);
+    const levelTitle = this.groupLevelTitle(node, col);
     const row = el('div.lattice-rowgroup' + (collapsed ? '.is-collapsed' : ''), {
       dataset: { key: node.key }, role: 'button', tabindex: '0',
       class: 'is-level-' + node.level,
-      title: (col ? col.title + ': ' : '') + label,
+      title: (levelTitle ? levelTitle + ': ' : '') + label,
     });
     const inner = el('div.lattice-rowgroup-inner', {
       style: { paddingLeft: (10 + node.level * 20) + 'px' },
     }, [
       el('span.lattice-rowgroup-toggle', { html: CHEVRON_SVG }),
-      col ? el('span.lattice-rowgroup-field', { text: col.title + ':' }) : null,
+      levelTitle ? el('span.lattice-rowgroup-field', { text: levelTitle + ':' }) : null,
       el('span.lattice-rowgroup-title', { text: label }),
       el('span.lattice-rowgroup-count', { text: String(node.count) }),
     ]);
@@ -1253,6 +1292,14 @@ export class Renderer {
     // Přesun mezi skupinami — hlavička skupiny je cíl přetažení řádku.
     if (grid.isMovable()) attachGroupDropZone(row, this, node);
     return row;
+  }
+
+  /** Titulek úrovně seskupení: název sloupce, u datumové úrovně + část (např. „Vytvořeno · Kvartál"). */
+  groupLevelTitle(node, col) {
+    if (!col) return '';
+    if (!node.part) return col.title;
+    const part = this.grid.i18n.t('group.parts.' + node.part);
+    return col.title + ' · ' + part;
   }
 
   /** Čitelný popisek hodnoty skupiny (prázdné → placeholder, boolean → Ano/Ne). */
@@ -1891,6 +1938,15 @@ function collectGroupRows(node) {
   if (node.rows) return node.rows.map((r) => r.row);
   const out = [];
   for (const g of node.groups || []) out.push(...collectGroupRows(g));
+  return out;
+}
+
+/** Zploští strom skupin do plochého pole { row, index } v pořadí skupin (režim 'columns'). */
+function flattenGroupItems(nodes, out = []) {
+  for (const node of nodes) {
+    if (node.rows) out.push(...node.rows);
+    else flattenGroupItems(node.groups || [], out);
+  }
   return out;
 }
 

@@ -180,7 +180,8 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `rowNumbers` | `'none'` \| `'continuous'` \| `'perPage'` |
 | `headerRotate` | `'none'` \| `'90'` \| `'270'` |
 | `summaryRow` | `'none'` \| `'page'` \| `'all'` |
-| `groupBy` | pole polí pro seskupení řádků, nebo `null` |
+| `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |
+| `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (vedoucí sloupce zleva, hodnota úrovně u každého řádku) |
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |

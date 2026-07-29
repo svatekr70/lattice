@@ -17,6 +17,7 @@ import { availableSummaries, SUMMARY_ORDER, SUMMARY_SYMBOL } from './summary.js'
 import { formatKind } from '../core/format.js';
 import { formatFields } from './instanceSettings.js';
 import { levelColor, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
+import { DATE_PARTS } from '../core/dateParts.js';
 
 export class Gear {
   constructor(grid) {
@@ -281,14 +282,31 @@ export class Gear {
     // 6) Seskupovat řádky podle tohoto sloupce (víceúrovňové; badge = pořadí úrovně).
     // U typů, kde seskupení nedává smysl, ponecháme prázdný slot (zarovnání ikon).
     if (!ROWGROUP_EXCLUDE.has(col.type)) {
-      const level = grid.rowGroupLevel(col.field);
+      const isDate = DATE_TYPES.has(col.type);
+      // U datumových sloupců počítáme kolik úrovní (částí) je aktivních; jinak 1/0.
+      const activeParts = isDate ? DATE_PARTS.filter((p) => grid.isRowGrouped(col.field, p)) : [];
+      const level = isDate ? activeParts.length : grid.rowGroupLevel(col.field);
       const rgBtn = el('button.lattice-gbtn.lattice-rgbtn', {
         type: 'button',
-        title: t('columns.rowGroupToggle'),
+        title: isDate ? t('group.by') : t('columns.rowGroupToggle'),
         class: level ? 'is-active' : '',
         html: ROWGROUP_SVG + (level ? '<span class="lattice-rg-badge">' + level + '</span>' : ''),
       });
-      rgBtn.addEventListener('click', () => grid.toggleRowGroup(col.field));
+      if (isDate) {
+        // Datum → menu s úrovněmi (rok, kvartál, …); víc lze zapnout najednou.
+        rgBtn.addEventListener('click', () => {
+          const items = DATE_PARTS.map((p) => ({
+            value: p, label: t('group.parts.' + p), active: grid.isRowGrouped(col.field, p),
+          }));
+          // Checkboxy — lze zapnout víc úrovní najednou (Rok i Měsíc), menu zůstane otevřené.
+          openMenu(rgBtn, items, (part) => grid.toggleRowGroup(col.field, part), {
+            multi: true,
+            isActive: (part) => grid.isRowGrouped(col.field, part),
+          });
+        });
+      } else {
+        rgBtn.addEventListener('click', () => grid.toggleRowGroup(col.field));
+      }
       tools.appendChild(rgBtn);
     } else {
       tools.appendChild(el('span.lattice-gslot-empty'));
@@ -533,6 +551,7 @@ const GROUP_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="
 const ROWGROUP_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"/></svg>';
 // Typy sloupců, podle kterých nemá smysl seskupovat řádky.
 const ROWGROUP_EXCLUDE = new Set(['image', 'html', 'progress', 'rating', 'color']);
+const DATE_TYPES = new Set(['date', 'datetime', 'time']);
 // otočené „A" (otočení hlavičky)
 const ROTATE_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7.5 4l4.5 12h-2l-1-3H5l-1 3H2L6.5 4h1zM6 5.9L4.6 11h2.8L6 5.9zM20 13l-4 4-4-4h3V4h2v9h3z"/></svg>';
 const FUNNEL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';

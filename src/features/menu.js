@@ -11,11 +11,12 @@ import { positionUnder } from './gear.js';
  * @param {(value:string)=>void} onPick
  * @returns {() => void} funkce pro zavření
  */
-export function openMenu(anchor, items, onPick) {
-  const menu = buildMenu(items, () => close(), onPick);
+export function openMenu(anchor, items, onPick, opts = {}) {
+  const menu = buildMenu(items, () => close(), onPick, opts);
   document.body.appendChild(menu);
   positionUnder(menu, anchor);
-  const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
+  // V multi režimu (checkboxy) zůstává otevřené — zavře až klik mimo menu / Escape.
+  const off = onOutside(menu, (e) => { if (opts.multi || !anchor.contains(e.target)) close(); });
   function close() { off(); menu.remove(); }
   return close;
 }
@@ -41,14 +42,32 @@ export function openMenuAt(x, y, items, onPick) {
   return close;
 }
 
-/** Sestaví menu element z položek (podpora separator/disabled/danger/active). */
-function buildMenu(items, close, onPick) {
-  const menu = el('div.lattice-menu');
+/**
+ * Sestaví menu element z položek (podpora separator/disabled/danger/active).
+ * `opts.multi` = checkboxový režim: klik NEzavře menu (lze zapnout víc položek),
+ * zaškrtnutí se po každém kliku přepočítá přes `opts.isActive(value)`.
+ */
+function buildMenu(items, close, onPick, opts = {}) {
+  const multi = !!opts.multi;
+  const menu = el('div.lattice-menu' + (multi ? '.lattice-menu-multi' : ''));
   for (const it of items) {
     if (it.separator) { menu.appendChild(el('div.lattice-menu-sep')); continue; }
     const cls = [it.active ? 'is-active' : '', it.disabled ? 'is-disabled' : '', it.danger ? 'is-danger' : ''].filter(Boolean).join(' ');
-    const row = el('div.lattice-menu-item', { class: cls, text: it.label });
-    if (!it.disabled) row.addEventListener('click', () => { close(); onPick(it.value, it); });
+    const row = el('div.lattice-menu-item' + (multi ? '.is-checkable' : ''), { class: cls });
+    if (multi) row.appendChild(el('span.lattice-menu-check', { 'aria-hidden': 'true' }));
+    row.appendChild(el('span.lattice-menu-label', { text: it.label }));
+    if (!it.disabled) {
+      row.addEventListener('click', (e) => {
+        if (multi) {
+          e.stopPropagation();
+          onPick(it.value, it);
+          const now = opts.isActive ? opts.isActive(it.value) : !row.classList.contains('is-active');
+          row.classList.toggle('is-active', now);
+        } else {
+          close(); onPick(it.value, it);
+        }
+      });
+    }
     menu.appendChild(row);
   }
   return menu;
