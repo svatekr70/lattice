@@ -727,8 +727,14 @@ export class Lattice {
       g.items.push(it);
     }
     let groups = [...map.values()];
-    // Datumové úrovně seřadíme chronologicky dle kbelíku; syrová pole nechají pořadí výskytu.
-    if (part) groups.sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+    // Datumové úrovně seřadíme dle kbelíku; směr převezmeme z řazení seskupeného
+    // sloupce (klik na hlavičku → roky/kvartály/… vzestupně/sestupně). Syrová pole
+    // nechají pořadí výskytu (které už kopíruje aktivní řazení řádků).
+    if (part) {
+      const sorted = this.sort.find((s) => s.field === field);
+      const dir = sorted && sorted.dir === 'desc' ? -1 : 1;
+      groups.sort((a, b) => dir * ((a.sort ?? 0) - (b.sort ?? 0)));
+    }
     return groups.map((g) => {
       const key = parentKey ? parentKey + '\u0000' + g.vkey : g.vkey;
       const path = [...parentPath, { field, part, value: g.value }]; // cesta úroveň→hodnota (pro přesun mezi skupinami)
