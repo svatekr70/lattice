@@ -2280,6 +2280,7 @@ var cs_default = {
   group: {
     empty: "(pr\xE1zdn\xE9)",
     weekLabel: "T\xFDden",
+    sort: "Se\u0159adit skupiny (vzestupn\u011B/sestupn\u011B)",
     by: "Seskupit podle",
     display: "\xDArovn\u011B seskupen\xED",
     displayHeaders: "Vno\u0159en\xE9 hlavi\u010Dky",
@@ -2598,6 +2599,7 @@ var en_default = {
   group: {
     empty: "(empty)",
     weekLabel: "Week",
+    sort: "Sort groups (ascending/descending)",
     by: "Group by",
     display: "Grouping levels",
     displayHeaders: "Nested headers",
@@ -5813,13 +5815,25 @@ var Renderer = class {
       class: "is-level-" + node.level,
       title: (levelTitle ? levelTitle + ": " : "") + label
     });
+    const dir = grid.sortDir(node.field);
+    const sortBtn = el("button.lattice-rowgroup-sort" + (dir ? ".is-" + dir : ""), {
+      type: "button",
+      title: grid.i18n.t("group.sort"),
+      text: dir === "asc" ? "\u25B2" : dir === "desc" ? "\u25BC" : "\u21C5"
+    });
+    sortBtn.addEventListener("mousedown", (e) => e.stopPropagation());
+    sortBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      grid.cycleGroupSort(node.field);
+    });
     const inner = el("div.lattice-rowgroup-inner", {
       style: { paddingLeft: 10 + node.level * 20 + "px" }
     }, [
       el("span.lattice-rowgroup-toggle", { html: CHEVRON_SVG }),
       levelTitle ? el("span.lattice-rowgroup-field", { text: levelTitle + ":" }) : null,
       el("span.lattice-rowgroup-title", { text: label }),
-      el("span.lattice-rowgroup-count", { text: String(node.count) })
+      el("span.lattice-rowgroup-count", { text: String(node.count) }),
+      sortBtn
     ]);
     row.appendChild(inner);
     const toggle = () => grid.toggleGroup(node.key);
@@ -8285,6 +8299,13 @@ var History = class {
 };
 
 // src/Lattice.js
+function cmpGroupValues(a, b) {
+  const ae = a == null || a === "", be = b == null || b === "";
+  if (ae || be) return ae === be ? 0 : ae ? 1 : -1;
+  const na = Number(a), nb = Number(b);
+  if (Number.isFinite(na) && Number.isFinite(nb) && String(a).trim() !== "" && String(b).trim() !== "") return na - nb;
+  return String(a).localeCompare(String(b), void 0, { numeric: true });
+}
 var INSTANCE_DEFAULTS = {
   paginationPosition: "footer",
   // 'footer' | 'header' | 'both' | 'none'
@@ -8311,6 +8332,8 @@ var INSTANCE_DEFAULTS = {
   // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: "headers",
   // jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
+  groupSort: {},
+  // směr řazení SKUPIN dle úrovně: { <id>: 'asc' | 'desc' } (id = field nebo field@part)
   selectColumn: true,
   // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,
@@ -8761,6 +8784,23 @@ var Lattice = class {
     this._clearActivePreset();
     this._setSort(dir ? [{ field: field2, dir }] : []);
   }
+  /**
+   * Řazení SKUPIN z hlavičky skupiny (i pro pole skryté seskupením). Nastaví
+   * pole jako PRIMÁRNÍ řadicí klíč (skupiny se podle něj seřadí) a zachová
+   * ostatní řazení jako sekundární (řazení řádků uvnitř skupin). Cyklus asc↔desc.
+   */
+  cycleGroupSort(field2) {
+    this._clearActivePreset();
+    const cur = this.sort.find((s) => s.field === field2);
+    const dir = !cur || cur.dir === "desc" ? "asc" : "desc";
+    const others = this.sort.filter((s) => s.field !== field2);
+    this._setSort([{ field: field2, dir }, ...others]);
+  }
+  /** Aktuální směr řazení pole ('asc'|'desc'|null). */
+  sortDir(field2) {
+    const s = this.sort.find((x) => x.field === field2);
+    return s ? s.dir : null;
+  }
   /** Přizpůsobí šířku jednoho sloupce obsahu. */
   autoFitColumn(field2) {
     const col = this.columns.find((c) => c.field === field2);
@@ -8877,6 +8917,20 @@ var Lattice = class {
   groupId(field2, part = null) {
     return part ? field2 + "@" + part : field2;
   }
+  /** Efektivní směr řazení SKUPIN dané úrovně: explicitní groupSort, jinak 'asc'. */
+  groupSortDir(id) {
+    const v = this.instance.groupSort && this.instance.groupSort[id];
+    return v === "desc" ? "desc" : "asc";
+  }
+  /** Přepne směr řazení skupin dané úrovně (asc ↔ desc) a překreslí tělo. */
+  toggleGroupSort(id) {
+    const cur = this.groupSortDir(id);
+    const next = cur === "asc" ? "desc" : "asc";
+    this.instance.groupSort = { ...this.instance.groupSort || {}, [id]: next };
+    this.saveState();
+    this.renderer.renderBody();
+    this.renderer.applyLayout();
+  }
   /** Je daná úroveň (field + volitelný part) použita k seskupení? */
   isRowGrouped(field2, part = null) {
     const id = this.groupId(field2, part);
@@ -8928,10 +8982,19 @@ var Lattice = class {
       g.items.push(it);
     }
     let groups = [...map.values()];
+    const id = part ? field2 + "@" + part : field2;
+    const explicit = this.instance.groupSort && this.instance.groupSort[id];
     if (part) {
-      const sorted = this.sort.find((s) => s.field === field2);
-      const dir = sorted && sorted.dir === "desc" ? -1 : 1;
+      let dir;
+      if (explicit === "asc" || explicit === "desc") dir = explicit === "desc" ? -1 : 1;
+      else {
+        const s = this.sort.find((x) => x.field === field2);
+        dir = s && s.dir === "desc" ? -1 : 1;
+      }
       groups.sort((a, b) => dir * ((a.sort ?? 0) - (b.sort ?? 0)));
+    } else if (explicit === "asc" || explicit === "desc") {
+      const dir = explicit === "desc" ? -1 : 1;
+      groups.sort((a, b) => dir * cmpGroupValues(a.value, b.value));
     }
     return groups.map((g) => {
       const key = parentKey ? parentKey + "\0" + g.vkey : g.vkey;

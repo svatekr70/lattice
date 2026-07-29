@@ -969,6 +969,22 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   font-variant-numeric: tabular-nums;
 }
 
+/* Řadicí šipka ve skupinové hlavičce — řadí pořadí skupin (i pro skryté pole). */
+.lattice-rowgroup-sort {
+  margin-left: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--lattice-muted);
+  cursor: pointer;
+  border-radius: var(--lattice-control-radius, 4px);
+  font-size: 0.85em;
+  line-height: 1;
+  padding: 2px 5px;
+  opacity: 0.5;
+}
+.lattice-rowgroup-sort:hover { opacity: 1; background: var(--lattice-bg); border-color: var(--lattice-border); }
+.lattice-rowgroup-sort.is-asc, .lattice-rowgroup-sort.is-desc { opacity: 1; color: var(--lattice-accent); }
+
 /* badge s pořadím úrovně u přepínače řádkového seskupení v dialogu Sloupce */
 .lattice-rgbtn { position: relative; overflow: visible; }
 .lattice-rg-badge {
