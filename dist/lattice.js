@@ -2285,6 +2285,7 @@ var cs_default = {
     display: "\xDArovn\u011B seskupen\xED",
     displayHeaders: "Vno\u0159en\xE9 hlavi\u010Dky",
     displayColumns: "Vedouc\xED sloupce",
+    repeat: "Opakovat hodnoty skupin v \u0159\xE1dc\xEDch",
     parts: { year: "Rok", quarter: "Kvart\xE1l", month: "M\u011Bs\xEDc", week: "T\xFDden", weekday: "Den v t\xFDdnu", day: "Den v m\u011Bs\xEDci", hour: "Hodina", minute: "Minuta" }
   },
   select: { scopePage: "Str\xE1nka", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
@@ -2604,6 +2605,7 @@ var en_default = {
     display: "Grouping levels",
     displayHeaders: "Nested headers",
     displayColumns: "Leading columns",
+    repeat: "Repeat group values in rows",
     parts: { year: "Year", quarter: "Quarter", month: "Month", week: "Week", weekday: "Weekday", day: "Day of month", hour: "Hour", minute: "Minute" }
   },
   select: { scopePage: "Page", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
@@ -3633,6 +3635,9 @@ var InstanceSettings = class {
       ["headers", t("group.displayHeaders")],
       ["columns", t("group.displayColumns")]
     ], (v) => set({ groupDisplay: v })));
+    if ((inst.groupDisplay || "headers") !== "columns") {
+      gC.appendChild(rowToggle(t("group.repeat"), inst.groupRepeat !== false, (v) => set({ groupRepeat: v })));
+    }
     if (grid.isSelectable()) {
       gC.appendChild(rowToggle(t("instance.selectColumn"), inst.selectColumn !== false, (v) => set({ selectColumn: v })));
       gC.appendChild(rowSelect(t("instance.selectTrigger"), inst.selectRowClick ? "row" : "checkbox", [
@@ -4738,6 +4743,7 @@ var Renderer = class {
         filterEnabled: false,
         _groupCol: desc,
         formatter: (_v, _col, row) => {
+          if (grid.instance.groupRepeat === false && grid.instance.groupDisplay !== "columns") return "";
           const raw = row ? row[desc.field] : null;
           if (!desc.part) return raw == null ? "" : String(raw);
           const b = dateBucket(raw, desc.part, i18n);
@@ -8325,6 +8331,8 @@ var INSTANCE_DEFAULTS = {
   // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: "headers",
   // jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
+  groupRepeat: true,
+  // opakovat hodnotu seskupení v každém řádku (true) | jen v záhlaví skupiny (false, jen headers)
   selectColumn: true,
   // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,
@@ -9893,6 +9901,9 @@ var Lattice = class {
       this.renderer.renderBody();
       this.renderer.applyLayout();
       this.gear?.refresh();
+    }
+    if ("groupRepeat" in patch) {
+      this.renderer.renderBody();
     }
     if ("selectColumn" in patch) {
       this.renderer.renderHeader();
