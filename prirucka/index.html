@@ -101,8 +101,8 @@
     <a href="#seskupeni">Seskupení (i datumové)</a>
     <a href="#editace">Inline editace</a>
     <a href="#vyber">Výběr buněk a kopírování</a>
-    <a href="#radek" class="soon">Klik na řádek, menu, popup</a>
-    <a href="#hromadne" class="soon">Hromadné úpravy</a>
+    <a href="#radek">Klik na řádek, menu, popup</a>
+    <a href="#hromadne">Hromadné úpravy</a>
     <a href="#strom" class="soon">Stromové zobrazení</a>
     <h4>Formát a výstup</h4>
     <a href="#formaty" class="soon">Formáty a podmíněné formáty</a>
@@ -324,10 +324,34 @@
       <p>Označené buňky <b>zkopíruješ</b> do schránky přes <kbd>Ctrl/⌘ + C</kbd> a vložíš třeba do
         Excelu. Souhrn dole je praktický pro rychlou kontrolu (kolik to je celkem, průměr…).</p>
     </section>
-    <section id="radek"><h2><span class="n">14</span>Klik na řádek, menu, popup</h2>
-      <p>Akce po kliknutí na řádek, kontextové menu, popup nad buňkou.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="hromadne"><h2><span class="n">15</span>Hromadné úpravy</h2>
-      <p>Výběr více řádků a akce nad výběrem.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="radek">
+      <h2><span class="n">14</span>Klik na řádek, menu a popup</h2>
+      <h3>Klik na řádek</h3>
+      <p>V mnoha aplikacích má <b>kliknutí na řádek</b> akci — třeba otevře detail záznamu.
+        Jestli řádek reaguje, poznáš podle toho, že se při najetí <b>zvýrazní</b> a kurzor je
+        „ručička". Co přesně klik udělá, závisí na aplikaci.</p>
+      <h3>Kontextové menu (pravý klik)</h3>
+      <p>Pravým tlačítkem na řádek/buňku může vyskočit <b>kontextové menu</b> s akcemi.</p>
+      <figure>
+        <img src="img/menu-radek.png" alt="Kontextové menu buňky">
+        <figcaption>Pravý klik → nabídka akcí (např. Otevřít detail, Kopírovat hodnotu, Smazat — nebezpečné akce bývají červené).</figcaption>
+      </figure>
+      <h3>Popup nad buňkou</h3>
+      <p>Některé buňky mají <b>malý plovoucí panel</b> — otevře se kliknutím do buňky nebo ikonkou
+        <b>ⓘ</b> v záhlaví. Ukáže třeba detail, poznámku nebo doplňující akce, aniž bys opustil tabulku.</p>
+    </section>
+
+    <section id="hromadne">
+      <h2><span class="n">15</span>Hromadné úpravy (výběr více řádků)</h2>
+      <p>Vlevo je (pokud to aplikace zapne) sloupec s <b>checkboxy</b>. Zaškrtni řádky, které chceš
+        zpracovat najednou — nahoře se objeví <b>lišta hromadných akcí</b> s tím, co lze s výběrem udělat.</p>
+      <figure>
+        <img src="img/hromadne.png" alt="Lišta hromadných akcí nad výběrem řádků">
+        <figcaption>Po zaškrtnutí řádků: „Vybráno: 3" a akce (Změnit vlastníka, Exportovat výběr, Smazat), vpravo „Zrušit výběr".</figcaption>
+      </figure>
+      <p>Checkboxem v <b>záhlaví</b> označíš/odznačíš celou stránku; jeho nabídka umí i „vybrat vše"
+        napříč stránkami nebo výběr invertovat. Konkrétní akce určuje aplikace.</p>
+    </section>
     <section id="strom"><h2><span class="n">16</span>Stromové zobrazení</h2>
       <p>Rozbalování/sbalování hierarchie, práce ve stromu.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
     <section id="formaty"><h2><span class="n">17</span>Formáty a podmíněné formáty</h2>
