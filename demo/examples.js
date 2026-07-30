@@ -452,7 +452,7 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
         id: 'ex-web',
         title: 'Z URL (HTML tabulka / XML feed)',
         blurb: 'Zadej URL a číslo tabulky — knihovna stránku načte, najde N-tou HTML <table> a zobrazí ji. Umí i XML (ATOM/RSS): najde opakující se záznam a udělá z něj řádky. Kvůli CORS jde přes serverový proxy (v EverFLOW to bude tvůj backend).',
-        code: `// HTML: N-tá <table> na stránce\ngrid.importFromUrl(url, tableIndex, { proxy })\n\n// XML/ATOM/RSS (formát se rozpozná sám)\ngrid.importFromUrl('https://atom.cuzk.gov.cz/get.ashx?theme=RUIAN-CSV-ADR-OB', 0, { proxy })\n\n// proxy jen kvůli CORS v prohlížeči:\nconst proxy = (u) => '/api/fetch?url=' + encodeURIComponent(u)`,
+        code: `// HTML: N-tá <table> na stránce\ngrid.importFromUrl(url, tableIndex, { proxy })\n\n// XML/ATOM/RSS (formát se rozpozná sám)\ngrid.importFromUrl('https://atom.cuzk.gov.cz/get.ashx?theme=RUIAN-CSV-ADR-OB', 0, { proxy })\n\n// proxy jen kvůli CORS — v reálné aplikaci vlastní backend endpoint:\nconst proxy = (u) => 'api/fetch.php?url=' + encodeURIComponent(u)`,
         mount: (el, ctx) => webImportExample(el, ctx),
       },
     ],
@@ -941,7 +941,9 @@ function fileLoadExample(el, ctx) {
 
 /* ---------------- příklad „Import z URL" (HTML tabulka / XML feed) ---------------- */
 
-const PROXY = (u) => '/api/fetch?url=' + encodeURIComponent(u);
+// Relativní cesta → pod dev Node serverem i na (PHP) hostingu se přeloží na
+// /demo/api/fetch.php. V reálné aplikaci by to byl její vlastní backend endpoint.
+const PROXY = (u) => 'api/fetch.php?url=' + encodeURIComponent(u);
 
 function webImportExample(el, ctx) {
   const sampleUrl = location.origin + '/demo/sample-tables.html';
@@ -966,7 +968,9 @@ function webImportExample(el, ctx) {
   async function load(url, index) {
     status.textContent = 'Načítám ' + url + ' …';
     try {
-      const r = await grid.importFromUrl(url, index, { proxy: PROXY });
+      // Stejný origin CORS neřeší → přímý fetch; cizí origin přes backend proxy.
+      const sameOrigin = url.startsWith('/') || url.startsWith(location.origin + '/');
+      const r = await grid.importFromUrl(url, index, sameOrigin ? {} : { proxy: PROXY });
       status.textContent = `Načteno ${r.count} řádků z ${r.format.toUpperCase()} (${url}).`;
     } catch (err) { status.textContent = 'Chyba: ' + err.message; }
   }

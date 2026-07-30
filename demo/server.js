@@ -32,7 +32,7 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/campaigns') return handleApi(url, res);
   if (url.pathname === '/api/presets') return handlePresets(req, url, res);
   if (url.pathname === '/api/defaults') return handleDefaults(req, url, res);
-  if (url.pathname === '/api/fetch') return handleFetch(url, res);
+  if (url.pathname === '/api/fetch' || url.pathname === '/demo/api/fetch.php') return handleFetch(url, res);
   if (url.pathname === '/') return redirect(res, '/demo/');
   return serveStatic(url.pathname, res);
 });
