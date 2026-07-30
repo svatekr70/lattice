@@ -290,6 +290,15 @@
         <figcaption>„Datum (Od / Do)" — tady stačí jen „Od"; „Do" necháš prázdné a filtr bere vše od daného data dál.</figcaption>
       </figure>
 
+      <h3>Kde jsou filtry (umístění)</h3>
+      <p>Jestli jsou filtry <b>v záhlaví sloupců</b> (jako výše), <b>nad tabulkou</b> v samostatném
+        panelu, jako <b>jeden univerzální</b> filtr, nebo <b>vypnuté</b> — to řídí
+        <b>Nastavení tabulky → Stránkování a filtry → „Umístění filtrů"</b>.</p>
+      <figure>
+        <img src="img/filtr-umisteni.png" alt="Umístění filtrů v Nastavení tabulky">
+        <figcaption>Nastavení tabulky → Stránkování a filtry → <b>Umístění filtrů</b> (V záhlaví sloupců / Nad tabulkou / Univerzální / Vypnuté).</figcaption>
+      </figure>
+
       <div class="note"><b>Zrušit filtry:</b> ikona trychtýře s červeným křížkem vpravo nahoře v liště
         (objeví se, jen když je nějaký filtr aktivní) zruší všechny filtry naráz.</div>
     </section>
@@ -320,6 +329,23 @@
         <li><b>+ Skupina</b> vloží vnořenou skupinu s vlastní logikou (třeba „A zároveň (X) <b>a</b> (Y NEBO Z)").</li>
         <li><b>Použít</b> filtr aktivuje. Křížkem u řádku podmínku odebereš.</li>
       </ol>
+      <h3>Složitější příklad</h3>
+      <p>Řekněme, že chceš záznamy, kde je <b>Kategorie „Email" nebo „Newsletter"</b> a <b>zároveň</b>
+        je <b>Rozpočet buď pod 200 000, nebo nad 300 000</b>. Potřebuješ tedy <b>dvě skupiny „Nebo"</b>
+        spojené nadřazeným <b>„A zároveň"</b>:</p>
+      <ol>
+        <li>Nahoře nech <b>A zároveň (vše)</b>.</li>
+        <li><b>+ Skupina</b> → uvnitř přepni na <b>Nebo (aspoň jedno)</b> a přidej dvě podmínky:
+          <i>Kategorie · rovná se · Email</i> a <i>Kategorie · rovná se · Newsletter</i>.</li>
+        <li>Znovu <b>+ Skupina</b> → <b>Nebo</b> a dvě podmínky:
+          <i>Rozpočet · &lt; menší než · 200000</i> a <i>Rozpočet · &gt; větší než · 300000</i>.</li>
+        <li><b>Použít</b>. (Chceš-li si to schovat, dej dole <b>Uložit</b> pod názvem.)</li>
+      </ol>
+      <figure>
+        <img src="img/rozsireny-priklad.png" alt="Rozšířený filtr — složitější příklad">
+        <figcaption>Dvě skupiny <b>„Nebo"</b> spojené nadřazeným <b>„A zároveň"</b>: (Email nebo Newsletter) <b>a</b> (rozpočet pod 200000 nebo nad 300000).</figcaption>
+      </figure>
+
       <h3>Uložení filtru</h3>
       <p>Napiš dole <b>název</b> a klikni <b>Uložit</b> — filtr se objeví v rozbalovací nabídce
         „uložené filtry" nahoře a příště ho použiješ jedním klikem. <b>Vymazat filtr</b> vše vynuluje.</p>
@@ -334,6 +360,14 @@
       <figure>
         <img src="img/dialog-sloupce.png" alt="Dialog Sloupce">
         <figcaption>Dialog „Sloupce": viditelnost (checkbox), pořadí (⋮⋮), špendlík = ukotvit, trychtýř = filtr, Σ = souhrn.</figcaption>
+      </figure>
+      <h3>Zapnout / vypnout filtr u sloupce</h3>
+      <p>Ikonou <b>trychtýře</b> u řádku sloupce <b>zapneš nebo vypneš jeho filtr</b>. Když je modrá,
+        sloupec filtr má; když ji vyklikneš (zešedne), <b>filtrovací pole u toho sloupce zmizí</b>.
+        Hodí se, když u některých sloupců filtrovat nechceš.</p>
+      <figure>
+        <img src="img/sloupce-filtr.png" alt="Zapnutí/vypnutí filtru u sloupce">
+        <figcaption>Trychtýře u sloupců (zvýrazněné) přepínají filtr. Zde má <b>Kategorie</b> filtr vypnutý (šedý), ostatní zapnutý (modrý).</figcaption>
       </figure>
     </section>
 
