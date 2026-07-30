@@ -45,6 +45,7 @@ const INSTANCE_DEFAULTS = {
   rowNumberWidth: null,   // uživatelská šířka číslovacího sloupce (null = auto)
   groupBy: null,          // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: 'headers',// jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
+  groupRepeat: true,      // opakovat hodnotu seskupení v každém řádku (true) | jen v záhlaví skupiny (false, jen headers)
   selectColumn: true,     // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,  // klik na řádek = výběr (false = vybírá jen checkbox)
   actionsLayout: 'column', // sloupec akcí: 'column' (poslední sloupec) | 'menu' (⋮ v číslování řádků)
@@ -1706,6 +1707,7 @@ export class Lattice {
     if ('summaryRow' in patch || 'groupSubtotals' in patch) { this.renderer.renderBody(); }
     if ('emptyText' in patch || 'wrapText' in patch || 'locale' in patch || 'scaleColors' in patch || 'linkNewTab' in patch) { this.renderer.renderBody(); }
     if ('groupBy' in patch || 'groupDisplay' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }
+    if ('groupRepeat' in patch) { this.renderer.renderBody(); }
     if ('selectColumn' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('selectRowClick' in patch) { this.renderer.renderBody(); }
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }

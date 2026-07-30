@@ -275,6 +275,7 @@ export default {
     display: 'Grouping levels',
     displayHeaders: 'Nested headers',
     displayColumns: 'Leading columns',
+    repeat: 'Repeat group values in rows',
     parts: { year: 'Year', quarter: 'Quarter', month: 'Month', week: 'Week', weekday: 'Weekday', day: 'Day of month', hour: 'Hour', minute: 'Minute' },
   },
   select: { scopePage: 'Page', scopeAll: 'All records ({n})', invert: 'Invert selection', none: 'Clear selection', menu: 'Selection scope & options' },

@@ -182,6 +182,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `summaryRow` | `'none'` \| `'page'` \| `'all'` |
 | `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |
 | `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. |
+| `groupRepeat` | v režimu `'headers'`: opakovat hodnotu seskupení v každém řádku (`true`, výchozí) \| nechat vedoucí sloupce prázdné a hodnotu jen v liště skupiny (`false`). |
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |

@@ -191,6 +191,9 @@ export class Renderer {
         minWidth: 90, width: 130, align: 'left',
         availableFilters: [], filterEnabled: false, _groupCol: desc,
         formatter: (_v, _col, row) => {
+          // „Jen v záhlaví skupiny" (groupRepeat:false) v režimu headers → buňky prázdné,
+          // hodnota je v liště skupiny; frozen sloupec zůstává jako ukotvený prostor.
+          if (grid.instance.groupRepeat === false && grid.instance.groupDisplay !== 'columns') return '';
           const raw = row ? row[desc.field] : null;
           if (!desc.part) return raw == null ? '' : String(raw);
           const b = dateBucket(raw, desc.part, i18n);

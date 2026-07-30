@@ -183,6 +183,11 @@ export class InstanceSettings {
     gC.appendChild(rowSelect(t('group.display'), inst.groupDisplay || 'headers', [
       ['headers', t('group.displayHeaders')], ['columns', t('group.displayColumns')],
     ], (v) => set({ groupDisplay: v })));
+    // „Opakovat hodnoty v řádcích" dává smysl jen u vnořených hlaviček (v režimu
+    // 'columns' není lišta, kam by hodnota jinak šla).
+    if ((inst.groupDisplay || 'headers') !== 'columns') {
+      gC.appendChild(rowToggle(t('group.repeat'), inst.groupRepeat !== false, (v) => set({ groupRepeat: v })));
+    }
     if (grid.isSelectable()) {
       gC.appendChild(rowToggle(t('instance.selectColumn'), inst.selectColumn !== false, (v) => set({ selectColumn: v })));
       gC.appendChild(rowSelect(t('instance.selectTrigger'), inst.selectRowClick ? 'row' : 'checkbox', [

@@ -275,6 +275,7 @@ export default {
     display: 'Úrovně seskupení',
     displayHeaders: 'Vnořené hlavičky',
     displayColumns: 'Vedoucí sloupce',
+    repeat: 'Opakovat hodnoty skupin v řádcích',
     parts: { year: 'Rok', quarter: 'Kvartál', month: 'Měsíc', week: 'Týden', weekday: 'Den v týdnu', day: 'Den v měsíci', hour: 'Hodina', minute: 'Minuta' },
   },
   select: { scopePage: 'Stránka', scopeAll: 'Všechny záznamy ({n})', invert: 'Invertovat výběr', none: 'Zrušit výběr', menu: 'Rozsah a možnosti výběru' },
