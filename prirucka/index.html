@@ -92,11 +92,11 @@
     <h4>Filtrování</h4>
     <a href="#filtry">Filtry a typy filtrů</a>
     <a href="#negace">Negace a operátory</a>
-    <a href="#rozsireny" class="soon">Rozšířený filtr</a>
+    <a href="#rozsireny">Rozšířený filtr</a>
     <h4>Dialogy</h4>
     <a href="#dialog-sloupce">Dialog „Sloupce"</a>
-    <a href="#nastaveni" class="soon">Nastavení tabulky</a>
-    <a href="#presety" class="soon">Presety</a>
+    <a href="#nastaveni">Nastavení tabulky</a>
+    <a href="#presety">Presety</a>
     <h4>Práce s daty</h4>
     <a href="#seskupeni" class="soon">Seskupení (i datumové)</a>
     <a href="#editace" class="soon">Inline editace</a>
@@ -210,12 +210,55 @@
         <code>&lt;10</code>, <code>=5</code>. U čísel a dat je navíc typ filtru <b>Rozsah Od–Do</b>
         (přepneš ho trychtýřem u sloupce — viz předchozí sekce).</p>
     </section>
-    <section id="rozsireny"><h2><span class="n">8</span>Rozšířený filtr (AND/OR)</h2>
-      <p>Skládání podmínek do stromu, uložení pojmenovaného filtru.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="nastaveni"><h2><span class="n">9</span>Nastavení tabulky</h2>
-      <p>Motiv, hustota, formáty, umístění filtrů, seskupení… vše přes ⚙.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="presety"><h2><span class="n">10</span>Presety</h2>
-      <p>Uložení a přepínání pojmenovaných pohledů (sloupce, filtry, řazení…).</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="rozsireny">
+      <h2><span class="n">8</span>Rozšířený filtr (A / NEBO)</h2>
+      <p>Když jednoduché filtry v záhlaví nestačí, otevři <b>Rozšířený filtr</b> (ikona trychtýře
+        s hvězdičkou/plusem v liště). Skládáš tu <b>podmínky</b> do logického stromu:</p>
+      <figure>
+        <img src="img/rozsireny-filtr.png" alt="Dialog rozšířeného filtru">
+        <figcaption>Rozšířený filtr: nahoře uložené filtry, pak kombinátor <b>A zároveň / NEBO</b>, tlačítka <b>+ Podmínka</b> a <b>+ Skupina</b>, řádek podmínky (pole · operátor · hodnota) a dole uložení + <b>Použít</b>.</figcaption>
+      </figure>
+      <ol>
+        <li>Nahoře zvol <b>A zároveň (vše)</b> nebo <b>NEBO (aspoň jedna)</b>.</li>
+        <li><b>+ Podmínka</b> přidá pravidlo: vyber <i>sloupec</i>, <i>operátor</i> (obsahuje, =, &gt;, …) a napiš <i>hodnotu</i>.</li>
+        <li><b>+ Skupina</b> vloží vnořenou skupinu s vlastní logikou (třeba „A zároveň (X) <b>a</b> (Y NEBO Z)").</li>
+        <li><b>Použít</b> filtr aktivuje. Křížkem u řádku podmínku odebereš.</li>
+      </ol>
+      <h3>Uložení filtru</h3>
+      <p>Napiš dole <b>název</b> a klikni <b>Uložit</b> — filtr se objeví v rozbalovací nabídce
+        „uložené filtry" nahoře a příště ho použiješ jedním klikem. <b>Vymazat filtr</b> vše vynuluje.</p>
+    </section>
+
+    <section id="nastaveni">
+      <h2><span class="n">9</span>Nastavení tabulky</h2>
+      <p>Ozubené kolo <b>⚙</b> vpravo nahoře otevře <b>Nastavení tabulky</b> — vzhled a chování
+        celé tabulky, rozdělené do záložek.</p>
+      <figure>
+        <img src="img/dialog-nastaveni.png" alt="Dialog Nastavení tabulky">
+        <figcaption>Nastavení tabulky, záložka „Vzhled": motiv, velikost písma, hustota řádků, otočení hlaviček, pruhované řádky, barvy semaforu.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor).</li>
+        <li><b>Rozvržení</b> — způsob šířky sloupců, zalamování textu, odkazy v nové kartě…</li>
+        <li><b>Stránkování a filtry</b> — umístění stránkování, velikost stránky, umístění filtrů.</li>
+        <li><b>Sloupce a řádky</b> — číslování řádků, souhrnný řádek, <b>seskupení</b> (úrovně, opakování hodnot), výběr.</li>
+        <li><b>Formát hodnot</b> — jak se zobrazují čísla, měny, data (viz sekce Formáty).</li>
+      </ul>
+      <div class="note"><b>Vše se pamatuje:</b> tvoje nastavení (i sloupce, řazení, filtry) zůstane
+        i po zavření a příštím otevření tabulky — je uložené v prohlížeči.</div>
+    </section>
+
+    <section id="presety">
+      <h2><span class="n">10</span>Presety (uložené pohledy)</h2>
+      <p>Preset je <b>pojmenovaný pohled</b> na tabulku — zapamatuje si viditelnost a pořadí sloupců,
+        šířky, řazení, filtry i nastavení. Hodí se, když přepínáš mezi „režimy práce"
+        (třeba <i>Přehled</i>, <i>Jen po termínu</i>, <i>Podle vlastníka</i>).</p>
+      <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): do pole <b>„Název presetu…"</b>
+        napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží. Uložené presety se pak
+        nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>
+      <div class="note"><b>Pozn.:</b> Některé aplikace mají i <b>globální presety</b> nastavené
+        správcem (společné pro všechny) — ty poznáš v nabídce a fungují stejně.</div>
+    </section>
     <section id="seskupeni"><h2><span class="n">11</span>Seskupení (i podle data)</h2>
       <p>Seskupení řádků, datumové úrovně (rok/kvartál/…), oba režimy zobrazení, řazení skupin.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
     <section id="editace"><h2><span class="n">12</span>Inline editace</h2>
