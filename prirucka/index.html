@@ -226,20 +226,72 @@
 
     <section id="filtry">
       <h2><span class="n">5</span>Filtry a typy filtrů</h2>
-      <p>Pod záhlavím je u každého sloupce <b>pole filtru</b>. Do textového začni psát a tabulka se
-        okamžitě zúží. Vedle pole je <b>ikona trychtýře</b> — klikem na ni zvolíš <b>typ filtru</b>:</p>
+      <p>Pod záhlavím je u každého sloupce <b>pole filtru</b>. Do textového začni psát a v tabulce
+        <b>zůstanou jen odpovídající řádky</b> — ostatní se skryjí (tabulka se nezmenší, jen se
+        proberou řádky). Vedle pole je <b>ikona trychtýře</b> — klikem na ni zvolíš <b>typ filtru</b>:</p>
       <figure>
         <img src="img/filtr-typ.png" alt="Rozbalené menu typu filtru">
         <figcaption>Klik na trychtýř u sloupce → volba typu filtru: <b>Text</b>, <b>Výběr</b>, <b>Více hodnot</b>.</figcaption>
       </figure>
+
+      <h3>Text</h3>
+      <p>Zobrazí řádky, které zadaný text <b>obsahují</b> (nezáleží na velikosti písmen). Prefixem
+        <code>!</code> filtr obrátíš na „neobsahuje" (viz sekce Negace a operátory).</p>
+      <figure>
+        <img src="img/filtr-text.png" alt="Textový filtr">
+        <figcaption>Textový filtr „Bannery" ve sloupci Firma — zůstanou jen řádky, které „Bannery" obsahují.</figcaption>
+      </figure>
+
+      <h3>Výběr (jedna hodnota)</h3>
+      <p>Místo psaní vybereš <b>jednu hodnotu</b> z rozbalovací nabídky (nabídka se sama poskládá
+        z hodnot ve sloupci). Hodí se tam, kde je pár opakujících se hodnot — vlastník, stav, region…</p>
+      <figure>
+        <img src="img/filtr-vyber.png" alt="Filtr Výběr — rozbalená nabídka">
+        <figcaption>Filtr „Výběr" u sloupce Vlastník — z nabídky klikneš na jednu hodnotu.</figcaption>
+      </figure>
+
+      <h3>Více hodnot (multiselect)</h3>
+      <p>Jako Výběr, ale <b>zaškrtneš víc hodnot najednou</b> — zobrazí se řádky, které odpovídají
+        <b>kterékoli</b> z nich. Zvolené hodnoty se ukážou jako „štítky" přímo v poli filtru.</p>
+      <figure>
+        <img src="img/filtr-vice.png" alt="Filtr Více hodnot — zaškrtnuté hodnoty">
+        <figcaption>„Více hodnot" u Kategorie — zaškrtnuto Event a Newsletter; v poli jsou vidět jako štítky.</figcaption>
+      </figure>
+
+      <h3>Číslo a Rozsah</h3>
+      <p>U číselných sloupců máš dvě možnosti:</p>
       <ul>
-        <li><b>Text</b> — obsahuje zadaný text.</li>
-        <li><b>Výběr</b> — vybereš jednu hodnotu z nabídky.</li>
-        <li><b>Více hodnot</b> — zaškrtneš víc hodnot najednou.</li>
-        <li>U čísel/dat jsou navíc <b>rozsah Od–Do</b> a operátory <code>=, &gt;, &lt;</code>.</li>
+        <li><b>Číslo</b> — porovnání jednou hodnotou: <code>=5</code>, <code>&gt;70</code>, <code>&lt;10</code>.</li>
+        <li><b>Rozsah</b> — dvě pole <b>Od–Do</b>; zobrazí hodnoty mezi nimi.</li>
       </ul>
-      <div class="note"><b>Zrušit filtry:</b> ikona trychtýře s křížkem vpravo nahoře v liště zruší
-        všechny aktivní filtry naráz.</div>
+      <figure>
+        <img src="img/filtr-cislo.png" alt="Číselný filtr s operátorem">
+        <figcaption>Číselný filtr „&gt;70" u Skóre — zůstanou řádky se skóre nad 70.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/filtr-rozsah.png" alt="Číselný rozsah Od–Do">
+        <figcaption>Rozsah u Rozpočtu: Od 100000 Do 300000 — zůstanou hodnoty mezi.</figcaption>
+      </figure>
+
+      <h3>Datum: „rozsah" vs „Od / Do"</h3>
+      <p>U dat jsou dva režimy a je mezi nimi <b>důležitý rozdíl</b>:</p>
+      <ul>
+        <li><b>Datum (rozsah)</b> — jedno pole s kalendářem, kde vybereš <b>celé období najednou</b>
+          (od–do). Vyžaduje <b>obě</b> hraniční data.</li>
+        <li><b>Datum (Od / Do)</b> — dvě samostatná pole; stačí vyplnit <b>jen jedno</b>
+          (třeba jen „Od" = vše od daného data dál, nebo jen „Do" = vše do daného data).</li>
+      </ul>
+      <figure>
+        <img src="img/filtr-datum-rozsah.png" alt="Datumový filtr rozsah">
+        <figcaption>„Datum (rozsah)" — vybereš celé období v kalendáři (potřebuje začátek i konec).</figcaption>
+      </figure>
+      <figure>
+        <img src="img/filtr-datum-oddo.png" alt="Datumový filtr Od/Do">
+        <figcaption>„Datum (Od / Do)" — tady stačí jen „Od"; „Do" necháš prázdné a filtr bere vše od daného data dál.</figcaption>
+      </figure>
+
+      <div class="note"><b>Zrušit filtry:</b> ikona trychtýře s červeným křížkem vpravo nahoře v liště
+        (objeví se, jen když je nějaký filtr aktivní) zruší všechny filtry naráz.</div>
     </section>
 
     <section id="negace">
