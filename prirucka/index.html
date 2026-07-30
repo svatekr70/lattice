@@ -22,6 +22,7 @@
   body{margin:0;background:var(--bg);color:var(--ink);
     font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
   a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  p.muted{color:var(--muted);font-size:14px}
 
   /* layout */
   .top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);
@@ -61,6 +62,8 @@
 
   figure{margin:16px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
     padding:12px;box-shadow:var(--shadow);max-width:820px}
+  .figrow{display:flex;flex-wrap:wrap;gap:16px;max-width:820px}
+  .figrow figure{flex:1 1 300px;margin:16px 0 0;max-width:none}
   figure img{display:block;max-width:100%;height:auto;border-radius:7px;border:1px solid var(--line)}
   figcaption{margin-top:9px;font-size:13.5px;color:var(--muted);text-align:center}
 
@@ -68,8 +71,10 @@
   ul.iconlegend li{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
   ul.iconlegend li:first-child{border-top:none}
   ul.iconlegend .ic{flex:0 0 auto;width:38px;height:30px;display:grid;place-items:center;
-    background:var(--panel);border:1px solid var(--line);border-radius:8px}
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--ink);--lattice-danger:#dc2626}
   ul.iconlegend .ic img{height:22px;width:auto;display:block}
+  ul.iconlegend .ic svg{width:20px;height:20px;display:block}
+  ul.iconlegend .ic .glyph{font:700 15px/1 ui-monospace,monospace}
   ul.iconlegend div{padding-top:2px}
   .ibtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:24px;
     vertical-align:middle;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink)}
@@ -362,13 +367,81 @@
 
     <section id="dialog-sloupce">
       <h2><span class="n">8</span>Dialog „Sloupce"</h2>
-      <p>Ikonou <b>⊟</b> vpravo nahoře otevřeš správu sloupců. U každého sloupce zaškrtneš
-        <b>viditelnost</b>, přetažením <b>⋮⋮</b> změníš pořadí, a ikonami vpravo nastavíš
-        <b>ukotvení</b> (špendlík), <b>filtr</b>, <b>seskupení</b>, <b>souhrn (Σ)</b> a další.
-        Nahoře je pole pro <b>presety</b> a hledání sloupce.</p>
+      <p>Ikonou <b>⊟</b> vpravo nahoře otevřeš správu sloupců. Je to hlavní místo, odkud řídíš,
+        <b>co a jak</b> se v tabulce zobrazuje: viditelnost, pořadí, ukotvení, filtry, souhrny,
+        formát, seskupení i presety.</p>
       <figure>
         <img src="img/dialog-sloupce.png" alt="Dialog Sloupce">
-        <figcaption>Dialog „Sloupce": viditelnost (checkbox), pořadí (⋮⋮), špendlík = ukotvit, trychtýř = filtr, Σ = souhrn.</figcaption>
+        <figcaption>Dialog „Sloupce": nahoře nástroje a presety, pak seznam sloupců; u každého řada ikon.</figcaption>
+      </figure>
+
+      <h3>Ikony v hlavičce dialogu</h3>
+      <ul class="iconlegend">
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 7v10H2V7h2zm18 0v10h-2V7h2zM8 11l-3 1 3 1v-2zm8 0v2l3-1-3-1zM6 11h12v2H6v-2z"></path></svg></span>
+          <div><b>Přizpůsobit šířku sloupců obsahu</b> — srovná šířku všech sloupců podle obsahu (viz sekce <a href="#sirka">Šířka a ukotvení</a>).</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"></path></svg></span>
+          <div><b>Zrušit všechny filtry</b> — smaže všechny aktivní filtry naráz.</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"></path></svg></span>
+          <div><b>Obnovit výchozí</b> — vrátí sloupce (viditelnost, pořadí, šířky…) do výchozího stavu.</div></li>
+      </ul>
+
+      <h3>Presety (uložené pohledy)</h3>
+      <p>Preset je <b>pojmenované nastavení</b> tabulky — sloupce, jejich pořadí a šířky, řazení,
+        filtry. Do pole <b>„Název presetu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
+        (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží. Uložené presety se pak
+        nabízejí k výběru a jedním klikem si tabulku přepneš do uloženého stavu.</p>
+      <p><b>Globální preset:</b> aplikace může mít i presety nastavené <b>správcem</b> (společné pro
+        všechny). Poznáš je v nabídce a fungují stejně jako tvoje vlastní.</p>
+      <p><b>Hledat sloupec:</b> když má tabulka hodně sloupců, do pole <b>„Hledat sloupec…"</b>
+        napiš část názvu a seznam se zúží — rychle tak najdeš ten, který chceš zapnout/vypnout.</p>
+      <p class="muted">Co přesně se do presetu ukládá a k čemu je to praktické — viz sekce
+        <a href="#presety">Presety</a>.</p>
+
+      <h3>Ikony u každého sloupce</h3>
+      <p>U každého sloupce je vlevo <b>úchyt ⋮⋮</b> (tažením změníš pořadí — viz
+        <a href="#presun">Přesouvání sloupců</a>) a <b>zaškrtávátko</b> (viditelnost). Vpravo pak řada ikon:</p>
+      <ul class="iconlegend">
+        <li><span class="ic"><span class="glyph">📌</span></span>
+          <div><b>Ukotvit (vlevo/vpravo)</b> — přišpendlí sloupec k okraji, ať zůstane vidět i při
+            horizontálním scrollu (viz <a href="#sirka">Ukotvení</a>).</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"></path></svg></span>
+          <div><b>Zobrazit / skrýt filtr</b> — zapne nebo vypne filtrovací pole u sloupce (viz
+            <a href="#rozsireny">Zapnout / vypnout filtr</a>).</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h8v6H3V5zm10 0h8v2h-8V5zm0 4h8v2h-8V9zM3 13h18v2H3v-2zm0 4h18v2H3v-2z"></path></svg></span>
+          <div><b>Skupina sloupce</b> — spojí sousední sloupce pod <b>společné nadřazené záhlaví</b>
+            (seskupení <i>sloupců</i>, čistě vizuální — nepleť si se seskupením řádků níže).</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.5 4l4.5 12h-2l-1-3H5l-1 3H2L6.5 4h1zM6 5.9L4.6 11h2.8L6 5.9zM20 13l-4 4-4-4h3V4h2v9h3z"></path></svg></span>
+          <div><b>Otočení hlavičky</b> — natočí text v záhlaví (vodorovně / svisle). Hodí se u úzkých
+            sloupců s dlouhým názvem.</div></li>
+        <li><span class="ic"><span class="glyph">Σ</span></span>
+          <div><b>Souhrn sloupce</b> — zapne pod sloupcem (nebo vpravo za řádkem) výpočet. <b>Nabídka
+            se liší podle typu:</b> u čísel Součet, Průměr, Min, Max, Počet; u textu jen Počet
+            (viz obrázky níže). Souhrny se ukážou, až když v <b>Nastavení tabulky</b> zapneš
+            <b>souhrnný řádek</b> (viz <a href="#souhrny">Souhrny a mezisoučty</a>).</div></li>
+        <li><span class="ic"><span class="glyph">0.0</span></span>
+          <div><b>Formát sloupce</b> — <i>jen u čísel, měn a dat.</i> Zvolíš <b>Podle tabulky (globální)</b>,
+            nebo <b>Vlastní formát</b> daného sloupce. Tady je i zapnutí <b>barevné škály (semafor)</b> —
+            podmíněné formátování, podrobně v sekci <a href="#formaty">Formáty a podmíněné formáty</a>.</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"></path></svg></span>
+          <div><b>Seskupovat řádky</b> — seskupí řádky podle hodnoty tohoto sloupce (seskupení
+            <i>řádků</i>). U datumových sloupců nabídne úrovně (rok, kvartál…). Podrobně v sekci
+            <a href="#seskupeni">Seskupení</a>. <b>Seskupené sloupce se samy přesunou na začátek a ukotví vlevo.</b></div></li>
+      </ul>
+
+      <h4>Souhrn: nabídka podle typu sloupce</h4>
+      <div class="figrow">
+        <figure>
+          <img src="img/souhrn-cislo.png" alt="Souhrn u číselného sloupce">
+          <figcaption>Číselný sloupec: <b>Součet, Průměr, Minimum, Maximum, Počet</b> — a to zvlášť „pro sloupce" (řádek dole) i „pro řádky" (sloupec vpravo).</figcaption>
+        </figure>
+        <figure>
+          <img src="img/souhrn-text.png" alt="Souhrn u textového sloupce">
+          <figcaption>Textový sloupec: jen <b>Počet (neprázdných)</b> — sčítat/průměrovat text nejde.</figcaption>
+        </figure>
+      </div>
+      <figure>
+        <img src="img/format-menu.png" alt="Menu Formát sloupce">
+        <figcaption>„Formát sloupce" (ikona <b>0.0</b>) u čísel/dat: formát (globální / vlastní) a zapnutí <b>barevné škály (semafor)</b>.</figcaption>
       </figure>
     </section>
 
@@ -393,9 +466,38 @@
 
     <section id="presety">
       <h2><span class="n">10</span>Presety (uložené pohledy)</h2>
-      <p>Preset je <b>pojmenovaný pohled</b> na tabulku — zapamatuje si viditelnost a pořadí sloupců,
-        šířky, řazení, filtry i nastavení. Hodí se, když přepínáš mezi „režimy práce"
-        (třeba <i>Přehled</i>, <i>Jen po termínu</i>, <i>Podle vlastníka</i>).</p>
+      <p>Preset je <b>pojmenovaný pohled</b> na tabulku. Nejdřív si tabulku <b>naklikáš</b> přesně
+        tak, jak ji chceš — zvolíš viditelnost a pořadí sloupců, jejich šířky, nastavíš filtry
+        a řazení — a celý tenhle stav uložíš pod názvem. Když pak preset <b>použiješ</b>, tabulka
+        se do toho stavu jedním klikem celá vrátí.</p>
+
+      <h3>Co se do presetu uloží</h3>
+      <p>Preset si zapamatuje kompletní <b>uspořádání sloupců i filtrování</b>:</p>
+      <ul>
+        <li><b>Pořadí sloupců</b> — v jakém pořadí jsou zleva doprava.</li>
+        <li><b>Viditelnost sloupců</b> — které jsou zapnuté a které skryté.</li>
+        <li><b>Šířky sloupců</b> a jejich <b>ukotvení</b> (vlevo/vpravo).</li>
+        <li><b>Řazení</b> — podle kterých sloupců a jak (i víceúrovňové).</li>
+        <li><b>Filtry</b> — všechny nastavené filtry včetně jejich <b>hodnot</b> (i to, u kterých
+          sloupců je filtrovací pole zapnuté).</li>
+        <li>Dále souhrnné funkce sloupce, formát, podmíněný formát (semafor), otočení hlavičky
+          a skupiny sloupců.</li>
+      </ul>
+      <div class="note"><b>Co se do presetu neukládá:</b> obecné <b>Nastavení tabulky</b> (vzhled,
+        velikost stránky, umístění filtrů…) ani <b>seskupení řádků</b> — ty jsou společné pro
+        tabulku, ne součást pohledu. Také se neukládá číslo stránky.</div>
+
+      <h3>K čemu je to praktické</h3>
+      <ul>
+        <li><b>Výběr sloupců pro export</b> — naklikáš si jen ty sloupce (a pořadí), které chceš
+          vyvézt, uložíš jako preset a máš je kdykoli po ruce.</li>
+        <li><b>Uložená kombinace filtrů</b> — poskládáš si třeba „aktivní kampaně po termínu"
+          a příště ji zapneš jedním klikem, aniž bys filtry klikal znovu.</li>
+        <li><b>Režimy práce</b> — přepínání mezi pohledy jako <i>Přehled</i>, <i>Jen po termínu</i>,
+          <i>Podle kategorie</i>.</li>
+      </ul>
+
+      <h3>Jak preset vytvořit</h3>
       <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): do pole <b>„Název presetu…"</b>
         napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží. Uložené presety se pak
         nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>
@@ -404,9 +506,10 @@
     </section>
     <section id="seskupeni">
       <h2><span class="n">11</span>Seskupení řádků (i podle data)</h2>
-      <p>Řádky můžeš <b>seskupit podle hodnoty sloupce</b> — třeba všechny kampaně jednoho vlastníka
+      <p>Řádky můžeš <b>seskupit podle hodnoty sloupce</b> — třeba všechny kampaně jedné kategorie
         pohromadě. Zapneš to v dialogu <b>„Sloupce"</b> (ikona ⊟): u sloupce klikni na ikonu
-        <b>seskupení</b> (mřížka vpravo). Seskupovat lze i <b>víceúrovňově</b> (skupina ve skupině).</p>
+        <b>Seskupovat řádky</b> (seznam vpravo). Seskupovat lze i <b>víceúrovňově</b> (skupina ve skupině).
+        <b>Seskupený sloupec se sám přesune na začátek a ukotví vlevo.</b></p>
 
       <h3>Podle data — rok, kvartál, měsíc…</h3>
       <p>Tohle je klíčová vychytávka: datumový sloupec jde seskupit podle <b>úrovní</b> —
@@ -431,7 +534,7 @@
         nebo je jen v liště, řídí přepínač <b>„Opakovat hodnoty skupin v řádcích"</b>.</p>
       <figure>
         <img src="img/seskupeni-hlavicky.png" alt="Seskupení — vnořené hlavičky a řazení skupin">
-        <figcaption>Režim „vnořené hlavičky": sbalitelné lišty „Vlastník: …" a <b>řadicí šipka ⇅</b> pro seřazení skupin (funguje i u skrytého seskupeného sloupce).</figcaption>
+        <figcaption>Režim „vnořené hlavičky": sbalitelné lišty „Kategorie: …" a <b>řadicí šipka ⇅</b> pro seřazení skupin (funguje i u skrytého seskupeného sloupce).</figcaption>
       </figure>
 
       <h3>Řazení a rušení skupin</h3>
@@ -521,19 +624,48 @@
       <h3>Podmíněný formát („semafor")</h3>
       <p>Buňky se mohou <b>obarvit podle hodnoty</b> — nízké hodnoty červeně, vysoké zeleně (jako
         semafor). To pomáhá na první pohled poznat extrémy. V ukázkách výše to vidíš na sloupci
-        <b>Skóre</b>. Škálu (barvy, počet stupňů, případně obrácení) zapneš/upravíš u sloupce
-        v dialogu „Sloupce" nebo v Nastavení tabulky.</p>
+        <b>Skóre</b>.</p>
+      <p><b>Kde se zapíná:</b> u konkrétního sloupce v dialogu <b>„Sloupce"</b> ikonou
+        <b>Formát sloupce</b> (<b>0.0</b>) — v části <b>„Barevná škála"</b> zvolíš <b>semafor</b>.
+        Funguje jen u <b>číselných</b> sloupců (obarvení podle velikosti hodnoty).</p>
+      <figure>
+        <img src="img/format-menu.png" alt="Zapnutí barevné škály u sloupce">
+        <figcaption>Ikona „Formát sloupce" (0.0) u čísla: formát hodnoty (globální / vlastní) a <b>Barevná škála (semafor)</b>.</figcaption>
+      </figure>
+      <p><b>Co lze nastavit:</b></p>
+      <ul>
+        <li><b>Počet stupňů</b> — <b>3, 5 nebo 7</b> (např. 3 = červená–žlutá–zelená); podle toho
+          se rozsah hodnot rozdělí na pásma.</li>
+        <li><b>Prahy</b> — hranice mezi pásmy se dopočítají <b>automaticky</b> z dat, ale můžeš je
+          <b>ručně přepsat</b> (např. „červená pod 50, zelená nad 80").</li>
+        <li><b>Barvy</b> — sdílené „barvy škály" se berou z <b>Nastavení tabulky → Vzhled →
+          „Barvy škály (semafor)"</b>, takže obarvení je v celé tabulce konzistentní.</li>
+        <li><b>Obrácení</b> — když menší hodnota má být „lepší" (zelená), škálu otočíš.</li>
+      </ul>
     </section>
 
     <section id="souhrny">
       <h2><span class="n">18</span>Souhrny a mezisoučty</h2>
       <p>Pod tabulkou může být <b>souhrnný řádek</b> — součet, průměr, minimum, maximum, počet
-        za vybrané sloupce. Přepínačem <b>„Souhrn počítá z"</b> zvolíš, jestli počítá jen ze
-        <b>zobrazené stránky</b>, nebo ze <b>všech záznamů</b>.</p>
+        za vybrané sloupce. Nejdřív ho ale musíš <b>zapnout</b> v <b>Nastavení tabulky →
+        Sloupce a řádky → Souhrnný řádek</b>; které sloupce a jaké funkce se počítají, nastavíš
+        ikonou <b>Σ</b> u sloupce v dialogu „Sloupce" (viz <a href="#dialog-sloupce">Dialog „Sloupce"</a>).</p>
       <figure>
         <img src="img/souhrny.png" alt="Souhrnný řádek pod tabulkou">
         <figcaption>Souhrn pod sloupcem Rozpočet: <b>Součet</b> a <b>Průměr</b>; dole přepínač rozsahu (stránka / vše).</figcaption>
       </figure>
+      <h3>Přepínač „Souhrn počítá z"</h3>
+      <p>U souhrnného řádku je přepínač, který mění, <b>z kolika řádků</b> se souhrn počítá:</p>
+      <ul>
+        <li><b>Zobrazená stránka</b> — počítá jen z řádků <b>právě viditelných na stránce</b>
+          (např. z 8 řádků aktuální stránky). Když přelistuješ na další stránku, čísla se
+          <b>přepočítají</b> podle nových řádků. Hodí se, když chceš „kolik je na téhle stránce".</li>
+        <li><b>Všechny záznamy</b> — počítá přes <b>celou tabulku</b> bez ohledu na stránkování;
+          při listování se souhrn <b>nemění</b>. Tohle je „celkový součet za vše".</li>
+      </ul>
+      <p><b>Filtr platí vždy:</b> ať zvolíš cokoli, souhrn počítá jen z <b>vyfiltrovaných</b> řádků
+        — skryté (odfiltrované) záznamy se do něj nezapočítají. Rozdíl obou voleb je tedy jen
+        v tom, zda se bere aktuální <b>stránka</b>, nebo <b>všechny vyhovující řádky</b>.</p>
       <p>Když jsou řádky <b>seskupené</b>, můžeš mít i <b>mezisoučty za každou skupinu</b>
         (zapneš v Nastavení tabulky → „Mezisoučty skupin"). Rozsah a souhrnné funkce sloupce
         se nastavují v dialogu „Sloupce" (ikona <b>Σ</b> u sloupce).</p>
