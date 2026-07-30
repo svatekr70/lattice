@@ -759,7 +759,7 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-date-group', 'ex-datatypes', 'ex-filter-universal', 'ex-filter-advanced'],
+  'Novinky': ['ex-date-group', 'ex-filter-universal', 'ex-filter-advanced'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
