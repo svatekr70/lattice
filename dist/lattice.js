@@ -4687,14 +4687,14 @@ var Renderer = class {
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
     const grid = this.grid;
-    const grouped = new Set(grid.instance.groupDisplay === "columns" ? [] : grid.groupedRawFields());
+    const grouped = new Set(grid.groupActive() ? grid.groupedRawFields() : []);
     this._menuIdField = null;
     if (grid.hasActions() && grid.instance.actionsLayout === "menu" && !rn) {
       const idCol = grid.columns.find((c) => c.visible && c.type === "id" && !grouped.has(c.field));
       if (idCol) this._menuIdField = idCol.field;
       else left.push(this.rowNumberColumn(true));
     }
-    if (grid.groupActive() && grid.instance.groupDisplay === "columns") {
+    if (grid.groupActive()) {
       for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = grid.responsive && this._collapsed ? this._collapsed : null;
