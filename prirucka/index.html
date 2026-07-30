@@ -98,7 +98,7 @@
     <a href="#nastaveni">Nastavení tabulky</a>
     <a href="#presety">Presety</a>
     <h4>Práce s daty</h4>
-    <a href="#seskupeni" class="soon">Seskupení (i datumové)</a>
+    <a href="#seskupeni">Seskupení (i datumové)</a>
     <a href="#editace" class="soon">Inline editace</a>
     <a href="#vyber" class="soon">Výběr buněk a kopírování</a>
     <a href="#radek" class="soon">Klik na řádek, menu, popup</a>
@@ -259,8 +259,43 @@
       <div class="note"><b>Pozn.:</b> Některé aplikace mají i <b>globální presety</b> nastavené
         správcem (společné pro všechny) — ty poznáš v nabídce a fungují stejně.</div>
     </section>
-    <section id="seskupeni"><h2><span class="n">11</span>Seskupení (i podle data)</h2>
-      <p>Seskupení řádků, datumové úrovně (rok/kvartál/…), oba režimy zobrazení, řazení skupin.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="seskupeni">
+      <h2><span class="n">11</span>Seskupení řádků (i podle data)</h2>
+      <p>Řádky můžeš <b>seskupit podle hodnoty sloupce</b> — třeba všechny kampaně jednoho vlastníka
+        pohromadě. Zapneš to v dialogu <b>„Sloupce"</b> (ikona ⊟): u sloupce klikni na ikonu
+        <b>seskupení</b> (mřížka vpravo). Seskupovat lze i <b>víceúrovňově</b> (skupina ve skupině).</p>
+
+      <h3>Podle data — rok, kvartál, měsíc…</h3>
+      <p>Tohle je klíčová vychytávka: datumový sloupec jde seskupit podle <b>úrovní</b> —
+        <b>rok, kvartál, měsíc, týden, den v týdnu, den v měsíci, hodina, minuta</b> — a klidně
+        <b>víc naráz</b>. U datumového sloupce otevře ikona seskupení <b>checkbox nabídku</b>, kde
+        si zaškrtneš úrovně (např. Rok + Kvartál). Skupiny se seřadí chronologicky.</p>
+      <figure>
+        <img src="img/seskupeni-datum-menu.png" alt="Checkbox nabídka datumových úrovní seskupení">
+        <figcaption>U sloupce „Vytvořeno" nabídka úrovní — zaškrtnuto <b>Rok</b> a <b>Kvartál</b> (odznak „2" = dvě úrovně). Zaškrtnout lze víc najednou, nabídka zůstane otevřená.</figcaption>
+      </figure>
+
+      <h3>Dvě podoby zobrazení</h3>
+      <p>Jak skupiny vypadají, přepneš v <b>Nastavení tabulky → Sloupce a řádky → „Úrovně seskupení"</b>:</p>
+      <p><b>1) Vedoucí sloupce</b> — úrovně jsou <b>ukotvené sloupce vlevo</b> (Rok, Kvartál, …),
+        hodnota u každého řádku; při horizontálním scrollu zůstanou stát.</p>
+      <figure>
+        <img src="img/seskupeni-datum.png" alt="Seskupení podle data — vedoucí sloupce">
+        <figcaption>Režim „vedoucí sloupce": <b>Vytvořeno · Rok</b> a <b>Vytvořeno · Kvartál</b> vlevo, chronologicky (2025 → Q2, Q3, Q4).</figcaption>
+      </figure>
+      <p><b>2) Vnořené hlavičky</b> — skupiny jsou <b>sbalitelné lišty</b> (klik = sbalit/rozbalit).
+        Vlevo je pořád ukotvený sloupec skupiny; jestli se v něm hodnota opakuje u každého řádku,
+        nebo je jen v liště, řídí přepínač <b>„Opakovat hodnoty skupin v řádcích"</b>.</p>
+      <figure>
+        <img src="img/seskupeni-hlavicky.png" alt="Seskupení — vnořené hlavičky a řazení skupin">
+        <figcaption>Režim „vnořené hlavičky": sbalitelné lišty „Vlastník: …" a <b>řadicí šipka ⇅</b> pro seřazení skupin (funguje i u skrytého seskupeného sloupce).</figcaption>
+      </figure>
+
+      <h3>Řazení a rušení skupin</h3>
+      <p>Skupiny seřadíš <b>šipkou ⇅</b> v liště skupiny (přepíná vzestupně/sestupně). Řádky uvnitř
+        skupin řadíš klikem na běžné hlavičky sloupců. Seskupení <b>zrušíš</b> stejnou ikonou
+        seskupení v dialogu „Sloupce" (odškrtnutím).</p>
+    </section>
     <section id="editace"><h2><span class="n">12</span>Inline editace</h2>
       <p>Úprava hodnoty přímo v buňce, validace.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
     <section id="vyber"><h2><span class="n">13</span>Výběr buněk a kopírování</h2>
