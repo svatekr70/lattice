@@ -140,9 +140,10 @@ export class Renderer {
     const rn = this.rowNumberColumn();
     if (rn) left.push(rn);
     const grid = this.grid;
-    // Skryjí se jen sloupce seskupené podle SYROVÉ hodnoty; datumové úrovní (part)
-    // sloupec zůstává (seskupuješ podle roku, ale pořád vidíš celé datum).
-    const grouped = new Set(grid.instance.groupDisplay === 'columns' ? [] : grid.groupedRawFields());
+    // Sloupce seskupené podle SYROVÉ hodnoty se z běžné pozice skryjí (ukážou se
+    // jako ukotvené vedoucí sloupce vlevo — v obou režimech). Datumové úrovně (part)
+    // původní sloupec nechají (seskupuješ podle roku, ale pořád vidíš celé datum).
+    const grouped = new Set(grid.groupActive() ? grid.groupedRawFields() : []);
     // Akce v režimu 'menu' bez zapnutého číslování řádků: ⋮ tlačítko dej do ID
     // sloupce (je-li zobrazen), jinak vynuť číslovací sloupec a dej ⋮ do něj.
     this._menuIdField = null;
@@ -151,8 +152,9 @@ export class Renderer {
       if (idCol) this._menuIdField = idCol.field;
       else left.push(this.rowNumberColumn(true)); // žádné ID → vynucené číslování s ⋮
     }
-    // Režim 'columns': vedoucí syntetické sloupce úrovní seskupení (vlevo, ukotvené).
-    if (grid.groupActive() && grid.instance.groupDisplay === 'columns') {
+    // Vedoucí syntetické sloupce úrovní seskupení (vlevo, ukotvené) — v OBOU režimech.
+    // 'headers' k nim navíc přidá sbalitelné lišty skupin; 'columns' nechá ploché řádky.
+    if (grid.groupActive()) {
       for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = (grid.responsive && this._collapsed) ? this._collapsed : null;

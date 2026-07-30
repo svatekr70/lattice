@@ -292,7 +292,7 @@ const RAW_GROUPS = [
       {
         id: 'ex-grouping',
         title: 'Seskupení řádků',
-        blurb: 'Řádky seskupené podle hodnoty sloupce — i víceúrovňově (skupina ve skupině). Seskupené sloupce zmizí z tabulky. Zapíná se pinem „seskupit" v dialogu Sloupce. Zapnuté jsou i MEZISOUČTY za každou skupinu (dle souhrnných funkcí sloupce) — Nastavení tabulky → „Mezisoučty skupin".',
+        blurb: 'Řádky seskupené podle hodnoty sloupce — i víceúrovňově (skupina ve skupině). Seskupené úrovně se ukážou jako **ukotvené vedoucí sloupce vlevo** (při scrollu doprava zůstanou stát, reálné sloupce odjedou za nimi). Zapíná se pinem „seskupit" v dialogu Sloupce; klikni na řadicí šipku v hlavičce skupiny pro seřazení skupin. Zapnuté jsou i MEZISOUČTY za každou skupinu — Nastavení tabulky → „Mezisoučty skupin", a přepínač zobrazení „Úrovně seskupení" (vnořené hlavičky / vedoucí sloupce).',
         code: `new Lattice('#grid', {\n  id: 'ex-grouping',\n  columns: [{ field: 'budget', type: 'money', summary: ['sum','avg'] }, …],\n  instance: { groupBy: ['region', 'owner'], groupSubtotals: true },\n})`,
         mount: (el, ctx) => {
           const cols = campaignColumns();
