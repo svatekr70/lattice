@@ -119,6 +119,9 @@
     <a href="#radek">Klik na řádek, menu, popup</a>
     <a href="#hromadne">Hromadné úpravy</a>
     <a href="#strom">Stromové zobrazení</a>
+    <a href="#presun-radku">Přesouvání řádků</a>
+    <a href="#detail-radku">Detail řádku</a>
+    <a href="#cislovani">Číslování řádků</a>
     <h4>Formát a výstup</h4>
     <a href="#formaty">Formáty a podmíněné formáty</a>
     <a href="#souhrny">Souhrny a mezisoučty</a>
@@ -612,8 +615,80 @@
         <b>cestu k nálezu</b> (rodiče) a větev se shodou se rozbalí.</p>
     </section>
 
+    <section id="presun-radku">
+      <h2><span class="n">17</span>Přesouvání řádků</h2>
+      <p>Pokud to aplikace zapne (a struktura dat to dovolí), můžeš <b>měnit pořadí řádků myší</b>.
+        Vlevo v každém řádku je <b>úchyt ⠿</b> — chytni ho a <b>přetáhni</b> řádek nad nebo pod jiný.
+        Při tažení ukazuje <b>modrá linka</b>, kam řádek spadne. Nové pořadí si aplikace uloží.</p>
+      <div class="note"><b>Kdy to jde:</b> přesouvání musí zapnout aplikace a dává smysl jen tam, kde
+        mají data <b>vlastní pořadí</b> (pořadové pole, strom, seskupení). U tabulky jen seřazené
+        podle sloupce se pořadí neurčuje ručně.</div>
+
+      <h3>1) Ploché řádky (změna pořadí)</h3>
+      <p>Nejjednodušší případ: přetáhneš řádek nad/pod jiný a tím změníš jeho <b>pozici</b> v seznamu.
+        Ostatní řádky se přečíslují.</p>
+      <figure>
+        <img src="img/presun-radek-flat.png" alt="Přetažení řádku na nové místo">
+        <figcaption>Táhneme řádek „Sociální sítě #7" (ztlumený) — <b>modrá linka</b> pod řádkem 3 ukazuje, že spadne za něj. První sloupec <b>#</b> je číslování řádků, vlevo úchyty ⠿.</figcaption>
+      </figure>
+
+      <h3>2) Přesun mezi skupinami</h3>
+      <p>Když jsou řádky <b>seskupené</b> (viz <a href="#seskupeni">Seskupení</a>), přetažením řádku do
+        <b>jiné skupiny</b> mu rovnou <b>změníš hodnotu</b>, podle které se seskupuje. Cíl označíš buď
+        puštěním na <b>hlavičku skupiny</b>, nebo mezi její řádky.</p>
+      <figure>
+        <img src="img/presun-radek-skupiny.png" alt="Přetažení řádku do jiné skupiny">
+        <figcaption>Táhneme řádek ze skupiny „Brno" (ztlumený) — zvýrazněná hlavička <b>„Region: Ostrava"</b> je cíl; po puštění se řádku změní region na Ostrava.</figcaption>
+      </figure>
+
+      <h3>3) Strom — přesun uzlu i s podřízenými</h3>
+      <p>Ve <a href="#strom">stromovém zobrazení</a> vezme tažení uzlu <b>celou jeho větev</b>. Podle
+        toho, kam ho pustíš, se stane jedno ze dvou:</p>
+      <ul>
+        <li><b>Nad / pod</b> jiný řádek (u jeho horního/dolního okraje) — přeuspořádání <b>mezi sourozenci</b>.</li>
+        <li><b>„Dovnitř"</b> jiného řádku (na jeho střed) — uzel se přesune <b>pod tento řádek</b> jako
+          jeho podřízený.</li>
+      </ul>
+      <figure>
+        <img src="img/presun-radek-strom.png" alt="Přetažení uzlu stromu dovnitř jiného">
+        <figcaption>Táhneme „Jana Kučerová" (ztlumená) a míříme <b>dovnitř</b> uzlu „Marek Dvořák" (zvýrazněný rámečkem) — stane se jeho podřízenou.</figcaption>
+      </figure>
+      <div class="note"><b>Kam se to uloží?</b> Knihovna jen spočítá nové pořadí (a u stromu i nové
+        zařazení) a předá je aplikaci — ta změnu uloží po svém (typicky na server).</div>
+    </section>
+
+    <section id="detail-radku">
+      <h2><span class="n">18</span>Rozbalovací detail řádku</h2>
+      <p>Některé řádky umí <b>rozbalit panel s detailem</b> pod sebou (tzv. master-detail). Poznáš je
+        podle <b>šipky ▸</b> na začátku řádku (obvykle ve sloupci <b>ID</b>). Klikem na šipku se pod
+        řádkem otevře panel se souvisejícími údaji, které se nevejdou do sloupců; dalším klikem ho zavřeš.</p>
+      <figure>
+        <img src="img/detail-radku.png" alt="Rozbalený detail řádku">
+        <figcaption>Šipka ▸ ve sloupci ID rozbalí panel — u „Kampaň Bannery #3" se ukázal vlastník, rozpočet a skóre. Ostatní řádky mají šipku sbalenou.</figcaption>
+      </figure>
+      <p class="muted">Stejný mechanismus se používá i u <b>responzivního skládání sloupců</b>: na úzké
+        obrazovce se přetečené sloupce schovají právě do tohoto rozbalovacího detailu.</p>
+    </section>
+
+    <section id="cislovani">
+      <h2><span class="n">19</span>Číslování řádků</h2>
+      <p>Tabulka může vlevo zobrazit <b>sloupec s pořadovým číslem řádku</b>. Zapneš (a vypneš) ho
+        v <b>Nastavení tabulky → Sloupce a řádky → „Číslování řádků"</b>. Na výběr jsou tři možnosti:</p>
+      <ul>
+        <li><b>Vypnuté</b> — žádný číselný sloupec.</li>
+        <li><b>Průběžné (přes stránky)</b> — čísluje <b>napříč celou tabulkou</b>: na druhé stránce
+          pokračuje (9, 10, 11…). Ukazuje „kolikátý je řádek celkově".</li>
+        <li><b>Od 1 na každé stránce</b> — na <b>každé stránce začne znovu od 1</b>. Ukazuje „kolikátý
+          je na této stránce".</li>
+      </ul>
+      <figure>
+        <img src="img/cislovani-nastaveni.png" alt="Nastavení číslování řádků">
+        <figcaption>Nastavení tabulky → záložka „Sloupce a řádky": <b>Číslování řádků</b> (zde „Průběžné (přes stránky)"), a vedle i souhrnný řádek, seskupení a výběr.</figcaption>
+      </figure>
+    </section>
+
     <section id="formaty">
-      <h2><span class="n">17</span>Formáty a podmíněné formáty</h2>
+      <h2><span class="n">20</span>Formáty a podmíněné formáty</h2>
       <h3>Formát hodnot</h3>
       <p>Jak se zobrazují <b>čísla, měny a data</b>, nastavíš v <b>Nastavení tabulky → Formát hodnot</b>:
         desetinná místa, oddělovač tisíců, jak psát záporná čísla, symbol měny, jazyk formátu (locale).</p>
@@ -645,7 +720,7 @@
     </section>
 
     <section id="souhrny">
-      <h2><span class="n">18</span>Souhrny a mezisoučty</h2>
+      <h2><span class="n">21</span>Souhrny a mezisoučty</h2>
       <p>Pod tabulkou může být <b>souhrnný řádek</b> — součet, průměr, minimum, maximum, počet
         za vybrané sloupce. Nejdřív ho ale musíš <b>zapnout</b> v <b>Nastavení tabulky →
         Sloupce a řádky → Souhrnný řádek</b>; které sloupce a jaké funkce se počítají, nastavíš
@@ -672,7 +747,7 @@
     </section>
 
     <section id="export">
-      <h2><span class="n">19</span>Export a tisk</h2>
+      <h2><span class="n">22</span>Export a tisk</h2>
       <p>Data z tabulky lze <b>vyexportovat</b> — typicky do <b>CSV</b> (otevřeš v Excelu) nebo
         <b>JSON</b>, případně <b>vytisknout</b>. Export respektuje tvůj aktuální pohled: řazení,
         filtry i viditelné sloupce, takže dostaneš přesně to, co máš na obrazovce.</p>
