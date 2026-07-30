@@ -103,11 +103,11 @@
     <a href="#vyber">Výběr buněk a kopírování</a>
     <a href="#radek">Klik na řádek, menu, popup</a>
     <a href="#hromadne">Hromadné úpravy</a>
-    <a href="#strom" class="soon">Stromové zobrazení</a>
+    <a href="#strom">Stromové zobrazení</a>
     <h4>Formát a výstup</h4>
-    <a href="#formaty" class="soon">Formáty a podmíněné formáty</a>
-    <a href="#souhrny" class="soon">Souhrny a mezisoučty</a>
-    <a href="#export" class="soon">Export a tisk</a>
+    <a href="#formaty">Formáty a podmíněné formáty</a>
+    <a href="#souhrny">Souhrny a mezisoučty</a>
+    <a href="#export">Export a tisk</a>
   </nav>
 
   <main>
@@ -352,14 +352,61 @@
       <p>Checkboxem v <b>záhlaví</b> označíš/odznačíš celou stránku; jeho nabídka umí i „vybrat vše"
         napříč stránkami nebo výběr invertovat. Konkrétní akce určuje aplikace.</p>
     </section>
-    <section id="strom"><h2><span class="n">16</span>Stromové zobrazení</h2>
-      <p>Rozbalování/sbalování hierarchie, práce ve stromu.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="formaty"><h2><span class="n">17</span>Formáty a podmíněné formáty</h2>
-      <p>Formát čísel/dat/měny; barevná škála „semafor".</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="souhrny"><h2><span class="n">18</span>Souhrny a mezisoučty</h2>
-      <p>Součty/průměry pod tabulkou i za skupiny.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="export"><h2><span class="n">19</span>Export a tisk</h2>
-      <p>Export do CSV/JSON, tisk.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="strom">
+      <h2><span class="n">16</span>Stromové zobrazení</h2>
+      <p>Když jsou data <b>hierarchická</b> (např. organizační struktura, kategorie a podkategorie),
+        tabulka je ukáže jako <b>strom</b>: v prvním sloupci je <b>rozbalovací šipka</b> a odsazení
+        podle úrovně. Klik na šipku větev rozbalí/sbalí.</p>
+      <figure>
+        <img src="img/strom.png" alt="Stromové zobrazení">
+        <figcaption>Strom: „Alena Nováková (CEO)" rozbalená, pod ní podřízení. Nahoře <b>Sbalit vše / Rozbalit vše</b> a přepínání <b>úrovní</b>.</figcaption>
+      </figure>
+      <p>Nahoře jsou tlačítka <b>Sbalit vše</b> / <b>Rozbalit vše</b> a ovládání <b>úrovně</b>
+        (rozbalit strom jen do určité hloubky). Filtry i hledání fungují i ve stromu — zachovají
+        <b>cestu k nálezu</b> (rodiče) a větev se shodou se rozbalí.</p>
+    </section>
+
+    <section id="formaty">
+      <h2><span class="n">17</span>Formáty a podmíněné formáty</h2>
+      <h3>Formát hodnot</h3>
+      <p>Jak se zobrazují <b>čísla, měny a data</b>, nastavíš v <b>Nastavení tabulky → Formát hodnot</b>:
+        desetinná místa, oddělovač tisíců, jak psát záporná čísla, symbol měny, jazyk formátu (locale).</p>
+      <figure>
+        <img src="img/formaty.png" alt="Nastavení formátu hodnot">
+        <figcaption>Záložka „Formát hodnot": locale, čísla (desetinná místa, oddělovač, záporná), měna.</figcaption>
+      </figure>
+      <h3>Podmíněný formát („semafor")</h3>
+      <p>Buňky se mohou <b>obarvit podle hodnoty</b> — nízké hodnoty červeně, vysoké zeleně (jako
+        semafor). To pomáhá na první pohled poznat extrémy. V ukázkách výše to vidíš na sloupci
+        <b>Skóre</b>. Škálu (barvy, počet stupňů, případně obrácení) zapneš/upravíš u sloupce
+        v dialogu „Sloupce" nebo v Nastavení tabulky.</p>
+    </section>
+
+    <section id="souhrny">
+      <h2><span class="n">18</span>Souhrny a mezisoučty</h2>
+      <p>Pod tabulkou může být <b>souhrnný řádek</b> — součet, průměr, minimum, maximum, počet
+        za vybrané sloupce. Přepínačem <b>„Souhrn počítá z"</b> zvolíš, jestli počítá jen ze
+        <b>zobrazené stránky</b>, nebo ze <b>všech záznamů</b>.</p>
+      <figure>
+        <img src="img/souhrny.png" alt="Souhrnný řádek pod tabulkou">
+        <figcaption>Souhrn pod sloupcem Rozpočet: <b>Součet</b> a <b>Průměr</b>; dole přepínač rozsahu (stránka / vše).</figcaption>
+      </figure>
+      <p>Když jsou řádky <b>seskupené</b>, můžeš mít i <b>mezisoučty za každou skupinu</b>
+        (zapneš v Nastavení tabulky → „Mezisoučty skupin"). Rozsah a souhrnné funkce sloupce
+        se nastavují v dialogu „Sloupce" (ikona <b>Σ</b> u sloupce).</p>
+    </section>
+
+    <section id="export">
+      <h2><span class="n">19</span>Export a tisk</h2>
+      <p>Data z tabulky lze <b>vyexportovat</b> — typicky do <b>CSV</b> (otevřeš v Excelu) nebo
+        <b>JSON</b>, případně <b>vytisknout</b>. Export respektuje tvůj aktuální pohled: řazení,
+        filtry i viditelné sloupce, takže dostaneš přesně to, co máš na obrazovce.</p>
+      <p>Kde export najdeš, závisí na aplikaci — bývá to <b>tlačítko nebo položka v menu</b>
+        („Export", „Stáhnout CSV", „Tisk"). Rychlé kopírování menšího výběru zvládneš i přes
+        <b>označení buněk</b> a <kbd>Ctrl/⌘ + C</kbd> (viz sekce Výběr buněk).</p>
+      <div class="note"><b>Tip:</b> Chceš do exportu jen část dat? Nejdřív si tabulku
+        <b>vyfiltruj</b> a skryj nepotřebné sloupce — export pak obsahuje jen to podstatné.</div>
+    </section>
   </main>
 </div>
 
