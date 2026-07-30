@@ -87,11 +87,11 @@
     <h4>Základy</h4>
     <a href="#prehled">Přehled tabulky</a>
     <a href="#razeni">Řazení sloupců</a>
-    <a href="#presun" class="soon">Přesouvání sloupců</a>
-    <a href="#sirka" class="soon">Šířka a ukotvení</a>
+    <a href="#presun">Přesouvání sloupců</a>
+    <a href="#sirka">Šířka a ukotvení</a>
     <h4>Filtrování</h4>
     <a href="#filtry">Filtry a typy filtrů</a>
-    <a href="#negace" class="soon">Negace a operátory</a>
+    <a href="#negace">Negace a operátory</a>
     <a href="#rozsireny" class="soon">Rozšířený filtr</a>
     <h4>Dialogy</h4>
     <a href="#dialog-sloupce">Dialog „Sloupce"</a>
@@ -175,12 +175,41 @@
     </section>
 
     <!-- ======= připravované sekce (osnova) ======= -->
-    <section id="presun"><h2><span class="n">5</span>Přesouvání sloupců</h2>
-      <p>Přetažením záhlaví změníš pořadí sloupců přímo v tabulce.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="sirka"><h2><span class="n">6</span>Šířka a ukotvení sloupců</h2>
-      <p>Tažení okraje záhlaví mění šířku; dvojklik ji přizpůsobí obsahu. Sloupec lze ukotvit vlevo/vpravo.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="negace"><h2><span class="n">7</span>Negace a operátory</h2>
-      <p>Prefix <code>!</code> ve filtru = „neobsahuje". U čísel <code>=, &gt;, &lt;</code>.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="presun">
+      <h2><span class="n">5</span>Přesouvání sloupců</h2>
+      <p>Sloupce si srovnáš do vlastního pořadí <b>přetažením záhlaví</b>: klikni a drž levé
+        tlačítko na názvu sloupce, táhni ho vlevo/vpravo a pusť na místě, kam ho chceš dát.
+        Během tažení se ukáže, kam sloupec „zapadne".</p>
+      <p>Totéž jde i v dialogu <b>„Sloupce"</b> (ikona ⊟) — tam přetáhneš řádek sloupce za úchyt
+        <b>⋮⋮</b> nahoru/dolů. Nové pořadí se rovnou uloží, takže ho máš i po příštím otevření.</p>
+      <div class="note"><b>Pozn.:</b> Ukotvené sloupce (viz dále) zůstávají vlevo/vpravo — přetahují se jen v rámci své zóny.</div>
+    </section>
+
+    <section id="sirka">
+      <h2><span class="n">6</span>Šířka a ukotvení sloupců</h2>
+      <h3>Šířka</h3>
+      <p>Najeď na <b>pravý okraj záhlaví</b> — kurzor se změní na obousměrnou šipku. Tažením
+        šířku měníš. <b>Dvojklik</b> na okraj přizpůsobí šířku obsahu (nejširší buňka + záhlaví).</p>
+      <h3>Ukotvení (frozen)</h3>
+      <p>Sloupec můžeš <b>přišpendlit</b> vlevo nebo vpravo — pak zůstane na místě, i když
+        tabulku horizontálně scrolluješ. Ukotvíš ho <b>špendlíkem 📌</b> v dialogu „Sloupce"
+        (viz sekce Dialog „Sloupce"). Užitečné pro identifikátor nebo název, ať ho vidíš pořád.</p>
+      <div class="note"><b>Tip:</b> Ukotvené jsou automaticky i sloupce, podle kterých právě
+        <b>seskupuješ</b> (viz sekce Seskupení) — drží skupinu vlevo, zatímco zbytek scrolluje.</div>
+    </section>
+
+    <section id="negace">
+      <h2><span class="n">7</span>Negace a operátory ve filtru</h2>
+      <p>Textový filtr umí i <b>opak</b>: napiš na začátek vykřičník <code>!</code> a filtr začne
+        znamenat <b>„neobsahuje"</b>. Například <code>!Bannery</code> zobrazí vše kromě kampaní Bannery.</p>
+      <figure>
+        <img src="img/filtr-negace.png" alt="Negativní filtr !Bannery">
+        <figcaption>Filtr <code>!Bannery</code> ve sloupci Firma — zobrazí se vše, co „Bannery" <b>ne</b>obsahuje. Vpravo nahoře přibyl trychtýř s křížkem (zrušit filtry).</figcaption>
+      </figure>
+      <p>U <b>číselných</b> sloupců zadáš i porovnání: <code>&gt;70</code> (větší než 70),
+        <code>&lt;10</code>, <code>=5</code>. U čísel a dat je navíc typ filtru <b>Rozsah Od–Do</b>
+        (přepneš ho trychtýřem u sloupce — viz předchozí sekce).</p>
+    </section>
     <section id="rozsireny"><h2><span class="n">8</span>Rozšířený filtr (AND/OR)</h2>
       <p>Skládání podmínek do stromu, uložení pojmenovaného filtru.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
     <section id="nastaveni"><h2><span class="n">9</span>Nastavení tabulky</h2>
