@@ -4,6 +4,9 @@ Datová tabulka (grid) ve vanilla JS (ESM), bez runtime závislostí. Tento doku
 kompletní referenční přehled — options, sloupce, typy, filtry, metody, callbacky a features.
 Živé ukázky ke každé věci jsou v demu (`demo/index.html`).
 
+> 📘 Hledáš, jak tabulku **ovládat** z pohledu uživatele (řazení, filtry, seskupení, editace…)?
+> Viz **[uživatelská příručka](../prirucka/index.html)** s obrázky.
+
 - **Filozofie:** *knihovna počítá, aplikace persistuje.* Grid nikdy sám nesahá na backend —
   emituje callbacky a aplikace si ukládání řeší. Veškerý uživatelský stav (pořadí/šířky/
   viditelnost sloupců, řazení, filtry, nastavení, lokální presety) žije v **jednom**

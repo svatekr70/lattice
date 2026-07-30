@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lattice — uživatelská příručka</title>
+<meta name="description" content="Jak používat tabulku Lattice v aplikaci — řazení, filtry, seskupení, editace, export a další. Pro uživatele, ne vývojáře.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234f7ff5'/%3E%3Cg fill='none' stroke='white' stroke-width='2'%3E%3Crect x='7' y='7' width='18' height='18' rx='2'/%3E%3Cpath d='M7 13h18M7 19h18M13 7v18M19 7v18'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#f7f8fb; --panel:#ffffff; --ink:#1a2230; --muted:#5b6678; --line:#e4e8ef;
+    --accent:#4f7ff5; --code-bg:#eef2fb; --note-bg:#eef5ff; --note-line:#bcd3ff;
+    --shadow:0 1px 2px rgba(20,30,50,.05),0 6px 22px rgba(20,30,50,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0d1017; --panel:#161a24; --ink:#e8ecf4; --muted:#9aa6bd; --line:#252b39;
+      --accent:#6e97ff; --code-bg:#1c2436; --note-bg:#152238;
+      --note-line:#2b4a7a; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.35); }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+
+  /* layout */
+  .top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 85%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .top-in{max-width:1200px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--ink)}
+  .brand:hover{text-decoration:none}
+  .brand svg{width:26px;height:26px}
+  .top .sp{flex:1}
+  .top a.lnk{color:var(--muted);font-size:14px;font-weight:500}
+  .top a.lnk:hover{color:var(--ink);text-decoration:none}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:240px 1fr;gap:36px}
+  @media (max-width:860px){.wrap{grid-template-columns:1fr} nav.toc{display:none}}
+
+  nav.toc{position:sticky;top:70px;align-self:start;max-height:calc(100vh - 90px);overflow:auto;
+    padding:22px 0;font-size:14px}
+  nav.toc h4{margin:16px 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  nav.toc h4:first-child{margin-top:0}
+  nav.toc a{display:block;padding:4px 10px;border-radius:7px;color:var(--muted)}
+  nav.toc a:hover{background:var(--panel);color:var(--ink);text-decoration:none}
+  nav.toc a.soon::after{content:'🔜';font-size:11px;margin-left:5px;opacity:.6}
+
+  main{padding:30px 0 80px;min-width:0}
+  .lead{font-size:19px;color:var(--muted);max-width:70ch}
+  h1{font-size:34px;letter-spacing:-.02em;margin:0 0 12px}
+  section{padding-top:34px;margin-top:20px;border-top:1px solid var(--line);scroll-margin-top:80px}
+  section:first-of-type{border-top:none}
+  h2{font-size:24px;letter-spacing:-.01em;margin:0 0 6px}
+  h2 .n{color:var(--accent);font-size:15px;font-weight:600;margin-right:8px}
+  h3{font-size:17px;margin:22px 0 6px}
+  p{max-width:72ch}
+  ul,ol{max-width:72ch}
+  kbd{font:600 12px/1 ui-monospace,monospace;background:var(--code-bg);border:1px solid var(--line);
+    border-radius:5px;padding:2px 6px}
+  code{font:13px/1 ui-monospace,monospace;background:var(--code-bg);border-radius:5px;padding:2px 6px}
+
+  figure{margin:16px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px;box-shadow:var(--shadow);max-width:820px}
+  figure img{display:block;max-width:100%;height:auto;border-radius:7px;border:1px solid var(--line)}
+  figcaption{margin-top:9px;font-size:13.5px;color:var(--muted);text-align:center}
+
+  .note{max-width:72ch;margin:14px 0;background:var(--note-bg);border:1px solid var(--note-line);
+    border-radius:10px;padding:12px 15px;font-size:14.5px}
+  .note b{color:var(--ink)}
+  .soon-badge{display:inline-block;font-size:12px;color:var(--muted);border:1px dashed var(--line);
+    border-radius:20px;padding:3px 10px;margin-top:6px}
+  footer{max-width:1200px;margin:0 auto;padding:30px 20px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="var(--accent)"/><g fill="none" stroke="#fff" stroke-width="2"><rect x="7" y="7" width="18" height="18" rx="2"/><path d="M7 13h18M7 19h18M13 7v18M19 7v18"/></g></svg> Lattice</a>
+  <span style="color:var(--muted);font-size:14px">· Uživatelská příručka</span>
+  <span class="sp"></span>
+  <a class="lnk" href="/demo/">Demo</a>
+  <a class="lnk" href="/docs/API.md">API</a>
+</div></div>
+
+<div class="wrap">
+  <nav class="toc">
+    <h4>Základy</h4>
+    <a href="#prehled">Přehled tabulky</a>
+    <a href="#razeni">Řazení sloupců</a>
+    <a href="#presun" class="soon">Přesouvání sloupců</a>
+    <a href="#sirka" class="soon">Šířka a ukotvení</a>
+    <h4>Filtrování</h4>
+    <a href="#filtry">Filtry a typy filtrů</a>
+    <a href="#negace" class="soon">Negace a operátory</a>
+    <a href="#rozsireny" class="soon">Rozšířený filtr</a>
+    <h4>Dialogy</h4>
+    <a href="#dialog-sloupce">Dialog „Sloupce"</a>
+    <a href="#nastaveni" class="soon">Nastavení tabulky</a>
+    <a href="#presety" class="soon">Presety</a>
+    <h4>Práce s daty</h4>
+    <a href="#seskupeni" class="soon">Seskupení (i datumové)</a>
+    <a href="#editace" class="soon">Inline editace</a>
+    <a href="#vyber" class="soon">Výběr buněk a kopírování</a>
+    <a href="#radek" class="soon">Klik na řádek, menu, popup</a>
+    <a href="#hromadne" class="soon">Hromadné úpravy</a>
+    <a href="#strom" class="soon">Stromové zobrazení</a>
+    <h4>Formát a výstup</h4>
+    <a href="#formaty" class="soon">Formáty a podmíněné formáty</a>
+    <a href="#souhrny" class="soon">Souhrny a mezisoučty</a>
+    <a href="#export" class="soon">Export a tisk</a>
+  </nav>
+
+  <main>
+    <h1>Uživatelská příručka</h1>
+    <p class="lead">Jak ovládat tabulku Lattice přímo v aplikaci — řazení, filtrování, seskupení,
+      editace, export a spousta dalšího. Psáno pro člověka, který tabulku vidí na obrazovce;
+      instalaci ani programování řešit nemusíš.</p>
+
+    <section id="prehled">
+      <h2><span class="n">1</span>Přehled tabulky</h2>
+      <p>Tabulka má <b>záhlaví</b> s názvy sloupců, pod ním volitelný <b>řádek filtrů</b>, samotná
+        <b>data</b> a dole <b>stránkování</b>. Vpravo nahoře jsou nástrojové ikony
+        (trychtýř = zrušit filtry, ⊟ = dialog <i>Sloupce</i>, ⚙ = <i>Nastavení tabulky</i>).</p>
+      <figure>
+        <img src="img/prehled.png" alt="Přehled tabulky Lattice">
+        <figcaption>Základní rozvržení: záhlaví, filtry, data (barevné „Skóre" = podmíněný formát), stránkování.</figcaption>
+      </figure>
+      <div class="note"><b>Tip:</b> Vlevo může být sloupec s <b>checkboxy</b> pro výběr řádků a úplně
+        napravo nahoře <b>ozubené kolo</b> pro nastavení. Co přesně je zapnuté, závisí na tom, jak
+        tabulku nastavil autor aplikace.</div>
+    </section>
+
+    <section id="razeni">
+      <h2><span class="n">2</span>Řazení sloupců</h2>
+      <p>Klikni na <b>záhlaví sloupce</b> — data se seřadí vzestupně (▲). Další klik přepne na
+        sestupně (▼), třetí klik řazení zruší.</p>
+      <figure>
+        <img src="img/razeni.png" alt="Řazení podle sloupce Skóre">
+        <figcaption>Kliknutím na „Skóre" se řádky seřadily vzestupně (▲ u názvu sloupce).</figcaption>
+      </figure>
+      <h3>Vícenásobné řazení</h3>
+      <p>Podrž <kbd>Shift</kbd> a klikni na další sloupec — přidá se jako <b>druhé kritérium</b>
+        (u čísla se ukáže pořadí 1, 2, …). Tak seřadíš třeba nejdřív podle regionu a v rámci něj
+        podle rozpočtu.</p>
+    </section>
+
+    <section id="filtry">
+      <h2><span class="n">3</span>Filtry a typy filtrů</h2>
+      <p>Pod záhlavím je u každého sloupce <b>pole filtru</b>. Do textového začni psát a tabulka se
+        okamžitě zúží. Vedle pole je <b>ikona trychtýře</b> — klikem na ni zvolíš <b>typ filtru</b>:</p>
+      <figure>
+        <img src="img/filtr-typ.png" alt="Rozbalené menu typu filtru">
+        <figcaption>Klik na trychtýř u sloupce → volba typu filtru: <b>Text</b>, <b>Výběr</b>, <b>Více hodnot</b>.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Text</b> — obsahuje zadaný text.</li>
+        <li><b>Výběr</b> — vybereš jednu hodnotu z nabídky.</li>
+        <li><b>Více hodnot</b> — zaškrtneš víc hodnot najednou.</li>
+        <li>U čísel/dat jsou navíc <b>rozsah Od–Do</b> a operátory <code>=, &gt;, &lt;</code>.</li>
+      </ul>
+      <div class="note"><b>Zrušit filtry:</b> ikona trychtýře s křížkem vpravo nahoře v liště zruší
+        všechny aktivní filtry naráz.</div>
+    </section>
+
+    <section id="dialog-sloupce">
+      <h2><span class="n">4</span>Dialog „Sloupce"</h2>
+      <p>Ikonou <b>⊟</b> vpravo nahoře otevřeš správu sloupců. U každého sloupce zaškrtneš
+        <b>viditelnost</b>, přetažením <b>⋮⋮</b> změníš pořadí, a ikonami vpravo nastavíš
+        <b>ukotvení</b> (špendlík), <b>filtr</b>, <b>seskupení</b>, <b>souhrn (Σ)</b> a další.
+        Nahoře je pole pro <b>presety</b> a hledání sloupce.</p>
+      <figure>
+        <img src="img/dialog-sloupce.png" alt="Dialog Sloupce">
+        <figcaption>Dialog „Sloupce": viditelnost (checkbox), pořadí (⋮⋮), špendlík = ukotvit, trychtýř = filtr, Σ = souhrn.</figcaption>
+      </figure>
+    </section>
+
+    <!-- ======= připravované sekce (osnova) ======= -->
+    <section id="presun"><h2><span class="n">5</span>Přesouvání sloupců</h2>
+      <p>Přetažením záhlaví změníš pořadí sloupců přímo v tabulce.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="sirka"><h2><span class="n">6</span>Šířka a ukotvení sloupců</h2>
+      <p>Tažení okraje záhlaví mění šířku; dvojklik ji přizpůsobí obsahu. Sloupec lze ukotvit vlevo/vpravo.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="negace"><h2><span class="n">7</span>Negace a operátory</h2>
+      <p>Prefix <code>!</code> ve filtru = „neobsahuje". U čísel <code>=, &gt;, &lt;</code>.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="rozsireny"><h2><span class="n">8</span>Rozšířený filtr (AND/OR)</h2>
+      <p>Skládání podmínek do stromu, uložení pojmenovaného filtru.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="nastaveni"><h2><span class="n">9</span>Nastavení tabulky</h2>
+      <p>Motiv, hustota, formáty, umístění filtrů, seskupení… vše přes ⚙.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="presety"><h2><span class="n">10</span>Presety</h2>
+      <p>Uložení a přepínání pojmenovaných pohledů (sloupce, filtry, řazení…).</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="seskupeni"><h2><span class="n">11</span>Seskupení (i podle data)</h2>
+      <p>Seskupení řádků, datumové úrovně (rok/kvartál/…), oba režimy zobrazení, řazení skupin.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="editace"><h2><span class="n">12</span>Inline editace</h2>
+      <p>Úprava hodnoty přímo v buňce, validace.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="vyber"><h2><span class="n">13</span>Výběr buněk a kopírování</h2>
+      <p>Označení obdélníku buněk a kopírování do schránky.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="radek"><h2><span class="n">14</span>Klik na řádek, menu, popup</h2>
+      <p>Akce po kliknutí na řádek, kontextové menu, popup nad buňkou.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="hromadne"><h2><span class="n">15</span>Hromadné úpravy</h2>
+      <p>Výběr více řádků a akce nad výběrem.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="strom"><h2><span class="n">16</span>Stromové zobrazení</h2>
+      <p>Rozbalování/sbalování hierarchie, práce ve stromu.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="formaty"><h2><span class="n">17</span>Formáty a podmíněné formáty</h2>
+      <p>Formát čísel/dat/měny; barevná škála „semafor".</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="souhrny"><h2><span class="n">18</span>Souhrny a mezisoučty</h2>
+      <p>Součty/průměry pod tabulkou i za skupiny.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="export"><h2><span class="n">19</span>Export a tisk</h2>
+      <p>Export do CSV/JSON, tisk.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+  </main>
+</div>
+
+<footer>Lattice · Uživatelská příručka · <a href="/demo/">Demo</a> · <a href="/docs/API.md">API reference</a></footer>
+
+</body>
+</html>

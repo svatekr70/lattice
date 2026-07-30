@@ -4,6 +4,7 @@ Moderní, štíhlá a **framework-agnostická** datová tabulka (grid) ve vanill
 Bez runtime závislostí, s jedním zdrojem pravdy pro persistenci a deterministickým initem.
 
 📖 **[Kompletní API reference → `docs/API.md`](./docs/API.md)** — options, sloupce, typy, filtry, metody, callbacky, features.
+📘 **[Uživatelská příručka → `prirucka/`](./prirucka/index.html)** — jak tabulku *ovládat* (pro uživatele aplikace, ne vývojáře): řazení, filtry, seskupení, editace, export… s obrázky.
 Živé ukázky ke všemu jsou v demu (`npm run demo` → `demo/index.html`).
 
 ## Instalace

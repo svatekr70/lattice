@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="cs"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/src/lattice.css">
+<style>
+  html,body{margin:0;background:#fff}
+  #stage{padding:16px;max-width:1090px}
+  .lattice{font:14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .mp-act{display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;font-size:12.5px;
+    font-weight:600;text-decoration:none;border:1px solid #cbd5e1;color:#475569;background:#fff}
+</style></head>
+<body>
+<div id="stage"><div id="grid"></div></div>
+<script type="module">
+import { Lattice } from '/src/index.js';
+import { generateCampaigns, OPTIONS } from '/demo/data.js';
+const mem=(()=>{const m=new Map();return{getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),clear:()=>m.clear()};})();
+
+function columns(){ return [
+  { field:'name', title:'Firma', type:'text', filter:'text', minWidth:200, editable:true },
+  { field:'category', title:'Kategorie', type:'text', filter:'multiselect', filterValues:OPTIONS.categories, width:150, editable:true, editor:'select', editorParams:{values:OPTIONS.categories} },
+  { field:'owner', title:'Vlastník', type:'text', filter:'select', filterValues:OPTIONS.owners, width:150 },
+  { field:'budget', title:'Rozpočet', type:'money', filter:'number-range', width:160, formatterParams:{currency:'CZK'}, summary:['sum','avg'], editable:true },
+  { field:'score', title:'Skóre', type:'number', filter:'number', width:110, align:'right',
+    condFormat:{ on:true, levels:3 } },
+  { field:'createdAt', title:'Vytvořeno', type:'date', filter:'date-range', width:150 },
+  { field:'active', title:'Aktivní', type:'boolean', filter:'boolean', width:100, align:'center', editable:true },
+];}
+
+window.__mk = (extra={}) => {
+  document.getElementById('grid').innerHTML='';
+  const grid = new Lattice('#grid', Object.assign({
+    id:'prirucka', i18n:'cs', keyField:'id', pageSize:8, storage:mem,
+    columns: columns(), data: generateCampaigns(60),
+    rangeSelection:true, selectable:true,
+    instance:{ filterLayout:'header' },
+  }, extra));
+  window.grid = grid; return grid;
+};
+window.__mk();
+</script>
+</body></html>
