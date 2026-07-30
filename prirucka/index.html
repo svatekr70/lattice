@@ -64,6 +64,13 @@
   figure img{display:block;max-width:100%;height:auto;border-radius:7px;border:1px solid var(--line)}
   figcaption{margin-top:9px;font-size:13.5px;color:var(--muted);text-align:center}
 
+  ul.iconlegend{list-style:none;padding:0;margin:16px 0;max-width:72ch}
+  ul.iconlegend li{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+  ul.iconlegend li:first-child{border-top:none}
+  ul.iconlegend .ic{flex:0 0 auto;width:38px;height:30px;display:grid;place-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  ul.iconlegend .ic img{height:22px;width:auto;display:block}
+  ul.iconlegend div{padding-top:2px}
   .note{max-width:72ch;margin:14px 0;background:var(--note-bg);border:1px solid var(--note-line);
     border-radius:10px;padding:12px 15px;font-size:14.5px}
   .note b{color:var(--ink)}
@@ -119,15 +126,24 @@
     <section id="prehled">
       <h2><span class="n">1</span>Přehled tabulky</h2>
       <p>Tabulka má <b>záhlaví</b> s názvy sloupců, pod ním volitelný <b>řádek filtrů</b>, samotná
-        <b>data</b> a dole <b>stránkování</b>. Vpravo nahoře jsou nástrojové ikony
-        (trychtýř = zrušit filtry, ⊟ = dialog <i>Sloupce</i>, ⚙ = <i>Nastavení tabulky</i>).</p>
+        <b>data</b> a dole <b>stránkování</b>. Vpravo nahoře jsou <b>nástrojové ikony</b>:</p>
+      <ul class="iconlegend">
+        <li><span class="ic"><img src="img/ic-advfilter.png" alt=""></span>
+          <div><b>Rozšířený filtr</b> (trychtýř se žlutým plusem) — složené podmínky A/NEBO.
+            <i>Tuhle ikonu vidíš standardně.</i> Viz sekce <a href="#rozsireny">Rozšířený filtr</a>.</div></li>
+        <li><span class="ic"><img src="img/ic-columns.png" alt=""></span>
+          <div><b>Sloupce</b> — dialog pro viditelnost, pořadí, ukotvení, seskupení a presety. Viz <a href="#dialog-sloupce">Dialog „Sloupce"</a>.</div></li>
+        <li><span class="ic"><img src="img/ic-settings.png" alt=""></span>
+          <div><b>Nastavení tabulky</b> (ozubené kolo) — vzhled a chování celé tabulky. Viz <a href="#nastaveni">Nastavení tabulky</a>.</div></li>
+        <li><span class="ic"><img src="img/ic-clearfilter.png" alt=""></span>
+          <div><b>Zrušit všechny filtry</b> (trychtýř s červeným křížkem) — <b>objeví se jen tehdy, když je nějaký filtr aktivní</b>. Jedním klikem smaže všechny filtry.</div></li>
+      </ul>
       <figure>
         <img src="img/prehled.png" alt="Přehled tabulky Lattice">
-        <figcaption>Základní rozvržení: záhlaví, filtry, data (barevné „Skóre" = podmíněný formát), stránkování.</figcaption>
+        <figcaption>Základní rozvržení: záhlaví, filtry, data (barevné „Skóre" = podmíněný formát), stránkování. Vpravo nahoře tři nástrojové ikony (bez aktivního filtru se „zrušit filtry" nezobrazuje).</figcaption>
       </figure>
-      <div class="note"><b>Tip:</b> Vlevo může být sloupec s <b>checkboxy</b> pro výběr řádků a úplně
-        napravo nahoře <b>ozubené kolo</b> pro nastavení. Co přesně je zapnuté, závisí na tom, jak
-        tabulku nastavil autor aplikace.</div>
+      <div class="note"><b>Tip:</b> Vlevo může být sloupec s <b>checkboxy</b> pro výběr řádků.
+        Co přesně je zapnuté, závisí na tom, jak tabulku nastavil autor aplikace.</div>
     </section>
 
     <section id="razeni">
