@@ -71,6 +71,9 @@
     background:var(--panel);border:1px solid var(--line);border-radius:8px}
   ul.iconlegend .ic img{height:22px;width:auto;display:block}
   ul.iconlegend div{padding-top:2px}
+  .ibtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:24px;
+    vertical-align:middle;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+  .ibtn svg{width:16px;height:16px}
   .note{max-width:72ch;margin:14px 0;background:var(--note-bg);border:1px solid var(--note-line);
     border-radius:10px;padding:12px 15px;font-size:14.5px}
   .note b{color:var(--ink)}
@@ -194,7 +197,21 @@
       <h2><span class="n">4</span>Šířka a ukotvení sloupců</h2>
       <h3>Šířka</h3>
       <p>Najeď na <b>pravý okraj záhlaví</b> — kurzor se změní na obousměrnou šipku. Tažením
-        šířku měníš. <b>Dvojklik</b> na okraj přizpůsobí šířku obsahu (nejširší buňka + záhlaví).</p>
+        šířku měníš. <b>Dvojklik</b> na okraj přizpůsobí šířku jednoho sloupce obsahu.</p>
+      <h3>Přizpůsobit šířku všem sloupcům naráz</h3>
+      <p>V dialogu <b>„Sloupce"</b> (ikona ⊟) je nahoře tlačítko
+        <span class="ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 7v10H2V7h2zm18 0v10h-2V7h2zM8 11l-3 1 3 1v-2zm8 0v2l3-1-3-1zM6 11h12v2H6v-2z"></path></svg></span>
+        <b>„Přizpůsobit šířku sloupců obsahu"</b>. Jedním klikem srovná šířku <b>všech</b> sloupců
+        tak, aby se přesně vešel jejich obsah — úzké sloupce s oříznutým textem se roztáhnou,
+        zbytečně široké se zúží.</p>
+      <figure>
+        <img src="img/sirka-pred.png" alt="Tabulka před přizpůsobením šířky">
+        <figcaption><b>Před:</b> „Firma" je úzká a názvy jsou oříznuté (<i>Kampaň …</i>), zatímco ostatní sloupce plýtvají místem.</figcaption>
+      </figure>
+      <figure>
+        <img src="img/sirka-po.png" alt="Tabulka po přizpůsobení šířky">
+        <figcaption><b>Po:</b> každý sloupec má přesně tolik místa, kolik potřebuje — názvy jsou celé a nikde není zbytečná mezera.</figcaption>
+      </figure>
       <h3>Ukotvení (frozen)</h3>
       <p>Sloupec můžeš <b>přišpendlit</b> vlevo nebo vpravo — pak zůstane na místě, i když
         tabulku horizontálně scrolluješ. Ukotvíš ho <b>špendlíkem 📌</b> v dialogu „Sloupce"
