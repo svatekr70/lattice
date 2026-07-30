@@ -99,8 +99,8 @@
     <a href="#presety">Presety</a>
     <h4>Práce s daty</h4>
     <a href="#seskupeni">Seskupení (i datumové)</a>
-    <a href="#editace" class="soon">Inline editace</a>
-    <a href="#vyber" class="soon">Výběr buněk a kopírování</a>
+    <a href="#editace">Inline editace</a>
+    <a href="#vyber">Výběr buněk a kopírování</a>
     <a href="#radek" class="soon">Klik na řádek, menu, popup</a>
     <a href="#hromadne" class="soon">Hromadné úpravy</a>
     <a href="#strom" class="soon">Stromové zobrazení</a>
@@ -296,10 +296,34 @@
         skupin řadíš klikem na běžné hlavičky sloupců. Seskupení <b>zrušíš</b> stejnou ikonou
         seskupení v dialogu „Sloupce" (odškrtnutím).</p>
     </section>
-    <section id="editace"><h2><span class="n">12</span>Inline editace</h2>
-      <p>Úprava hodnoty přímo v buňce, validace.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
-    <section id="vyber"><h2><span class="n">13</span>Výběr buněk a kopírování</h2>
-      <p>Označení obdélníku buněk a kopírování do schránky.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
+    <section id="editace">
+      <h2><span class="n">12</span>Inline editace</h2>
+      <p>Pokud to aplikace povolí, hodnotu upravíš <b>přímo v buňce</b> — <b>dvojklik</b> (nebo
+        Enter na vybrané buňce) ji přepne do editace. Napiš novou hodnotu a potvrď <kbd>Enter</kbd>;
+        <kbd>Esc</kbd> úpravu zruší.</p>
+      <figure>
+        <img src="img/editace.png" alt="Inline editace buňky">
+        <figcaption>Dvojklik na buňku „Firma" ji otevře k úpravě (modrý rámeček, označený text). Enter uloží, Esc zruší.</figcaption>
+      </figure>
+      <p>Podle typu sloupce se editor liší — u výběrových sloupců vyskočí <b>nabídka</b>, u data
+        <b>kalendář</b>, u ano/ne <b>přepínač</b>. Když má sloupec pravidla (např. povinné, rozsah),
+        neplatnou hodnotu <b>nepřijme</b> a upozorní na chybu.</p>
+      <div class="note"><b>Kam se to uloží?</b> Uloženou změnu si aplikace zpracuje po svém
+        (typicky pošle na server). Zda je editace zapnutá a co dělá, závisí na dané aplikaci.</div>
+    </section>
+
+    <section id="vyber">
+      <h2><span class="n">13</span>Výběr buněk a kopírování</h2>
+      <p>Buňky můžeš označit jako v tabulkovém procesoru: klikni do buňky a <b>táhni</b> přes
+        obdélník (nebo drž <kbd>Shift</kbd> a klikni na protilehlý roh). Označený rozsah se
+        podbarví a dole se ukáže jeho <b>souhrn</b>.</p>
+      <figure>
+        <img src="img/vyber-bunek.png" alt="Výběr rozsahu buněk a souhrn">
+        <figcaption>Označený rozsah (Rozpočet + Skóre) a dole souhrn: <b>počet, součet, průměr, min, max</b>.</figcaption>
+      </figure>
+      <p>Označené buňky <b>zkopíruješ</b> do schránky přes <kbd>Ctrl/⌘ + C</kbd> a vložíš třeba do
+        Excelu. Souhrn dole je praktický pro rychlou kontrolu (kolik to je celkem, průměr…).</p>
+    </section>
     <section id="radek"><h2><span class="n">14</span>Klik na řádek, menu, popup</h2>
       <p>Akce po kliknutí na řádek, kontextové menu, popup nad buňkou.</p><span class="soon-badge">🔜 obrázky doplníme</span></section>
     <section id="hromadne"><h2><span class="n">15</span>Hromadné úpravy</h2>
