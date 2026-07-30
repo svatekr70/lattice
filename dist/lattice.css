@@ -265,8 +265,9 @@
   background: transparent;
   color: var(--lattice-muted);
   cursor: pointer;
+  text-decoration: none;
 }
-.lattice-tool-btn:hover { background: var(--lattice-header-bg); color: var(--lattice-text); border-color: var(--lattice-border); }
+.lattice-tool-btn:hover { background: var(--lattice-header-bg); color: var(--lattice-text); border-color: var(--lattice-border); text-decoration: none; }
 .lattice-clear-filters { display: none; }
 .lattice-clear-filters.is-visible { display: inline-flex; }
 .lattice-tool-btn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }

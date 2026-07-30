@@ -19,4 +19,4 @@ export { buildColumns, serializeColumns } from './core/ColumnModel.js';
 export { ClientData, ServerData, encodeParams } from './core/DataSource.js';
 
 /** Verze knihovny (odpovídá package.json). */
-export const VERSION = '1.0.0';
+export const VERSION = '1.0.1';

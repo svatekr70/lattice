@@ -1,4 +1,7 @@
 export default {
+  help: {
+    title: 'Nápověda — otevřít uživatelskou příručku',
+  },
   columns: {
     manage: 'Sloupce',
     reset: 'Obnovit výchozí',

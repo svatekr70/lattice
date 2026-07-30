@@ -1,4 +1,7 @@
 export default {
+  help: {
+    title: 'Help — open the user guide',
+  },
   columns: {
     manage: 'Columns',
     reset: 'Reset to default',

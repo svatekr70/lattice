@@ -7,6 +7,16 @@ Bez runtime závislostí, s jedním zdrojem pravdy pro persistenci a determinist
 📘 **[Uživatelská příručka → `prirucka/`](./prirucka/index.html)** — jak tabulku *ovládat* (pro uživatele aplikace, ne vývojáře): řazení, filtry, seskupení, editace, export… s obrázky.
 Živé ukázky ke všemu jsou v demu (`npm run demo` → `demo/index.html`).
 
+## Proč „Lattice"?
+
+Název sedí hned na několika rovinách:
+
+- **Mřížka** — *lattice* je doslova pravidelná mříž křížících se linek: řádky × sloupce protínající se v buňkách. Popisuje produkt bez metafory.
+- **Uspořádání** — v matematice je *lattice* (svaz) částečně uspořádaná množina s join/meet operacemi. To je přesně jádro knihovny: **řazení, filtrování (A/NEBO stromy), seskupení a hierarchie**.
+- **Lehké, ale pevné** — krystalová i příhradová (*lattice*) konstrukce nesou hodně při minimu materiálu. Doslova filozofie projektu: vanilla JS, **0 závislostí, bez build kroku**, „knihovna počítá, aplikace persistuje".
+
+> Mřížka, která řadí a uspořádává data — a nese hodně při minimu materiálu.
+
 ## Instalace
 
 **Z CDN — jeden soubor, bez buildu** (nejrychlejší začátek):

@@ -4,6 +4,13 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.0.1] – 2026-07-30
+### Přidáno
+- **Ikona nápovědy** (**?**) v toolbaru vpravo od ⚙ „Nastavení tabulky" — otevře
+  uživatelskou příručku v nové kartě. Konfigurovatelné přes `helpUrl`
+  (výchozí je oficiální příručka; `helpUrl: null` ikonu skryje).
+- README: sekce **„Proč Lattice"** (zdůvodnění názvu).
+
 ## [1.0.0] – 2026-07-30
 
 První **stabilní** vydání. Veřejné API (options, sloupce, typy, filtry, metody,
@@ -52,6 +59,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.0.1]: https://github.com/svatekr70/lattice/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/svatekr70/lattice/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/svatekr70/lattice/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/svatekr70/lattice/compare/v0.4.0...v0.4.1
