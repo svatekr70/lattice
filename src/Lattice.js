@@ -114,6 +114,7 @@ export class Lattice {
     // Synchronizace stavu do URL query stringu (sdílitelné filtrované pohledy).
     this.urlState = options.urlState ? { key: (typeof options.urlState === 'object' && options.urlState.key) || options.id } : null;
     this.groupsCollapsed = new Set(this.state.groups || []); // sbalené skupiny řádků
+    this.colGroupsCollapsed = new Set(this.state.colGroups || []); // sbalené skupiny SLOUPCŮ (dle názvu)
     // Tree data (hierarchie) — když je zapnuté, nahrazuje stránkovaný datový zdroj.
     this.tree = options.treeData ? new TreeManager(this, options) : null;
     this.treeView = null;
@@ -253,6 +254,7 @@ export class Lattice {
     // pravdy, automaticky zahrne i nově přidané volby (theme, format, locale…).
     this.state.instance = { ...this.instance };
     this.state.groups = [...this.groupsCollapsed];
+    this.state.colGroups = [...this.colGroupsCollapsed];
     if (this.tree) this.state.tree = [...this.tree.expanded];
     this.store.save(this.state);
   }
@@ -779,6 +781,26 @@ export class Lattice {
     this.renderer.renderBody();
   }
 
+  /** Je skupina SLOUPCŮ (dle názvu) sbalená? */
+  isColGroupCollapsed(title) {
+    return this.colGroupsCollapsed.has(title);
+  }
+
+  /**
+   * Přepne sbalení / rozbalení skupiny SLOUPCŮ. Sbalená skupina se v tabulce
+   * schová do úzkého proužku (jen ikona pro rozbalení); persistuje se. Mění se
+   * sada sloupců i šířky → překreslí hlavičku, tělo a přepočítá layout.
+   */
+  toggleColGroup(title) {
+    if (!title) return;
+    if (this.colGroupsCollapsed.has(title)) this.colGroupsCollapsed.delete(title);
+    else this.colGroupsCollapsed.add(title);
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.renderBody();
+    this.renderer.applyLayout();
+  }
+
   /** Nastaví připnuté řádky (nahoře/dole) a překreslí. `{ top?, bottom? }`. */
   setPinnedRows(patch = {}) {
     if ('top' in patch) this.pinnedTop = Array.isArray(patch.top) ? patch.top.slice() : [];
@@ -1007,6 +1029,63 @@ export class Lattice {
     this.gear?.refresh();
   }
 
+  /** Přejmenuje sloupec (titulek). Prázdný název vrátí výchozí z definice. */
+  setColumnTitle(field, title) {
+    const col = this.columns.find((c) => c.field === field);
+    if (!col) return;
+    const v = String(title == null ? '' : title).trim();
+    col.title = v || col.defaultTitle;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+
+  /** Barva záhlaví SLOUPCE (pozadí + písmo); prázdné hodnoty barvu zruší. */
+  setColumnHeaderColor(field, { background, color } = {}) {
+    const col = this.columns.find((c) => c.field === field);
+    if (!col) return;
+    col.headerBackground = background || null;
+    col.headerColor = color || null;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+
+  /** Barva záhlaví celé SKUPINY sloupců (nastaví se na všechny její členy). */
+  setColGroupHeaderColor(title, { background, color } = {}) {
+    if (!title) return;
+    let any = false;
+    for (const c of this.columns) {
+      if (c.group === title) { c.groupHeaderBackground = background || null; c.groupHeaderColor = color || null; any = true; }
+    }
+    if (!any) return;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+
+  /**
+   * Formát BUŇKY sloupce (vzhled těla: zarovnání, tučné/kurzíva/podtržení/
+   * přeškrtnutí, barva písma/pozadí). `patch` se sloučí; `null` formát zruší.
+   */
+  setColumnCellFormat(field, patch) {
+    const col = this.columns.find((c) => c.field === field);
+    if (!col) return;
+    if (patch === null) col.cellFormat = null;
+    else {
+      const next = Object.assign({}, col.cellFormat, patch);
+      // Prázdný objekt (žádná aktivní vlastnost) → null, ať se nepersistuje zbytečně.
+      const hasAny = Object.keys(next).some((k) => next[k]);
+      col.cellFormat = hasAny ? next : null;
+    }
+    this.saveState();
+    this.renderer.renderBody();
+    this.gear?.refresh();
+  }
+
   /**
    * Vzorec pro souhrnný ŘÁDEK sloupce (vážený / poolovaný souhrn z agregací
    * jiných sloupců — viz core/formula.js). `formula` null/'' vzorec zruší.
@@ -1177,6 +1256,7 @@ export class Lattice {
     let changed = false;
     for (const c of this.columns) if (c.group === groupTitle) { c.group = null; changed = true; }
     if (!changed) return;
+    this.colGroupsCollapsed.delete(groupTitle); // rozpuštěná skupina už nemá co sbalovat
     this._clearActivePreset();
     this._normalizeGroups();
     this.saveState();

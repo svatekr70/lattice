@@ -159,10 +159,24 @@ export class Renderer {
       for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = (grid.responsive && this._collapsed) ? this._collapsed : null;
+    const colGroupsCollapsed = grid.colGroupsCollapsed;
+    const emittedColGroup = new Set();
     this._collapsedCols = [];
     for (const c of grid.columns) {
       if (!c.visible) continue;
       if (grouped.has(c.field)) continue;
+      // Sbalená skupina sloupců → místo všech členů jeden úzký zástupný proužek
+      // (u prvního člena; členové jsou po _normalizeGroups souvislí).
+      const cg = c.group || null;
+      if (cg && colGroupsCollapsed && colGroupsCollapsed.has(cg)) {
+        if (emittedColGroup.has(cg)) continue;
+        emittedColGroup.add(cg);
+        const strip = this.colGroupStrip(c);
+        if (strip.frozen === 'right') right.push(strip);
+        else if (strip.frozen) left.push(strip);
+        else mid.push(strip);
+        continue;
+      }
       if (c.frozen === 'right') right.push(c);
       else if (c.frozen) left.push(c);
       else if (collapsed && collapsed.has(c.field)) this._collapsedCols.push(c); // schováno → do detailu
@@ -202,6 +216,26 @@ export class Renderer {
         },
       };
     });
+  }
+
+  /**
+   * Zástupný (úzký) sloupec pro SBALENOU skupinu sloupců. Drží pozici i frozen
+   * stranu podle prvního člena; tělo je prázdné, záhlaví skupiny nad ním nese
+   * ikonu pro rozbalení.
+   */
+  colGroupStrip(member) {
+    const g = member.group;
+    return {
+      field: ' cg:' + g, title: g, type: 'text',
+      group: g, defaultGroup: g,
+      filter: null, filterEnabled: false, availableFilters: [], headerSort: false,
+      frozen: member.frozen || false, frozenAllowed: false, visible: true,
+      align: 'center', minWidth: COLGROUP_STRIP_W, width: COLGROUP_STRIP_W,
+      headerRotate: null, summary: [], rowSummary: [], summaryFormula: null,
+      formatter: null, value: null, _colGroupStrip: true, _colGroup: g,
+      groupHeaderBackground: member.groupHeaderBackground || null,
+      groupHeaderColor: member.groupHeaderColor || null,
+    };
   }
 
   /** Syntetický sloupec s úchytem pro přetahování řádků (nebo null). */
@@ -353,14 +387,14 @@ export class Renderer {
 
     if (mode === 'fit' || mode === 'fitColumns') {
       // Přebytek rozdělit proporčně (frozen/syntetické necháme být).
-      const targets = list.filter((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu);
+      const targets = list.filter((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._colGroupStrip);
       const flex = targets.length ? targets : list;
       const extra = vpWidth - total;
       const base = flex.reduce((s, c) => s + widths.get(c.field), 0) || 1;
       for (const c of flex) widths.set(c.field, widths.get(c.field) + extra * (widths.get(c.field) / base));
     } else if (mode === 'fitDataStretch') {
       // Poslední „normální" sloupec absorbuje zbytek.
-      const last = [...list].reverse().find((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu);
+      const last = [...list].reverse().find((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._colGroupStrip);
       if (last) widths.set(last.field, widths.get(last.field) + (vpWidth - total));
     }
     return widths;
@@ -537,6 +571,9 @@ export class Renderer {
   buildGroupRow(list) {
     const { groupRow } = this.nodes;
     clear(groupRow);
+    // Mapa barev skupin (title → {bg,color}) — leaf hlavičky ji zdědí, pokud
+    // nemají vlastní barvu. Naplní se níže při procházení skupin.
+    this._groupHeaderStyle = new Map();
     const hasGroups = list.some((c) => c.group);
     if (!hasGroups) {
       groupRow.style.display = 'none';
@@ -553,15 +590,32 @@ export class Renderer {
       // běh sousedních sloupců se stejnou skupinou i frozen-stranou
       while (j < list.length && (list[j].group || null) === g && side(list[j]) === s) j++;
       const members = list.slice(i, j);
-      const cell = el('div.lattice-gcell', { dataset: { fields: members.map((m) => m.field).join(',') } }, [
-        g ? el('span.lattice-gcell-title', { text: g }) : null,
-      ]);
+      const cell = el('div.lattice-gcell', { dataset: { fields: members.map((m) => m.field).join(',') } });
       if (g) {
-        // × pro rozpuštění skupiny (sloupce se vrátí na neseskupenou úroveň)
-        const x = el('button.lattice-gcell-x', { type: 'button', title: this.grid.i18n.t('columns.ungroup'), text: '×', draggable: false });
-        x.addEventListener('mousedown', (e) => e.stopPropagation()); // ať nezačne tažení skupiny
-        x.addEventListener('click', (e) => { e.stopPropagation(); this.grid.ungroup(g); });
-        cell.appendChild(x);
+        const t = this.grid.i18n.t.bind(this.grid.i18n);
+        const collapsed = this.grid.isColGroupCollapsed(g);
+        cell.title = g;
+        cell.classList.toggle('is-col-collapsed', collapsed);
+        // Vlastní barvy záhlaví skupiny (stačí na kterémkoli členu; nese je i proužek).
+        const styled = members.find((m) => m.groupHeaderBackground || m.groupHeaderColor) || members[0];
+        if (styled.groupHeaderBackground) cell.style.background = styled.groupHeaderBackground;
+        if (styled.groupHeaderColor) cell.style.color = styled.groupHeaderColor;
+        if (styled.groupHeaderBackground || styled.groupHeaderColor) {
+          this._groupHeaderStyle.set(g, { bg: styled.groupHeaderBackground, color: styled.groupHeaderColor });
+        }
+        // Ikona sbalit / rozbalit skupinu sloupců (vlevo, jako caret).
+        const tgl = el('button.lattice-gcell-toggle', {
+          type: 'button',
+          title: collapsed ? t('columns.expandGroup') : t('columns.collapseGroup'),
+          text: collapsed ? '+' : '−',
+          class: collapsed ? 'is-collapsed' : '',
+        });
+        tgl.addEventListener('mousedown', (e) => e.stopPropagation()); // ať nezačne tažení
+        tgl.addEventListener('click', (e) => { e.stopPropagation(); this.grid.toggleColGroup(g); });
+        cell.appendChild(tgl);
+        cell.appendChild(el('span.lattice-gcell-title', { text: g }));
+        // (Zrušení skupiny × a barva jsou v dialogu Sloupce → skupina, ať se
+        //  na destruktivní akce omylem neklikne přímo v gridu.)
       } else {
         cell.classList.add('is-empty');
       }
@@ -599,6 +653,10 @@ export class Renderer {
 
   buildHeaderCell(col) {
     const grid = this.grid;
+    // Proužek sbalené skupiny sloupců — prázdná hlavička (ovládá se z řádku skupin).
+    if (col._colGroupStrip) {
+      return el('div.lattice-hcell.lattice-colgroup-striph', { dataset: { field: col.field }, class: 'is-center' });
+    }
     // Souhrn řádků — hlavička se symbolem funkce (Σ/⌀/min/max/#) + názvem funkce.
     if (col._rowsum) {
       return el('div.lattice-hcell.lattice-rowsum-cell', {
@@ -663,6 +721,15 @@ export class Renderer {
         openMenuAt(e.pageX, e.pageY, this.headerMenuItems(col), (v, it) => it && it.action && it.action(cell, col));
       });
     }
+
+    // Barvy záhlaví sloupce: vlastní má přednost, jinak se zdědí barva skupiny.
+    let hbg = col.headerBackground, hcol = col.headerColor;
+    if (col.group && this._groupHeaderStyle) {
+      const gs = this._groupHeaderStyle.get(col.group);
+      if (gs) { hbg = hbg || gs.bg; hcol = hcol || gs.color; }
+    }
+    if (hbg) cell.style.background = hbg;
+    if (hcol) cell.style.color = hcol;
 
     const label = el('span.lattice-hcell-title', { text: col.title });
     cell.appendChild(label);
@@ -1260,15 +1327,11 @@ export class Renderer {
   /** Mezisoučet za skupinu řádků — jeden řádek na aktivní souhrnnou funkci. */
   buildGroupSubtotal(node, list) {
     if (!this.grid.instance.groupSubtotals) return null;
-    const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    const hasFormula = list.some((c) => c.summaryFormula);
-    if (!activeFns.length && !hasFormula) return null;
+    const plan = this._summaryRowPlan(list);
+    if (!plan.length) return null;
     const rows = collectGroupRows(node);
     const frag = document.createDocumentFragment();
-    for (const fn of activeFns) frag.appendChild(this._summaryFnRow(list, fn, rows, { rowClass: 'lattice-group-subtotal' }));
-    for (const label of this._summaryFormulaLabels(list)) {
-      frag.appendChild(this._summaryFormulaRow(list, rows, { rowClass: 'lattice-group-subtotal', label }));
-    }
+    for (const r of plan) frag.appendChild(this._summaryRow(list, r, rows, { rowClass: 'lattice-group-subtotal' }));
     return frag;
   }
 
@@ -1441,82 +1504,73 @@ export class Renderer {
    */
   buildSummary(list, scope) {
     const grid = this.grid;
-    // Aktivní funkce = sjednocení napříč sloupci, v pevném pořadí.
-    const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    const hasFormula = list.some((c) => c.summaryFormula);
-    if (!activeFns.length && !hasFormula) return null;
-
+    const plan = this._summaryRowPlan(list);
+    if (!plan.length) return null;
     const srcRows = grid.summarySource(scope);
     const wrap = el('div.lattice-summary');
-    let i = 0;
-    activeFns.forEach((fn) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: i++ === 0, floatLabel: true })));
-    // Řádky se vzorcem: seskupené podle názvu (různé názvy = víc řádků).
-    for (const label of this._summaryFormulaLabels(list)) {
-      wrap.appendChild(this._summaryFormulaRow(list, srcRows, { first: i++ === 0, floatLabel: true, label }));
-    }
+    plan.forEach((r, i) => wrap.appendChild(this._summaryRow(list, r, srcRows, { first: i === 0, floatLabel: true })));
     return wrap;
   }
 
-  /** Popisky řádků se vzorcem, v pořadí prvního výskytu (výchozí = „Vzorec"). */
-  _summaryFormulaLabels(list) {
-    const def = this.grid.i18n.t('summary.formulaLabel');
-    const out = [];
+  /**
+   * Plán souhrnných řádků: nejdřív standardní funkce (v pořadí SUMMARY_ORDER),
+   * pak vzorce s vlastním názvem. Vzorec pojmenovaný STEJNĚ jako standardní řádek
+   * (např. „Průměr") se do něj sloučí — nevytvoří vlastní řádek. Každá položka:
+   * `{ label, fn }` (fn = klíč standardní funkce, nebo null u čistě vzorcového řádku).
+   */
+  _summaryRowPlan(list) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const plan = [];
+    const labels = new Set();
+    for (const fn of SUMMARY_ORDER) {
+      if (list.some((c) => (c.summary || []).includes(fn))) {
+        const label = t('summary.name.' + fn);
+        plan.push({ label, fn });
+        labels.add(label);
+      }
+    }
+    const defLbl = t('summary.formulaLabel');
     for (const c of list) {
       if (!c.summaryFormula) continue;
-      const lbl = c.summaryFormulaLabel || def;
-      if (!out.includes(lbl)) out.push(lbl);
+      const lbl = c.summaryFormulaLabel || defLbl;
+      if (!labels.has(lbl)) { labels.add(lbl); plan.push({ label: lbl, fn: null }); }
     }
-    return out;
-  }
-
-  /** Jeden souhrnný řádek pro danou funkci nad `srcRows` (sdílené: pata i skupiny). */
-  _summaryFnRow(list, fn, srcRows, opts = {}) {
-    const t = this.grid.i18n.t.bind(this.grid.i18n);
-    const row = el('div.lattice-row.lattice-summary-row'
-      + (opts.rowClass ? '.' + opts.rowClass : '') + (opts.first ? '.is-first' : ''));
-    for (const col of list) {
-      const cell = el('div.lattice-cell.lattice-summary-cell', {
-        dataset: { field: col.field }, class: col.align ? 'is-' + col.align : '',
-      });
-      if (!col._rownum && (col.summary || []).includes(fn) && (fn === 'count' || isNumericType(col.type))) {
-        const val = computeSummary(fn, col, srcRows);
-        cell.appendChild(el('span.lattice-summary-sym', { text: SUMMARY_SYMBOL[fn], title: t('summary.name.' + fn) }));
-        cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue(fn, val, col) }));
-      }
-      row.appendChild(cell);
-    }
-    if (opts.floatLabel) {
-      const lbl = el('span.lattice-summary-rowlabel', { text: t('summary.name.' + fn), title: t('summary.name.' + fn) });
-      row.appendChild(el('div.lattice-summary-label-wrap', {}, [lbl]));
-    }
-    return row;
+    return plan;
   }
 
   /**
-   * Souhrnný řádek počítaný VZORCEM (vážený/poolovaný souhrn) nad `srcRows`.
-   * `opts.label` = název řádku; zobrazí jen sloupce, jejichž popisek mu odpovídá.
+   * Jeden souhrnný řádek dle plánu (`rowSpec = { label, fn }`) nad `srcRows`.
+   * Sdílené pro patu i mezisoučty skupin. V každé buňce má vzorec (ƒ) přednost
+   * před standardní funkcí — tak se vážený vzorec zobrazí ve „svém" řádku i když
+   * je pojmenovaný jako funkce.
    */
-  _summaryFormulaRow(list, srcRows, opts = {}) {
+  _summaryRow(list, rowSpec, srcRows, opts = {}) {
     const t = this.grid.i18n.t.bind(this.grid.i18n);
-    const rowLabel = opts.label || t('summary.formulaLabel');
-    const defLabel = t('summary.formulaLabel');
+    const defFormulaLbl = t('summary.formulaLabel');
     const row = el('div.lattice-row.lattice-summary-row'
       + (opts.rowClass ? '.' + opts.rowClass : '') + (opts.first ? '.is-first' : ''));
     for (const col of list) {
       const cell = el('div.lattice-cell.lattice-summary-cell', {
         dataset: { field: col.field }, class: col.align ? 'is-' + col.align : '',
       });
-      const colLabel = col.summaryFormula ? (col.summaryFormulaLabel || defLabel) : null;
-      if (!col._rownum && col.summaryFormula && colLabel === rowLabel) {
-        let val = null;
-        try { val = compileAggregate(col.summaryFormula)(srcRows); } catch { val = null; }
-        cell.appendChild(el('span.lattice-summary-sym', { text: 'ƒ', title: col.summaryFormula }));
-        cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue('formula', val, col) }));
+      if (!col._rownum) {
+        const colFormulaLbl = col.summaryFormula ? (col.summaryFormulaLabel || defFormulaLbl) : null;
+        if (colFormulaLbl === rowSpec.label) {
+          // Vážený vzorec (má přednost) — symbol ƒ naznačuje výpočet vzorcem.
+          let val = null;
+          try { val = compileAggregate(col.summaryFormula)(srcRows); } catch { val = null; }
+          cell.appendChild(el('span.lattice-summary-sym.is-formula', { text: 'ƒ', title: col.summaryFormula }));
+          cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue('formula', val, col) }));
+        } else if (rowSpec.fn && (col.summary || []).includes(rowSpec.fn) && (rowSpec.fn === 'count' || isNumericType(col.type))) {
+          const val = computeSummary(rowSpec.fn, col, srcRows);
+          cell.appendChild(el('span.lattice-summary-sym', { text: SUMMARY_SYMBOL[rowSpec.fn], title: t('summary.name.' + rowSpec.fn) }));
+          cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue(rowSpec.fn, val, col) }));
+        }
       }
       row.appendChild(cell);
     }
     if (opts.floatLabel) {
-      const lbl = el('span.lattice-summary-rowlabel', { text: rowLabel, title: rowLabel });
+      const lbl = el('span.lattice-summary-rowlabel', { text: rowSpec.label, title: rowSpec.label });
       row.appendChild(el('div.lattice-summary-label-wrap', {}, [lbl]));
     }
     return row;
@@ -1551,7 +1605,29 @@ export class Renderer {
     return Number(val).toLocaleString(undefined, { maximumFractionDigits: maxdec });
   }
 
+  /** Aplikuje uživatelský „formát buňky" (zarovnání, řez písma, barvy) na buňku. */
+  applyCellFormat(cell, col) {
+    const cf = col.cellFormat;
+    if (!cf) return;
+    if (cf.align) {
+      cell.classList.remove('is-left', 'is-center', 'is-right');
+      cell.classList.add('is-' + cf.align);
+    }
+    if (cf.bold) cell.style.fontWeight = '700';
+    if (cf.italic) cell.style.fontStyle = 'italic';
+    const deco = [];
+    if (cf.underline) deco.push('underline');
+    if (cf.strike) deco.push('line-through');
+    if (deco.length) cell.style.textDecoration = deco.join(' ');
+    if (cf.color) cell.style.color = cf.color;
+    if (cf.background) cell.style.background = cf.background;
+  }
+
   buildBodyCell(col, rowData, index) {
+    // Proužek sbalené skupiny sloupců — prázdná buňka.
+    if (col._colGroupStrip) {
+      return el('div.lattice-cell.lattice-colgroup-strip', { dataset: { field: col.field } });
+    }
     // Sloupec akcí — inline ikony.
     if (col._actions) {
       const cell = el('div.lattice-cell.lattice-actions-cell', { dataset: { field: col.field }, class: 'is-center' });
@@ -1629,6 +1705,7 @@ export class Renderer {
       class: [col.align ? 'is-' + col.align : '', editable ? 'is-editable' : ''].filter(Boolean).join(' '),
       title: editable ? this.grid.i18n.t('edit.hint') : undefined,
     });
+    this.applyCellFormat(cell, col); // vzhled buňky (zarovnání, řez, barvy) z UI
     const formatter = getFormatter(col);
     const out = formatter(value, col, rowData);
     if (out instanceof Node) cell.appendChild(out);
@@ -2051,6 +2128,8 @@ const REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" st
 const CLEAR_HIST_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 // Chevron dolů (rozbaleno); CSS ho u sbalené skupiny otočí na -90°.
 const CHEVRON_SVG = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 6l4 4 4-4"/></svg>';
+// Šířka proužku sbalené skupiny sloupců (jen ikona pro rozbalení).
+const COLGROUP_STRIP_W = 34;
 
 /** Odhad šířky sloupce pro responsivní výpočet (uživatelská → min → default). */
 function colWidth(c) {

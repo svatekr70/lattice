@@ -116,7 +116,9 @@ export function resolveColumn(def, saved) {
   return {
     // --- z definice (živé, nepersistuje se) ---
     field: def.field,
-    title: def.title != null ? def.title : def.field,
+    // Titulek lze přejmenovat v UI → persistuje se odchylka od configu.
+    defaultTitle: def.title != null ? String(def.title) : def.field,
+    title: s.title !== undefined ? s.title : (def.title != null ? String(def.title) : def.field),
     type: def.type || 'text',
     defaultFilter,                       // původní/odvozený filtr (pro reset/labely)
     availableFilters,                    // mezi čím lze přepínat
@@ -143,6 +145,18 @@ export function resolveColumn(def, saved) {
     cellPopup: typeof def.cellPopup === 'function' ? def.cellPopup : null,   // popup na klik do buňky
     headerPopup: typeof def.headerPopup === 'function' ? def.headerPopup : null, // popup z ⓘ v hlavičce
     headerMenu: def.headerMenu != null ? def.headerMenu : null, // menu hlavičky (true | pole | funkce)
+    // Vlastní barvy záhlaví SLOUPCE (pozadí + písmo). null = výchozí motiv.
+    // Persistuje se jen odchylka od configu (uživatel je mění v UI).
+    defaultHeaderBackground: def.headerBackground || null,
+    headerBackground: s.headerBackground !== undefined ? s.headerBackground : (def.headerBackground || null),
+    defaultHeaderColor: def.headerColor || null,
+    headerColor: s.headerColor !== undefined ? s.headerColor : (def.headerColor || null),
+    // Vlastní barvy záhlaví SKUPINY — z nested definice skupiny
+    // (`{ title, headerBackground, columns }`) nebo per-sloupec (`groupHeaderBackground`).
+    defaultGroupHeaderBackground: def.groupHeaderBackground || (def.groupDef && def.groupDef.headerBackground) || null,
+    groupHeaderBackground: s.groupHeaderBackground !== undefined ? s.groupHeaderBackground : (def.groupHeaderBackground || (def.groupDef && def.groupDef.headerBackground) || null),
+    defaultGroupHeaderColor: def.groupHeaderColor || (def.groupDef && def.groupDef.headerColor) || null,
+    groupHeaderColor: s.groupHeaderColor !== undefined ? s.groupHeaderColor : (def.groupHeaderColor || (def.groupDef && def.groupDef.headerColor) || null),
     def, // reference na původní definici (pro rozšíření/vlastní typy)
 
     // --- uživatelský stav (persistuje se; priorita: saved → definice → default) ---
@@ -176,6 +190,10 @@ export function resolveColumn(def, saved) {
     // Podmíněná barevná škála (semafor) — { on, levels, reverse, thresholds }.
     defaultCondFormat: def.condFormat || null,
     condFormat: s.condFormat !== undefined ? s.condFormat : (def.condFormat || null),
+    // Formát BUŇKY (vzhled těla sloupce): { align, bold, italic, underline,
+    // strike, color, background }. Nastavuje se v UI; persistuje se odchylka.
+    defaultCellFormat: def.cellFormat || null,
+    cellFormat: s.cellFormat !== undefined ? s.cellFormat : (def.cellFormat || null),
   };
 }
 
@@ -242,6 +260,8 @@ function normalizeFrozen(v) {
 export function serializeColumns(columns) {
   return columns.map((c) => ({
     field: c.field,
+    // přejmenovaný titulek se ukládá jen při odchylce od configu.
+    ...(c.title !== c.defaultTitle ? { title: c.title } : {}),
     // Počítaný sloupec (definovaný v UI) se persistuje celý — bez configu ho
     // po reloadu nelze zrekonstruovat, tak uložíme i jeho titulek, typ a vzorec.
     ...(c.formula != null ? { computed: true, formula: c.formula, title: c.title, type: c.type } : {}),
@@ -263,6 +283,13 @@ export function serializeColumns(columns) {
     // vzorec souhrnu (+ jeho název řádku) se ukládá jen když se liší od výchozího.
     ...(c.summaryFormula !== c.defaultSummaryFormula ? { summaryFormula: c.summaryFormula } : {}),
     ...(c.summaryFormulaLabel !== c.defaultSummaryFormulaLabel ? { summaryFormulaLabel: c.summaryFormulaLabel } : {}),
+    // barvy záhlaví (sloupce i skupiny) se ukládají jen při odchylce od configu.
+    ...(c.headerBackground !== c.defaultHeaderBackground ? { headerBackground: c.headerBackground } : {}),
+    ...(c.headerColor !== c.defaultHeaderColor ? { headerColor: c.headerColor } : {}),
+    ...(c.groupHeaderBackground !== c.defaultGroupHeaderBackground ? { groupHeaderBackground: c.groupHeaderBackground } : {}),
+    ...(c.groupHeaderColor !== c.defaultGroupHeaderColor ? { groupHeaderColor: c.groupHeaderColor } : {}),
+    // formát buňky (vzhled těla) — jen při odchylce od configu.
+    ...(JSON.stringify(c.cellFormat) !== JSON.stringify(c.defaultCellFormat) ? { cellFormat: c.cellFormat } : {}),
     // formát se ukládá jen když se liší od výchozího (uživatel udělal výjimku).
     ...(JSON.stringify(c.format) !== JSON.stringify(c.defaultColFormat) ? { format: c.format } : {}),
     ...(JSON.stringify(c.condFormat) !== JSON.stringify(c.defaultCondFormat) ? { condFormat: c.condFormat } : {}),

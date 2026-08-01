@@ -19,6 +19,7 @@ import { formatFields } from './instanceSettings.js';
 import { levelColor, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { DATE_PARTS } from '../core/dateParts.js';
 import { validateFormula, compileFormula, FORMULA_CATALOG, validateAggregate, compileAggregate, AGGREGATE_CATALOG } from '../core/formula.js';
+import { openHeaderColorPicker, openColorPicker } from './headerColor.js';
 
 export class Gear {
   constructor(grid) {
@@ -42,6 +43,9 @@ export class Gear {
     this.panel = panel;
     this.off = onOutside(panel, (e) => {
       if (anchor.contains(e.target)) return;
+      // Klik do vlastního pod-popoveru (souhrn / formát / skupina / vzorec / menu)
+      // panel nezavírá — ať zůstane „Sloupce" otevřený a kotva popoveru se neutrhne.
+      if (e.target.closest && e.target.closest('.lattice-menu')) return;
       this.close();
     });
   }
@@ -191,6 +195,26 @@ export class Gear {
     }
   }
 
+  /** Inline přejmenování sloupce (dvojklik na název v seznamu). */
+  _startRename(col, nameSpan) {
+    const grid = this.grid;
+    const input = el('input.lattice-gear-rename', { type: 'text', value: col.title });
+    // Zabránit dragu řádku / propagaci klávesnice mimo input.
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+    let done = false;
+    const commit = () => { if (done) return; done = true; grid.setColumnTitle(col.field, input.value); };
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      else if (e.key === 'Escape') { done = true; this.refresh(); }
+    });
+    input.addEventListener('blur', commit);
+    nameSpan.replaceWith(input);
+    input.focus();
+    input.select();
+  }
+
   buildRow(col) {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
@@ -201,7 +225,22 @@ export class Gear {
     const cb = el('input', { type: 'checkbox', checked: col.visible });
     cb.addEventListener('change', () => grid.setColumnVisible(col.field, cb.checked));
 
-    const label = el('label.lattice-gear-label', {}, [cb, el('span', { text: col.title })]);
+    // Název: klik přepne viditelnost, DVOJKLIK přejmenuje (inline). Rozlišení
+    // klik/dvojklik krátkým časovačem, ať dvojklik netoggluje a nepřebije rename.
+    const nameSpan = el('span.lattice-gear-name', { text: col.title, title: col.title + ' — ' + t('columns.renameHint') });
+    let clickT = null;
+    nameSpan.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (clickT) { clearTimeout(clickT); clickT = null; return; }
+      clickT = setTimeout(() => { clickT = null; grid.setColumnVisible(col.field, !col.visible); }, 220);
+    });
+    nameSpan.addEventListener('dblclick', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (clickT) { clearTimeout(clickT); clickT = null; }
+      this._startRename(col, nameSpan);
+    });
+    // div (ne <label>) — ať rename input nekoliduje s nativním togglem checkboxu.
+    const label = el('div.lattice-gear-label', {}, [cb, nameSpan]);
     // Počítaný sloupec (vzorec z UI): odznak „ƒ" = klik otevře editor vzorce.
     if (col.formula != null) {
       const fx = el('button.lattice-calc-badge', { type: 'button', title: t('calc.edit'), html: FX_SVG });
@@ -253,6 +292,32 @@ export class Gear {
     grpBtn.addEventListener('click', () => openGroupPicker(grpBtn, grid, col, () => this.refresh()));
     tools.appendChild(grpBtn);
 
+    // 3b) Barva záhlaví sloupce (pozadí + písmo) — přednastavené kombinace / vlastní.
+    const colorBtn = el('button.lattice-gbtn.lattice-hcolor-btn', {
+      type: 'button', title: grid.i18n.t('columns.headerColor'),
+      class: (col.headerBackground || col.headerColor) ? 'is-active' : '',
+      style: (col.headerBackground || col.headerColor)
+        ? { background: col.headerBackground || 'transparent', color: col.headerColor || 'inherit' } : {},
+      text: 'A',
+    });
+    colorBtn.addEventListener('click', () => openHeaderColorPicker(colorBtn, {
+      t: grid.i18n.t.bind(grid.i18n),
+      current: { background: col.headerBackground, color: col.headerColor },
+      onPick: (bg, fg) => grid.setColumnHeaderColor(col.field, { background: bg, color: fg }),
+      onClear: () => grid.setColumnHeaderColor(col.field, {}),
+    }));
+    tools.appendChild(colorBtn);
+
+    // 3c) Formát buňky (zarovnání, řez písma, barvy těla sloupce).
+    const cf = col.cellFormat || {};
+    const cfActive = !!(cf.align || cf.bold || cf.italic || cf.underline || cf.strike || cf.color || cf.background);
+    const cellFmtBtn = el('button.lattice-gbtn.lattice-cellfmt-btn', {
+      type: 'button', title: grid.i18n.t('columns.cellFormat'),
+      class: cfActive ? 'is-active' : '', text: '¶',
+    });
+    cellFmtBtn.addEventListener('click', () => openCellFormatPicker(cellFmtBtn, grid, col));
+    tools.appendChild(cellFmtBtn);
+
     // 4) Otočení hlavičky sloupce (podle tabulky / vodorovně / 90° / 270°).
     const rotBtn = el('button.lattice-gbtn', {
       type: 'button',
@@ -275,7 +340,7 @@ export class Gear {
     const sumBtn = el('button.lattice-gbtn', {
       type: 'button',
       title: t('columns.summary'),
-      class: ((col.summary && col.summary.length) || (col.rowSummary && col.rowSummary.length)) ? 'is-active' : '',
+      class: ((col.summary && col.summary.length) || (col.rowSummary && col.rowSummary.length) || col.summaryFormula) ? 'is-active' : '',
       text: 'Σ',
     });
     sumBtn.addEventListener('click', () => openSummaryPicker(sumBtn, grid, col));
@@ -390,23 +455,50 @@ function openGroupPicker(anchor, grid, col, onDone) {
   menu.appendChild(none);
 
   for (const g of grid.groupNames()) {
-    const item = el('div.lattice-menu-item', { class: g === cur ? 'is-active' : '', text: g });
-    item.addEventListener('click', () => pick(g));
+    const item = el('div.lattice-menu-item.lattice-group-item', { class: g === cur ? 'is-active' : '' });
+    const name = el('span.lattice-group-item-name', { text: g });
+    name.addEventListener('click', () => pick(g));
+    // Barva záhlaví skupiny — čte se z libovolného člena; nastaví na všechny.
+    const member = grid.columns.find((c) => c.group === g) || {};
+    const cbtn = el('button.lattice-group-color', {
+      type: 'button', title: t('columns.groupHeaderColor'),
+      style: (member.groupHeaderBackground || member.groupHeaderColor)
+        ? { background: member.groupHeaderBackground || 'var(--lattice-bg)', color: member.groupHeaderColor || 'inherit' } : {},
+      text: 'A',
+    });
+    cbtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openHeaderColorPicker(cbtn, {
+        t,
+        current: { background: member.groupHeaderBackground, color: member.groupHeaderColor },
+        onPick: (bg, fg) => { grid.setColGroupHeaderColor(g, { background: bg, color: fg }); onDone && onDone(); },
+        onClear: () => { grid.setColGroupHeaderColor(g, {}); onDone && onDone(); },
+      });
+    });
+    // × zrušit skupinu (bezpečně tady, ne přímo v gridu)
+    const del = el('button.lattice-group-del', { type: 'button', title: t('columns.ungroup'), text: '×' });
+    del.addEventListener('click', (e) => { e.stopPropagation(); close(); grid.ungroup(g); onDone && onDone(); });
+    item.append(name, cbtn, del);
     menu.appendChild(item);
   }
 
-  const input = el('input.lattice-group-new', { type: 'text', placeholder: t('columns.newGroup') });
-  const add = () => { const v = input.value.trim(); if (v) pick(v); };
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-  const addBtn = el('button.lattice-icon-btn', { type: 'button', text: '+' });
-  addBtn.addEventListener('click', add);
-  menu.appendChild(el('div.lattice-group-newrow', {}, [input, addBtn]));
+  // „Nová skupina" nabízíme jen sloupci BEZ skupiny (sloupec může být jen v jedné;
+  // do jiné se přesune přes „Bez skupiny" a pak nová, nebo výběrem existující).
+  let newInput = null;
+  if (!cur) {
+    newInput = el('input.lattice-group-new', { type: 'text', placeholder: t('columns.newGroup') });
+    const add = () => { const v = newInput.value.trim(); if (v) pick(v); };
+    newInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+    const addBtn = el('button.lattice-icon-btn', { type: 'button', text: '+' });
+    addBtn.addEventListener('click', add);
+    menu.appendChild(el('div.lattice-group-newrow', {}, [newInput, addBtn]));
+  }
 
   document.body.appendChild(menu);
   positionUnder(menu, anchor);
   const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
   function close() { off(); menu.remove(); }
-  setTimeout(() => input.focus(), 0);
+  if (newInput) setTimeout(() => newInput.focus(), 0);
   return close;
 }
 
@@ -544,7 +636,10 @@ function openSummaryFormulaEditor(anchor, grid, col) {
   menu.appendChild(el('div.lattice-formula-actions', {}, actions));
 
   function fit() {
-    positionUnder(menu, anchor);
+    // Kotva (tlačítko v seznamu) se mohla utrhnout překreslením → přichyť editor
+    // k panelu „Sloupce", ať neskončí v rohu (0,0).
+    const a = (anchor && anchor.isConnected) ? anchor : ((grid.gear && grid.gear.panel) || anchor);
+    positionUnder(menu, a);
     const vh = window.innerHeight;
     if (menu.getBoundingClientRect().bottom > vh - 8) {
       menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + 'px';
@@ -557,6 +652,72 @@ function openSummaryFormulaEditor(anchor, grid, col) {
   const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
   function close() { off(); menu.remove(); }
   setTimeout(() => ta.focus(), 0);
+  return close;
+}
+
+/**
+ * „Formát buňky" — vzhled těla sloupce: zarovnání, řez písma (tučné/kurzíva/
+ * podtržené/přeškrtnuté), barva písma a pozadí. Ukládá do col.cellFormat.
+ */
+function openCellFormatPicker(anchor, grid, col) {
+  document.querySelectorAll('.lattice-cellfmt-menu').forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el('div.lattice-menu.lattice-cellfmt-menu');
+  const cf = () => col.cellFormat || {};
+  const set = (patch) => { grid.setColumnCellFormat(col.field, patch); render(); };
+
+  const alignBtn = (val, svg) => {
+    const b = el('button.lattice-cellfmt-tgl', { type: 'button', class: cf().align === val ? 'is-active' : '', html: svg });
+    b.addEventListener('click', () => set({ align: cf().align === val ? null : val }));
+    return b;
+  };
+  const styleBtn = (key, label, cls, titleKey) => {
+    const b = el('button.lattice-cellfmt-tgl.' + cls, { type: 'button', title: t('cellFormat.' + titleKey), class: cf()[key] ? 'is-active' : '', text: label });
+    b.addEventListener('click', () => set({ [key]: !cf()[key] }));
+    return b;
+  };
+  const colorField = (key, labelKey) => {
+    const val = cf()[key];
+    const b = el('button.lattice-cellfmt-color', {
+      type: 'button', title: t('cellFormat.' + labelKey),
+      style: val ? { background: key === 'background' ? val : 'var(--lattice-bg)', color: key === 'color' ? val : (val || 'inherit') } : {},
+      text: 'A',
+    });
+    b.addEventListener('click', () => openColorPicker(b, {
+      t, title: t('cellFormat.' + labelKey), current: val,
+      onPick: (c) => set({ [key]: c }), onClear: () => set({ [key]: null }),
+    }));
+    return b;
+  };
+
+  function render() {
+    clear(menu);
+    menu.appendChild(el('div.lattice-summary-menu-head', { text: t('cellFormat.title') }));
+    menu.appendChild(csField(t('cellFormat.align'), el('div.lattice-cellfmt-row', {}, [
+      alignBtn('left', AL_LEFT_SVG), alignBtn('center', AL_CENTER_SVG), alignBtn('right', AL_RIGHT_SVG),
+    ])));
+    menu.appendChild(csField(t('cellFormat.style'), el('div.lattice-cellfmt-row', {}, [
+      styleBtn('bold', 'B', 'is-b', 'bold'),
+      styleBtn('italic', 'I', 'is-i', 'italic'),
+      styleBtn('underline', 'U', 'is-u', 'underline'),
+      styleBtn('strike', 'S', 'is-s', 'strike'),
+    ])));
+    menu.appendChild(csField(t('cellFormat.textColor'), colorField('color', 'textColor')));
+    menu.appendChild(csField(t('cellFormat.bgColor'), colorField('background', 'bgColor')));
+    const clr = el('button.lattice-formula-btn.is-danger', { type: 'button', text: t('cellFormat.clear') });
+    clr.addEventListener('click', () => { grid.setColumnCellFormat(col.field, null); render(); });
+    menu.appendChild(el('div.lattice-cellfmt-actions', {}, [clr]));
+  }
+  render();
+
+  document.body.appendChild(menu);
+  positionUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (anchor.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.lattice-hcolor-menu')) return; // klik do sub-pickeru barvy
+    close();
+  });
+  function close() { off(); menu.remove(); }
   return close;
 }
 
@@ -791,7 +952,10 @@ function openFormulaEditor(anchor, grid, col, gear) {
 
   // Umístí editor pod kotvu; když je vysoký a přetekl by dolů, posune ho nahoru.
   function fit() {
-    positionUnder(menu, anchor);
+    // Kotva (tlačítko v seznamu) se mohla utrhnout překreslením → přichyť editor
+    // k panelu „Sloupce", ať neskončí v rohu (0,0).
+    const a = (anchor && anchor.isConnected) ? anchor : ((grid.gear && grid.gear.panel) || anchor);
+    positionUnder(menu, a);
     const vh = window.innerHeight;
     if (menu.getBoundingClientRect().bottom > vh - 8) {
       menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + 'px';
@@ -932,5 +1096,9 @@ const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-h
 const RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 const GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
 const BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+// zarovnání buňky (vlevo / na střed / vpravo)
+const AL_LEFT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg>';
+const AL_CENTER_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM4 7h8v2H4zM2 11h12v2H2z"/></svg>';
+const AL_RIGHT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM6 7h8v2H6zM2 11h12v2H2z"/></svg>';
 // „ƒx" — počítaný sloupec (vzorec)
-const FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';
+const FX_SVG ='<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';

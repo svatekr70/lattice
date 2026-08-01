@@ -54,6 +54,8 @@ let docGrids = [];           // živé instance uvnitř doc stránky (kvůli úk
 
 const els = {
   nav: document.getElementById('nav'),
+  navSearch: document.getElementById('navSearch'),
+  navEmpty: document.getElementById('navEmpty'),
   title: document.getElementById('ex-title'),
   blurb: document.getElementById('ex-blurb'),
   code: document.getElementById('ex-code'),
@@ -92,6 +94,7 @@ function buildNav(groups, hashPrefix) {
     });
     els.nav.append(cat, list);
   }
+  filterNav(); // po přestavění nabídky znovu použij aktuální hledání
 }
 
 function highlightNav() {
@@ -99,6 +102,32 @@ function highlightNav() {
   for (const a of els.nav.querySelectorAll('.nav-item')) {
     a.classList.toggle('active', a.dataset.hash === active);
   }
+}
+
+/** Bezdiakritické, malými písmeny — pro tolerantní hledání. */
+function foldText(s) {
+  return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+/** Filtruje položky v sidebaru podle hledaného textu (název ukázky/stránky). */
+function filterNav() {
+  const q = foldText(els.navSearch ? els.navSearch.value.trim() : '');
+  let anyVisible = false;
+  els.nav.querySelectorAll('.nav-list').forEach((list) => {
+    const cat = list.previousElementSibling; // odpovídající .nav-cat
+    let catHas = false;
+    list.querySelectorAll('.nav-item').forEach((a) => {
+      const match = !q || foldText(a.textContent).includes(q);
+      a.classList.toggle('is-hidden', !match);
+      if (match) catHas = true;
+    });
+    if (cat) cat.classList.toggle('is-hidden', !!q && !catHas);
+    // při hledání ukaž nálezy bez ohledu na sbalení kategorie; jinak dle stavu sbalení
+    if (q) list.style.display = catHas ? '' : 'none';
+    else list.style.display = (cat && cat.classList.contains('is-collapsed')) ? 'none' : '';
+    if (catHas) anyVisible = true;
+  });
+  if (els.navEmpty) els.navEmpty.hidden = !(q && !anyVisible);
 }
 
 /* ---------- režim ---------- */
@@ -169,6 +198,12 @@ function route(hash) {
 /* ---------- ovládání ---------- */
 els.tabEx.addEventListener('click', () => route(currentId || ALL[0].id));
 els.tabDocs.addEventListener('click', () => route('doc-' + (currentDocId || DOC_ALL[0].id)));
+
+if (els.navSearch) {
+  els.navSearch.addEventListener('input', filterNav);
+  // Esc vyčistí hledání
+  els.navSearch.addEventListener('keydown', (e) => { if (e.key === 'Escape') { els.navSearch.value = ''; filterNav(); } });
+}
 
 els.lang.addEventListener('change', () => {
   lang = els.lang.value;

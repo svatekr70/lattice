@@ -189,13 +189,26 @@ const RAW_GROUPS = [
       {
         id: 'ex-groups',
         title: 'Skupiny sloupců',
-        blurb: 'Sloupce sdružené pod společnou hlavičkou. Přeuspořádání jen v rámci skupiny nebo celé skupiny. Nastavuje se v dialogu Sloupce.',
-        code: `columns = [\n  { field: 'name', group: 'Základ' },\n  { field: 'owner', group: 'Základ' },\n  { field: 'budget', group: 'Výkon' },\n  { field: 'score', group: 'Výkon' },\n]`,
+        blurb: 'Sloupce sdružené pod společnou hlavičkou. Přeuspořádání jen v rámci skupiny nebo celé skupiny. Skupinu lze v záhlaví **sbalit** (ikona „−") do úzkého proužku a zase **rozbalit** („+"). Záhlaví skupiny i sloupce může mít **vlastní barvy** (`headerBackground`/`headerColor`); sloupce bez vlastní barvy zdědí barvu skupiny. Nastavuje se v dialogu Sloupce.',
+        code: `columns = [
+  // nested skupina s barvou záhlaví (sloupce ji zdědí)
+  { title: 'Identifikace', headerBackground: '#0369a1', headerColor: '#fff',
+    columns: [ { field: 'name' }, { field: 'owner' }, { field: 'region' } ] },
+  // plochá skupina: barva přes groupHeaderBackground na členu
+  { field: 'budget', group: 'Výkon', groupHeaderBackground: '#065f46', groupHeaderColor: '#fff' },
+  { field: 'score',  group: 'Výkon' },
+  // vlastní barva jednoho sloupce (přebije skupinu)
+  { field: 'progress', group: 'Výkon', headerBackground: '#fde68a', headerColor: '#92400e' },
+]
+// sbalení/rozbalení za běhu: grid.toggleColGroup('Výkon')`,
         mount: (el, ctx) => {
           const cols = campaignColumns();
-          const g = (f, group) => { cols.find((c) => c.field === f).group = group; };
-          g('name', 'Identifikace'); g('owner', 'Identifikace'); g('region', 'Identifikace');
-          g('budget', 'Výkon'); g('score', 'Výkon'); g('progress', 'Výkon'); g('rating', 'Výkon');
+          const set = (f, patch) => Object.assign(cols.find((c) => c.field === f), patch);
+          // Skupina „Identifikace" — barva na všech členech (zdědí ji hlavičky sloupců).
+          for (const f of ['name', 'owner', 'region']) set(f, { group: 'Identifikace', groupHeaderBackground: '#0369a1', groupHeaderColor: '#ffffff' });
+          // Skupina „Výkon" — jiná barva; sloupec „progress" má vlastní (přebije skupinu).
+          for (const f of ['budget', 'score', 'progress', 'rating']) set(f, { group: 'Výkon', groupHeaderBackground: '#065f46', groupHeaderColor: '#ffffff' });
+          set('progress', { headerBackground: '#fde68a', headerColor: '#92400e' });
           return new Lattice(el, base(ctx, { id: 'ex-groups', columns: cols, data: ctx.data, pageSize: 25 }));
         },
       },

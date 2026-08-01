@@ -748,7 +748,9 @@ function resolveColumn(def, saved) {
   return {
     // --- z definice (živé, nepersistuje se) ---
     field: def.field,
-    title: def.title != null ? def.title : def.field,
+    // Titulek lze přejmenovat v UI → persistuje se odchylka od configu.
+    defaultTitle: def.title != null ? String(def.title) : def.field,
+    title: s.title !== void 0 ? s.title : def.title != null ? String(def.title) : def.field,
     type: def.type || "text",
     defaultFilter,
     // původní/odvozený filtr (pro reset/labely)
@@ -792,6 +794,18 @@ function resolveColumn(def, saved) {
     // popup z ⓘ v hlavičce
     headerMenu: def.headerMenu != null ? def.headerMenu : null,
     // menu hlavičky (true | pole | funkce)
+    // Vlastní barvy záhlaví SLOUPCE (pozadí + písmo). null = výchozí motiv.
+    // Persistuje se jen odchylka od configu (uživatel je mění v UI).
+    defaultHeaderBackground: def.headerBackground || null,
+    headerBackground: s.headerBackground !== void 0 ? s.headerBackground : def.headerBackground || null,
+    defaultHeaderColor: def.headerColor || null,
+    headerColor: s.headerColor !== void 0 ? s.headerColor : def.headerColor || null,
+    // Vlastní barvy záhlaví SKUPINY — z nested definice skupiny
+    // (`{ title, headerBackground, columns }`) nebo per-sloupec (`groupHeaderBackground`).
+    defaultGroupHeaderBackground: def.groupHeaderBackground || def.groupDef && def.groupDef.headerBackground || null,
+    groupHeaderBackground: s.groupHeaderBackground !== void 0 ? s.groupHeaderBackground : def.groupHeaderBackground || def.groupDef && def.groupDef.headerBackground || null,
+    defaultGroupHeaderColor: def.groupHeaderColor || def.groupDef && def.groupDef.headerColor || null,
+    groupHeaderColor: s.groupHeaderColor !== void 0 ? s.groupHeaderColor : def.groupHeaderColor || def.groupDef && def.groupDef.headerColor || null,
     def,
     // reference na původní definici (pro rozšíření/vlastní typy)
     // --- uživatelský stav (persistuje se; priorita: saved → definice → default) ---
@@ -827,7 +841,11 @@ function resolveColumn(def, saved) {
     format: s.format !== void 0 ? s.format : def.format || null,
     // Podmíněná barevná škála (semafor) — { on, levels, reverse, thresholds }.
     defaultCondFormat: def.condFormat || null,
-    condFormat: s.condFormat !== void 0 ? s.condFormat : def.condFormat || null
+    condFormat: s.condFormat !== void 0 ? s.condFormat : def.condFormat || null,
+    // Formát BUŇKY (vzhled těla sloupce): { align, bold, italic, underline,
+    // strike, color, background }. Nastavuje se v UI; persistuje se odchylka.
+    defaultCellFormat: def.cellFormat || null,
+    cellFormat: s.cellFormat !== void 0 ? s.cellFormat : def.cellFormat || null
   };
 }
 function normSummary(v) {
@@ -868,6 +886,8 @@ function normalizeFrozen(v) {
 function serializeColumns(columns) {
   return columns.map((c) => ({
     field: c.field,
+    // přejmenovaný titulek se ukládá jen při odchylce od configu.
+    ...c.title !== c.defaultTitle ? { title: c.title } : {},
     // Počítaný sloupec (definovaný v UI) se persistuje celý — bez configu ho
     // po reloadu nelze zrekonstruovat, tak uložíme i jeho titulek, typ a vzorec.
     ...c.formula != null ? { computed: true, formula: c.formula, title: c.title, type: c.type } : {},
@@ -889,6 +909,13 @@ function serializeColumns(columns) {
     // vzorec souhrnu (+ jeho název řádku) se ukládá jen když se liší od výchozího.
     ...c.summaryFormula !== c.defaultSummaryFormula ? { summaryFormula: c.summaryFormula } : {},
     ...c.summaryFormulaLabel !== c.defaultSummaryFormulaLabel ? { summaryFormulaLabel: c.summaryFormulaLabel } : {},
+    // barvy záhlaví (sloupce i skupiny) se ukládají jen při odchylce od configu.
+    ...c.headerBackground !== c.defaultHeaderBackground ? { headerBackground: c.headerBackground } : {},
+    ...c.headerColor !== c.defaultHeaderColor ? { headerColor: c.headerColor } : {},
+    ...c.groupHeaderBackground !== c.defaultGroupHeaderBackground ? { groupHeaderBackground: c.groupHeaderBackground } : {},
+    ...c.groupHeaderColor !== c.defaultGroupHeaderColor ? { groupHeaderColor: c.groupHeaderColor } : {},
+    // formát buňky (vzhled těla) — jen při odchylce od configu.
+    ...JSON.stringify(c.cellFormat) !== JSON.stringify(c.defaultCellFormat) ? { cellFormat: c.cellFormat } : {},
     // formát se ukládá jen když se liší od výchozího (uživatel udělal výjimku).
     ...JSON.stringify(c.format) !== JSON.stringify(c.defaultColFormat) ? { format: c.format } : {},
     ...JSON.stringify(c.condFormat) !== JSON.stringify(c.defaultCondFormat) ? { condFormat: c.condFormat } : {}
@@ -2600,6 +2627,26 @@ var cs_default = {
   help: {
     title: "N\xE1pov\u011Bda \u2014 otev\u0159\xEDt u\u017Eivatelskou p\u0159\xEDru\u010Dku"
   },
+  cellFormat: {
+    title: "Form\xE1t bu\u0148ky",
+    align: "Zarovn\xE1n\xED",
+    style: "\u0158ez p\xEDsma",
+    bold: "Tu\u010Dn\xE9",
+    italic: "Kurz\xEDva",
+    underline: "Podtr\u017Een\xE9",
+    strike: "P\u0159e\u0161krtnut\xE9",
+    textColor: "Barva p\xEDsma",
+    bgColor: "Barva pozad\xED",
+    clear: "Zru\u0161it form\xE1t"
+  },
+  headerColor: {
+    title: "Barva z\xE1hlav\xED",
+    none: "Bez barvy",
+    custom: "Vlastn\xED:",
+    bg: "Pozad\xED",
+    text: "P\xEDsmo",
+    apply: "Pou\u017E\xEDt"
+  },
   calc: {
     add: "P\u0159idat po\u010D\xEDtan\xFD sloupec",
     newTitle: "Nov\xFD po\u010D\xEDtan\xFD sloupec",
@@ -2680,6 +2727,12 @@ var cs_default = {
     reset: "Obnovit v\xFDchoz\xED",
     filterToggle: "Zobrazit / skr\xFDt filtr",
     groupSet: "Skupina sloupce",
+    collapseGroup: "Sbalit skupinu sloupc\u016F",
+    expandGroup: "Rozbalit skupinu sloupc\u016F",
+    headerColor: "Barva z\xE1hlav\xED sloupce",
+    groupHeaderColor: "Barva z\xE1hlav\xED skupiny",
+    cellFormat: "Form\xE1t bu\u0148ky",
+    renameHint: "dvojklik p\u0159ejmenuje",
     noGroup: "Bez skupiny",
     newGroup: "Nov\xE1 skupina\u2026",
     ungroup: "Zru\u0161it skupinu",
@@ -2999,6 +3052,26 @@ var en_default = {
   help: {
     title: "Help \u2014 open the user guide"
   },
+  cellFormat: {
+    title: "Cell format",
+    align: "Alignment",
+    style: "Font style",
+    bold: "Bold",
+    italic: "Italic",
+    underline: "Underline",
+    strike: "Strikethrough",
+    textColor: "Text color",
+    bgColor: "Background color",
+    clear: "Clear format"
+  },
+  headerColor: {
+    title: "Header color",
+    none: "No color",
+    custom: "Custom:",
+    bg: "Background",
+    text: "Text",
+    apply: "Apply"
+  },
   calc: {
     add: "Add computed column",
     newTitle: "New computed column",
@@ -3079,6 +3152,12 @@ var en_default = {
     reset: "Reset to default",
     filterToggle: "Show / hide filter",
     groupSet: "Column group",
+    collapseGroup: "Collapse column group",
+    expandGroup: "Expand column group",
+    headerColor: "Column header color",
+    groupHeaderColor: "Group header color",
+    cellFormat: "Cell format",
+    renameHint: "double-click to rename",
     noGroup: "No group",
     newGroup: "New group\u2026",
     ungroup: "Dissolve group",
@@ -4635,6 +4714,127 @@ function rowScaleColors(labelText, colors, onChange) {
   return field(labelText, wrap);
 }
 
+// src/features/headerColor.js
+var HEADER_COLOR_PRESETS = [
+  { key: "primary", label: "Primary", bg: "#0d6efd", fg: "#ffffff" },
+  { key: "secondary", label: "Secondary", bg: "#6c757d", fg: "#ffffff" },
+  { key: "success", label: "Success", bg: "#198754", fg: "#ffffff" },
+  { key: "danger", label: "Danger", bg: "#dc3545", fg: "#ffffff" },
+  { key: "warning", label: "Warning", bg: "#ffc107", fg: "#000000" },
+  { key: "info", label: "Info", bg: "#0dcaf0", fg: "#000000" },
+  { key: "light", label: "Light", bg: "#f8f9fa", fg: "#212529" },
+  { key: "dark", label: "Dark", bg: "#212529", fg: "#ffffff" }
+];
+function placeUnder(menu, anchor) {
+  const r = anchor.getBoundingClientRect();
+  menu.style.position = "absolute";
+  menu.style.top = window.scrollY + r.bottom + 4 + "px";
+  const left = window.scrollX + Math.min(r.left, window.innerWidth - menu.offsetWidth - 8);
+  menu.style.left = Math.max(8, left) + "px";
+}
+function openHeaderColorPicker(anchor, opts) {
+  const t = opts.t || ((k) => k);
+  document.querySelectorAll(".lattice-hcolor-menu").forEach((m) => m.remove());
+  const menu = el("div.lattice-menu.lattice-hcolor-menu");
+  menu.appendChild(el("div.lattice-summary-menu-head", { text: t("headerColor.title") }));
+  const grid = el("div.lattice-hcolor-grid");
+  for (const p of HEADER_COLOR_PRESETS) {
+    const sw = el("button.lattice-hcolor-swatch", {
+      type: "button",
+      title: p.label,
+      style: { background: p.bg, color: p.fg },
+      text: "Aa"
+    });
+    sw.addEventListener("click", () => {
+      opts.onPick(p.bg, p.fg);
+      close();
+    });
+    grid.appendChild(sw);
+  }
+  menu.appendChild(grid);
+  const clearBtn = el("button.lattice-hcolor-clear", { type: "button", text: t("headerColor.none") });
+  clearBtn.addEventListener("click", () => {
+    opts.onClear();
+    close();
+  });
+  menu.appendChild(clearBtn);
+  const cur = opts.current || {};
+  const bgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.background) || "#0d6efd" });
+  const fgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.color) || "#ffffff" });
+  const applyBtn = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
+  applyBtn.addEventListener("click", () => {
+    opts.onPick(bgIn.value, fgIn.value);
+    close();
+  });
+  menu.appendChild(el("div.lattice-hcolor-custom", {}, [
+    el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
+    el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.bg") }), bgIn]),
+    el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.text") }), fgIn]),
+    applyBtn
+  ]));
+  document.body.appendChild(menu);
+  placeUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function openColorPicker(anchor, opts) {
+  const t = opts.t || ((k) => k);
+  document.querySelectorAll(".lattice-hcolor-menu").forEach((m) => m.remove());
+  const menu = el("div.lattice-menu.lattice-hcolor-menu");
+  menu.appendChild(el("div.lattice-summary-menu-head", { text: opts.title || t("headerColor.title") }));
+  const grid = el("div.lattice-hcolor-grid");
+  for (const p of HEADER_COLOR_PRESETS) {
+    const sw = el("button.lattice-hcolor-swatch", { type: "button", title: p.label, style: { background: p.bg, color: p.bg } });
+    sw.addEventListener("click", () => {
+      opts.onPick(p.bg);
+      close();
+    });
+    grid.appendChild(sw);
+  }
+  menu.appendChild(grid);
+  const clearBtn = el("button.lattice-hcolor-clear", { type: "button", text: t("headerColor.none") });
+  clearBtn.addEventListener("click", () => {
+    opts.onClear();
+    close();
+  });
+  menu.appendChild(clearBtn);
+  const inp = el("input.lattice-hcolor-input", { type: "color", value: normHex(opts.current) || "#0d6efd" });
+  const applyBtn = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
+  applyBtn.addEventListener("click", () => {
+    opts.onPick(inp.value);
+    close();
+  });
+  menu.appendChild(el("div.lattice-hcolor-custom", {}, [
+    el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
+    el("label.lattice-hcolor-field", {}, [inp]),
+    applyBtn
+  ]));
+  document.body.appendChild(menu);
+  placeUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function normHex(v) {
+  if (typeof v !== "string") return null;
+  const m = v.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return "#" + h.toLowerCase();
+}
+
 // src/features/gear.js
 var Gear = class {
   constructor(grid) {
@@ -4656,6 +4856,7 @@ var Gear = class {
     this.panel = panel;
     this.off = onOutside(panel, (e) => {
       if (anchor.contains(e.target)) return;
+      if (e.target.closest && e.target.closest(".lattice-menu")) return;
       this.close();
     });
   }
@@ -4786,6 +4987,33 @@ var Gear = class {
       row.style.display = !q || title.includes(q) ? "" : "none";
     }
   }
+  /** Inline přejmenování sloupce (dvojklik na název v seznamu). */
+  _startRename(col, nameSpan) {
+    const grid = this.grid;
+    const input = el("input.lattice-gear-rename", { type: "text", value: col.title });
+    input.addEventListener("mousedown", (e) => e.stopPropagation());
+    input.addEventListener("click", (e) => e.stopPropagation());
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      grid.setColumnTitle(col.field, input.value);
+    };
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      } else if (e.key === "Escape") {
+        done = true;
+        this.refresh();
+      }
+    });
+    input.addEventListener("blur", commit);
+    nameSpan.replaceWith(input);
+    input.focus();
+    input.select();
+  }
   buildRow(col) {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
@@ -4793,7 +5021,30 @@ var Gear = class {
     const grip = el("span.lattice-grip", { text: "\u22EE\u22EE", title: "P\u0159et\xE1hnout" });
     const cb = el("input", { type: "checkbox", checked: col.visible });
     cb.addEventListener("change", () => grid.setColumnVisible(col.field, cb.checked));
-    const label = el("label.lattice-gear-label", {}, [cb, el("span", { text: col.title })]);
+    const nameSpan = el("span.lattice-gear-name", { text: col.title, title: col.title + " \u2014 " + t("columns.renameHint") });
+    let clickT = null;
+    nameSpan.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (clickT) {
+        clearTimeout(clickT);
+        clickT = null;
+        return;
+      }
+      clickT = setTimeout(() => {
+        clickT = null;
+        grid.setColumnVisible(col.field, !col.visible);
+      }, 220);
+    });
+    nameSpan.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (clickT) {
+        clearTimeout(clickT);
+        clickT = null;
+      }
+      this._startRename(col, nameSpan);
+    });
+    const label = el("div.lattice-gear-label", {}, [cb, nameSpan]);
     if (col.formula != null) {
       const fx = el("button.lattice-calc-badge", { type: "button", title: t("calc.edit"), html: FX_SVG });
       fx.addEventListener("click", (e) => {
@@ -4835,6 +5086,30 @@ var Gear = class {
     });
     grpBtn.addEventListener("click", () => openGroupPicker(grpBtn, grid, col, () => this.refresh()));
     tools.appendChild(grpBtn);
+    const colorBtn = el("button.lattice-gbtn.lattice-hcolor-btn", {
+      type: "button",
+      title: grid.i18n.t("columns.headerColor"),
+      class: col.headerBackground || col.headerColor ? "is-active" : "",
+      style: col.headerBackground || col.headerColor ? { background: col.headerBackground || "transparent", color: col.headerColor || "inherit" } : {},
+      text: "A"
+    });
+    colorBtn.addEventListener("click", () => openHeaderColorPicker(colorBtn, {
+      t: grid.i18n.t.bind(grid.i18n),
+      current: { background: col.headerBackground, color: col.headerColor },
+      onPick: (bg, fg) => grid.setColumnHeaderColor(col.field, { background: bg, color: fg }),
+      onClear: () => grid.setColumnHeaderColor(col.field, {})
+    }));
+    tools.appendChild(colorBtn);
+    const cf = col.cellFormat || {};
+    const cfActive = !!(cf.align || cf.bold || cf.italic || cf.underline || cf.strike || cf.color || cf.background);
+    const cellFmtBtn = el("button.lattice-gbtn.lattice-cellfmt-btn", {
+      type: "button",
+      title: grid.i18n.t("columns.cellFormat"),
+      class: cfActive ? "is-active" : "",
+      text: "\xB6"
+    });
+    cellFmtBtn.addEventListener("click", () => openCellFormatPicker(cellFmtBtn, grid, col));
+    tools.appendChild(cellFmtBtn);
     const rotBtn = el("button.lattice-gbtn", {
       type: "button",
       title: t("columns.headerRotate"),
@@ -4854,7 +5129,7 @@ var Gear = class {
     const sumBtn = el("button.lattice-gbtn", {
       type: "button",
       title: t("columns.summary"),
-      class: col.summary && col.summary.length || col.rowSummary && col.rowSummary.length ? "is-active" : "",
+      class: col.summary && col.summary.length || col.rowSummary && col.rowSummary.length || col.summaryFormula ? "is-active" : "",
       text: "\u03A3"
     });
     sumBtn.addEventListener("click", () => openSummaryPicker(sumBtn, grid, col));
@@ -4955,24 +5230,58 @@ function openGroupPicker(anchor, grid, col, onDone) {
   none.addEventListener("click", () => pick2(null));
   menu.appendChild(none);
   for (const g of grid.groupNames()) {
-    const item = el("div.lattice-menu-item", { class: g === cur ? "is-active" : "", text: g });
-    item.addEventListener("click", () => pick2(g));
+    const item = el("div.lattice-menu-item.lattice-group-item", { class: g === cur ? "is-active" : "" });
+    const name = el("span.lattice-group-item-name", { text: g });
+    name.addEventListener("click", () => pick2(g));
+    const member = grid.columns.find((c) => c.group === g) || {};
+    const cbtn = el("button.lattice-group-color", {
+      type: "button",
+      title: t("columns.groupHeaderColor"),
+      style: member.groupHeaderBackground || member.groupHeaderColor ? { background: member.groupHeaderBackground || "var(--lattice-bg)", color: member.groupHeaderColor || "inherit" } : {},
+      text: "A"
+    });
+    cbtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openHeaderColorPicker(cbtn, {
+        t,
+        current: { background: member.groupHeaderBackground, color: member.groupHeaderColor },
+        onPick: (bg, fg) => {
+          grid.setColGroupHeaderColor(g, { background: bg, color: fg });
+          onDone && onDone();
+        },
+        onClear: () => {
+          grid.setColGroupHeaderColor(g, {});
+          onDone && onDone();
+        }
+      });
+    });
+    const del = el("button.lattice-group-del", { type: "button", title: t("columns.ungroup"), text: "\xD7" });
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      close();
+      grid.ungroup(g);
+      onDone && onDone();
+    });
+    item.append(name, cbtn, del);
     menu.appendChild(item);
   }
-  const input = el("input.lattice-group-new", { type: "text", placeholder: t("columns.newGroup") });
-  const add = () => {
-    const v = input.value.trim();
-    if (v) pick2(v);
-  };
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      add();
-    }
-  });
-  const addBtn = el("button.lattice-icon-btn", { type: "button", text: "+" });
-  addBtn.addEventListener("click", add);
-  menu.appendChild(el("div.lattice-group-newrow", {}, [input, addBtn]));
+  let newInput = null;
+  if (!cur) {
+    newInput = el("input.lattice-group-new", { type: "text", placeholder: t("columns.newGroup") });
+    const add = () => {
+      const v = newInput.value.trim();
+      if (v) pick2(v);
+    };
+    newInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        add();
+      }
+    });
+    const addBtn = el("button.lattice-icon-btn", { type: "button", text: "+" });
+    addBtn.addEventListener("click", add);
+    menu.appendChild(el("div.lattice-group-newrow", {}, [newInput, addBtn]));
+  }
   document.body.appendChild(menu);
   positionUnder(menu, anchor);
   const off = onOutside(menu, (e) => {
@@ -4982,7 +5291,7 @@ function openGroupPicker(anchor, grid, col, onDone) {
     off();
     menu.remove();
   }
-  setTimeout(() => input.focus(), 0);
+  if (newInput) setTimeout(() => newInput.focus(), 0);
   return close;
 }
 function openSummaryPicker(anchor, grid, col) {
@@ -5123,7 +5432,8 @@ function openSummaryFormulaEditor(anchor, grid, col) {
   actions.push(cancelBtn);
   menu.appendChild(el("div.lattice-formula-actions", {}, actions));
   function fit() {
-    positionUnder(menu, anchor);
+    const a = anchor && anchor.isConnected ? anchor : grid.gear && grid.gear.panel || anchor;
+    positionUnder(menu, a);
     const vh = window.innerHeight;
     if (menu.getBoundingClientRect().bottom > vh - 8) {
       menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + "px";
@@ -5140,6 +5450,79 @@ function openSummaryFormulaEditor(anchor, grid, col) {
     menu.remove();
   }
   setTimeout(() => ta.focus(), 0);
+  return close;
+}
+function openCellFormatPicker(anchor, grid, col) {
+  document.querySelectorAll(".lattice-cellfmt-menu").forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el("div.lattice-menu.lattice-cellfmt-menu");
+  const cf = () => col.cellFormat || {};
+  const set = (patch) => {
+    grid.setColumnCellFormat(col.field, patch);
+    render();
+  };
+  const alignBtn = (val, svg) => {
+    const b = el("button.lattice-cellfmt-tgl", { type: "button", class: cf().align === val ? "is-active" : "", html: svg });
+    b.addEventListener("click", () => set({ align: cf().align === val ? null : val }));
+    return b;
+  };
+  const styleBtn = (key, label, cls, titleKey) => {
+    const b = el("button.lattice-cellfmt-tgl." + cls, { type: "button", title: t("cellFormat." + titleKey), class: cf()[key] ? "is-active" : "", text: label });
+    b.addEventListener("click", () => set({ [key]: !cf()[key] }));
+    return b;
+  };
+  const colorField = (key, labelKey) => {
+    const val = cf()[key];
+    const b = el("button.lattice-cellfmt-color", {
+      type: "button",
+      title: t("cellFormat." + labelKey),
+      style: val ? { background: key === "background" ? val : "var(--lattice-bg)", color: key === "color" ? val : val || "inherit" } : {},
+      text: "A"
+    });
+    b.addEventListener("click", () => openColorPicker(b, {
+      t,
+      title: t("cellFormat." + labelKey),
+      current: val,
+      onPick: (c) => set({ [key]: c }),
+      onClear: () => set({ [key]: null })
+    }));
+    return b;
+  };
+  function render() {
+    clear(menu);
+    menu.appendChild(el("div.lattice-summary-menu-head", { text: t("cellFormat.title") }));
+    menu.appendChild(csField(t("cellFormat.align"), el("div.lattice-cellfmt-row", {}, [
+      alignBtn("left", AL_LEFT_SVG),
+      alignBtn("center", AL_CENTER_SVG),
+      alignBtn("right", AL_RIGHT_SVG)
+    ])));
+    menu.appendChild(csField(t("cellFormat.style"), el("div.lattice-cellfmt-row", {}, [
+      styleBtn("bold", "B", "is-b", "bold"),
+      styleBtn("italic", "I", "is-i", "italic"),
+      styleBtn("underline", "U", "is-u", "underline"),
+      styleBtn("strike", "S", "is-s", "strike")
+    ])));
+    menu.appendChild(csField(t("cellFormat.textColor"), colorField("color", "textColor")));
+    menu.appendChild(csField(t("cellFormat.bgColor"), colorField("background", "bgColor")));
+    const clr = el("button.lattice-formula-btn.is-danger", { type: "button", text: t("cellFormat.clear") });
+    clr.addEventListener("click", () => {
+      grid.setColumnCellFormat(col.field, null);
+      render();
+    });
+    menu.appendChild(el("div.lattice-cellfmt-actions", {}, [clr]));
+  }
+  render();
+  document.body.appendChild(menu);
+  positionUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (anchor.contains(e.target)) return;
+    if (e.target.closest && e.target.closest(".lattice-hcolor-menu")) return;
+    close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
   return close;
 }
 function openFormatPicker(anchor, grid, col) {
@@ -5367,7 +5750,8 @@ function openFormulaEditor(anchor, grid, col, gear) {
   actions.push(cancelBtn);
   menu.appendChild(el("div.lattice-formula-actions", {}, actions));
   function fit() {
-    positionUnder(menu, anchor);
+    const a = anchor && anchor.isConnected ? anchor : grid.gear && grid.gear.panel || anchor;
+    positionUnder(menu, a);
     const vh = window.innerHeight;
     if (menu.getBoundingClientRect().bottom > vh - 8) {
       menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + "px";
@@ -5492,6 +5876,9 @@ var CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hid
 var RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 var GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
 var BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+var AL_LEFT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg>';
+var AL_CENTER_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM4 7h8v2H4zM2 11h12v2H2z"/></svg>';
+var AL_RIGHT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM6 7h8v2H6zM2 11h12v2H2z"/></svg>';
 var FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';
 
 // src/features/menu.js
@@ -5819,10 +6206,22 @@ var Renderer = class {
       for (const gc of this.groupLevelColumns()) left.push(gc);
     }
     const collapsed = grid.responsive && this._collapsed ? this._collapsed : null;
+    const colGroupsCollapsed = grid.colGroupsCollapsed;
+    const emittedColGroup = /* @__PURE__ */ new Set();
     this._collapsedCols = [];
     for (const c of grid.columns) {
       if (!c.visible) continue;
       if (grouped.has(c.field)) continue;
+      const cg = c.group || null;
+      if (cg && colGroupsCollapsed && colGroupsCollapsed.has(cg)) {
+        if (emittedColGroup.has(cg)) continue;
+        emittedColGroup.add(cg);
+        const strip = this.colGroupStrip(c);
+        if (strip.frozen === "right") right.push(strip);
+        else if (strip.frozen) left.push(strip);
+        else mid.push(strip);
+        continue;
+      }
       if (c.frozen === "right") right.push(c);
       else if (c.frozen) left.push(c);
       else if (collapsed && collapsed.has(c.field)) this._collapsedCols.push(c);
@@ -5867,6 +6266,41 @@ var Renderer = class {
         }
       };
     });
+  }
+  /**
+   * Zástupný (úzký) sloupec pro SBALENOU skupinu sloupců. Drží pozici i frozen
+   * stranu podle prvního člena; tělo je prázdné, záhlaví skupiny nad ním nese
+   * ikonu pro rozbalení.
+   */
+  colGroupStrip(member) {
+    const g = member.group;
+    return {
+      field: "\0cg:" + g,
+      title: g,
+      type: "text",
+      group: g,
+      defaultGroup: g,
+      filter: null,
+      filterEnabled: false,
+      availableFilters: [],
+      headerSort: false,
+      frozen: member.frozen || false,
+      frozenAllowed: false,
+      visible: true,
+      align: "center",
+      minWidth: COLGROUP_STRIP_W,
+      width: COLGROUP_STRIP_W,
+      headerRotate: null,
+      summary: [],
+      rowSummary: [],
+      summaryFormula: null,
+      formatter: null,
+      value: null,
+      _colGroupStrip: true,
+      _colGroup: g,
+      groupHeaderBackground: member.groupHeaderBackground || null,
+      groupHeaderColor: member.groupHeaderColor || null
+    };
   }
   /** Syntetický sloupec s úchytem pro přetahování řádků (nebo null). */
   moveColumn() {
@@ -6059,13 +6493,13 @@ var Renderer = class {
     const total = list.reduce((s, c) => s + widths.get(c.field), 0);
     if (!vpWidth || !list.length || total >= vpWidth) return widths;
     if (mode === "fit" || mode === "fitColumns") {
-      const targets = list.filter((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu);
+      const targets = list.filter((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._colGroupStrip);
       const flex = targets.length ? targets : list;
       const extra = vpWidth - total;
       const base = flex.reduce((s, c) => s + widths.get(c.field), 0) || 1;
       for (const c of flex) widths.set(c.field, widths.get(c.field) + extra * (widths.get(c.field) / base));
     } else if (mode === "fitDataStretch") {
-      const last = [...list].reverse().find((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu);
+      const last = [...list].reverse().find((c) => !c.frozen && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._colGroupStrip);
       if (last) widths.set(last.field, widths.get(last.field) + (vpWidth - total));
     }
     return widths;
@@ -6226,6 +6660,7 @@ var Renderer = class {
   buildGroupRow(list) {
     const { groupRow } = this.nodes;
     clear(groupRow);
+    this._groupHeaderStyle = /* @__PURE__ */ new Map();
     const hasGroups = list.some((c) => c.group);
     if (!hasGroups) {
       groupRow.style.display = "none";
@@ -6240,17 +6675,31 @@ var Renderer = class {
       let j = i;
       while (j < list.length && (list[j].group || null) === g && side(list[j]) === s) j++;
       const members = list.slice(i, j);
-      const cell = el("div.lattice-gcell", { dataset: { fields: members.map((m) => m.field).join(",") } }, [
-        g ? el("span.lattice-gcell-title", { text: g }) : null
-      ]);
+      const cell = el("div.lattice-gcell", { dataset: { fields: members.map((m) => m.field).join(",") } });
       if (g) {
-        const x = el("button.lattice-gcell-x", { type: "button", title: this.grid.i18n.t("columns.ungroup"), text: "\xD7", draggable: false });
-        x.addEventListener("mousedown", (e) => e.stopPropagation());
-        x.addEventListener("click", (e) => {
-          e.stopPropagation();
-          this.grid.ungroup(g);
+        const t = this.grid.i18n.t.bind(this.grid.i18n);
+        const collapsed = this.grid.isColGroupCollapsed(g);
+        cell.title = g;
+        cell.classList.toggle("is-col-collapsed", collapsed);
+        const styled = members.find((m) => m.groupHeaderBackground || m.groupHeaderColor) || members[0];
+        if (styled.groupHeaderBackground) cell.style.background = styled.groupHeaderBackground;
+        if (styled.groupHeaderColor) cell.style.color = styled.groupHeaderColor;
+        if (styled.groupHeaderBackground || styled.groupHeaderColor) {
+          this._groupHeaderStyle.set(g, { bg: styled.groupHeaderBackground, color: styled.groupHeaderColor });
+        }
+        const tgl = el("button.lattice-gcell-toggle", {
+          type: "button",
+          title: collapsed ? t("columns.expandGroup") : t("columns.collapseGroup"),
+          text: collapsed ? "+" : "\u2212",
+          class: collapsed ? "is-collapsed" : ""
         });
-        cell.appendChild(x);
+        tgl.addEventListener("mousedown", (e) => e.stopPropagation());
+        tgl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.grid.toggleColGroup(g);
+        });
+        cell.appendChild(tgl);
+        cell.appendChild(el("span.lattice-gcell-title", { text: g }));
       } else {
         cell.classList.add("is-empty");
       }
@@ -6285,6 +6734,9 @@ var Renderer = class {
   }
   buildHeaderCell(col) {
     const grid = this.grid;
+    if (col._colGroupStrip) {
+      return el("div.lattice-hcell.lattice-colgroup-striph", { dataset: { field: col.field }, class: "is-center" });
+    }
     if (col._rowsum) {
       return el("div.lattice-hcell.lattice-rowsum-cell", {
         dataset: { field: col.field },
@@ -6358,6 +6810,16 @@ var Renderer = class {
         openMenuAt(e.pageX, e.pageY, this.headerMenuItems(col), (v, it) => it && it.action && it.action(cell, col));
       });
     }
+    let hbg = col.headerBackground, hcol = col.headerColor;
+    if (col.group && this._groupHeaderStyle) {
+      const gs = this._groupHeaderStyle.get(col.group);
+      if (gs) {
+        hbg = hbg || gs.bg;
+        hcol = hcol || gs.color;
+      }
+    }
+    if (hbg) cell.style.background = hbg;
+    if (hcol) cell.style.color = hcol;
     const label = el("span.lattice-hcell-title", { text: col.title });
     cell.appendChild(label);
     if (col.headerSort && grid.options.headerSort !== false) {
@@ -6913,15 +7375,11 @@ var Renderer = class {
   /** Mezisoučet za skupinu řádků — jeden řádek na aktivní souhrnnou funkci. */
   buildGroupSubtotal(node, list) {
     if (!this.grid.instance.groupSubtotals) return null;
-    const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    const hasFormula = list.some((c) => c.summaryFormula);
-    if (!activeFns.length && !hasFormula) return null;
+    const plan = this._summaryRowPlan(list);
+    if (!plan.length) return null;
     const rows = collectGroupRows(node);
     const frag = document.createDocumentFragment();
-    for (const fn of activeFns) frag.appendChild(this._summaryFnRow(list, fn, rows, { rowClass: "lattice-group-subtotal" }));
-    for (const label of this._summaryFormulaLabels(list)) {
-      frag.appendChild(this._summaryFormulaRow(list, rows, { rowClass: "lattice-group-subtotal", label }));
-    }
+    for (const r of plan) frag.appendChild(this._summaryRow(list, r, rows, { rowClass: "lattice-group-subtotal" }));
     return frag;
   }
   /**
@@ -7099,80 +7557,77 @@ var Renderer = class {
    */
   buildSummary(list, scope) {
     const grid = this.grid;
-    const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    const hasFormula = list.some((c) => c.summaryFormula);
-    if (!activeFns.length && !hasFormula) return null;
+    const plan = this._summaryRowPlan(list);
+    if (!plan.length) return null;
     const srcRows = grid.summarySource(scope);
     const wrap = el("div.lattice-summary");
-    let i = 0;
-    activeFns.forEach((fn) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: i++ === 0, floatLabel: true })));
-    for (const label of this._summaryFormulaLabels(list)) {
-      wrap.appendChild(this._summaryFormulaRow(list, srcRows, { first: i++ === 0, floatLabel: true, label }));
-    }
+    plan.forEach((r, i) => wrap.appendChild(this._summaryRow(list, r, srcRows, { first: i === 0, floatLabel: true })));
     return wrap;
   }
-  /** Popisky řádků se vzorcem, v pořadí prvního výskytu (výchozí = „Vzorec"). */
-  _summaryFormulaLabels(list) {
-    const def = this.grid.i18n.t("summary.formulaLabel");
-    const out = [];
+  /**
+   * Plán souhrnných řádků: nejdřív standardní funkce (v pořadí SUMMARY_ORDER),
+   * pak vzorce s vlastním názvem. Vzorec pojmenovaný STEJNĚ jako standardní řádek
+   * (např. „Průměr") se do něj sloučí — nevytvoří vlastní řádek. Každá položka:
+   * `{ label, fn }` (fn = klíč standardní funkce, nebo null u čistě vzorcového řádku).
+   */
+  _summaryRowPlan(list) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const plan = [];
+    const labels = /* @__PURE__ */ new Set();
+    for (const fn of SUMMARY_ORDER) {
+      if (list.some((c) => (c.summary || []).includes(fn))) {
+        const label = t("summary.name." + fn);
+        plan.push({ label, fn });
+        labels.add(label);
+      }
+    }
+    const defLbl = t("summary.formulaLabel");
     for (const c of list) {
       if (!c.summaryFormula) continue;
-      const lbl = c.summaryFormulaLabel || def;
-      if (!out.includes(lbl)) out.push(lbl);
-    }
-    return out;
-  }
-  /** Jeden souhrnný řádek pro danou funkci nad `srcRows` (sdílené: pata i skupiny). */
-  _summaryFnRow(list, fn, srcRows, opts = {}) {
-    const t = this.grid.i18n.t.bind(this.grid.i18n);
-    const row = el("div.lattice-row.lattice-summary-row" + (opts.rowClass ? "." + opts.rowClass : "") + (opts.first ? ".is-first" : ""));
-    for (const col of list) {
-      const cell = el("div.lattice-cell.lattice-summary-cell", {
-        dataset: { field: col.field },
-        class: col.align ? "is-" + col.align : ""
-      });
-      if (!col._rownum && (col.summary || []).includes(fn) && (fn === "count" || isNumericType(col.type))) {
-        const val = computeSummary(fn, col, srcRows);
-        cell.appendChild(el("span.lattice-summary-sym", { text: SUMMARY_SYMBOL[fn], title: t("summary.name." + fn) }));
-        cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue(fn, val, col) }));
+      const lbl = c.summaryFormulaLabel || defLbl;
+      if (!labels.has(lbl)) {
+        labels.add(lbl);
+        plan.push({ label: lbl, fn: null });
       }
-      row.appendChild(cell);
     }
-    if (opts.floatLabel) {
-      const lbl = el("span.lattice-summary-rowlabel", { text: t("summary.name." + fn), title: t("summary.name." + fn) });
-      row.appendChild(el("div.lattice-summary-label-wrap", {}, [lbl]));
-    }
-    return row;
+    return plan;
   }
   /**
-   * Souhrnný řádek počítaný VZORCEM (vážený/poolovaný souhrn) nad `srcRows`.
-   * `opts.label` = název řádku; zobrazí jen sloupce, jejichž popisek mu odpovídá.
+   * Jeden souhrnný řádek dle plánu (`rowSpec = { label, fn }`) nad `srcRows`.
+   * Sdílené pro patu i mezisoučty skupin. V každé buňce má vzorec (ƒ) přednost
+   * před standardní funkcí — tak se vážený vzorec zobrazí ve „svém" řádku i když
+   * je pojmenovaný jako funkce.
    */
-  _summaryFormulaRow(list, srcRows, opts = {}) {
+  _summaryRow(list, rowSpec, srcRows, opts = {}) {
     const t = this.grid.i18n.t.bind(this.grid.i18n);
-    const rowLabel = opts.label || t("summary.formulaLabel");
-    const defLabel = t("summary.formulaLabel");
+    const defFormulaLbl = t("summary.formulaLabel");
     const row = el("div.lattice-row.lattice-summary-row" + (opts.rowClass ? "." + opts.rowClass : "") + (opts.first ? ".is-first" : ""));
     for (const col of list) {
       const cell = el("div.lattice-cell.lattice-summary-cell", {
         dataset: { field: col.field },
         class: col.align ? "is-" + col.align : ""
       });
-      const colLabel = col.summaryFormula ? col.summaryFormulaLabel || defLabel : null;
-      if (!col._rownum && col.summaryFormula && colLabel === rowLabel) {
-        let val = null;
-        try {
-          val = compileAggregate(col.summaryFormula)(srcRows);
-        } catch {
-          val = null;
+      if (!col._rownum) {
+        const colFormulaLbl = col.summaryFormula ? col.summaryFormulaLabel || defFormulaLbl : null;
+        if (colFormulaLbl === rowSpec.label) {
+          let val = null;
+          try {
+            val = compileAggregate(col.summaryFormula)(srcRows);
+          } catch {
+            val = null;
+          }
+          cell.appendChild(el("span.lattice-summary-sym.is-formula", { text: "\u0192", title: col.summaryFormula }));
+          cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue("formula", val, col) }));
+        } else if (rowSpec.fn && (col.summary || []).includes(rowSpec.fn) && (rowSpec.fn === "count" || isNumericType(col.type))) {
+          const val = computeSummary(rowSpec.fn, col, srcRows);
+          cell.appendChild(el("span.lattice-summary-sym", { text: SUMMARY_SYMBOL[rowSpec.fn], title: t("summary.name." + rowSpec.fn) }));
+          cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue(rowSpec.fn, val, col) }));
         }
-        cell.appendChild(el("span.lattice-summary-sym", { text: "\u0192", title: col.summaryFormula }));
-        cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue("formula", val, col) }));
       }
       row.appendChild(cell);
     }
     if (opts.floatLabel) {
-      const lbl = el("span.lattice-summary-rowlabel", { text: rowLabel, title: rowLabel });
+      const lbl = el("span.lattice-summary-rowlabel", { text: rowSpec.label, title: rowSpec.label });
       row.appendChild(el("div.lattice-summary-label-wrap", {}, [lbl]));
     }
     return row;
@@ -7206,7 +7661,27 @@ var Renderer = class {
     const maxdec = fn === "avg" || fn === "formula" ? 2 : 0;
     return Number(val).toLocaleString(void 0, { maximumFractionDigits: maxdec });
   }
+  /** Aplikuje uživatelský „formát buňky" (zarovnání, řez písma, barvy) na buňku. */
+  applyCellFormat(cell, col) {
+    const cf = col.cellFormat;
+    if (!cf) return;
+    if (cf.align) {
+      cell.classList.remove("is-left", "is-center", "is-right");
+      cell.classList.add("is-" + cf.align);
+    }
+    if (cf.bold) cell.style.fontWeight = "700";
+    if (cf.italic) cell.style.fontStyle = "italic";
+    const deco = [];
+    if (cf.underline) deco.push("underline");
+    if (cf.strike) deco.push("line-through");
+    if (deco.length) cell.style.textDecoration = deco.join(" ");
+    if (cf.color) cell.style.color = cf.color;
+    if (cf.background) cell.style.background = cf.background;
+  }
   buildBodyCell(col, rowData, index) {
+    if (col._colGroupStrip) {
+      return el("div.lattice-cell.lattice-colgroup-strip", { dataset: { field: col.field } });
+    }
     if (col._actions) {
       const cell2 = el("div.lattice-cell.lattice-actions-cell", { dataset: { field: col.field }, class: "is-center" });
       cell2.appendChild(this.buildActionButtons(rowData, index));
@@ -7275,6 +7750,7 @@ var Renderer = class {
       class: [col.align ? "is-" + col.align : "", editable ? "is-editable" : ""].filter(Boolean).join(" "),
       title: editable ? this.grid.i18n.t("edit.hint") : void 0
     });
+    this.applyCellFormat(cell, col);
     const formatter = getFormatter(col);
     const out = formatter(value, col, rowData);
     if (out instanceof Node) cell.appendChild(out);
@@ -7672,6 +8148,7 @@ var UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stro
 var REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';
 var CLEAR_HIST_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 var CHEVRON_SVG = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 6l4 4 4-4"/></svg>';
+var COLGROUP_STRIP_W = 34;
 function colWidth(c) {
   const w = Number(c.width) || Number(c.minWidth) || 0;
   return w > 0 ? w : 120;
@@ -9577,6 +10054,7 @@ var Lattice = class {
     this.universal = this.state.universal || null;
     this.urlState = options.urlState ? { key: typeof options.urlState === "object" && options.urlState.key || options.id } : null;
     this.groupsCollapsed = new Set(this.state.groups || []);
+    this.colGroupsCollapsed = new Set(this.state.colGroups || []);
     this.tree = options.treeData ? new TreeManager(this, options) : null;
     this.treeView = null;
     this.range = options.rangeSelection ? new RangeManager(this) : null;
@@ -9685,6 +10163,7 @@ var Lattice = class {
     this.state.universal = this.universal;
     this.state.instance = { ...this.instance };
     this.state.groups = [...this.groupsCollapsed];
+    this.state.colGroups = [...this.colGroupsCollapsed];
     if (this.tree) this.state.tree = [...this.tree.expanded];
     this.store.save(this.state);
   }
@@ -10171,6 +10650,24 @@ var Lattice = class {
     this.saveState();
     this.renderer.renderBody();
   }
+  /** Je skupina SLOUPCŮ (dle názvu) sbalená? */
+  isColGroupCollapsed(title) {
+    return this.colGroupsCollapsed.has(title);
+  }
+  /**
+   * Přepne sbalení / rozbalení skupiny SLOUPCŮ. Sbalená skupina se v tabulce
+   * schová do úzkého proužku (jen ikona pro rozbalení); persistuje se. Mění se
+   * sada sloupců i šířky → překreslí hlavičku, tělo a přepočítá layout.
+   */
+  toggleColGroup(title) {
+    if (!title) return;
+    if (this.colGroupsCollapsed.has(title)) this.colGroupsCollapsed.delete(title);
+    else this.colGroupsCollapsed.add(title);
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.renderBody();
+    this.renderer.applyLayout();
+  }
   /** Nastaví připnuté řádky (nahoře/dole) a překreslí. `{ top?, bottom? }`. */
   setPinnedRows(patch = {}) {
     if ("top" in patch) this.pinnedTop = Array.isArray(patch.top) ? patch.top.slice() : [];
@@ -10373,6 +10870,62 @@ var Lattice = class {
     this.renderer.renderBody();
     this.gear?.refresh();
   }
+  /** Přejmenuje sloupec (titulek). Prázdný název vrátí výchozí z definice. */
+  setColumnTitle(field2, title) {
+    const col = this.columns.find((c) => c.field === field2);
+    if (!col) return;
+    const v = String(title == null ? "" : title).trim();
+    col.title = v || col.defaultTitle;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+  /** Barva záhlaví SLOUPCE (pozadí + písmo); prázdné hodnoty barvu zruší. */
+  setColumnHeaderColor(field2, { background, color } = {}) {
+    const col = this.columns.find((c) => c.field === field2);
+    if (!col) return;
+    col.headerBackground = background || null;
+    col.headerColor = color || null;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+  /** Barva záhlaví celé SKUPINY sloupců (nastaví se na všechny její členy). */
+  setColGroupHeaderColor(title, { background, color } = {}) {
+    if (!title) return;
+    let any = false;
+    for (const c of this.columns) {
+      if (c.group === title) {
+        c.groupHeaderBackground = background || null;
+        c.groupHeaderColor = color || null;
+        any = true;
+      }
+    }
+    if (!any) return;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.gear?.refresh();
+  }
+  /**
+   * Formát BUŇKY sloupce (vzhled těla: zarovnání, tučné/kurzíva/podtržení/
+   * přeškrtnutí, barva písma/pozadí). `patch` se sloučí; `null` formát zruší.
+   */
+  setColumnCellFormat(field2, patch) {
+    const col = this.columns.find((c) => c.field === field2);
+    if (!col) return;
+    if (patch === null) col.cellFormat = null;
+    else {
+      const next = Object.assign({}, col.cellFormat, patch);
+      const hasAny = Object.keys(next).some((k) => next[k]);
+      col.cellFormat = hasAny ? next : null;
+    }
+    this.saveState();
+    this.renderer.renderBody();
+    this.gear?.refresh();
+  }
   /**
    * Vzorec pro souhrnný ŘÁDEK sloupce (vážený / poolovaný souhrn z agregací
    * jiných sloupců — viz core/formula.js). `formula` null/'' vzorec zruší.
@@ -10543,6 +11096,7 @@ var Lattice = class {
       changed = true;
     }
     if (!changed) return;
+    this.colGroupsCollapsed.delete(groupTitle);
     this._clearActivePreset();
     this._normalizeGroups();
     this.saveState();
