@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.1.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.2.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.1.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.2.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.1.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.2.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -104,7 +104,7 @@ const grid = new Lattice('#grid', {
 | Vlastnost | Typ | Popis |
 |---|---|---|
 | `field` | string | Klíč v datovém objektu (u computed sloupce jen identita). |
-| `title` | string | Popisek hlavičky (výchozí = `field`). |
+| `title` | string | Popisek hlavičky (výchozí = `field`). Uživatel ho **přejmenuje** v dialogu Sloupce (dvojklik na název); přejmenování se persistuje. |
 | `type` | string | Datový typ → formát a výchozí filtr (viz *Typy*). |
 | `value` | function | `(row) => any` — odvozená (computed) hodnota z celého řádku. Řadí/filtruje/hledá/exportuje se podle ní; needituje se. |
 | `formula` | string | Počítaný sloupec zadaný **vzorcem** (řetězec, viz *Počítané sloupce*). Bezpečně se vyhodnotí (bez `eval`) → `value`. Sloupec s `formula` se persistuje (i v presetech) a jde vytvořit/upravit v UI. |
@@ -112,7 +112,7 @@ const grid = new Lattice('#grid', {
 | `width` / `minWidth` | number | Šířka v px (uživatel může měnit tažením) / minimální šířka. |
 | `align` | `'left'\|'center'\|'right'` | Zarovnání (jinak dle typu: čísla/datum/`id` vpravo, boolean na střed). |
 | `frozen` | `true\|'left'\|'right'` | Ukotvení sloupce. `'never'` zakáže ukotvení uživatelem. |
-| `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). |
+| `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI **sbalit** do úzkého proužku (ikona −/+ v záhlaví skupiny). Alternativně nested definice: `{ title, columns:[…] }`. |
 | `filter` | string | Typ filtru; když se vynechá, odvodí se z typu. |
 | `filterValues` | array | Hodnoty pro `select`/`multiselect` filtr (jinak `filterUrl`). |
 | `editable` | boolean | Povolí inline editaci buňky. |
@@ -124,6 +124,9 @@ const grid = new Lattice('#grid', {
 | `summaryFormula` (+ `summaryFormulaLabel`) | string | **Vážený / poolovaný souhrn** vzorcem z agregací jiných sloupců — např. `sum(spojeno) / sum(vytoceno) * 100`. Viz *Počítané sloupce → agregační funkce*. `summaryFormulaLabel` = název řádku vlevo (sloupce se stejným názvem sdílejí řádek). |
 | `condFormat` | object | Barevná škála („semafor"): `{ on:true, levels:3\|5\|7, reverse?, colors?, mode?, thresholds? }`. |
 | `cellClass` / `cellStyle` | function | Podmíněné třídy / inline styl buňky dle hodnoty. |
+| `headerBackground` / `headerColor` | string | Barva **záhlaví sloupce** (pozadí / písmo). Nastavitelné i v UI (color picker s barevným kolem + Bootstrap presety). Persistuje se. |
+| `groupHeaderBackground` / `groupHeaderColor` | string | Barva **záhlaví skupiny**. Buď per-sloupec, nebo v nested definici skupiny (`{ title, headerBackground, columns }`). Sloupec bez vlastní barvy **zdědí barvu skupiny**. |
+| `cellFormat` | object | Vzhled **buňky** (těla): `{ align:'left'\|'center'\|'right', bold, italic, underline, strike, color, background }`. Nastavitelné v UI („Formát buňky"). Persistuje se. |
 | `cellPopup` / `headerPopup` | function | Popup na klik do buňky / z ⓘ v hlavičce. |
 | `headerMenu` | true\|array\|fn | Menu hlavičky sloupce. |
 | `responsive` | number\|false | Pořadí skládání při `responsive:true` (vyšší = schová se dřív); `false` = nikdy neschovat. |
@@ -219,6 +222,11 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `setFormat(kind, patch)` / `setColumnFormat(field, patch)` | Formát globálně / per-sloupec. |
 | `setColumnSummary / setColumnRowSummary(field, fns)` | Souhrny sloupce / řádku. |
 | `setColumnSummaryFormula(field, formula, label?)` | Vážený souhrn sloupce vzorcem (`null` zruší). `label` = název řádku. |
+| `setColumnTitle(field, title)` | Přejmenuje sloupec (prázdné = zpět na výchozí). |
+| `toggleColGroup(title)` / `isColGroupCollapsed(title)` | Sbalí/rozbalí skupinu sloupců / je sbalená? |
+| `setColumnHeaderColor(field, {background, color})` | Barva záhlaví sloupce (prázdné zruší). |
+| `setColGroupHeaderColor(title, {background, color})` | Barva záhlaví celé skupiny (nastaví všem členům). |
+| `setColumnCellFormat(field, patch)` | Formát buňky sloupce (`null` zruší). |
 | `addComputedColumn({ title, type, formula })` | Přidá **počítaný sloupec** ze vzorce (vrátí jeho `field`). Vyhodí `FormulaError` u neplatného vzorce. |
 | `updateComputedColumn(field, { title?, type?, formula? })` | Upraví počítaný sloupec (zachová šířku/pořadí/souhrny/formát). |
 | `removeComputedColumn(field)` | Odebere počítaný sloupec (jen sloupce vytvořené vzorcem). |
@@ -235,6 +243,21 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `hasGlobalDefaults()` / `globalDefaultsAvailable()` | Jsou k dispozici globální výchozí nastavení / je nová verze, kterou uživatel ještě neviděl. |
 | `applyGlobalDefaults()` / `dismissGlobalDefaults()` | Použít globální výchozí nastavení teď / potvrdit verzi bez použití. |
 | `setGlobalDefaults()` | Uložit aktuální nastavení jako globální výchozí (spustí `onSaveGlobalDefaults`). |
+
+---
+
+## Vzhled a skupiny sloupců (UI)
+
+Vše nastavitelné z **dialogu Sloupce** (ikona ☰) a persistované (localStorage i presety).
+
+- **Přejmenování** — dvojklik na název sloupce v dialogu → inline editace.
+- **Skupiny sloupců** — přiřazení přes ikonu *Skupina*. V pop-upu skupiny je i **barva** (A)
+  a **zrušení** (×), aby se na destruktivní akci neklikalo omylem v gridu. Skupina jde v záhlaví
+  **sbalit** do úzkého proužku (ikona −/+); sbalený stav se pamatuje. Sloupec může být jen v jedné skupině.
+- **Barvy záhlaví** (sloupce i skupiny) — ikona *A*. Picker má **barevné kolo** (výchozí),
+  jezdec jasu a druhý tab s **Bootstrap presety** a vlastní volbou. Sloupec bez vlastní barvy
+  **zdědí barvu své skupiny**; písmo se u presetů/kola dopočítá kontrastně.
+- **Formát buňky** — ikona *¶*: zarovnání, tučné/kurzíva/podtržené/přeškrtnuté, barva písma a pozadí.
 
 ---
 

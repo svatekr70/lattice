@@ -115,7 +115,7 @@ function docSloupce(root, ctx) {
     h3('Definice sloupce'),
     table(['Vlastnost', 'Typ', 'Popis'], [
       ['<code>field</code>', 'string', 'Klíč v datovém objektu (u computed sloupce jen identita).'],
-      ['<code>title</code>', 'string', 'Popisek hlavičky (výchozí = field).'],
+      ['<code>title</code>', 'string', 'Popisek hlavičky (výchozí = field). Uživatel ho přejmenuje dvojklikem v dialogu Sloupce; persistuje se.'],
       ['<code>type</code>', 'string', "Datový typ → formát a výchozí filtr. Viz <i>Typy a formátování</i>."],
       ['<code>value</code>', 'function', '<code>(row) ⇒ any</code> — odvozená (computed) hodnota z celého řádku. Řadí/filtruje/hledá/exportuje se podle ní; needituje se.'],
       ['<code>validator</code>', 'various', "Deklarativní validace editace: <code>'required'</code> | RegExp | <code>{ min, max, minLen, maxLen, pattern, message }</code> | <code>fn(v,row)⇒true|string</code> | pole pravidel."],
@@ -123,7 +123,12 @@ function docSloupce(root, ctx) {
       ['<code>minWidth</code>', 'number', 'Minimální šířka.'],
       ['<code>align</code>', "'left'|'center'|'right'", 'Zarovnání (jinak dle typu).'],
       ['<code>frozen</code>', "true|'left'|'right'", "Ukotvení sloupce. <code>'never'</code> zakáže ukotvení uživatelem."],
-      ['<code>group</code>', 'string', 'Název skupiny sloupců (spojí sousední sloupce pod společné záhlaví).'],
+      ['<code>group</code>', 'string', 'Název skupiny sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI sbalit (−/+) a obarvit.'],
+      ['<code>headerBackground</code> / <code>headerColor</code>', 'string', 'Barva záhlaví sloupce (pozadí / písmo). Nastavitelné v UI (color picker). Persistuje se.'],
+      ['<code>groupHeaderBackground</code> / <code>groupHeaderColor</code>', 'string', 'Barva záhlaví skupiny (nebo nested def <code>{ title, headerBackground, columns }</code>). Sloupec bez vlastní barvy ji zdědí.'],
+      ['<code>cellFormat</code>', 'object', 'Vzhled buňky: <code>{ align, bold, italic, underline, strike, color, background }</code>. Nastavitelné v UI („Formát buňky").'],
+      ['<code>summaryFormula</code>', 'string', 'Vážený / poolovaný souhrn vzorcem z agregací jiných sloupců, např. <code>sum(a)/sum(b)*100</code>.'],
+      ['<code>formula</code>', 'string', 'Počítaný sloupec zadaný vzorcem (bez eval). Vytvoří/upraví se i v UI.'],
       ['<code>filter</code>', 'string', "Typ filtru; když se vynechá, odvodí se z typu (viz <i>Filtry</i>)."],
       ['<code>editable</code>', 'boolean', 'Povolí inline editaci buňky.'],
       ['<code>headerSort</code>', 'boolean', 'Řazení klikem na hlavičku (výchozí true).'],
@@ -149,6 +154,9 @@ function docSloupce(root, ctx) {
         return { id: 'doc-frozen', columns: cols, data: ctx.data.slice(0, 30), pageSize: 6 };
       })(),
     }),
+
+    h3('Vzhled a skupiny v UI'),
+    p('Vše z <b>dialogu Sloupce</b> (ikona ☰), persistované: <b>přejmenování</b> (dvojklik na název), <b>skupiny</b> (v nabídce skupiny i barva a zrušení), <b>sbalení skupiny</b> (−/+ v záhlaví do úzkého proužku), <b>barvy záhlaví</b> sloupce i skupiny (picker s barevným kolem + Bootstrap presety; sloupec dědí barvu skupiny) a <b>Formát buňky</b> (zarovnání, tučné/kurzíva/podtržené/přeškrtnuté, barva písma i pozadí). Programově: <code>setColumnTitle</code>, <code>toggleColGroup</code>, <code>setColumnHeaderColor</code>, <code>setColGroupHeaderColor</code>, <code>setColumnCellFormat</code>.'),
 
     h3('Řazení'),
     p('Klik na hlavičku cyklí <b>vzestupně → sestupně → zrušit</b>. <b>Shift+klik</b> přidá sloupec do <b>víceúrovňového řazení</b> (odznak pořadí 1,2,3…). Programově <code>grid.sortColumn(field, dir)</code> / <code>grid.toggleSort(field, append)</code>.'),

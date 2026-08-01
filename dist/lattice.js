@@ -11870,7 +11870,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.1.0";
+var VERSION = "1.2.0";
 export {
   ClientData,
   I18n,

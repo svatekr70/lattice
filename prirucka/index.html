@@ -110,6 +110,7 @@
     <a href="#rozsireny">Rozšířený filtr</a>
     <h4>Dialogy</h4>
     <a href="#dialog-sloupce">Dialog „Sloupce"</a>
+    <a href="#skupiny">Skupiny a vzhled sloupců</a>
     <a href="#pocitany">Počítaný sloupec</a>
     <a href="#nastaveni">Nastavení tabulky</a>
     <a href="#presety">Presety</a>
@@ -134,6 +135,8 @@
     <p class="lead">Jak ovládat tabulku Lattice přímo v aplikaci — řazení, filtrování, seskupení,
       editace, export a spousta dalšího. Psáno pro člověka, který tabulku vidí na obrazovce;
       instalaci ani programování řešit nemusíš.</p>
+    <p class="muted" style="margin-top:-6px"><b>Výslovnost:</b> <i>Lattice</i> [ˈlætɪs] — zhruba
+      „LE-tys" s důrazem na první slabiku (zní skoro jako anglické <i>lettuce</i>, hlávkový salát).</p>
 
     <section id="prehled">
       <h2><span class="n">1</span>Přehled tabulky</h2>
@@ -408,7 +411,8 @@
 
       <h3>Ikony u každého sloupce</h3>
       <p>U každého sloupce je vlevo <b>úchyt ⋮⋮</b> (tažením změníš pořadí — viz
-        <a href="#presun">Přesouvání sloupců</a>) a <b>zaškrtávátko</b> (viditelnost). Vpravo pak řada ikon:</p>
+        <a href="#presun">Přesouvání sloupců</a>) a <b>zaškrtávátko</b> (viditelnost).
+        <b>Dvojklikem na název sloupec přejmenuješ</b> (Enter uloží, Esc zruší). Vpravo pak řada ikon:</p>
       <ul class="iconlegend">
         <li><span class="ic"><span class="glyph">📌</span></span>
           <div><b>Ukotvit (vlevo/vpravo)</b> — přišpendlí sloupec k okraji, ať zůstane vidět i při
@@ -418,7 +422,15 @@
             <a href="#rozsireny">Zapnout / vypnout filtr</a>).</div></li>
         <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 5h8v6H3V5zm10 0h8v2h-8V5zm0 4h8v2h-8V9zM3 13h18v2H3v-2zm0 4h18v2H3v-2z"></path></svg></span>
           <div><b>Skupina sloupce</b> — spojí sousední sloupce pod <b>společné nadřazené záhlaví</b>
-            (seskupení <i>sloupců</i>, čistě vizuální — nepleť si se seskupením řádků níže).</div></li>
+            (seskupení <i>sloupců</i>). V nabídce skupiny je i <b>barva</b> záhlaví skupiny (ikona <b>A</b>)
+            a <b>zrušení</b> skupiny (×). Skupinu jde v záhlaví <b>sbalit</b> ikonou <b>−</b> (rozbalit <b>+</b>) —
+            viz <a href="#skupiny">Skupiny a vzhled sloupců</a>.</div></li>
+        <li><span class="ic"><span class="glyph" style="font-weight:700">A</span></span>
+          <div><b>Barva záhlaví sloupce</b> — pozadí a písmo hlavičky. Picker má <b>barevné kolo</b>,
+            jezdec jasu a přednastavené (Bootstrap) kombinace. Viz <a href="#skupiny">Skupiny a vzhled sloupců</a>.</div></li>
+        <li><span class="ic"><span class="glyph">¶</span></span>
+          <div><b>Formát buňky</b> — vzhled těla sloupce: <b>zarovnání</b>, <b>tučné / kurzíva / podtržené /
+            přeškrtnuté</b> a <b>barva písma i pozadí</b>. Viz <a href="#skupiny">Skupiny a vzhled sloupců</a>.</div></li>
         <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7.5 4l4.5 12h-2l-1-3H5l-1 3H2L6.5 4h1zM6 5.9L4.6 11h2.8L6 5.9zM20 13l-4 4-4-4h3V4h2v9h3z"></path></svg></span>
           <div><b>Otočení hlavičky</b> — natočí text v záhlaví (vodorovně / svisle). Hodí se u úzkých
             sloupců s dlouhým názvem.</div></li>
@@ -454,8 +466,51 @@
       </figure>
     </section>
 
+    <section id="skupiny">
+      <h2><span class="n">9</span>Skupiny a vzhled sloupců</h2>
+      <p>Sloupce můžeš sdružit do <b>skupin</b>, skupiny <b>sbalit</b>, a jak skupinám, tak
+        jednotlivým sloupcům dát <b>vlastní barvy záhlaví</b> i <b>formát buňky</b>. Vše se nastaví
+        v <a href="#dialog-sloupce">dialogu Sloupce</a> a pamatuje se.</p>
+
+      <h3>Skupiny sloupců</h3>
+      <p>U sloupce klikni na ikonu <b>Skupina</b> a vyber existující skupinu, nebo napiš název
+        <b>nové</b> (nová se nabízí jen u sloupce, který zatím skupinu nemá — sloupec může být jen
+        v jedné). Sousední sloupce téže skupiny se spojí pod společné záhlaví. V nabídce skupiny je
+        i <b>barva</b> (A) a <b>zrušení</b> skupiny (×) — bezpečně tady, ne přímo v gridu.</p>
+
+      <h3>Sbalení skupiny</h3>
+      <p>V záhlaví skupiny je ikona <b>−</b> (sbalit) / <b>+</b> (rozbalit). Sbalená skupina se schová
+        do <b>úzkého proužku</b> jen se šířkou ikony — přehledné, když skupinu zrovna nepotřebuješ.</p>
+      <figure>
+        <img src="img/skupiny-sbaleno.png" alt="Sbalená skupina sloupců jako úzký proužek">
+        <figcaption>Skupina „Osoba" sbalená do proužku (ikona <b>+</b> rozbalí); „Adresa" zůstává rozbalená.</figcaption>
+      </figure>
+
+      <h3>Barvy záhlaví</h3>
+      <p>Ikona <b>A</b> u sloupce (a v nabídce skupiny) otevře <b>picker barvy</b>. Ve výchozím tabu
+        je <b>barevné kolo</b> a jezdec <b>jasu</b>; druhý tab <b>Palety</b> nabízí přednastavené
+        kombinace (à la Bootstrap) i vlastní volbu. Sloupec <b>bez vlastní barvy zdědí barvu své
+        skupiny</b>; písmo se u presetů a kola dopočítá tak, aby bylo čitelné.</p>
+      <figure>
+        <img src="img/skupiny-barvy.png" alt="Obarvené záhlaví skupiny a sloupce">
+        <figcaption>Skupina „Osoba" má modré záhlaví (a její sloupce ho zdědily); „E-mail" má vlastní barvu.</figcaption>
+      </figure>
+
+      <h3>Formát buňky</h3>
+      <p>Ikona <b>¶</b> u sloupce otevře <b>Formát buňky</b> — vzhled <i>těla</i> sloupce:
+        <b>zarovnání</b> (vlevo / na střed / vpravo), <b>tučné</b>, <b>kurzíva</b>, <b>podtržené</b>,
+        <b>přeškrtnuté</b> a <b>barva písma i pozadí</b> (stejný picker s kolem i paletami).</p>
+      <figure>
+        <img src="img/format-bunky.png" alt="Picker Formát buňky">
+        <figcaption>„Formát buňky": zarovnání, řez písma a barvy — aplikují se na celý sloupec.</figcaption>
+      </figure>
+
+      <div class="note"><b>Vše se pamatuje:</b> přejmenování, skupiny a jejich sbalení, barvy i
+        formát buňky zůstanou i po načtení stránky a dají se uložit do <a href="#presety">presetu</a>.</div>
+    </section>
+
     <section id="pocitany">
-      <h2><span class="n">9</span>Počítaný sloupec (vlastní vzorec)</h2>
+      <h2><span class="n">10</span>Počítaný sloupec (vlastní vzorec)</h2>
       <p>Občas potřebuješ sloupec, který v datech <b>není</b> — třeba <b>Celkem</b> = cena × množství,
         <b>marži</b>, nebo <b>celé jméno</b> složené z více polí. Takový sloupec si <b>vytvoříš přímo
         v tabulce</b> zadáním vzorce — nemusíš nic programovat.</p>
@@ -509,7 +564,7 @@
     </section>
 
     <section id="nastaveni">
-      <h2><span class="n">10</span>Nastavení tabulky</h2>
+      <h2><span class="n">11</span>Nastavení tabulky</h2>
       <p>Ozubené kolo <b>⚙</b> vpravo nahoře otevře <b>Nastavení tabulky</b> — vzhled a chování
         celé tabulky, rozdělené do záložek.</p>
       <figure>
@@ -528,7 +583,7 @@
     </section>
 
     <section id="presety">
-      <h2><span class="n">11</span>Presety (uložené pohledy)</h2>
+      <h2><span class="n">12</span>Presety (uložené pohledy)</h2>
       <p>Preset je <b>pojmenovaný pohled</b> na tabulku. Nejdřív si tabulku <b>naklikáš</b> přesně
         tak, jak ji chceš — zvolíš viditelnost a pořadí sloupců, jejich šířky, nastavíš filtry
         a řazení — a celý tenhle stav uložíš pod názvem. Když pak preset <b>použiješ</b>, tabulka
@@ -568,7 +623,7 @@
         správcem (společné pro všechny) — ty poznáš v nabídce a fungují stejně.</div>
     </section>
     <section id="seskupeni">
-      <h2><span class="n">12</span>Seskupení řádků (i podle data)</h2>
+      <h2><span class="n">13</span>Seskupení řádků (i podle data)</h2>
       <p>Řádky můžeš <b>seskupit podle hodnoty sloupce</b> — třeba všechny kampaně jedné kategorie
         pohromadě. Zapneš to v dialogu <b>„Sloupce"</b> (ikona ⊟): u sloupce klikni na ikonu
         <b>Seskupovat řádky</b> (seznam vpravo). Seskupovat lze i <b>víceúrovňově</b> (skupina ve skupině).
@@ -606,7 +661,7 @@
         seskupení v dialogu „Sloupce" (odškrtnutím).</p>
     </section>
     <section id="editace">
-      <h2><span class="n">13</span>Inline editace</h2>
+      <h2><span class="n">14</span>Inline editace</h2>
       <p>Pokud to aplikace povolí, hodnotu upravíš <b>přímo v buňce</b> — <b>dvojklik</b> (nebo
         Enter na vybrané buňce) ji přepne do editace. Napiš novou hodnotu a potvrď <kbd>Enter</kbd>;
         <kbd>Esc</kbd> úpravu zruší.</p>
@@ -622,7 +677,7 @@
     </section>
 
     <section id="vyber">
-      <h2><span class="n">14</span>Výběr buněk a kopírování</h2>
+      <h2><span class="n">15</span>Výběr buněk a kopírování</h2>
       <p>Buňky můžeš označit jako v tabulkovém procesoru: klikni do buňky a <b>táhni</b> přes
         obdélník (nebo drž <kbd>Shift</kbd> a klikni na protilehlý roh). Označený rozsah se
         podbarví a dole se ukáže jeho <b>souhrn</b>.</p>
@@ -634,7 +689,7 @@
         Excelu. Souhrn dole je praktický pro rychlou kontrolu (kolik to je celkem, průměr…).</p>
     </section>
     <section id="radek">
-      <h2><span class="n">15</span>Klik na řádek, menu a popup</h2>
+      <h2><span class="n">16</span>Klik na řádek, menu a popup</h2>
       <h3>Klik na řádek</h3>
       <p>V mnoha aplikacích má <b>kliknutí na řádek</b> akci — třeba otevře detail záznamu.
         Jestli řádek reaguje, poznáš podle toho, že se při najetí <b>zvýrazní</b> a kurzor je
@@ -651,7 +706,7 @@
     </section>
 
     <section id="hromadne">
-      <h2><span class="n">16</span>Hromadné úpravy (výběr více řádků)</h2>
+      <h2><span class="n">17</span>Hromadné úpravy (výběr více řádků)</h2>
       <p>Vlevo je (pokud to aplikace zapne) sloupec s <b>checkboxy</b>. Zaškrtni řádky, které chceš
         zpracovat najednou — nahoře se objeví <b>lišta hromadných akcí</b> s tím, co lze s výběrem udělat.</p>
       <figure>
@@ -662,7 +717,7 @@
         napříč stránkami nebo výběr invertovat. Konkrétní akce určuje aplikace.</p>
     </section>
     <section id="strom">
-      <h2><span class="n">17</span>Stromové zobrazení</h2>
+      <h2><span class="n">18</span>Stromové zobrazení</h2>
       <p>Když jsou data <b>hierarchická</b> (např. organizační struktura, kategorie a podkategorie),
         tabulka je ukáže jako <b>strom</b>: v prvním sloupci je <b>rozbalovací šipka</b> a odsazení
         podle úrovně. Klik na šipku větev rozbalí/sbalí.</p>
@@ -676,7 +731,7 @@
     </section>
 
     <section id="presun-radku">
-      <h2><span class="n">18</span>Přesouvání řádků</h2>
+      <h2><span class="n">19</span>Přesouvání řádků</h2>
       <p>Pokud to aplikace zapne (a struktura dat to dovolí), můžeš <b>měnit pořadí řádků myší</b>.
         Vlevo v každém řádku je <b>úchyt ⠿</b> — chytni ho a <b>přetáhni</b> řádek nad nebo pod jiný.
         Při tažení ukazuje <b>modrá linka</b>, kam řádek spadne. Nové pořadí si aplikace uloží.</p>
@@ -718,7 +773,7 @@
     </section>
 
     <section id="detail-radku">
-      <h2><span class="n">19</span>Rozbalovací detail řádku</h2>
+      <h2><span class="n">20</span>Rozbalovací detail řádku</h2>
       <p>Některé řádky umí <b>rozbalit panel s detailem</b> pod sebou (tzv. master-detail). Poznáš je
         podle <b>šipky ▸</b> na začátku řádku (obvykle ve sloupci <b>ID</b>). Klikem na šipku se pod
         řádkem otevře panel se souvisejícími údaji, které se nevejdou do sloupců; dalším klikem ho zavřeš.</p>
@@ -731,7 +786,7 @@
     </section>
 
     <section id="cislovani">
-      <h2><span class="n">20</span>Číslování řádků</h2>
+      <h2><span class="n">21</span>Číslování řádků</h2>
       <p>Tabulka může vlevo zobrazit <b>sloupec s pořadovým číslem řádku</b>. Zapneš (a vypneš) ho
         v <b>Nastavení tabulky → Sloupce a řádky → „Číslování řádků"</b>. Na výběr jsou tři možnosti:</p>
       <ul>
@@ -748,7 +803,7 @@
     </section>
 
     <section id="formaty">
-      <h2><span class="n">21</span>Formáty a podmíněné formáty</h2>
+      <h2><span class="n">22</span>Formáty a podmíněné formáty</h2>
       <h3>Formát hodnot</h3>
       <p>Jak se zobrazují <b>čísla, měny a data</b>, nastavíš v <b>Nastavení tabulky → Formát hodnot</b>:
         desetinná místa, oddělovač tisíců, jak psát záporná čísla, symbol měny, jazyk formátu (locale).</p>
@@ -780,7 +835,7 @@
     </section>
 
     <section id="souhrny">
-      <h2><span class="n">22</span>Souhrny a mezisoučty</h2>
+      <h2><span class="n">23</span>Souhrny a mezisoučty</h2>
       <p>Pod tabulkou může být <b>souhrnný řádek</b> — součet, průměr, minimum, maximum, počet
         za vybrané sloupce. Nejdřív ho ale musíš <b>zapnout</b> v <b>Nastavení tabulky →
         Sloupce a řádky → Souhrnný řádek</b>; které sloupce a jaké funkce se počítají, nastavíš
@@ -838,7 +893,7 @@
     </section>
 
     <section id="export">
-      <h2><span class="n">23</span>Export a tisk</h2>
+      <h2><span class="n">24</span>Export a tisk</h2>
       <p>Data z tabulky lze <b>vyexportovat</b> — typicky do <b>CSV</b> (otevřeš v Excelu) nebo
         <b>JSON</b>, případně <b>vytisknout</b>. Export respektuje tvůj aktuální pohled: řazení,
         filtry i viditelné sloupce, takže dostaneš přesně to, co máš na obrazovce.</p>

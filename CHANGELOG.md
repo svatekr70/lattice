@@ -4,6 +4,37 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.2.0] – 2026-08-01
+
+### Přidáno
+- **Sbalitelné skupiny sloupců** — v záhlaví skupiny ikona **−/+**; sbalená skupina se schová
+  do úzkého proužku. Stav se persistuje. API: `toggleColGroup`, `isColGroupCollapsed`.
+- **Barvy záhlaví** sloupce i skupiny — color picker s **barevným kolem** (výchozí tab),
+  jezdcem jasu a **Bootstrap presety**. Sloupec bez vlastní barvy **zdědí barvu skupiny**;
+  písmo se dopočítá kontrastně. API: `setColumnHeaderColor`, `setColGroupHeaderColor`; options
+  `headerBackground`/`headerColor`/`groupHeaderBackground`/`groupHeaderColor` (i nested def skupiny).
+- **Formát buňky** — vzhled těla sloupce v UI: zarovnání, tučné/kurzíva/podtržené/přeškrtnuté,
+  barva písma i pozadí. API: `setColumnCellFormat`; option `cellFormat`.
+- **Přejmenování sloupce** — dvojklik na název v dialogu Sloupce (persistuje se). API: `setColumnTitle`.
+- **Vážený souhrn** se sloučí do řádku standardního souhrnu, když ho pojmenuješ stejně
+  (např. „Průměr") — ikona **ƒ** ho odliší.
+- **Demo**: hledání ukázek v postranním menu; generátor kódu doplněn o poznámku k runtime vzhledu.
+
+### Změněno
+- Barva a zrušení skupiny se nastavují v **nabídce skupiny** (dialog Sloupce), ne přímo v gridu
+  (ať se na zrušení neklikne omylem). „Nová skupina" se nabízí jen sloupci bez skupiny.
+- Dialog Sloupce se rozšíří, aby se vešly ikony i delší názvy.
+- Demo: kategorie „Novinky" pročištěna (Skupiny sloupců, Počítané sloupce, Souhrny).
+
+### Opraveno
+- Σ ikona je aktivní i při zapnutém váženém souhrnu.
+- Dialog Sloupce zůstává otevřený při práci s jeho pod-popovery (souhrn/formát/skupina/barva/vzorec).
+- Editor vzorce/souhrnu se neobjeví v rohu, když se překreslením utrhne kotva.
+
+### Dokumentace
+- Uživatelská příručka: nová sekce **„Skupiny a vzhled sloupců"**, aktualizovaný dialog Sloupce
+  (nové ikony), výslovnost názvu. `docs/API.md` a dokumentace v demu doplněny.
+
 ## [1.1.0] – 2026-08-01
 
 ### Přidáno
@@ -88,6 +119,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.2.0]: https://github.com/svatekr70/lattice/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/svatekr70/lattice/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/svatekr70/lattice/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/svatekr70/lattice/compare/v0.5.0...v1.0.0

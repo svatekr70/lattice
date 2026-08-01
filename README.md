@@ -17,6 +17,8 @@ Název sedí hned na několika rovinách:
 
 > Mřížka, která řadí a uspořádává data — a nese hodně při minimu materiálu.
 
+**Výslovnost:** *Lattice* [ˈlætɪs] — zhruba **„LE-tys"** s důrazem na první slabiku (zní skoro jako anglické *lettuce*, hlávkový salát); ne „lat-tajs". Česky se často slyší „letys" i „latis".
+
 ## Instalace
 
 **Z CDN — jeden soubor, bez buildu** (nejrychlejší začátek):
