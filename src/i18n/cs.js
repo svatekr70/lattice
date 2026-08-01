@@ -16,6 +16,9 @@ export default {
   },
   headerColor: {
     title: 'Barva záhlaví',
+    tabWheel: 'Kolo',
+    tabPalette: 'Palety',
+    brightness: 'Jas',
     none: 'Bez barvy',
     custom: 'Vlastní:',
     bg: 'Pozadí',

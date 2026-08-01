@@ -16,6 +16,9 @@ export default {
   },
   headerColor: {
     title: 'Header color',
+    tabWheel: 'Wheel',
+    tabPalette: 'Palettes',
+    brightness: 'Brightness',
     none: 'No color',
     custom: 'Custom:',
     bg: 'Background',
