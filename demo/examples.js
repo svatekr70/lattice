@@ -5,7 +5,7 @@
  * ji (app.js ji při přepnutí zničí). `id` je zároveň klíč persistence.
  */
 import { Lattice } from '../src/index.js';
-import { campaignColumns, coreColumns, withEditing } from './columns.js';
+import { campaignColumns, coreColumns, withEditing, showcaseColumns } from './columns.js';
 import { orgFlat, orgNested, orgNestedSet, orgColumns, orgColumnsNS } from './orgdata.js';
 import { i18nStudioExample } from './i18nStudio.js';
 
@@ -23,6 +23,43 @@ function base(ctx, extra) {
     onSaveGlobalDefaults: ctx.saveGlobalDefaults ? (d) => ctx.saveGlobalDefaults(id, d) : undefined,
     ...extra,
   };
+}
+
+/**
+ * Showcase „Datové typy" — přepínač Plochá / Strom / Seskupeno nad jedním
+ * datasetem (showcaseColumns + parentId hierarchie). Vrací { destroy } pro úklid.
+ */
+function datatypesShowcase(el, ctx) {
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap';
+  const gridEl = document.createElement('div');
+  el.append(bar, gridEl);
+  let grid = null;
+  const modes = {
+    flat:  { label: '📋 Plochá tabulka',              cfg: { pageSize: 15, instance: { summaryRow: 'page' } } },
+    tree:  { label: '🌳 Strom (programy → kampaně)',  cfg: { treeData: true, treeParentField: 'parentId', treeIdField: 'id', treeStartExpanded: 1 } },
+    group: { label: '🗂️ Seskupeno podle kategorie',  cfg: { pageSize: 500, instance: { groupBy: ['category'], summaryRow: 'all', groupSubtotals: true } } },
+  };
+  const buttons = {};
+  const show = (m) => {
+    Object.entries(buttons).forEach(([k, b]) => b.classList.toggle('is-active', k === m));
+    if (grid) { try { grid.destroy(); } catch { /* no-op */ } }
+    gridEl.innerHTML = '';
+    const cfg = modes[m].cfg;
+    grid = new Lattice(gridEl, base(ctx, {
+      id: 'ex-datatypes-' + m, keyField: 'id', columns: showcaseColumns(), data: ctx.data,
+      quickSearch: true, ...cfg,
+      instance: { linkNewTab: true, ...(cfg.instance || {}) },
+    }));
+  };
+  for (const [k, m] of Object.entries(modes)) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tab'; b.textContent = m.label;
+    b.addEventListener('click', () => show(k));
+    buttons[k] = b; bar.appendChild(b);
+  }
+  show('flat');
+  return { destroy() { try { grid && grid.destroy(); } catch { /* no-op */ } } };
 }
 
 const RAW_GROUPS = [
@@ -224,13 +261,16 @@ const RAW_GROUPS = [
       },
       {
         id: 'ex-datatypes',
-        title: 'Datové typy',
-        blurb: 'Formátovače: text, number, money, date/datetime, boolean, tick, progress, rating, link, image (+ lightbox), icon, color, html. Odkazy tu díky <code>instance.linkNewTab</code> míří do nové karty (ikona externího odkazu vpravo).',
-        code: `columns = [\n  { field: 'web', type: 'link', formatterParams: { urlPrefix: 'https://lattice.dev/' } },\n  { field: 'budget', type: 'money' },\n  { field: 'progress', type: 'progress' },\n  { field: 'rating', type: 'rating' },\n  { field: 'image', type: 'image' },\n]\n// odkazy otevírat v nové kartě + ikona:\ninstance = { linkNewTab: true }`,
-        mount: (el, ctx) => new Lattice(el, base(ctx, {
-          id: 'ex-datatypes', columns: campaignColumns(), data: ctx.data, pageSize: 10,
-          instance: { linkNewTab: true },
-        })),
+        title: 'Datové typy (showcase)',
+        blurb: 'Jeden dataset, tři pohledy. <b>Sloupce ve skupinách</b> pokrývají všechny typy: id, náhled+lightbox, odkaz (přes <code>urlField</code>), ikona, money, číslo, průběh, hodnocení, <b>sparkline</b> (čára i sloupce), datum, <b>datetime</b>, tick, boolean, html, barva. Přepni <b>Plochá / Strom / Seskupeno</b> — stejná data slouží tabulce, hierarchii (programy → kampaně přes <code>parentId</code>) i seskupení řádků.',
+        code: `// jeden dataset (parentId dělá z programů rodiče), tři pohledy:
+new Lattice('#grid', { id, columns: showcaseColumns(), data,
+  instance: { summaryRow: 'page' } });                 // Plochá
+new Lattice('#grid', { id, columns, data,
+  treeData: true, treeParentField: 'parentId' });      // Strom
+new Lattice('#grid', { id, columns, data,
+  instance: { groupBy: ['category'] } });              // Seskupeno`,
+        mount: (el, ctx) => datatypesShowcase(el, ctx),
       },
       {
         id: 'ex-format',

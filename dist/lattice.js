@@ -20,6 +20,8 @@ function emptyState() {
     // [{ id, name, tree }] uložené rozšířené filtry
     groups: [],
     // hodnoty sbalených skupin řádků (row grouping)
+    colGroups: [],
+    // názvy sbalených skupin sloupců (column grouping)
     tree: [],
     // klíče rozbalených uzlů (tree data)
     _gdVersion: null
@@ -62,6 +64,7 @@ var Store = class {
         advanced: parsed.advanced || base.advanced,
         advancedFilters: Array.isArray(parsed.advancedFilters) ? parsed.advancedFilters : base.advancedFilters,
         groups: Array.isArray(parsed.groups) ? parsed.groups : base.groups,
+        colGroups: Array.isArray(parsed.colGroups) ? parsed.colGroups : base.colGroups,
         tree: Array.isArray(parsed.tree) ? parsed.tree : base.tree,
         _gdVersion: parsed._gdVersion != null ? parsed._gdVersion : base._gdVersion
       };
@@ -2639,11 +2642,22 @@ var cs_default = {
     bgColor: "Barva pozad\xED",
     clear: "Zru\u0161it form\xE1t"
   },
+  bool: {
+    title: "Zobrazen\xED Ano/Ne",
+    yes: "Ano",
+    no: "Ne",
+    customTrue: 'Vlastn\xED \u201Eano"',
+    customFalse: 'Vlastn\xED \u201Ene"',
+    colored: "Barevn\u011B (zelen\xE1/\u010Derven\xE1)",
+    reset: "V\xFDchoz\xED (\u2713/\u2715)"
+  },
   headerColor: {
     title: "Barva z\xE1hlav\xED",
     tabWheel: "Kolo",
     tabPalette: "Palety",
     brightness: "Jas",
+    alpha: "Pr\u016Fhlednost",
+    recent: "Naposledy pou\u017Eit\xE9",
     none: "Bez barvy",
     custom: "Vlastn\xED:",
     bg: "Pozad\xED",
@@ -3067,11 +3081,22 @@ var en_default = {
     bgColor: "Background color",
     clear: "Clear format"
   },
+  bool: {
+    title: "Yes/No display",
+    yes: "Yes",
+    no: "No",
+    customTrue: "Custom \u201Cyes\u201D",
+    customFalse: "Custom \u201Cno\u201D",
+    colored: "Colored (green/red)",
+    reset: "Default (\u2713/\u2715)"
+  },
   headerColor: {
     title: "Header color",
     tabWheel: "Wheel",
     tabPalette: "Palettes",
     brightness: "Brightness",
+    alpha: "Opacity",
+    recent: "Recently used",
     none: "No color",
     custom: "Custom:",
     bg: "Background",
@@ -3733,11 +3758,23 @@ registerType("time", (v, col) => {
   const d = toDate3(v);
   return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
 });
-registerType("boolean", (v) => {
-  const truthy = v === true || v === 1 || v === "1" || v === "true";
+function boolDisplay(col) {
+  const p = col && col.format || col && col.formatterParams || {};
+  return {
+    trueText: p.trueText != null ? p.trueText : "\u2713",
+    falseText: p.falseText != null ? p.falseText : "\u2715",
+    plain: !!p.plain
+  };
+}
+function isTruthy(v) {
+  return v === true || v === 1 || v === "1" || v === "true" || v === "True" || v === "ano" || v === "yes";
+}
+registerType("boolean", (v, col) => {
+  const truthy = isTruthy(v);
+  const d = boolDisplay(col);
   const span = document.createElement("span");
-  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false");
-  span.textContent = truthy ? "\u2713" : "\u2715";
+  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false") + (d.plain ? " is-plain" : "");
+  span.textContent = truthy ? d.trueText : d.falseText;
   return span;
 });
 registerType("progress", (v, col) => {
@@ -3882,12 +3919,12 @@ registerType("color", (v) => {
   div.title = v != null ? String(v) : "";
   return div;
 });
-registerType("tick", (v) => {
-  const truthy = v === true || v === 1 || v === "1" || v === "true" || v === "True";
-  if (!truthy) return "";
+registerType("tick", (v, col) => {
+  if (!isTruthy(v)) return "";
+  const d = boolDisplay(col);
   const span = document.createElement("span");
-  span.className = "lattice-bool is-true";
-  span.textContent = "\u2713";
+  span.className = "lattice-bool is-true" + (d.plain ? " is-plain" : "");
+  span.textContent = d.trueText;
   return span;
 });
 registerType("html", (v) => {
@@ -4271,6 +4308,279 @@ function levelColor(colors, i, levels, reverse, mode) {
   return { bg: color, fg: lum(c) < 0.55 ? "#ffffff" : "#1f2733" };
 }
 
+// src/features/headerColor.js
+var HEADER_COLOR_PRESETS = [
+  // plné
+  { key: "primary", label: "Primary", bg: "#0d6efd", fg: "#ffffff" },
+  { key: "secondary", label: "Secondary", bg: "#6c757d", fg: "#ffffff" },
+  { key: "success", label: "Success", bg: "#198754", fg: "#ffffff" },
+  { key: "danger", label: "Danger", bg: "#dc3545", fg: "#ffffff" },
+  { key: "warning", label: "Warning", bg: "#ffc107", fg: "#000000" },
+  { key: "info", label: "Info", bg: "#0dcaf0", fg: "#000000" },
+  { key: "light", label: "Light", bg: "#f8f9fa", fg: "#212529" },
+  { key: "dark", label: "Dark", bg: "#212529", fg: "#ffffff" },
+  // jemné (alert)
+  { key: "primary-soft", label: "Primary \u2014 jemn\xE9", bg: "#cfe2ff", fg: "#084298" },
+  { key: "secondary-soft", label: "Secondary \u2014 jemn\xE9", bg: "#e2e3e5", fg: "#41464b" },
+  { key: "success-soft", label: "Success \u2014 jemn\xE9", bg: "#d1e7dd", fg: "#0f5132" },
+  { key: "danger-soft", label: "Danger \u2014 jemn\xE9", bg: "#f8d7da", fg: "#842029" },
+  { key: "warning-soft", label: "Warning \u2014 jemn\xE9", bg: "#fff3cd", fg: "#664d03" },
+  { key: "info-soft", label: "Info \u2014 jemn\xE9", bg: "#cff4fc", fg: "#055160" },
+  { key: "light-soft", label: "Light \u2014 jemn\xE9", bg: "#fefefe", fg: "#636464" },
+  { key: "dark-soft", label: "Dark \u2014 jemn\xE9", bg: "#d3d3d4", fg: "#141619" }
+];
+function openHeaderColorPicker(anchor, opts) {
+  return colorPickerMenu(anchor, { ...opts, mode: "pair" });
+}
+function openColorPicker(anchor, opts) {
+  return colorPickerMenu(anchor, { ...opts, mode: "single" });
+}
+function colorPickerMenu(anchor, opts) {
+  const t = opts.t || ((k) => k);
+  const pair = opts.mode === "pair";
+  const alphaOn = opts.alpha === true && !pair;
+  let alpha = parseAlpha(typeof opts.current === "string" ? opts.current : opts.current && opts.current.background);
+  document.querySelectorAll(".lattice-hcolor-menu").forEach((m) => m.remove());
+  const menu = el("div.lattice-menu.lattice-hcolor-menu");
+  menu.appendChild(el("div.lattice-summary-menu-head", { text: opts.title || t("headerColor.title") }));
+  const fin = (color) => alphaOn && alpha < 1 ? toRgba(color, alpha) : color;
+  const finalize = (color, fg, record) => {
+    if (record !== false) rememberColor(color);
+    if (pair) opts.onPick(color, fg);
+    else opts.onPick(color);
+    close();
+  };
+  const emit = (color) => {
+    if (pair) finalize(color, contrastFg(color));
+    else finalize(fin(color));
+  };
+  const tabWheel = el("button.lattice-hcolor-tab.is-active", { type: "button", text: t("headerColor.tabWheel") });
+  const tabPal = el("button.lattice-hcolor-tab", { type: "button", text: t("headerColor.tabPalette") });
+  menu.appendChild(el("div.lattice-hcolor-tabs", {}, [tabWheel, tabPal]));
+  const wheelPane = el("div.lattice-hcolor-pane");
+  const wheel = buildWheel(196, (hex) => emit(hex));
+  const bright = el("input.lattice-hcolor-bright", { type: "range", min: "20", max: "100", value: "100" });
+  bright.addEventListener("input", () => wheel.setValue(+bright.value / 100));
+  wheelPane.append(wheel.el, el("label.lattice-hcolor-brightrow", {}, [
+    el("span", { text: t("headerColor.brightness") }),
+    bright
+  ]));
+  menu.appendChild(wheelPane);
+  const palPane = el("div.lattice-hcolor-pane", { style: { display: "none" } });
+  const grid = el("div.lattice-hcolor-grid");
+  for (const p of HEADER_COLOR_PRESETS) {
+    const sw = el("button.lattice-hcolor-swatch", { type: "button", title: p.label, style: { background: p.bg, color: pair ? p.fg : p.bg }, text: pair ? "Aa" : "" });
+    sw.addEventListener("click", () => {
+      pair ? finalize(p.bg, p.fg, false) : finalize(fin(p.bg), null, false);
+    });
+    grid.appendChild(sw);
+  }
+  palPane.appendChild(grid);
+  const cur = opts.current || {};
+  if (pair) {
+    const bgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.background) || "#0d6efd" });
+    const fgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.color) || "#ffffff" });
+    const apply = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
+    apply.addEventListener("click", () => finalize(bgIn.value, fgIn.value));
+    palPane.appendChild(el("div.lattice-hcolor-custom", {}, [
+      el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
+      el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.bg") }), bgIn]),
+      el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.text") }), fgIn]),
+      apply
+    ]));
+  } else {
+    const inp = el("input.lattice-hcolor-input", { type: "color", value: normHex(typeof cur === "string" ? cur : cur.background) || "#0d6efd" });
+    const apply = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
+    apply.addEventListener("click", () => finalize(fin(inp.value)));
+    palPane.appendChild(el("div.lattice-hcolor-custom", {}, [
+      el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
+      el("label.lattice-hcolor-field", {}, [inp]),
+      apply
+    ]));
+  }
+  menu.appendChild(palPane);
+  if (alphaOn) {
+    const av = el("input.lattice-hcolor-bright", { type: "range", min: "0", max: "100", value: String(Math.round(alpha * 100)) });
+    av.addEventListener("input", () => {
+      alpha = +av.value / 100;
+    });
+    menu.appendChild(el("label.lattice-hcolor-brightrow", {}, [
+      el("span", { text: t("headerColor.alpha") }),
+      av
+    ]));
+  }
+  const swap = (toPal) => {
+    tabPal.classList.toggle("is-active", toPal);
+    tabWheel.classList.toggle("is-active", !toPal);
+    palPane.style.display = toPal ? "" : "none";
+    wheelPane.style.display = toPal ? "none" : "";
+  };
+  tabWheel.addEventListener("click", () => swap(false));
+  tabPal.addEventListener("click", () => swap(true));
+  const recents = loadRecents();
+  if (recents.length) {
+    menu.appendChild(el("div.lattice-hcolor-recents-lbl", { text: t("headerColor.recent") }));
+    const rWrap = el("div.lattice-hcolor-recents");
+    for (const c of recents) {
+      const sw = el("button.lattice-hcolor-recent", { type: "button", title: c, style: { background: c } });
+      sw.addEventListener("click", () => {
+        if (pair) finalize(c, contrastFg(c));
+        else finalize(c);
+      });
+      rWrap.appendChild(sw);
+    }
+    menu.appendChild(rWrap);
+  }
+  const clearBtn = el("button.lattice-hcolor-clear", { type: "button", text: t("headerColor.none") });
+  clearBtn.addEventListener("click", () => {
+    opts.onClear();
+    close();
+  });
+  menu.appendChild(clearBtn);
+  document.body.appendChild(menu);
+  placeUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function buildWheel(size, onPick) {
+  const R = 6;
+  const hexR = size / (2 * (1.5 * R + 1));
+  const cx = size / 2, cy = size / 2;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + size + " " + size);
+  svg.setAttribute("class", "lattice-hcolor-wheel");
+  svg.style.width = size + "px";
+  svg.style.height = size + "px";
+  let value = 1;
+  const cells = [];
+  for (let q = -R; q <= R; q++) {
+    for (let r = Math.max(-R, -q - R); r <= Math.min(R, -q + R); r++) {
+      const px = cx + hexR * 1.5 * q;
+      const py = cy + hexR * Math.sqrt(3) * (r + q / 2);
+      const sat = (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 / R;
+      const hue = (Math.atan2(py - cy, px - cx) * 180 / Math.PI + 360) % 360;
+      const poly = document.createElementNS(NS, "polygon");
+      const pts = [];
+      for (let k = 0; k < 6; k++) {
+        const a = Math.PI / 180 * (60 * k);
+        pts.push((px + hexR * Math.cos(a)).toFixed(1) + "," + (py + hexR * Math.sin(a)).toFixed(1));
+      }
+      poly.setAttribute("points", pts.join(" "));
+      poly.setAttribute("class", "lattice-hcolor-hex");
+      poly.addEventListener("click", () => onPick(colorOf(hue, sat, value)));
+      svg.appendChild(poly);
+      cells.push({ poly, hue, sat });
+    }
+  }
+  const paint = () => {
+    for (const c of cells) c.poly.setAttribute("fill", colorOf(c.hue, c.sat, value));
+  };
+  paint();
+  return { el: svg, setValue(v) {
+    value = v;
+    paint();
+  } };
+}
+function colorOf(hue, sat, val) {
+  const [r, g, b] = hsvToRgb(hue, sat, val);
+  return rgbToHex(r, g, b);
+}
+function hsvToRgb(h, s, v) {
+  const c = v * s, x = c * (1 - Math.abs(h / 60 % 2 - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) {
+    r = c;
+    g = x;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+  } else if (h < 180) {
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+function toRgba(hex, a) {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${+a.toFixed(2)})`;
+}
+function parseAlpha(v) {
+  if (typeof v !== "string") return 1;
+  const m = v.match(/rgba?\([^)]*,\s*([0-9.]+)\s*\)/i);
+  return m ? Math.max(0, Math.min(1, parseFloat(m[1]))) : 1;
+}
+function hexToRgb(hex) {
+  const h = normHex(hex) || "#000000";
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+function rgbFromAny(c) {
+  if (typeof c === "string") {
+    const m = c.match(/rgba?\(([^)]+)\)/i);
+    if (m) {
+      const p = m[1].split(",").map((x) => parseFloat(x));
+      return [p[0] || 0, p[1] || 0, p[2] || 0];
+    }
+  }
+  return hexToRgb(c);
+}
+function contrastFg(color) {
+  const [r, g, b] = rgbFromAny(color);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#000000" : "#ffffff";
+}
+var RECENT_KEY = "lattice:recent-colors";
+var RECENT_MAX = 12;
+function loadRecents() {
+  try {
+    const a = JSON.parse(localStorage.getItem(RECENT_KEY));
+    return Array.isArray(a) ? a.slice(0, RECENT_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+function rememberColor(c) {
+  if (!c || typeof c !== "string") return;
+  try {
+    const a = loadRecents().filter((x) => x.toLowerCase() !== c.toLowerCase());
+    a.unshift(c);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(a.slice(0, RECENT_MAX)));
+  } catch {
+  }
+}
+function placeUnder(menu, anchor) {
+  const r = anchor.getBoundingClientRect();
+  menu.style.position = "absolute";
+  menu.style.top = window.scrollY + r.bottom + 4 + "px";
+  const left = window.scrollX + Math.min(r.left, window.innerWidth - menu.offsetWidth - 8);
+  menu.style.left = Math.max(8, left) + "px";
+}
+function normHex(v) {
+  if (typeof v !== "string") return null;
+  const m = v.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return "#" + h.toLowerCase();
+}
+
 // src/features/instanceSettings.js
 var SAMPLE_DATE = new Date(2026, 2, 5, 9, 7, 3);
 var InstanceSettings = class {
@@ -4408,7 +4718,7 @@ var InstanceSettings = class {
       ["270", t("instance.headerRotate270")]
     ], (v) => set({ headerRotate: v })));
     gA.appendChild(rowToggle(t("instance.zebra"), inst.zebra !== false, (v) => set({ zebra: v })));
-    gA.appendChild(rowScaleColors(t("instance.scaleColors"), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr })));
+    gA.appendChild(rowScaleColors(t("instance.scaleColors"), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
     const gL = makeTab(t("instance.groupLayout"));
     const layoutVal = inst.layout === "fit" ? "fitColumns" : inst.layout || "fitData";
     gL.appendChild(rowSelect(t("instance.layout"), layoutVal, [
@@ -4635,11 +4945,24 @@ function effVar(grid, name) {
   return getComputedStyle(grid.el).getPropertyValue(name).trim();
 }
 function colorGrid(items, grid, cv, merge) {
+  const t = grid.i18n.t.bind(grid.i18n);
   const wrap = el("div.lattice-color-grid");
   for (const [label, name] of items) {
-    const inp = el("input.lattice-scale-color", { type: "color", value: cv[name] || rgb2hex(effVar(grid, name)) || "#000000" });
-    inp.addEventListener("input", () => merge(name, inp.value));
-    wrap.appendChild(el("label.lattice-color-cell", {}, [inp, el("span.lattice-color-lbl", { text: label })]));
+    const def = () => rgb2hex(effVar(grid, name)) || "#000000";
+    const btn = el("button.lattice-scale-color", { type: "button", style: { background: cv[name] || def() } });
+    btn.addEventListener("click", () => openColorPicker(btn, {
+      t,
+      current: cv[name] || def(),
+      onPick: (color) => {
+        btn.style.background = color;
+        merge(name, color);
+      },
+      onClear: () => {
+        btn.style.background = def();
+        merge(name, null);
+      }
+    }));
+    wrap.appendChild(el("span.lattice-color-cell", {}, [btn, el("span.lattice-color-lbl", { text: label })]));
   }
   return wrap;
 }
@@ -4709,215 +5032,29 @@ function cssSelectRow(label, name, cv, options, merge) {
   sel.addEventListener("change", () => merge(name, sel.value || null));
   return field(label, sel);
 }
-function rowScaleColors(labelText, colors, onChange) {
+function rowScaleColors(labelText, colors, onChange, t) {
   const wrap = el("span.lattice-scale-colors");
-  const inputs = [0, 1, 2].map((i) => {
-    const inp = el("input.lattice-scale-color", { type: "color", value: colors[i] || "#888888" });
-    inp.addEventListener("input", () => onChange(inputs.map((x) => x.value)));
-    return inp;
-  });
-  wrap.append(...inputs);
-  return field(labelText, wrap);
-}
-
-// src/features/headerColor.js
-var HEADER_COLOR_PRESETS = [
-  { key: "primary", label: "Primary", bg: "#0d6efd", fg: "#ffffff" },
-  { key: "secondary", label: "Secondary", bg: "#6c757d", fg: "#ffffff" },
-  { key: "success", label: "Success", bg: "#198754", fg: "#ffffff" },
-  { key: "danger", label: "Danger", bg: "#dc3545", fg: "#ffffff" },
-  { key: "warning", label: "Warning", bg: "#ffc107", fg: "#000000" },
-  { key: "info", label: "Info", bg: "#0dcaf0", fg: "#000000" },
-  { key: "light", label: "Light", bg: "#f8f9fa", fg: "#212529" },
-  { key: "dark", label: "Dark", bg: "#212529", fg: "#ffffff" }
-];
-function openHeaderColorPicker(anchor, opts) {
-  return colorPickerMenu(anchor, { ...opts, mode: "pair" });
-}
-function openColorPicker(anchor, opts) {
-  return colorPickerMenu(anchor, { ...opts, mode: "single" });
-}
-function colorPickerMenu(anchor, opts) {
-  const t = opts.t || ((k) => k);
-  const pair = opts.mode === "pair";
-  document.querySelectorAll(".lattice-hcolor-menu").forEach((m) => m.remove());
-  const menu = el("div.lattice-menu.lattice-hcolor-menu");
-  menu.appendChild(el("div.lattice-summary-menu-head", { text: opts.title || t("headerColor.title") }));
-  const emit = (color) => {
-    if (pair) opts.onPick(color, contrastFg(color));
-    else opts.onPick(color);
-    close();
-  };
-  const tabWheel = el("button.lattice-hcolor-tab.is-active", { type: "button", text: t("headerColor.tabWheel") });
-  const tabPal = el("button.lattice-hcolor-tab", { type: "button", text: t("headerColor.tabPalette") });
-  menu.appendChild(el("div.lattice-hcolor-tabs", {}, [tabWheel, tabPal]));
-  const wheelPane = el("div.lattice-hcolor-pane");
-  const wheel = buildWheel(196, (hex) => emit(hex));
-  const bright = el("input.lattice-hcolor-bright", { type: "range", min: "20", max: "100", value: "100" });
-  bright.addEventListener("input", () => wheel.setValue(+bright.value / 100));
-  wheelPane.append(wheel.el, el("label.lattice-hcolor-brightrow", {}, [
-    el("span", { text: t("headerColor.brightness") }),
-    bright
-  ]));
-  menu.appendChild(wheelPane);
-  const palPane = el("div.lattice-hcolor-pane", { style: { display: "none" } });
-  const grid = el("div.lattice-hcolor-grid");
-  for (const p of HEADER_COLOR_PRESETS) {
-    const sw = el("button.lattice-hcolor-swatch", { type: "button", title: p.label, style: { background: p.bg, color: pair ? p.fg : p.bg }, text: pair ? "Aa" : "" });
-    sw.addEventListener("click", () => {
-      pair ? opts.onPick(p.bg, p.fg) : opts.onPick(p.bg);
-      close();
-    });
-    grid.appendChild(sw);
-  }
-  palPane.appendChild(grid);
-  const cur = opts.current || {};
-  if (pair) {
-    const bgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.background) || "#0d6efd" });
-    const fgIn = el("input.lattice-hcolor-input", { type: "color", value: normHex(cur.color) || "#ffffff" });
-    const apply = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
-    apply.addEventListener("click", () => {
-      opts.onPick(bgIn.value, fgIn.value);
-      close();
-    });
-    palPane.appendChild(el("div.lattice-hcolor-custom", {}, [
-      el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
-      el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.bg") }), bgIn]),
-      el("label.lattice-hcolor-field", {}, [el("span", { text: t("headerColor.text") }), fgIn]),
-      apply
-    ]));
-  } else {
-    const inp = el("input.lattice-hcolor-input", { type: "color", value: normHex(typeof cur === "string" ? cur : cur.background) || "#0d6efd" });
-    const apply = el("button.lattice-hcolor-apply", { type: "button", text: t("headerColor.apply") });
-    apply.addEventListener("click", () => {
-      opts.onPick(inp.value);
-      close();
-    });
-    palPane.appendChild(el("div.lattice-hcolor-custom", {}, [
-      el("span.lattice-hcolor-lbl", { text: t("headerColor.custom") }),
-      el("label.lattice-hcolor-field", {}, [inp]),
-      apply
-    ]));
-  }
-  menu.appendChild(palPane);
-  const swap = (toPal) => {
-    tabPal.classList.toggle("is-active", toPal);
-    tabWheel.classList.toggle("is-active", !toPal);
-    palPane.style.display = toPal ? "" : "none";
-    wheelPane.style.display = toPal ? "none" : "";
-  };
-  tabWheel.addEventListener("click", () => swap(false));
-  tabPal.addEventListener("click", () => swap(true));
-  const clearBtn = el("button.lattice-hcolor-clear", { type: "button", text: t("headerColor.none") });
-  clearBtn.addEventListener("click", () => {
-    opts.onClear();
-    close();
-  });
-  menu.appendChild(clearBtn);
-  document.body.appendChild(menu);
-  placeUnder(menu, anchor);
-  const off = onOutside(menu, (e) => {
-    if (!anchor.contains(e.target)) close();
-  });
-  function close() {
-    off();
-    menu.remove();
-  }
-  return close;
-}
-function buildWheel(size, onPick) {
-  const R = 6;
-  const hexR = size / (2 * (1.5 * R + 1));
-  const cx = size / 2, cy = size / 2;
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("viewBox", "0 0 " + size + " " + size);
-  svg.setAttribute("class", "lattice-hcolor-wheel");
-  svg.style.width = size + "px";
-  svg.style.height = size + "px";
-  let value = 1;
-  const cells = [];
-  for (let q = -R; q <= R; q++) {
-    for (let r = Math.max(-R, -q - R); r <= Math.min(R, -q + R); r++) {
-      const px = cx + hexR * 1.5 * q;
-      const py = cy + hexR * Math.sqrt(3) * (r + q / 2);
-      const sat = (Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 / R;
-      const hue = (Math.atan2(py - cy, px - cx) * 180 / Math.PI + 360) % 360;
-      const poly = document.createElementNS(NS, "polygon");
-      const pts = [];
-      for (let k = 0; k < 6; k++) {
-        const a = Math.PI / 180 * (60 * k);
-        pts.push((px + hexR * Math.cos(a)).toFixed(1) + "," + (py + hexR * Math.sin(a)).toFixed(1));
+  const vals = [colors[0], colors[1], colors[2]];
+  const btns = [0, 1, 2].map((i) => {
+    const btn = el("button.lattice-scale-color", { type: "button", style: { background: vals[i] || "#888888" } });
+    btn.addEventListener("click", () => openColorPicker(btn, {
+      t,
+      current: vals[i],
+      onPick: (color) => {
+        vals[i] = color;
+        btn.style.background = color;
+        onChange(vals.slice());
+      },
+      onClear: () => {
+        vals[i] = DEFAULT_SCALE_COLORS[i];
+        btn.style.background = vals[i];
+        onChange(vals.slice());
       }
-      poly.setAttribute("points", pts.join(" "));
-      poly.setAttribute("class", "lattice-hcolor-hex");
-      poly.addEventListener("click", () => onPick(colorOf(hue, sat, value)));
-      svg.appendChild(poly);
-      cells.push({ poly, hue, sat });
-    }
-  }
-  const paint = () => {
-    for (const c of cells) c.poly.setAttribute("fill", colorOf(c.hue, c.sat, value));
-  };
-  paint();
-  return { el: svg, setValue(v) {
-    value = v;
-    paint();
-  } };
-}
-function colorOf(hue, sat, val) {
-  const [r, g, b] = hsvToRgb(hue, sat, val);
-  return rgbToHex(r, g, b);
-}
-function hsvToRgb(h, s, v) {
-  const c = v * s, x = c * (1 - Math.abs(h / 60 % 2 - 1)), m = v - c;
-  let r = 0, g = 0, b = 0;
-  if (h < 60) {
-    r = c;
-    g = x;
-  } else if (h < 120) {
-    r = x;
-    g = c;
-  } else if (h < 180) {
-    g = c;
-    b = x;
-  } else if (h < 240) {
-    g = x;
-    b = c;
-  } else if (h < 300) {
-    r = x;
-    b = c;
-  } else {
-    r = c;
-    b = x;
-  }
-  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
-}
-function rgbToHex(r, g, b) {
-  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
-}
-function hexToRgb(hex) {
-  const h = normHex(hex) || "#000000";
-  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-}
-function contrastFg(hex) {
-  const [r, g, b] = hexToRgb(hex);
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#000000" : "#ffffff";
-}
-function placeUnder(menu, anchor) {
-  const r = anchor.getBoundingClientRect();
-  menu.style.position = "absolute";
-  menu.style.top = window.scrollY + r.bottom + 4 + "px";
-  const left = window.scrollX + Math.min(r.left, window.innerWidth - menu.offsetWidth - 8);
-  menu.style.left = Math.max(8, left) + "px";
-}
-function normHex(v) {
-  if (typeof v !== "string") return null;
-  const m = v.trim().match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
-  if (!m) return null;
-  let h = m[1];
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
-  return "#" + h.toLowerCase();
+    }));
+    return btn;
+  });
+  wrap.append(...btns);
+  return field(labelText, wrap);
 }
 
 // src/features/gear.js
@@ -5219,14 +5356,15 @@ var Gear = class {
     });
     sumBtn.addEventListener("click", () => openSummaryPicker(sumBtn, grid, col));
     tools.appendChild(sumBtn);
-    if (formatKind(col.type)) {
+    const isBool2 = col.type === "boolean" || col.type === "tick";
+    if (formatKind(col.type) || isBool2) {
       const fmtBtn = el("button.lattice-gbtn.lattice-fmtbtn", {
         type: "button",
         title: t("instance.colFormatTitle"),
         class: col.format ? "is-active" : "",
-        text: "0.0"
+        text: isBool2 ? "\u2713" : "0.0"
       });
-      fmtBtn.addEventListener("click", () => openFormatPicker(fmtBtn, grid, col));
+      fmtBtn.addEventListener("click", () => isBool2 ? openBoolFormatPicker(fmtBtn, grid, col) : openFormatPicker(fmtBtn, grid, col));
       tools.appendChild(fmtBtn);
     } else {
       tools.appendChild(el("span.lattice-gslot-empty"));
@@ -5603,6 +5741,69 @@ function openCellFormatPicker(anchor, grid, col) {
     if (anchor.contains(e.target)) return;
     if (e.target.closest && e.target.closest(".lattice-hcolor-menu")) return;
     close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function openBoolFormatPicker(anchor, grid, col) {
+  document.querySelectorAll(".lattice-bool-menu").forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el("div.lattice-menu.lattice-bool-menu");
+  const PRESETS2 = [
+    { tt: "\u2713", ft: "\u2715" },
+    { tt: t("bool.yes"), ft: t("bool.no") },
+    { tt: "1", ft: "0" },
+    { tt: "\u2705", ft: "\u274C" },
+    { tt: "\u{1F44D}", ft: "\u{1F44E}" }
+  ];
+  const apply = (patch) => {
+    const next = Object.assign({}, col.format, patch);
+    const isDefault = (next.trueText == null || next.trueText === "\u2713") && (next.falseText == null || next.falseText === "\u2715") && !next.plain;
+    grid.setColumnFormat(col.field, isDefault ? null : next);
+    render();
+  };
+  function render() {
+    clear(menu);
+    const cur = col.format || {};
+    menu.appendChild(el("div.lattice-summary-menu-head", { text: t("bool.title") }));
+    for (const p of PRESETS2) {
+      const active = (cur.trueText || "\u2713") === p.tt && (cur.falseText || "\u2715") === p.ft;
+      const item = el("div.lattice-menu-item", { class: active ? "is-selected" : "" }, [
+        el("span.lattice-ms-check", { text: active ? "\u2713" : "" }),
+        el("span", { text: p.tt + "  /  " + p.ft })
+      ]);
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        apply({ trueText: p.tt, falseText: p.ft });
+      });
+      menu.appendChild(item);
+    }
+    menu.appendChild(el("div.lattice-summary-menu-sep"));
+    const tIn = el("input.lattice-set-input", { type: "text", value: cur.trueText || "", placeholder: "\u2713" });
+    const fIn = el("input.lattice-set-input", { type: "text", value: cur.falseText || "", placeholder: "\u2715" });
+    const applyCustom = () => apply({ trueText: tIn.value || void 0, falseText: fIn.value || void 0 });
+    tIn.addEventListener("change", applyCustom);
+    fIn.addEventListener("change", applyCustom);
+    menu.appendChild(csField(t("bool.customTrue"), tIn));
+    menu.appendChild(csField(t("bool.customFalse"), fIn));
+    const colorCb = el("input", { type: "checkbox", checked: !cur.plain });
+    colorCb.addEventListener("change", () => apply({ plain: !colorCb.checked }));
+    menu.appendChild(csField(t("bool.colored"), colorCb));
+    const reset = el("button.lattice-formula-btn", { type: "button", text: t("bool.reset") });
+    reset.addEventListener("click", () => {
+      grid.setColumnFormat(col.field, null);
+      render();
+    });
+    menu.appendChild(el("div.lattice-cellfmt-actions", {}, [reset]));
+  }
+  render();
+  document.body.appendChild(menu);
+  positionUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
   });
   function close() {
     off();
@@ -11870,9 +12071,10 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.2.0";
+var VERSION = "1.3.0";
 export {
   ClientData,
+  HEADER_COLOR_PRESETS,
   I18n,
   Lattice,
   ServerData,
@@ -11883,6 +12085,8 @@ export {
   encodeParams,
   getFilter,
   getFormatter,
+  openColorPicker,
+  openHeaderColorPicker,
   registerFilter,
   registerLanguage,
   registerType,

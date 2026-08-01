@@ -34,46 +34,80 @@ function mulberry32(seed) {
   };
 }
 
-export function generateCampaigns(count = 240) {
+/** Trajektorie 0–100 pro sparkline (náhodná procházka, ať to „vypadá jako trend"). */
+function seriesTrend(rnd, n = 12) {
+  const out = [];
+  let v = 20 + rnd() * 60;
+  for (let i = 0; i < n; i++) { v = Math.max(2, Math.min(100, v + (rnd() - 0.45) * 26)); out.push(Math.round(v)); }
+  return out;
+}
+
+/**
+ * Sjednocený „kitchen-sink" dataset kampaní. Kryje VŠECHNY datové typy i featury:
+ *  - hierarchie: prvních 6 řádků jsou PROGRAMY (parentId=null), zbytek jsou
+ *    kampaně s parentId = program své kategorie → stejná data slouží ploché
+ *    tabulce, seskupení řádků i STROMOVÉMU zobrazení (treeParentField:'parentId').
+ *  - typy: id, text, link, icon, image, color, money, number, progress, rating,
+ *    tick, boolean, html, date, datetime a sparkline (pole `trend`/`weekly`).
+ *  - `kind` (Program/Kampaň), `conversions`, `updatedAt` pro řazení i souhrny.
+ */
+export function generateCampaigns(count = 400) {
   const rnd = mulberry32(42);
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
-  const rows = [];
-  for (let i = 1; i <= count; i++) {
+  let id = 0;
+
+  const build = (category, parentId, kind) => {
+    id++;
+    const isProg = kind === 'Program';
     const created = new Date(2025, 0, 1 + Math.floor(rnd() * 540));
     const starts = new Date(created.getTime() + Math.floor(rnd() * 60) * 86400000);
-    const category = pick(CATEGORIES);
-    const status = pick(STATUSES);
+    const updated = new Date(starts.getTime() + Math.floor(rnd() * 240) * 3600000);
+    const status = isProg ? 'Běží' : pick(STATUSES);
     const color = pick(COLORS);
-    rows.push({
-      id: i,
-      name: `Kampaň ${category} #${i}`,
-      // link — hodnota se poskládá s urlPrefix v konfiguraci sloupce
-      web: `kampan/${i}`,
+    return {
+      id, parentId, kind,
+      name: isProg ? `Program: ${category}` : `Kampaň ${category} #${id}`,
+      web: `kampan/${id}`, // link — poskládá se s urlPrefix v konfiguraci sloupce
       category,
       icon: category, // typ icon mapuje kategorii → emoji (CATEGORY_ICONS)
       owner: pick(OWNERS),
       region: pick(REGIONS),
-      budget: Math.floor(5000 + rnd() * 495000),
+      budget: Math.floor((isProg ? 300000 : 5000) + rnd() * (isProg ? 900000 : 495000)),
+      conversions: Math.floor(rnd() * (isProg ? 6000 : 900)),
       score: Math.round(rnd() * 100),
       progress: Math.round(rnd() * 100),
       rating: Math.round(rnd() * 5),
       color, // typ color
       // image: střídavě data: URI (SVG avatar) a http URL (obé musí fungovat)
-      image: i % 2 === 0 ? svgAvatar(color, i) : `https://picsum.photos/seed/lat${i}/120/120`,
+      image: id % 2 === 0 ? svgAvatar(color, id) : `https://picsum.photos/seed/lat${id}/120/120`,
       verified: rnd() > 0.45, // typ tick
       label: htmlBadge(status, STATUS_COLORS[status]), // typ html
       createdAt: iso(created),
       startsAt: iso(starts),
+      updatedAt: isoDateTime(updated), // typ datetime
       status,
       active: rnd() > 0.4,
-    });
-  }
+      trend: seriesTrend(rnd, 12), // sparkline (čára)
+      weekly: Array.from({ length: 7 }, () => Math.round(rnd() * 50)), // sparkline (sloupce)
+    };
+  };
+
+  const rows = [];
+  // 1) Programy — jeden rodič na kategorii (kořeny stromu).
+  const programOf = {};
+  for (const cat of CATEGORIES) { const r = build(cat, null, 'Program'); programOf[cat] = r.id; rows.push(r); }
+  // 2) Kampaně — děti pod programem své kategorie.
+  while (rows.length < count) { const cat = pick(CATEGORIES); rows.push(build(cat, programOf[cat], 'Kampaň')); }
   return rows;
 }
 
 function iso(d) {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function isoDateTime(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${iso(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 export const OPTIONS = {

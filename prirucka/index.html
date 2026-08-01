@@ -440,9 +440,11 @@
             (viz obrázky níže). Souhrny se ukážou, až když v <b>Nastavení tabulky</b> zapneš
             <b>souhrnný řádek</b> (viz <a href="#souhrny">Souhrny a mezisoučty</a>).</div></li>
         <li><span class="ic"><span class="glyph">0.0</span></span>
-          <div><b>Formát sloupce</b> — <i>jen u čísel, měn a dat.</i> Zvolíš <b>Podle tabulky (globální)</b>,
-            nebo <b>Vlastní formát</b> daného sloupce. Tady je i zapnutí <b>barevné škály (semafor)</b> —
-            podmíněné formátování, podrobně v sekci <a href="#formaty">Formáty a podmíněné formáty</a>.</div></li>
+          <div><b>Formát sloupce</b> — <i>u čísel, měn a dat</i> (ikona <b>0.0</b>): <b>Podle tabulky (globální)</b>
+            nebo <b>Vlastní formát</b>; tady je i zapnutí <b>barevné škály (semafor)</b> — podmíněné
+            formátování, podrobně v sekci <a href="#formaty">Formáty a podmíněné formáty</a>.
+            <br>U <b>Ano/Ne sloupců</b> (boolean) je místo toho ikona <b>✓</b> — zvolíš zobrazení:
+            <b>✓/✕, Ano/Ne, 1/0, ✅/❌, 👍/👎</b> nebo vlastní text, s volbou barvení.</div></li>
         <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"></path></svg></span>
           <div><b>Seskupovat řádky</b> — seskupí řádky podle hodnoty tohoto sloupce (seskupení
             <i>řádků</i>). U datumových sloupců nabídne úrovně (rok, kvartál…). Podrobně v sekci
@@ -489,8 +491,9 @@
       <h3>Barvy záhlaví</h3>
       <p>Ikona <b>A</b> u sloupce (a v nabídce skupiny) otevře <b>picker barvy</b>. Ve výchozím tabu
         je <b>barevné kolo</b> a jezdec <b>jasu</b>; druhý tab <b>Palety</b> nabízí přednastavené
-        kombinace (à la Bootstrap) i vlastní volbu. Sloupec <b>bez vlastní barvy zdědí barvu své
-        skupiny</b>; písmo se u presetů a kola dopočítá tak, aby bylo čitelné.</p>
+        kombinace à la Bootstrap — <b>plné i jemné</b> (16 kombinací) — i vlastní volbu. Picker si
+        navíc pamatuje <b>naposledy použité</b> barvy, takže je máš rychle po ruce. Sloupec <b>bez
+        vlastní barvy zdědí barvu své skupiny</b>; písmo se u presetů a kola dopočítá tak, aby bylo čitelné.</p>
       <figure>
         <img src="img/skupiny-barvy.png" alt="Obarvené záhlaví skupiny a sloupce">
         <figcaption>Skupina „Osoba" má modré záhlaví (a její sloupce ho zdědily); „E-mail" má vlastní barvu.</figcaption>
@@ -572,7 +575,8 @@
         <figcaption>Nastavení tabulky, záložka „Vzhled": motiv, velikost písma, hustota řádků, otočení hlaviček, pruhované řádky, barvy semaforu.</figcaption>
       </figure>
       <ul>
-        <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor).</li>
+        <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor).
+          Barvy se vybírají stejným <b>pickerem s kolem</b> jako u záhlaví.</li>
         <li><b>Rozvržení</b> — způsob šířky sloupců, zalamování textu, odkazy v nové kartě…</li>
         <li><b>Stránkování a filtry</b> — umístění stránkování, velikost stránky, umístění filtrů.</li>
         <li><b>Sloupce a řádky</b> — číslování řádků, souhrnný řádek, <b>seskupení</b> (úrovně, opakování hodnot), výběr.</li>

@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lattice — generátor stylů</title>
+<link href="../src/lattice.css" rel="stylesheet">
+<style>
+  :root { --ink:#1f2733; --muted:#6b7583; --line:#e5e8ee; --accent:#2563eb; --bg:#f7f8fb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:18px 24px; background:#fff; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 3px; font-size:19px; }
+  header p { margin:0; color:var(--muted); font-size:13px; }
+  header a { color:var(--accent); }
+  .wrap { display:grid; grid-template-columns:var(--side-w, 33%) 6px 1fr; gap:0; align-items:start; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns:1fr; } .resizer { display:none; } }
+  .panel { padding:18px 22px; }
+  .side { border-right:1px solid var(--line); background:#fff; min-height:calc(100vh - 58px); position:sticky; top:0; align-self:start; max-height:100vh; overflow:auto; }
+  .main { min-width:0; }
+  .resizer { position:sticky; top:0; height:calc(100vh - 58px); cursor:col-resize; background:transparent; }
+  .resizer::before { content:''; position:absolute; inset:0 2px; background:var(--line); transition:background .12s; }
+  .resizer:hover::before, .resizer.dragging::before { background:var(--accent); }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:10px 14px 12px; margin:0 0 16px; }
+  legend { font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:0 6px; }
+  .frows { display:grid; grid-template-columns:repeat(auto-fit, minmax(205px, 1fr)); gap:0 18px; }
+  .frow { display:flex; align-items:center; gap:10px; margin:6px 0; min-height:26px; }
+  .frow > .lbl { flex:1 1 auto; font-size:13px; }
+  .frow > .lbl small { display:block; color:var(--muted); font-size:11px; line-height:1.2; }
+  .frow.changed > .lbl { font-weight:600; }
+  .frow.changed > .lbl::after { content:'•'; color:var(--accent); margin-left:5px; }
+  .freset { flex:0 0 auto; width:22px; height:22px; padding:0; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--muted); cursor:pointer; font-size:13px; line-height:1; visibility:hidden; }
+  .freset:hover { border-color:var(--accent); color:var(--accent); }
+  .frow.changed .freset { visibility:visible; }
+  select, input[type=number] { padding:5px 7px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:12.5px; background:#fff; }
+  input[type=number] { width:64px; }
+  .num-wrap { display:inline-flex; align-items:center; gap:4px; color:var(--muted); font-size:12px; }
+  .swatch { width:30px; height:24px; border:1px solid var(--line); border-radius:5px; cursor:pointer; padding:0; flex:0 0 auto;
+    background-image:linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);
+    background-size:8px 8px; background-position:0 0,0 4px,4px -4px,-4px 0; }
+  .swatch > i { display:block; width:100%; height:100%; border-radius:4px; }
+  .swatch:hover { outline:2px solid var(--accent); outline-offset:1px; }
+  .base-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .base-row select { flex:1; }
+  .btn { padding:7px 14px; border:0; border-radius:7px; background:var(--accent); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .btn.ghost { background:#fff; color:var(--accent); border:1px solid var(--accent); }
+  .btn.copied { background:#2f9e56; }
+  .btn:disabled { opacity:.45; cursor:default; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .preview-box { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:18px; }
+  .stylerprev { min-width:0; }
+  .code-box { background:#1e2632; border-radius:12px; overflow:hidden; margin-bottom:18px; }
+  .code-head { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #2c3849; }
+  .code-head span { color:#94a2b8; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-right:auto; }
+  pre.code { margin:0; padding:14px 16px; color:#e6edf3; font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; max-height:360px; }
+  .tok-key { color:#7ec0ff; } .tok-str { color:#9ee493; } .tok-com { color:#6b7c93; font-style:italic; }
+  .usage { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 20px; }
+  .usage h3 { margin:0 0 8px; font-size:14px; }
+  .usage ol { margin:0; padding-left:20px; }
+  .usage li { margin:4px 0; font-size:13px; }
+  .usage code { background:#f1f3f6; padding:1px 5px; border-radius:4px; font-size:12px; }
+  .hint { font-size:12px; color:var(--muted); margin:2px 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lattice — generátor stylů</h1>
+  <p>Naklikej barvy, písmo, tvary a rozestupy. Vlevo úpravy, vpravo živý náhled a hotový CSS ke stažení. Také:
+     <a href="./builder.html">generátor inicializace</a> · <a href="./index.html">ukázky a dokumentace</a></p>
+</header>
+
+<div class="wrap">
+  <aside class="side panel">
+    <div class="base-row">
+      <label class="lbl" for="base" style="font-size:13px;font-weight:600">Výchozí paleta</label>
+      <select id="base">
+        <option value="default">Světlá (výchozí)</option>
+        <option value="minimal">Minimalistická</option>
+        <option value="compact">Kompaktní</option>
+        <option value="slate">Tmavá (slate)</option>
+      </select>
+    </div>
+    <p class="hint">Paleta jen předvyplní hodnoty — pak si uprav cokoliv. Exportují se jen změny oproti výchozímu světlému motivu.</p>
+    <div id="controls"></div>
+    <button class="btn ghost" id="reset-all" type="button" style="width:100%">Vrátit vše na výchozí</button>
+  </aside>
+
+  <div class="resizer" id="resizer"></div>
+
+  <main class="main panel">
+    <h2>Živý náhled</h2>
+    <div class="preview-box"><div class="stylerprev"><div id="grid"></div></div></div>
+
+    <div class="code-box">
+      <div class="code-head">
+        <span>lattice-custom.css</span>
+        <button class="btn ghost" id="copy-btn" type="button" style="color:#fff;border-color:#3a4658">Kopírovat</button>
+        <button class="btn" id="dl-btn" type="button">Stáhnout CSS</button>
+      </div>
+      <pre class="code" id="code-out"></pre>
+    </div>
+
+    <div class="usage">
+      <h3>Jak styl použít ve své aplikaci</h3>
+      <ol>
+        <li>Stáhni <code>lattice-custom.css</code> a nahraj ho do své složky s vlastními styly.</li>
+        <li>Načti ho <b>až za</b> knihovní <code>dist/lattice.css</code> — tím převezme kontrolu:
+          <br><code>&lt;link href="dist/lattice.css" rel="stylesheet"&gt;</code>
+          <br><code>&lt;link href="styly/lattice-custom.css" rel="stylesheet"&gt;</code></li>
+        <li>Hotovo. Styl platí pro všechny gridy na stránce (cílí na <code>.lattice</code>). Nic v inicializaci měnit nemusíš.</li>
+      </ol>
+      <p class="hint" style="margin-top:10px">Písmo, velikost písma a barvy boolean grid nastavuje inline, proto u nich export používá <code>!important</code>, aby je stylesheet přebil.</p>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { Lattice, openColorPicker, I18n } from '../src/index.js';
+import { generateCampaigns } from './data.js';
+import { showcaseColumns } from './columns.js';
+
+const pickerI18n = new I18n('cs');
+const pickerT = pickerI18n.t.bind(pickerI18n);
+const $ = (id) => document.getElementById(id);
+
+/* ---- fonty (pojmenované sady) ---- */
+const FONT_SYS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+const FONTS = [
+  ['Systémové', FONT_SYS],
+  ['Sans-serif', 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'],
+  ['Serif', 'Georgia, "Times New Roman", serif'],
+  ['Mono', 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'],
+  ['Inter / moderní', '"Inter", system-ui, sans-serif'],
+  ['Zaoblené (Nunito)', '"Nunito", "Segoe UI", system-ui, sans-serif'],
+];
+
+/* ---- výchozí hodnoty (světlý :root motiv) ---- */
+const DEFAULTS = {
+  '--lattice-bg': '#fff',
+  '--lattice-text': '#1f2733',
+  '--lattice-muted': '#6b7583',
+  '--lattice-border': '#dfe3e8',
+  '--lattice-group-border': '#9aa1ac',
+  '--lattice-row-odd': '#f8f9fb',
+  '--lattice-row-hover': '#eef4ff',
+  '--lattice-header-bg': '#f1f3f6',
+  '--lattice-header-color': '#1f2733',
+  '--lattice-header-soft': 'rgba(0, 0, 0, 0.02)',
+  '--lattice-accent': '#2563eb',
+  '--lattice-accent-soft': '#dbeafe',
+  '--lattice-link': '#2563eb',
+  '--lattice-danger': '#dc2626',
+  '--lattice-danger-soft': '#fdecec',
+  '--lattice-success': '#16a34a',
+  '--lattice-success-soft': '#d9f2e1',
+  '--lattice-warn': '#9a6b00',
+  '--lattice-warn-soft': '#fdf3e0',
+  '--lattice-star-on': '#f5b301',
+  '--lattice-star-off': '#d0d5dd',
+  '--lattice-progress-track': '#e6e9ee',
+  '--lattice-progress-fill': '#42a05a',
+  '--lattice-bool-true': '#42a05a',
+  '--lattice-bool-false': '#e5534b',
+  '--lattice-frozen-line': '#8b95a5',
+  '--lattice-cell-vborder-color': '#dfe3e8',
+  '--lattice-cell-vborder-width': '1px',
+  '--lattice-group-border-width': '2px',
+  '--lattice-frozen-line-width': '1px',
+  '--lattice-header-border-color': '#dfe3e8',
+  '--lattice-header-border-width': '1px',
+  '--lattice-group-border-bottom-color': '#dfe3e8',
+  '--lattice-group-border-bottom-width': '1px',
+  '--lattice-filter-border-color': '#dfe3e8',
+  '--lattice-filter-border-width': '1px',
+  '--lattice-font': FONT_SYS,
+  '--lattice-font-size': '14px',
+  '--lattice-header-font': 'inherit',
+  '--lattice-header-weight': '600',
+  '--lattice-header-size': '1em',
+  '--lattice-header-transform': 'none',
+  '--lattice-header-spacing': 'normal',
+  '--lattice-radius': '8px',
+  '--lattice-control-radius': '6px',
+  '--lattice-cell-pad-y': '8px',
+  '--lattice-cell-pad-x': '10px',
+  '--lattice-header-pad-y': '8px',
+  '--lattice-max-height': '60vh',
+};
+
+/* ---- předvyplnění dle motivu (jen odlišné proměnné) ---- */
+const THEMES = {
+  default: {},
+  minimal: {
+    '--lattice-row-odd': '#ffffff', '--lattice-row-hover': '#f3f5f8', '--lattice-header-bg': '#ffffff',
+    '--lattice-border': '#e9ecf1', '--lattice-group-border': '#cfd5dd', '--lattice-text': '#2b333f',
+    '--lattice-muted': '#8b95a5', '--lattice-accent': '#475569', '--lattice-accent-soft': '#eef2f7',
+    '--lattice-radius': '4px', '--lattice-control-radius': '4px', '--lattice-cell-vborder-width': '0px',
+    '--lattice-header-color': '#8b95a5', '--lattice-header-weight': '500',
+  },
+  compact: {
+    '--lattice-cell-pad-y': '2px', '--lattice-cell-pad-x': '7px', '--lattice-header-pad-y': '3px',
+    '--lattice-radius': '4px', '--lattice-control-radius': '3px', '--lattice-header-size': '0.92em',
+  },
+  slate: {
+    '--lattice-bg': '#1e2632', '--lattice-row-odd': '#232d3b', '--lattice-row-hover': '#2c3849',
+    '--lattice-header-bg': '#273143', '--lattice-border': '#384457', '--lattice-group-border': '#55627a',
+    '--lattice-text': '#e6edf5', '--lattice-muted': '#94a2b8', '--lattice-accent': '#5b9bff',
+    '--lattice-accent-soft': '#23375c', '--lattice-header-color': '#e6edf5', '--lattice-frozen-line': '#97a6bd',
+    '--lattice-danger': '#f87171', '--lattice-danger-soft': '#3b2626', '--lattice-success': '#4ade80',
+    '--lattice-success-soft': '#1e3a2b', '--lattice-star-off': '#4a5568', '--lattice-progress-track': '#33405a',
+    '--lattice-progress-fill': '#4ade80', '--lattice-bool-true': '#4ade80', '--lattice-bool-false': '#f87171',
+  },
+};
+
+/* proměnné, které grid nastavuje inline na kořen → v exportu potřebují !important */
+const IMPORTANT = new Set(['--lattice-font', '--lattice-font-size', '--lattice-bool-true', '--lattice-bool-false']);
+
+/* ---- specifikace ovládání ---- */
+const co = (v, label, sub) => ({ v, label, sub, kind: 'color' });
+const px = (v, label, sub, min, max) => ({ v, label, sub, kind: 'num', unit: 'px', min, max, step: 1 });
+const SECTIONS = [
+  { title: 'Základní barvy', fields: [
+    co('--lattice-bg', 'Pozadí gridu'),
+    co('--lattice-text', 'Text'),
+    co('--lattice-muted', 'Tlumený text', 'popisky, sekundární'),
+    co('--lattice-border', 'Linky a okraje'),
+  ] },
+  { title: 'Řádky', fields: [
+    co('--lattice-row-odd', 'Sudý řádek (zebra)'),
+    co('--lattice-row-hover', 'Řádek pod myší'),
+  ] },
+  { title: 'Hlavička', fields: [
+    co('--lattice-header-bg', 'Pozadí hlavičky'),
+    co('--lattice-header-color', 'Text hlavičky', 'výchozí = jako text'),
+    co('--lattice-header-soft', 'Pruh sbalené skupiny'),
+  ] },
+  { title: 'Akcent a odkazy', fields: [
+    co('--lattice-accent', 'Akcent', 'řazení, výběr, tlačítka'),
+    co('--lattice-accent-soft', 'Jemný akcent', 'pozadí výběru'),
+    co('--lattice-link', 'Odkazy', 'výchozí = akcent'),
+  ] },
+  { title: 'Sémantické barvy', fields: [
+    co('--lattice-danger', 'Danger'), co('--lattice-danger-soft', 'Danger — jemné'),
+    co('--lattice-success', 'Success'), co('--lattice-success-soft', 'Success — jemné'),
+    co('--lattice-warn', 'Warning'), co('--lattice-warn-soft', 'Warning — jemné'),
+  ] },
+  { title: 'Prvky', fields: [
+    co('--lattice-star-on', 'Hvězdička plná'), co('--lattice-star-off', 'Hvězdička prázdná'),
+    co('--lattice-progress-track', 'Progress — dráha'), co('--lattice-progress-fill', 'Progress — výplň'),
+    co('--lattice-bool-true', 'Boolean ✓'), co('--lattice-bool-false', 'Boolean ✕'),
+  ] },
+  { title: 'Písmo', fields: [
+    { v: '--lattice-font', label: 'Písmo', kind: 'font' },
+    px('--lattice-font-size', 'Velikost písma', null, 10, 22),
+    { v: '--lattice-header-font', label: 'Písmo hlavičky', kind: 'font', inherit: true },
+    { v: '--lattice-header-weight', label: 'Tloušťka hlavičky', kind: 'select', opts: [['400', 'Normální'], ['500', 'Střední'], ['600', 'Polotučné'], ['700', 'Tučné']] },
+    { v: '--lattice-header-size', label: 'Velikost hlavičky', kind: 'num', unit: 'em', min: 0.7, max: 1.4, step: 0.02 },
+    { v: '--lattice-header-transform', label: 'Velikost písmen', kind: 'select', opts: [['none', 'Beze změny'], ['uppercase', 'VELKÁ'], ['lowercase', 'malá'], ['capitalize', 'Kapitálky']] },
+    { v: '--lattice-header-spacing', label: 'Prostrkání hlavičky', kind: 'select', opts: [['normal', 'Normální'], ['0.03em', 'Mírné'], ['0.05em', 'Střední'], ['0.1em', 'Široké']] },
+  ] },
+  { title: 'Tvary a rozestupy', fields: [
+    px('--lattice-radius', 'Zaoblení rámu', 'grid, panely, popupy', 0, 20),
+    px('--lattice-control-radius', 'Zaoblení prvků', 'inputy, tlačítka', 0, 16),
+    px('--lattice-cell-pad-y', 'Odsazení buňky ↕', null, 0, 20),
+    px('--lattice-cell-pad-x', 'Odsazení buňky ↔', null, 0, 24),
+    px('--lattice-header-pad-y', 'Odsazení hlavičky ↕', null, 0, 20),
+    { v: '--lattice-max-height', label: 'Max. výška gridu', kind: 'num', unit: 'vh', min: 30, max: 100, step: 1 },
+  ] },
+  { title: 'Okraje sloupců', fields: [
+    co('--lattice-cell-vborder-color', 'Obyčejné — barva', 'svislé linky buněk'),
+    px('--lattice-cell-vborder-width', 'Obyčejné — šířka', '0 = skrýt', 0, 6),
+    co('--lattice-group-border', 'Skupiny — barva', 'hrana skupin sloupců'),
+    px('--lattice-group-border-width', 'Skupiny — šířka', '0 = skrýt', 0, 8),
+    co('--lattice-frozen-line', 'Ukotvené — barva', 'dělící linka'),
+    px('--lattice-frozen-line-width', 'Ukotvené — šířka', '0 = skrýt', 0, 6),
+  ] },
+  { title: 'Spodní okraje záhlaví', fields: [
+    co('--lattice-group-border-bottom-color', 'Pod skupinami — barva'),
+    px('--lattice-group-border-bottom-width', 'Pod skupinami — šířka', '0 = skrýt', 0, 6),
+    co('--lattice-header-border-color', 'Pod záhlavím — barva'),
+    px('--lattice-header-border-width', 'Pod záhlavím — šířka', '0 = skrýt', 0, 6),
+    co('--lattice-filter-border-color', 'Pod filtry — barva'),
+    px('--lattice-filter-border-width', 'Pod filtry — šířka', '0 = skrýt', 0, 6),
+  ] },
+];
+
+/* ---- stav ---- */
+let cur = { ...DEFAULTS };
+
+/* ---- stavební prvky UI ---- */
+function makeSwatch(v) {
+  const btn = document.createElement('button'); btn.className = 'swatch'; btn.type = 'button';
+  const i = document.createElement('i'); i.style.background = cur[v]; btn.appendChild(i);
+  btn.addEventListener('click', () => openColorPicker(btn, {
+    t: pickerT, alpha: true, current: cur[v],
+    onPick: (color) => set(v, color),
+    onClear: () => set(v, DEFAULTS[v]),
+  }));
+  btn._paint = () => { i.style.background = cur[v]; };
+  return btn;
+}
+function makeNum(f) {
+  const wrap = document.createElement('span'); wrap.className = 'num-wrap';
+  const inp = document.createElement('input'); inp.type = 'number';
+  inp.min = f.min; inp.max = f.max; inp.step = f.step; inp.value = parseFloat(cur[f.v]);
+  inp.addEventListener('input', () => { const n = inp.value.trim(); if (n === '') return; set(f.v, n + f.unit); });
+  wrap.append(inp, document.createTextNode(f.unit));
+  wrap._paint = () => { inp.value = parseFloat(cur[f.v]); };
+  return wrap;
+}
+function makeSelect(f) {
+  const sel = document.createElement('select');
+  const opts = f.kind === 'font' ? fontOpts(f.inherit) : f.opts;
+  for (const [val, lbl] of opts) { const o = document.createElement('option'); o.value = val; o.textContent = lbl; sel.appendChild(o); }
+  sel.value = cur[f.v];
+  sel.addEventListener('change', () => set(f.v, sel.value));
+  sel._paint = () => { sel.value = cur[f.v]; };
+  return sel;
+}
+function fontOpts(inherit) {
+  const out = FONTS.map(([lbl, stack]) => [stack, lbl]);
+  if (inherit) out.unshift(['inherit', 'Zdědit (jako tělo)']);
+  return out;
+}
+
+const controlEls = {}; // v -> { row, ctrl }
+function buildControls() {
+  const host = $('controls'); host.innerHTML = '';
+  for (const sec of SECTIONS) {
+    const fs = document.createElement('fieldset');
+    fs.appendChild(Object.assign(document.createElement('legend'), { textContent: sec.title }));
+    const grid2 = document.createElement('div'); grid2.className = 'frows';
+    for (const f of sec.fields) {
+      const row = document.createElement('div'); row.className = 'frow';
+      const lbl = document.createElement('span'); lbl.className = 'lbl';
+      lbl.innerHTML = f.label + (f.sub ? `<small>${f.sub}</small>` : '');
+      const ctrl = f.kind === 'color' ? makeSwatch(f.v)
+        : f.kind === 'num' ? makeNum(f)
+        : makeSelect(f);
+      const rst = document.createElement('button');
+      rst.className = 'freset'; rst.type = 'button'; rst.title = 'Vrátit na výchozí'; rst.textContent = '↺';
+      rst.addEventListener('click', () => set(f.v, DEFAULTS[f.v]));
+      row.append(lbl, ctrl, rst);
+      grid2.appendChild(row);
+      controlEls[f.v] = { row, ctrl };
+    }
+    fs.appendChild(grid2);
+    host.appendChild(fs);
+  }
+  refreshChanged();
+}
+
+function refreshChanged() {
+  for (const v in controlEls) controlEls[v].row.classList.toggle('changed', cur[v] !== DEFAULTS[v]);
+}
+
+/* ---- změna hodnoty ---- */
+function set(v, value) {
+  cur[v] = value;
+  const c = controlEls[v]; if (c && c.ctrl._paint) c.ctrl._paint();
+  if (c) c.row.classList.toggle('changed', cur[v] !== DEFAULTS[v]);
+  applyLive(); renderCss();
+}
+
+/* ---- živý náhled + export ---- */
+function diffVars() { return Object.keys(cur).filter((v) => cur[v] !== DEFAULTS[v]); }
+function decl(v, indent) { return `${indent}${v}: ${cur[v]}${IMPORTANT.has(v) ? ' !important' : ''};`; }
+
+function applyLive() {
+  const d = diffVars();
+  $('live').textContent = d.length ? `.stylerprev .lattice {\n${d.map((v) => decl(v, '  ')).join('\n')}\n}` : '';
+}
+
+function exportCss() {
+  const d = diffVars();
+  if (!d.length) return '/* Zatím žádné úpravy — vlevo si naklikej barvy, písmo a rozestupy. */';
+  return '/* Lattice — vlastní vzhled (vygeneroval generátor stylů).\n' +
+    '   Vlož AŽ ZA dist/lattice.css, aby přebil výchozí motiv. */\n' +
+    '.lattice {\n' + d.map((v) => decl(v, '  ')).join('\n') + '\n}\n';
+}
+
+function hlCss(css) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc(css)
+    .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="tok-com">$1</span>')
+    .replace(/(--lattice-[\w-]+)(?![^<]*<\/span>)/g, '<span class="tok-key">$1</span>');
+}
+function renderCss() { $('code-out').innerHTML = hlCss(exportCss()); }
+
+/* ---- náhledový grid ---- */
+const previewCols = showcaseColumns();
+previewCols[0].columns[0].frozen = true; // ukotvi ID vlevo → dělící linka ukotvení
+const lastGrp = previewCols[previewCols.length - 1].columns;
+lastGrp[lastGrp.length - 1].frozen = 'right'; // ukotvi „Aktivní" vpravo
+new Lattice($('grid'), {
+  id: 'lat-styler-preview',
+  columns: previewCols,
+  data: generateCampaigns(60),
+  pageSize: 12,
+  instance: { summaryRow: 'page' },
+});
+
+/* ---- ovládání palety / reset ---- */
+$('base').addEventListener('change', () => {
+  cur = { ...DEFAULTS, ...THEMES[$('base').value] };
+  buildControls(); applyLive(); renderCss();
+});
+$('reset-all').addEventListener('click', () => {
+  cur = { ...DEFAULTS }; $('base').value = 'default';
+  buildControls(); applyLive(); renderCss();
+});
+
+/* ---- kopírovat / stáhnout ---- */
+$('copy-btn').addEventListener('click', async () => {
+  const text = exportCss(); let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch { /* fallback */ }
+  if (!ok) { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch {} ta.remove(); }
+  const b = $('copy-btn'); b.textContent = ok ? 'Zkopírováno ✓' : 'Vyber a zkopíruj'; b.classList.toggle('copied', ok);
+  setTimeout(() => { b.textContent = 'Kopírovat'; b.classList.remove('copied'); }, 1600);
+});
+$('dl-btn').addEventListener('click', () => {
+  const blob = new Blob([exportCss()], { type: 'text/css' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'lattice-custom.css';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+/* ---- resizovatelný sidebar (33 % výchozí, bez persistence) ---- */
+(() => {
+  const wrap = document.querySelector('.wrap'); const rez = $('resizer');
+  let dragging = false;
+  rez.addEventListener('mousedown', (e) => { e.preventDefault(); dragging = true; rez.classList.add('dragging'); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const rect = wrap.getBoundingClientRect();
+    const w = Math.max(300, Math.min(e.clientX - rect.left, rect.width * 0.6));
+    wrap.style.setProperty('--side-w', w + 'px');
+  });
+  window.addEventListener('mouseup', () => { if (!dragging) return; dragging = false; rez.classList.remove('dragging'); document.body.style.cursor = ''; document.body.style.userSelect = ''; });
+})();
+
+/* živý <style> pro náhled */
+const liveStyle = document.createElement('style'); liveStyle.id = 'live'; document.head.appendChild(liveStyle);
+
+buildControls(); applyLive(); renderCss();
+</script>
+</body>
+</html>

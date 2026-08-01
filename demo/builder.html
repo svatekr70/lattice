@@ -13,11 +13,15 @@
   header h1 { margin:0 0 3px; font-size:19px; }
   header p { margin:0; color:var(--muted); font-size:13px; }
   header a { color:var(--accent); }
-  .wrap { display:grid; grid-template-columns:540px 1fr; gap:0; align-items:start; }
-  @media (max-width: 1100px) { .wrap { grid-template-columns:1fr; } }
+  .wrap { display:grid; grid-template-columns:var(--side-w, 33%) 6px 1fr; gap:0; align-items:start; }
+  @media (max-width: 1100px) { .wrap { grid-template-columns:1fr; } .resizer { display:none; } }
   .panel { padding:18px 22px; }
   .side { border-right:1px solid var(--line); background:#fff; min-height:calc(100vh - 58px); position:sticky; top:0; align-self:start; max-height:100vh; overflow:auto; }
   .main { min-width:0; }
+  /* táhlo pro změnu šířky sidebaru (bez persistence — po reloadu zase 33 %) */
+  .resizer { position:sticky; top:0; height:calc(100vh - 58px); cursor:col-resize; background:transparent; }
+  .resizer::before { content:''; position:absolute; inset:0 2px; background:var(--line); transition:background .12s; }
+  .resizer:hover::before, .resizer.dragging::before { background:var(--accent); }
   fieldset { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:0 0 16px; }
   legend { font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:0 6px; }
   label.row { display:flex; align-items:center; gap:8px; margin:6px 0; cursor:pointer; }
@@ -35,6 +39,8 @@
   .cols-table td { padding:2px 3px; vertical-align:middle; }
   .cols-table input[type=text] { width:100%; padding:3px 5px; }
   .cols-table select { padding:3px 3px; font-size:11.5px; max-width:80px; }
+  /* filtr select je širší — vejde se „number-range" i „date-range" */
+  .cols-table select[data-k="filter"] { max-width:none; width:100%; min-width:104px; }
   .cols-table .drag { cursor:grab; color:var(--muted); user-select:none; padding:0 2px; }
   .cols-table .gear { cursor:pointer; color:var(--muted); text-align:center; user-select:none; }
   .cols-table .gear.on { color:var(--accent); }
@@ -45,6 +51,18 @@
   .adv-panel { display:flex; flex-wrap:wrap; gap:6px 14px; padding:6px 8px; align-items:center; }
   .adv-panel label { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--ink); }
   .adv-panel .lbl { color:var(--muted); }
+  .swatch { width:22px; height:22px; border:1px solid var(--line); border-radius:5px; cursor:pointer; padding:0; box-shadow:inset 0 0 0 1px #fff; }
+  .swatch:hover { outline:2px solid var(--accent); outline-offset:1px; }
+  .cc-chips { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 8px; }
+  .cc-chip { padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; font:inherit; font-size:11.5px; }
+  .cc-chip:hover { border-color:var(--accent); color:var(--accent); }
+  .cc-item { display:flex; align-items:center; gap:8px; padding:5px 8px; background:#f4f6fa; border-radius:6px; margin-bottom:5px; font-size:12.5px; }
+  .cc-item code { font-size:11.5px; color:var(--muted); }
+  .cc-item b { flex:0 0 auto; }
+  .cc-del { margin-left:auto; border:none; background:none; color:var(--muted); font-size:16px; line-height:1; cursor:pointer; }
+  .cc-del:hover { color:#c0392b; }
+  .cc-add { margin-top:6px; padding:7px 12px; border:1px dashed var(--accent); border-radius:7px; background:#fff; color:var(--accent); cursor:pointer; font:inherit; font-size:13px; width:100%; }
+  .cc-add:hover { background:#eef4ff; }
   .two { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
   h2 { font-size:15px; margin:0 0 10px; }
   .preview-box { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:18px; }
@@ -61,7 +79,7 @@
 <body>
 <header>
   <h1>Lattice — generátor inicializace</h1>
-  <p>Zaškrtej, co chceš. Vlevo nastavuješ, vpravo je živý náhled a hotový kód ke zkopírování. <a href="index.html">← zpět na ukázky</a></p>
+  <p>Zaškrtej, co chceš. Vlevo nastavuješ, vpravo je živý náhled a hotový kód ke zkopírování. <a href="styler.html">generátor stylů</a> · <a href="index.html">← zpět na ukázky</a></p>
 </header>
 <div class="wrap">
   <div class="panel side">
@@ -88,6 +106,7 @@
             <option value="minimal">Minimalistický</option><option value="compact">Kompaktní</option>
             <option value="slate">Tmavý</option><option value="ocean">Oceán</option>
             <option value="warm">Teplý</option><option value="contrast">Vysoký kontrast</option>
+            <option value="bootstrap5">Bootstrap 5</option><option value="tailwind">Tailwind</option><option value="material">Material</option>
           </select>
         </div>
         <div class="field"><span>Jazyk</span><select id="opt-lang"><option value="cs">Čeština</option><option value="en">English</option></select></div>
@@ -103,11 +122,17 @@
       </div>
       <div class="field"><span>Barevná škála (semafor) — dolní / střed / horní; ovlivní i ✓/✕ boolean</span>
         <div style="display:flex; gap:8px; align-items:center">
-          <input type="color" id="opt-sc-low" value="#e5534b" title="Nejnižší / nepravda (✕)">
-          <input type="color" id="opt-sc-mid" value="#f2c037" title="Střed">
-          <input type="color" id="opt-sc-high" value="#42a05a" title="Nejvyšší / pravda (✓)">
+          <button type="button" class="swatch scale-sw" data-scale="low" style="background:#e5534b" title="Nejnižší / nepravda (✕)"></button>
+          <button type="button" class="swatch scale-sw" data-scale="mid" style="background:#f2c037" title="Střed"></button>
+          <button type="button" class="swatch scale-sw" data-scale="high" style="background:#42a05a" title="Nejvyšší / pravda (✓)"></button>
         </div>
       </div>
+      <div class="two">
+        <div class="field"><span>Velikost písma (px)</span><input type="number" id="opt-fontsize" value="14" min="10" max="24"></div>
+        <div class="field"><span>Rodina písma</span><input type="text" id="opt-fontfamily" placeholder="např. Inter, sans-serif"></div>
+      </div>
+      <label class="row"><input type="checkbox" id="opt-help" checked> Ikona nápovědy „?" v toolbaru</label>
+      <div class="field" id="row-helpurl"><span>Vlastní URL nápovědy (prázdné = oficiální příručka)</span><input type="text" id="opt-helpurl" placeholder="https://…"></div>
     </fieldset>
 
     <fieldset>
@@ -117,7 +142,23 @@
       </table>
       <p class="hint">Přetažením <b>⠿</b> pořadí · <b>⚙</b> = pokročilé (zarovnání, editace, barevná škála, souhrn řádku, responsivita) · „Skupina" spojí sousední sloupce · „Ukotvit" zmrazí sloupec.</p>
       <label class="row" id="row-computed" style="margin-top:8px"><input type="checkbox" id="opt-computed"> Přidat ukázkový <b>computed</b> sloupec (Cena za bod)</label>
-      <p class="hint" style="margin-top:8px">Vzhled se ladí <b>za běhu</b> v dialogu Sloupce (a pamatuje se): přejmenování sloupce, <b>barvy záhlaví</b> sloupce i skupiny (color picker), <b>formát buňky</b> (zarovnání, řez písma, barvy), <b>sbalování skupin</b> a <b>počítané sloupce</b> i <b>vážené souhrny</b> vzorcem — proto nejsou v generovaném init kódu.</p>
+      <p class="hint" style="margin-top:8px">Pokročilé (⚙) nabízí i <b>barvy záhlaví</b> sloupce/skupiny, <b>formát buňky</b> (tučné/kurzíva/…, barvy) a u boolean <b>zobrazení</b> (Ano/Ne, 1/0, ✓/✕) — vše se propíše do kódu. Totéž jde nastavit i <b>za běhu</b> v dialogu Sloupce (persistuje se).</p>
+    </fieldset>
+
+    <fieldset id="row-computed-custom">
+      <legend>Počítané sloupce (vzorec)</legend>
+      <div id="cc-list"></div>
+      <div class="two">
+        <div class="field"><span>Název sloupce</span><input type="text" id="cc-title" placeholder="např. Marže %"></div>
+        <div class="field"><span>Typ</span><select id="cc-type"><option value="number">Číslo</option><option value="text">Text</option><option value="date">Datum</option></select></div>
+      </div>
+      <div class="field"><span>Vzorec</span><input type="text" id="cc-formula" placeholder="např. budget / score  ·  jmeno + ' ' + prijmeni  ·  if(stav=='hotovo','✓','—')"></div>
+      <div id="cc-fields" class="cc-chips"></div>
+      <div class="two">
+        <div class="field"><span>Vážený souhrn (nepovinné)</span><input type="text" id="cc-sumformula" placeholder="např. sum(spojeno) / sum(vytoceno) * 100"></div>
+        <div class="field"><span>Název souhrn. řádku</span><input type="text" id="cc-sumlabel" placeholder="nepovinné"></div>
+      </div>
+      <button type="button" id="cc-add" class="cc-add">+ Přidat počítaný sloupec</button>
     </fieldset>
 
     <fieldset>
@@ -126,6 +167,15 @@
         <select id="opt-filterlayout"><option value="header">V záhlaví sloupců</option><option value="external">Panel nad tabulkou</option><option value="universal">Univerzální (jedno pole)</option><option value="none">Skryté</option></select>
       </div>
       <label class="row"><input type="checkbox" id="opt-advanced"> Předvyplnit ukázkový <b>rozšířený filtr</b> (strom pravidel)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Formát hodnot (globální)</legend>
+      <div class="two">
+        <div class="field"><span>Desetinná místa (čísla)</span><input type="number" id="opt-fmt-decimals" min="0" max="6" placeholder="výchozí"></div>
+        <div class="field"><span>Měna (typ money)</span><input type="text" id="opt-fmt-currency" placeholder="např. CZK, EUR"></div>
+      </div>
+      <div class="field"><span>Vzor data (typ date)</span><input type="text" id="opt-fmt-date" placeholder="např. dd.mm.yyyy"></div>
     </fieldset>
 
     <fieldset>
@@ -159,6 +209,10 @@
       <div class="field" id="row-group"><span>Seskupení řádků podle</span>
         <select id="opt-group"><option value="">— žádné —</option></select>
       </div>
+      <div class="field" id="row-groupdisplay"><span>Zobrazení skupin</span>
+        <select id="opt-groupdisplay"><option value="headers">Sbalitelné hlavičky</option><option value="columns">Ploché sloupce</option></select>
+      </div>
+      <label class="row" id="row-grouprepeat"><input type="checkbox" id="opt-grouprepeat" checked> Opakovat hodnotu skupiny v řádcích</label>
       <label class="row" id="row-subtotals"><input type="checkbox" id="opt-subtotals"> Mezisoučty za skupiny</label>
       <label class="row" id="row-pinsum"><input type="checkbox" id="opt-pinsum"> Připnout souhrnný řádek dole (Σ)</label>
     </fieldset>
@@ -192,6 +246,8 @@
     </fieldset>
   </div>
 
+  <div class="resizer" id="resizer" title="Táhni pro změnu šířky"></div>
+
   <div class="panel main">
     <h2>Živý náhled</h2>
     <div class="preview-box"><div id="grid"></div></div>
@@ -204,65 +260,70 @@
 </div>
 
 <script type="module">
-import { Lattice } from '../src/index.js';
+import { Lattice, openColorPicker, I18n } from '../src/index.js';
+import { generateCampaigns, CATEGORY_ICONS, OPTIONS } from './data.js';
+const pickerI18n = new I18n('cs');
+const pickerT = pickerI18n.t.bind(pickerI18n);
+/** Otevře Lattice color picker (kolo + Bootstrap + vlastní) nad swatch tlačítkem. */
+function openSwatch(btn, c, key, def) {
+  openColorPicker(btn, {
+    t: pickerT, current: c[key] || def,
+    onPick: (color) => { c[key] = color; btn.style.background = color; rebuild(); },
+    onClear: () => { c[key] = ''; btn.style.background = def; rebuild(); },
+  });
+}
 
 /* ============ ukázková data ============ */
-function sampleCampaigns(n = 60) {
-  let s = 20260724;
-  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-  const pad = (x) => String(x).padStart(2, '0');
-  const cats = ['PPC', 'Bannery', 'Email', 'Social', 'Video'];
-  const owners = ['Nováková', 'Svoboda', 'Dvořák', 'Černá', 'Kučera'];
-  const regions = ['Praha', 'Brno', 'Ostrava', 'Plzeň'];
-  const statuses = ['Plánováno', 'Běží', 'Pozastaveno', 'Dokončeno'];
-  const out = [];
-  for (let i = 0; i < n; i++) out.push({
-    id: i + 1, name: 'Kampaň ' + (i + 1), category: cats[(rnd() * cats.length) | 0],
-    owner: owners[(rnd() * owners.length) | 0], region: regions[(rnd() * regions.length) | 0],
-    budget: ((rnd() * 900000) | 0) + 10000, score: (rnd() * 100) | 0,
-    status: statuses[(rnd() * statuses.length) | 0],
-    createdAt: '2026-' + pad(1 + ((rnd() * 12) | 0)) + '-' + pad(1 + ((rnd() * 28) | 0)), active: rnd() > 0.5,
-    trend: Array.from({ length: 8 }, () => (rnd() * 100) | 0),
-    web: 'kampan-' + (i + 1) + '.example.com',
-  });
-  return out;
-}
-const CAMPAIGNS = sampleCampaigns();
-const TREE_DATA = [
-  { id: 1, name: 'Jana Nováková', role: 'CEO', dept: 'Vedení', location: 'Praha', employees: 8, _children: [
-    { id: 2, name: 'Petr Svoboda', role: 'CTO', dept: 'Vývoj', location: 'Brno', employees: 4, _children: [
-      { id: 3, name: 'Eva Dvořáková', role: 'Lead FE', dept: 'Vývoj', location: 'Brno', employees: 2, _children: [
-        { id: 4, name: 'Tomáš Černý', role: 'FE vývojář', dept: 'Vývoj', location: 'Brno', employees: 0 },
-        { id: 5, name: 'Lucie Malá', role: 'FE vývojář', dept: 'Vývoj', location: 'Praha', employees: 0 } ] },
-      { id: 6, name: 'Karel Kučera', role: 'BE vývojář', dept: 'Vývoj', location: 'Ostrava', employees: 0 } ] },
-    { id: 7, name: 'Marie Veselá', role: 'CFO', dept: 'Finance', location: 'Praha', employees: 2, _children: [
-      { id: 8, name: 'Jan Horák', role: 'Účetní', dept: 'Finance', location: 'Praha', employees: 0 } ] } ] },
-];
+// Sdílený bohatý dataset (stejný jako /demo/#ex-datatypes) — programy (parentId=null)
+// + kampaně; slouží ploché tabulce i STROMU (treeParentField:'parentId').
+const CAMPAIGNS = generateCampaigns(120);
 
 /* ============ katalogy sloupců ============ */
-const nc = (o) => ({ align: '', editable: false, condFormat: false, rowSummary: false, resp: '', group: '', frozen: '', headerMenu: false, required: false, ...o });
+const nc = (o) => ({ align: '', editable: false, condFormat: false, rowSummary: false, resp: '', group: '', frozen: '', headerMenu: false, required: false, urlField: '', boolStyle: '',
+  hdrColorOn: false, hdrBg: '', hdrFg: '', grpColorOn: false, grpBg: '', grpFg: '',
+  cfBold: false, cfItalic: false, cfUnderline: false, cfStrike: false, cfColorOn: false, cfColor: '', cfBg: '', ...o });
+/** Sestaví cellFormat objekt ze sloupcových cf* voleb (nebo null). */
+function cellFormatOf(c) {
+  const f = {};
+  if (c.cfBold) f.bold = true;
+  if (c.cfItalic) f.italic = true;
+  if (c.cfUnderline) f.underline = true;
+  if (c.cfStrike) f.strike = true;
+  if (c.cfColorOn) { if (c.cfColor) f.color = c.cfColor; if (c.cfBg) f.background = c.cfBg; }
+  return Object.keys(f).length ? f : null;
+}
+/** Varianty zobrazení boolean → formatterParams (prázdný klíč = výchozí ✓/✕). */
+const BOOL_STYLES = {
+  '': ['✓ / ✕ (výchozí)', null],
+  yesno: ['Ano / Ne', { trueText: 'Ano', falseText: 'Ne', plain: true }],
+  onezero: ['1 / 0', { trueText: '1', falseText: '0', plain: true }],
+  emoji: ['✅ / ❌', { trueText: '✅', falseText: '❌' }],
+  thumb: ['👍 / 👎', { trueText: '👍', falseText: '👎' }],
+};
 const CAMPAIGN_CATALOG = [
   nc({ field: 'id', title: 'ID', type: 'id', filter: '', on: true, width: 70 }),
+  nc({ field: 'image', title: 'Náhled', type: 'image', filter: '', on: false, width: 70, align: 'center' }),
   nc({ field: 'name', title: 'Název', type: 'text', filter: 'text', on: true, width: 190 }),
+  nc({ field: 'icon', title: 'Typ', type: 'icon', filter: '', on: false, width: 60 }),
   nc({ field: 'category', title: 'Kategorie', type: 'text', filter: 'select', on: true }),
   nc({ field: 'owner', title: 'Vlastník', type: 'text', filter: 'select', on: true }),
   nc({ field: 'region', title: 'Region', type: 'text', filter: 'select', on: false }),
   nc({ field: 'budget', title: 'Rozpočet', type: 'money', filter: 'number-range', on: true }),
+  nc({ field: 'conversions', title: 'Konverze', type: 'number', filter: 'number-range', on: false }),
   nc({ field: 'score', title: 'Skóre', type: 'number', filter: 'number', on: true }),
+  nc({ field: 'progress', title: 'Průběh', type: 'progress', filter: '', on: false, width: 130 }),
+  nc({ field: 'rating', title: 'Hodnocení', type: 'rating', filter: '', on: false, width: 120, align: 'center' }),
+  nc({ field: 'trend', title: 'Trend', type: 'sparkline', filter: '', on: false, width: 120 }),
   nc({ field: 'status', title: 'Stav', type: 'text', filter: 'select', on: true }),
-  nc({ field: 'createdAt', title: 'Vytvořeno', type: 'date', filter: 'date-range', on: false }),
+  nc({ field: 'label', title: 'Štítek', type: 'html', filter: '', on: false, width: 120 }),
+  nc({ field: 'color', title: 'Barva', type: 'color', filter: '', on: false, width: 80 }),
+  nc({ field: 'verified', title: 'Ověřeno', type: 'tick', filter: 'boolean', on: false, width: 90 }),
   nc({ field: 'active', title: 'Aktivní', type: 'boolean', filter: 'boolean', on: true }),
-  nc({ field: 'trend', title: 'Trend', type: 'sparkline', filter: '', on: false, width: 130 }),
+  nc({ field: 'createdAt', title: 'Vytvořeno', type: 'date', filter: 'date-range', on: false }),
+  nc({ field: 'updatedAt', title: 'Změněno', type: 'datetime', filter: 'date-range', on: false, width: 150 }),
   nc({ field: 'web', title: 'Web', type: 'link', filter: 'text', on: false, width: 170 }),
 ];
-const ORG_CATALOG = [
-  nc({ field: 'name', title: 'Jméno', type: 'text', filter: 'text', on: true, width: 240 }),
-  nc({ field: 'role', title: 'Pozice', type: 'text', filter: 'text', on: true, width: 180 }),
-  nc({ field: 'dept', title: 'Oddělení', type: 'text', filter: 'select', on: true }),
-  nc({ field: 'location', title: 'Lokalita', type: 'text', filter: 'select', on: true }),
-  nc({ field: 'employees', title: 'Podřízených', type: 'number', filter: 'number', on: true, width: 120 }),
-];
-const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'progress', 'rating', 'sparkline', 'link'];
+const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'tick', 'progress', 'rating', 'sparkline', 'link', 'image', 'icon', 'color', 'html'];
 const FILTERS = ['', 'text', 'select', 'multiselect', 'number', 'number-range', 'date-range', 'boolean'];
 const FROZEN = [['', '—'], ['left', 'Vlevo'], ['right', 'Vpravo']];
 const ALIGN = [['', 'auto'], ['left', 'Vlevo'], ['center', 'Střed'], ['right', 'Vpravo']];
@@ -280,14 +341,10 @@ const $ = (id) => document.getElementById(id);
 const lang = () => $('opt-lang').value;
 const chk = (id) => { const e = $(id); return e && e.checked && !e.disabled; };
 const val = (id) => { const e = $(id); return e && !e.disabled ? e.value : ''; };
-function catalogFor(m) { return (m === 'tree' ? ORG_CATALOG : CAMPAIGN_CATALOG).map((c) => ({ ...c })); }
+function catalogFor() { return CAMPAIGN_CATALOG.map((c) => ({ ...c })); }
 
-/** Ploché řádky aktuálního datasetu (strom zploští přes _children) — pro odvození hodnot. */
-function flatData(m) {
-  if (m !== 'tree') return CAMPAIGNS;
-  const out = []; const walk = (a) => a.forEach((n) => { out.push(n); if (n._children) walk(n._children); });
-  walk(TREE_DATA); return out;
-}
+/** Ploché řádky datasetu (kampaně jsou ploché s parentId) — pro odvození hodnot filtrů. */
+function flatData() { return CAMPAIGNS; }
 /** Distinktní hodnoty pole (pro filterValues select/multiselect filtrů i select editoru). */
 function distinctValues(field, m) {
   const seen = new Set(), out = [];
@@ -297,6 +354,51 @@ function distinctValues(field, m) {
 
 /* ============ tabulka sloupců ============ */
 const colsBody = $('cols-body');
+
+/* ============ vlastní počítané sloupce (vzorec) ============ */
+let computedCols = [];
+let ccSeq = 0;
+function renderCcList() {
+  const box = $('cc-list'); if (!box) return;
+  box.innerHTML = '';
+  computedCols.forEach((cc, i) => {
+    const row = document.createElement('div');
+    row.className = 'cc-item';
+    row.innerHTML = `<b>${cc.title}</b> <code>${cc.formula.replace(/</g, '&lt;')}</code>${cc.summaryFormula ? ` · Σ <code>${cc.summaryFormula.replace(/</g, '&lt;')}</code>` : ''}`;
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'cc-del'; del.textContent = '×'; del.title = 'Odebrat';
+    del.addEventListener('click', () => { computedCols.splice(i, 1); renderCcList(); rebuild(); });
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+}
+function renderCcFields() {
+  const box = $('cc-fields'); if (!box) return;
+  box.innerHTML = '';
+  const fields = activeColumns().filter((c) => !c.__computed && !c.__calc).map((c) => c.field);
+  for (const f of [...new Set(fields)]) {
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'cc-chip'; chip.textContent = f;
+    chip.addEventListener('click', () => {
+      const inp = $('cc-formula');
+      const s = inp.selectionStart ?? inp.value.length, e = inp.selectionEnd ?? inp.value.length;
+      const before = inp.value.slice(0, s), pad = before && !/[\s(,]$/.test(before) ? ' ' : '';
+      inp.value = before + pad + f + inp.value.slice(e);
+      inp.focus(); const pos = (before + pad + f).length; inp.setSelectionRange(pos, pos);
+    });
+    box.appendChild(chip);
+  }
+}
+function addComputedCol() {
+  const title = $('cc-title').value.trim();
+  const formula = $('cc-formula').value.trim();
+  if (!title || !formula) { $(title ? 'cc-formula' : 'cc-title').focus(); return; }
+  computedCols.push({
+    field: 'calc' + (++ccSeq), title, type: $('cc-type').value, formula,
+    summaryFormula: $('cc-sumformula').value.trim(),
+    summaryFormulaLabel: $('cc-sumlabel').value.trim(),
+  });
+  ['cc-title', 'cc-formula', 'cc-sumformula', 'cc-sumlabel'].forEach((id) => { $(id).value = ''; });
+  renderCcList(); rebuild();
+}
 function advPanel(c) {
   const td = document.createElement('td');
   td.colSpan = 8;
@@ -309,10 +411,24 @@ function advPanel(c) {
     (isNum(c.type) ? `<label><input type="checkbox" data-k="condFormat" ${c.condFormat ? 'checked' : ''}> barevná škála</label>` : '') +
     (isNum(c.type) ? `<label><input type="checkbox" data-k="rowSummary" ${c.rowSummary ? 'checked' : ''}> souhrn řádku (Σ vpravo)</label>` : '') +
     `<label><input type="checkbox" data-k="headerMenu" ${c.headerMenu ? 'checked' : ''}> menu hlavičky</label>` +
+    (c.type === 'link' ? `<label><span class="lbl">Odkaz přes pole</span><input type="text" data-k="urlField" value="${(c.urlField || '').replace(/"/g, '&quot;')}" placeholder="např. id" style="width:80px"></label>` : '') +
+    ((c.type === 'boolean' || c.type === 'tick') ? `<label><span class="lbl">Zobrazení</span><select data-k="boolStyle">${Object.entries(BOOL_STYLES).map(([k, [lbl]]) => `<option value="${k}" ${k === c.boolStyle ? 'selected' : ''}>${lbl}</option>`).join('')}</select></label>` : '') +
+    `<label><input type="checkbox" data-k="hdrColorOn" ${c.hdrColorOn ? 'checked' : ''}> barva záhlaví</label><button type="button" class="swatch" data-color="hdrBg" data-def="#0d6efd" style="background:${c.hdrBg || '#0d6efd'}" title="pozadí"></button><button type="button" class="swatch" data-color="hdrFg" data-def="#ffffff" style="background:${c.hdrFg || '#ffffff'}" title="písmo"></button>` +
+    (c.group ? `<label><input type="checkbox" data-k="grpColorOn" ${c.grpColorOn ? 'checked' : ''}> barva skupiny</label><button type="button" class="swatch" data-color="grpBg" data-def="#0d6efd" style="background:${c.grpBg || '#0d6efd'}" title="pozadí"></button><button type="button" class="swatch" data-color="grpFg" data-def="#ffffff" style="background:${c.grpFg || '#ffffff'}" title="písmo"></button>` : '') +
+    `<label><input type="checkbox" data-k="cfBold" ${c.cfBold ? 'checked' : ''}> <b>tučné</b></label>` +
+    `<label><input type="checkbox" data-k="cfItalic" ${c.cfItalic ? 'checked' : ''}> <i>kurzíva</i></label>` +
+    `<label><input type="checkbox" data-k="cfUnderline" ${c.cfUnderline ? 'checked' : ''}> <u>podtržené</u></label>` +
+    `<label><input type="checkbox" data-k="cfStrike" ${c.cfStrike ? 'checked' : ''}> <s>přeškrtnuté</s></label>` +
+    `<label><input type="checkbox" data-k="cfColorOn" ${c.cfColorOn ? 'checked' : ''}> barva buňky</label><button type="button" class="swatch" data-color="cfColor" data-def="#212529" style="background:${c.cfColor || '#212529'}" title="písmo"></button><button type="button" class="swatch" data-color="cfBg" data-def="#fff3cd" style="background:${c.cfBg || '#fff3cd'}" title="pozadí"></button>` +
     `<label><span class="lbl">Responsivita</span><select data-k="resp">${RESP.map(([v, l]) => `<option value="${v}" ${v === c.resp ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
   p.querySelectorAll('[data-k]').forEach((inp) => inp.addEventListener('change', () => {
     c[inp.dataset.k] = inp.type === 'checkbox' ? inp.checked : inp.value;
     rebuild();
+  }));
+  // Swatch tlačítka → Lattice color picker (kolo + Bootstrap + vlastní).
+  p.querySelectorAll('.swatch').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    openSwatch(btn, c, btn.dataset.color, btn.dataset.def);
   }));
   td.appendChild(p);
   const tr = document.createElement('tr');
@@ -382,6 +498,11 @@ function activeColumns() {
     if (c.filter) o.filter = c.filter;
     if (c.filter === 'select' || c.filter === 'multiselect') o.filterValues = distinctValues(c.field, mode);
     if (c.group) o.group = c.group;
+    if (c.type === 'link' && c.urlField) o.urlField = c.urlField;
+    if ((c.type === 'boolean' || c.type === 'tick') && c.boolStyle && BOOL_STYLES[c.boolStyle][1]) o.formatterParams = BOOL_STYLES[c.boolStyle][1];
+    if (c.hdrColorOn) { o.headerBackground = c.hdrBg || '#0d6efd'; o.headerColor = c.hdrFg || '#ffffff'; }
+    if (c.group && c.grpColorOn) { o.groupHeaderBackground = c.grpBg || '#0d6efd'; o.groupHeaderColor = c.grpFg || '#ffffff'; }
+    const cf = cellFormatOf(c); if (cf) o.cellFormat = cf;
     if (c.frozen) o.frozen = c.frozen;
     if (c.headerMenu) o.headerMenu = true;
     if (c.editable) o.editable = true;
@@ -397,6 +518,12 @@ function activeColumns() {
     if (val('opt-summary')) cc.summary = ['sum'];
     list.push(cc);
   }
+  // Vlastní počítané sloupce (vzorec) — na konec.
+  for (const cc of computedCols) {
+    const o = { field: cc.field, title: cc.title, type: cc.type, formula: cc.formula, __calc: true };
+    if (cc.summaryFormula) { o.summaryFormula = cc.summaryFormula; if (cc.summaryFormulaLabel) o.summaryFormulaLabel = cc.summaryFormulaLabel; }
+    list.push(o);
+  }
   return list;
 }
 
@@ -404,26 +531,81 @@ function activeColumns() {
 let grid = null;
 let dragFrom = null;
 const DEFAULT_SCALE = ['#e5534b', '#f2c037', '#42a05a'];
+const scaleState = { low: '#e5534b', mid: '#f2c037', high: '#42a05a' };
 /** Barvy semaforu z pickerů, nebo null když jsou výchozí. */
 function scaleColors() {
-  const sc = [$('opt-sc-low').value, $('opt-sc-mid').value, $('opt-sc-high').value];
+  const sc = [scaleState.low, scaleState.mid, scaleState.high];
   return sc.join().toLowerCase() === DEFAULT_SCALE.join() ? null : sc;
+}
+/** Globální formát hodnot (number/money/date) z pickerů, nebo null. */
+function buildFormat() {
+  const f = {};
+  const dec = $('opt-fmt-decimals').value;
+  if (dec !== '') f.number = { decimals: Number(dec) };
+  const cur = $('opt-fmt-currency').value.trim();
+  if (cur) f.money = { currency: cur };
+  const dp = $('opt-fmt-date').value.trim();
+  if (dp) f.date = { pattern: dp };
+  return Object.keys(f).length ? f : null;
+}
+/** Sestaví instance nastavení (sdílené pro živý náhled i generovaný kód). */
+function buildInstance() {
+  const inst = {};
+  const pos = val('opt-pagpos');
+  if (val('opt-theme') !== 'default') inst.theme = val('opt-theme');
+  if (val('opt-density') !== 'comfortable') inst.density = val('opt-density');
+  if (val('opt-layout') !== 'fitData') inst.layout = val('opt-layout');
+  if (val('opt-rownumbers') !== 'none') inst.rowNumbers = val('opt-rownumbers');
+  if (val('opt-rotate') !== 'none') inst.headerRotate = val('opt-rotate');
+  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'footer') inst.paginationPosition = pos;
+  if (chk('opt-resizeguide')) inst.resizeGuide = true;
+  if (!$('opt-zebra').checked) inst.zebra = false;
+  if (chk('opt-wrap')) inst.wrapText = true;
+  if (chk('opt-linknewtab')) inst.linkNewTab = true;
+  if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
+  if (val('opt-summary')) inst.summaryRow = val('opt-summary');
+  if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
+  if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
+  if (chk('opt-selrowclick') && val('opt-select')) inst.selectRowClick = true;
+  const sc = scaleColors();
+  if (sc) inst.scaleColors = sc;
+  const g = val('opt-group');
+  if (g && mode !== 'tree') {
+    inst.groupBy = [g];
+    if (chk('opt-subtotals')) inst.groupSubtotals = true;
+    if (val('opt-groupdisplay') !== 'headers') inst.groupDisplay = val('opt-groupdisplay');
+    if (val('opt-groupdisplay') !== 'columns' && !chk('opt-grouprepeat')) inst.groupRepeat = false;
+  }
+  const fs = Number($('opt-fontsize').value);
+  if (fs && fs !== 14) inst.fontSize = fs;
+  if ($('opt-fontfamily').value.trim()) inst.fontFamily = $('opt-fontfamily').value.trim();
+  const fmt = buildFormat();
+  if (fmt) inst.format = fmt;
+  return inst;
+}
+/** Volba nápovědy: null = skrýt ikonu, string = vlastní URL, undefined = výchozí. */
+function helpOption() {
+  if (!chk('opt-help')) return null;
+  const u = $('opt-helpurl').value.trim();
+  return u || undefined;
 }
 const clearDropMarks = () => colsBody.querySelectorAll('tr').forEach((r) => r.classList.remove('drop-above', 'drop-below'));
 function memStorage() { const m = new Map(); return { getItem: (k) => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) }; }
 function rebuild() {
   const columns = activeColumns().map((c) => {
-    const cc = { ...c }; delete cc.__computed;
+    const cc = { ...c }; delete cc.__computed; delete cc.__calc;
     if (c.__computed) cc.value = (r) => (r.score ? Math.round(r.budget / r.score) : 0);
-    if (cc.type === 'money') cc.formatterParams = { currency: 'CZK' };
+    if (cc.type === 'money') cc.formatterParams = { currency: buildFormat()?.money?.currency || 'CZK' };
     if (cc.type === 'sparkline') cc.formatterParams = { type: 'line', fill: true };
-    if (cc.type === 'link') cc.formatterParams = { urlPrefix: 'https://' };
+    if (cc.type === 'link') cc.formatterParams = { urlPrefix: 'https://', ...(c.urlField ? { urlField: c.urlField } : {}) };
     return cc;
   });
   const opts = { id: $('opt-id').value || 'grid', keyField: 'id', i18n: lang(), columns, storage: memStorage() };
+  const help = helpOption();
+  if (help !== undefined) opts.helpUrl = help;
 
   if (mode === 'server') { opts.serverSide = true; opts.ajaxUrl = '/api/campaigns'; if (val('opt-progressive')) opts.progressiveLoad = val('opt-progressive'); }
-  else if (mode === 'tree') { opts.data = TREE_DATA; opts.treeData = true; opts.treeStartExpanded = 1; }
+  else if (mode === 'tree') { opts.data = CAMPAIGNS; opts.treeData = true; opts.treeParentField = 'parentId'; opts.treeIdField = 'id'; opts.treeStartExpanded = 1; }
   else { opts.data = CAMPAIGNS; }
 
   const pos = val('opt-pagpos');
@@ -463,26 +645,7 @@ function rebuild() {
     { label: lang() === 'en' ? 'Delete' : 'Smazat', danger: true, onClick: (rows, keys, g) => { keys.forEach((id) => g.deleteRow(id)); g.clearSelection(); } },
   ];
 
-  const inst = {};
-  if (val('opt-theme') !== 'default') inst.theme = val('opt-theme');
-  if (val('opt-density') !== 'comfortable') inst.density = val('opt-density');
-  if (val('opt-layout') !== 'fitData') inst.layout = val('opt-layout');
-  if (val('opt-rownumbers') !== 'none') inst.rowNumbers = val('opt-rownumbers');
-  if (val('opt-rotate') !== 'none') inst.headerRotate = val('opt-rotate');
-  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'footer') inst.paginationPosition = pos;
-  if (chk('opt-resizeguide')) inst.resizeGuide = true;
-  if (!$('opt-zebra').checked) inst.zebra = false;
-  if (chk('opt-wrap')) inst.wrapText = true;
-  if (chk('opt-linknewtab')) inst.linkNewTab = true;
-  if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
-  if (val('opt-summary')) inst.summaryRow = val('opt-summary');
-  if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
-  if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
-  if (chk('opt-selrowclick') && val('opt-select')) inst.selectRowClick = true;
-  const sc = scaleColors();
-  if (sc) inst.scaleColors = sc;
-  const g = val('opt-group');
-  if (g && mode !== 'tree') { inst.groupBy = [g]; if (chk('opt-subtotals')) inst.groupSubtotals = true; }
+  const inst = buildInstance();
   if (Object.keys(inst).length) opts.instance = inst;
 
   if (grid) { try { grid.destroy(); } catch {} }
@@ -492,6 +655,7 @@ function rebuild() {
     if (chk('opt-advanced') && mode !== 'tree') grid.applyAdvanced(ADVANCED_SAMPLE);
   } catch (e) { $('grid').innerHTML = '<div style="color:#c0392b;padding:12px">Chyba: ' + e.message + '</div>'; }
   renderCode();
+  renderCcFields();
 }
 
 /* ============ generování kódu ============ */
@@ -512,9 +676,15 @@ function colToCode(c) {
   if (c.group) p.push(`group: ${q(c.group)}`);
   if (c.frozen) p.push(`frozen: ${q(c.frozen)}`);
   if (c.headerMenu) p.push('headerMenu: true');
-  if (c.type === 'money') p.push(`formatterParams: { currency: 'CZK' }`);
+  if (c.type === 'money') p.push(`formatterParams: { currency: '${buildFormat()?.money?.currency || 'CZK'}' }`);
   if (c.type === 'sparkline') p.push(`formatterParams: { type: 'line', fill: true }`);
-  if (c.type === 'link') p.push(`formatterParams: { urlPrefix: 'https://' }`);
+  if (c.type === 'link') p.push(`formatterParams: { urlPrefix: 'https://'${c.urlField ? `, urlField: '${c.urlField}'` : ''} }`);
+  if ((c.type === 'boolean' || c.type === 'tick') && c.formatterParams) p.push('formatterParams: ' + jsVal(c.formatterParams));
+  if (c.headerBackground) p.push(`headerBackground: '${c.headerBackground}'`);
+  if (c.headerColor) p.push(`headerColor: '${c.headerColor}'`);
+  if (c.groupHeaderBackground) p.push(`groupHeaderBackground: '${c.groupHeaderBackground}'`);
+  if (c.groupHeaderColor) p.push(`groupHeaderColor: '${c.groupHeaderColor}'`);
+  if (c.cellFormat) p.push('cellFormat: ' + jsVal(c.cellFormat));
   if (c.editable) p.push('editable: true');
   if (c.validator) p.push(`validator: ${q(c.validator)}`);
   if (c.condFormat) p.push(`condFormat: { on: true, levels: 5, reverse: false }`);
@@ -522,13 +692,20 @@ function colToCode(c) {
   if (c.rowSummary) p.push(`rowSummary: ['sum']`);
   if (c.responsive === false) p.push('responsive: false'); else if (c.responsive != null) p.push(`responsive: ${c.responsive}`);
   if (c.__computed) p.push(`value: (r) => r.score ? Math.round(r.budget / r.score) : 0`);
+  if (c.formula) p.push(`formula: ${q(c.formula)}`);
+  if (c.summaryFormula) p.push(`summaryFormula: ${q(c.summaryFormula)}`);
+  if (c.summaryFormulaLabel) p.push(`summaryFormulaLabel: ${q(c.summaryFormulaLabel)}`);
   return '  { ' + p.join(', ') + ' },';
 }
 function reindent(str, pad) { return str.split('\n').map((l) => l ? pad + l : l).join('\n'); }
 function dataLiteral() {
-  if (mode === 'tree') return JSON.stringify(TREE_DATA, null, 2);
-  const fields = activeColumns().filter((c) => !c.__computed).map((c) => c.field);
-  const rows = CAMPAIGNS.slice(0, 2).map((r) => '  { ' + fields.map((f) => `${f}: ${jsVal(r[f])}`).join(', ') + ' },');
+  const vis = activeColumns().filter((c) => !c.__computed && !c.__calc).map((c) => c.field);
+  // strom potřebuje id + parentId; jinak jen viditelná pole
+  const fields = [...new Set(mode === 'tree' ? ['id', 'parentId', ...vis] : vis)];
+  const sample = mode === 'tree'
+    ? [CAMPAIGNS[0], CAMPAIGNS.find((r) => r.parentId != null)].filter(Boolean)
+    : CAMPAIGNS.slice(0, 2);
+  const rows = sample.map((r) => '  { ' + fields.map((f) => `${f}: ${jsVal(r[f])}`).join(', ') + ' },');
   return '[\n' + rows.join('\n') + '\n  // … další řádky …\n]';
 }
 function generateJs() {
@@ -540,16 +717,19 @@ function generateJs() {
   L.push('];');
   L.push('');
   if (mode === 'server') { L.push('// Server-side: knihovna posílá page, size, sort[], filter[], search'); L.push('// a čeká { data: [...], total }. Viz demo/server.js.'); }
-  else { L.push(mode === 'tree' ? '// Stromová data (hierarchie přes _children):' : '// Vaše data (pole objektů). Tady ukázkové řádky:'); L.push('const data = ' + dataLiteral() + ';'); }
+  else { L.push(mode === 'tree' ? '// Data — ploché řádky s parentId (hierarchie se poskládá sama):' : '// Vaše data (pole objektů). Tady ukázkové řádky:'); L.push('const data = ' + dataLiteral() + ';'); }
   L.push('');
   L.push("const grid = new Lattice('#grid', {");
   L.push(`  id: ${q($('opt-id').value || 'grid')},`);
   L.push('  columns,');
   L.push(`  i18n: ${q(lang())},`);
   L.push(`  keyField: 'id',`);
+  const help = helpOption();
+  if (help === null) L.push('  helpUrl: null,           // skryje ikonu nápovědy');
+  else if (help) L.push(`  helpUrl: ${q(help)},`);
   if (mode === 'server') { L.push('  serverSide: true,'); L.push("  ajaxUrl: '/api/campaigns',"); if (val('opt-progressive')) L.push(`  progressiveLoad: ${q(val('opt-progressive'))},`); }
   else L.push('  data,');
-  if (mode === 'tree') { L.push('  treeData: true,'); L.push('  treeStartExpanded: 1,'); }
+  if (mode === 'tree') { L.push('  treeData: true,'); L.push("  treeParentField: 'parentId',"); L.push("  treeIdField: 'id',"); L.push('  treeStartExpanded: 1,'); }
   const pos = val('opt-pagpos');
   if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'none') L.push(`  pageSize: ${Number($('opt-pagesize').value) || 15},`);
   if (chk('opt-virtual')) L.push('  virtualScroll: true,');
@@ -589,26 +769,7 @@ function generateJs() {
     L.push('        keys.forEach((id) => grid.deleteRow(id)); grid.clearSelection(); } },');
     L.push('  ],');
   }
-  const inst = {};
-  if (val('opt-theme') !== 'default') inst.theme = val('opt-theme');
-  if (val('opt-density') !== 'comfortable') inst.density = val('opt-density');
-  if (val('opt-layout') !== 'fitData') inst.layout = val('opt-layout');
-  if (val('opt-rownumbers') !== 'none') inst.rowNumbers = val('opt-rownumbers');
-  if (val('opt-rotate') !== 'none') inst.headerRotate = val('opt-rotate');
-  if (mode !== 'tree' && !chk('opt-virtual') && pos !== 'footer') inst.paginationPosition = pos;
-  if (chk('opt-resizeguide')) inst.resizeGuide = true;
-  if (!$('opt-zebra').checked) inst.zebra = false;
-  if (chk('opt-wrap')) inst.wrapText = true;
-  if (chk('opt-linknewtab')) inst.linkNewTab = true;
-  if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
-  if (val('opt-summary')) inst.summaryRow = val('opt-summary');
-  if (val('opt-filterlayout') !== 'header') inst.filterLayout = val('opt-filterlayout');
-  if (chk('opt-actions') && val('opt-actionslayout') === 'menu') inst.actionsLayout = 'menu';
-  if (chk('opt-selrowclick') && val('opt-select')) inst.selectRowClick = true;
-  const sc = scaleColors();
-  if (sc) inst.scaleColors = sc;
-  const g = val('opt-group');
-  if (g && mode !== 'tree') { inst.groupBy = [g]; if (chk('opt-subtotals')) inst.groupSubtotals = true; }
+  const inst = buildInstance();
   if (Object.keys(inst).length) L.push(`  instance: ${jsVal(inst)},`);
   L.push('});');
   if (chk('opt-advanced') && mode !== 'tree') { L.push(''); L.push('// Rozšířený filtr (strom pravidel) — aktivuje se za běhu:'); L.push('grid.applyAdvanced(' + jsVal(ADVANCED_SAMPLE) + ');'); }
@@ -654,7 +815,7 @@ const MODE_ONLY = {
 const MODE_HINT = {
   client: 'Data přímo v <code>data: […]</code>.',
   server: 'Živý náhled táhne z mock API <code>/api/campaigns</code> (demo/server.js).',
-  tree: 'Hierarchie přes <code>_children</code>. Stránkování/virtuál/seskupení se ve stromu nepoužijí.',
+  tree: 'Hierarchie přes <code>parentId</code> (programy → kampaně). Stránkování/virtuál/seskupení se ve stromu nepoužijí.',
 };
 function setDisabled(rowId, off) {
   const row = $(rowId); if (!row) return;
@@ -668,6 +829,9 @@ function applyModeConstraints() {
   setDisabled('row-history-size', !chk('opt-history'));
   setDisabled('row-actionslayout', !chk('opt-actions'));
   setDisabled('row-selrowclick', !val('opt-select'));
+  setDisabled('row-helpurl', !chk('opt-help'));
+  // zobrazení/opakování skupin dává smysl jen když je zvolené seskupení řádků
+  setDisabled('row-groupdisplay', !(val('opt-group') && mode !== 'tree'));
   $('mode-hint').innerHTML = MODE_HINT[mode];
 }
 
@@ -692,7 +856,44 @@ $('copy-btn').addEventListener('click', async () => {
   setTimeout(() => { b.textContent = 'Kopírovat'; b.classList.remove('copied'); }, 1600);
 });
 
-renderColsTable(); refreshGroupOptions(); applyModeConstraints(); rebuild();
+/* ============ resizovatelný sidebar (33 % výchozí, bez persistence) ============ */
+(() => {
+  const wrap = document.querySelector('.wrap');
+  const rez = $('resizer');
+  if (!wrap || !rez) return;
+  let dragging = false;
+  rez.addEventListener('mousedown', (e) => {
+    e.preventDefault(); dragging = true; rez.classList.add('dragging');
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const rect = wrap.getBoundingClientRect();
+    const w = Math.max(300, Math.min(e.clientX - rect.left, rect.width * 0.6));
+    wrap.style.setProperty('--side-w', w + 'px');
+  });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false; rez.classList.remove('dragging');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+  });
+})();
+
+$('cc-add').addEventListener('click', addComputedCol);
+$('cc-formula').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addComputedCol(); } });
+
+// semafor (barevná škála) → Lattice color picker
+const SCALE_DEF = { low: '#e5534b', mid: '#f2c037', high: '#42a05a' };
+document.querySelectorAll('.scale-sw').forEach((btn) => btn.addEventListener('click', () => {
+  const k = btn.dataset.scale;
+  openColorPicker(btn, {
+    t: pickerT, current: scaleState[k],
+    onPick: (color) => { scaleState[k] = color; btn.style.background = color; rebuild(); },
+    onClear: () => { scaleState[k] = SCALE_DEF[k]; btn.style.background = SCALE_DEF[k]; rebuild(); },
+  });
+}));
+
+renderColsTable(); refreshGroupOptions(); applyModeConstraints(); renderCcList(); rebuild();
 </script>
 </body>
 </html>

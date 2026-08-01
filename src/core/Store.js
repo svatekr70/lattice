@@ -24,6 +24,7 @@ export function emptyState() {
     advanced: null, // aktivní rozšířený filtr (strom pravidel) nebo null
     advancedFilters: [], // [{ id, name, tree }] uložené rozšířené filtry
     groups: [],    // hodnoty sbalených skupin řádků (row grouping)
+    colGroups: [], // názvy sbalených skupin sloupců (column grouping)
     tree: [],      // klíče rozbalených uzlů (tree data)
     _gdVersion: null, // naposledy aplikovaná verze globálních výchozích nastavení
   };
@@ -66,6 +67,7 @@ export class Store {
         advanced: parsed.advanced || base.advanced,
         advancedFilters: Array.isArray(parsed.advancedFilters) ? parsed.advancedFilters : base.advancedFilters,
         groups: Array.isArray(parsed.groups) ? parsed.groups : base.groups,
+        colGroups: Array.isArray(parsed.colGroups) ? parsed.colGroups : base.colGroups,
         tree: Array.isArray(parsed.tree) ? parsed.tree : base.tree,
         _gdVersion: parsed._gdVersion != null ? parsed._gdVersion : base._gdVersion,
       };

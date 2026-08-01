@@ -5,7 +5,9 @@ Bez runtime závislostí, s jedním zdrojem pravdy pro persistenci a determinist
 
 📖 **[Kompletní API reference → `docs/API.md`](./docs/API.md)** — options, sloupce, typy, filtry, metody, callbacky, features.
 📘 **[Uživatelská příručka → `prirucka/`](./prirucka/index.html)** — jak tabulku *ovládat* (pro uživatele aplikace, ne vývojáře): řazení, filtry, seskupení, editace, export… s obrázky.
-Živé ukázky ke všemu jsou v demu (`npm run demo` → `demo/index.html`).
+Živé ukázky ke všemu jsou v demu (`npm run demo` → `demo/index.html`). Součástí dema jsou dva
+naklikávací generátory: **konfigurátor inicializace** (`demo/builder.html`) sestaví hotový init kód
+a **generátor stylů** (`demo/styler.html`) naklikaný vzhled → `lattice-custom.css`.
 
 ## Proč „Lattice"?
 

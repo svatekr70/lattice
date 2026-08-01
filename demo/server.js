@@ -17,7 +17,7 @@ import { generateCampaigns } from './data.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = process.env.PORT || 877;
-const DATASET = generateCampaigns(240);
+const DATASET = generateCampaigns(400);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

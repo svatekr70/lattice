@@ -179,7 +179,7 @@ function docTypy(root, ctx) {
       ['<code>number</code>', 'Číslo (des. místa, oddělovač tisíců, záporná barevně/v závorkách).'],
       ['<code>money</code>', 'Měna se symbolem (CZK/EUR/…).'],
       ['<code>date</code> / <code>datetime</code> / <code>time</code>', 'Datum/čas dle vzoru (<code>dd.mm.yyyy</code>, <code>d. mmmm yyyy</code>…).'],
-      ['<code>boolean</code> / <code>tick</code>', 'Ano/Ne (✓/✕) / jen ✓ když pravda.'],
+      ['<code>boolean</code> / <code>tick</code>', 'Ano/Ne (✓/✕) / jen ✓ když pravda. Zobrazení lze změnit: <code>formatterParams: { trueText, falseText, plain }</code> (Ano/Ne, 1/0, ✅/❌…) nebo v UI ikonou formátu.'],
       ['<code>progress</code>', 'Vodorovný pruh (<code>formatterParams: { max, color, showValue }</code>).'],
       ['<code>rating</code>', 'Hvězdičky (<code>formatterParams: { max }</code>).'],
       ['<code>sparkline</code>', 'Mini graf z pole hodnot — SVG, bez závislosti (<code>formatterParams: { type:\'line\'|\'bar\', color, fill }</code>).'],

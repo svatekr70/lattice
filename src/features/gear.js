@@ -346,14 +346,15 @@ export class Gear {
     sumBtn.addEventListener('click', () => openSummaryPicker(sumBtn, grid, col));
     tools.appendChild(sumBtn);
 
-    // 5b) Formát zobrazení — jen typy, které se formátují (číslo/měna/datum/čas).
+    // 5b) Formát zobrazení — čísla/měny/data/čas i boolean (Ano/Ne, 1/0, ✓/✕…).
     // U ostatních prázdný slot (zarovnání ikon).
-    if (formatKind(col.type)) {
+    const isBool = col.type === 'boolean' || col.type === 'tick';
+    if (formatKind(col.type) || isBool) {
       const fmtBtn = el('button.lattice-gbtn.lattice-fmtbtn', {
         type: 'button', title: t('instance.colFormatTitle'),
-        class: col.format ? 'is-active' : '', text: '0.0',
+        class: col.format ? 'is-active' : '', text: isBool ? '✓' : '0.0',
       });
-      fmtBtn.addEventListener('click', () => openFormatPicker(fmtBtn, grid, col));
+      fmtBtn.addEventListener('click', () => isBool ? openBoolFormatPicker(fmtBtn, grid, col) : openFormatPicker(fmtBtn, grid, col));
       tools.appendChild(fmtBtn);
     } else {
       tools.appendChild(el('span.lattice-gslot-empty'));
@@ -717,6 +718,63 @@ function openCellFormatPicker(anchor, grid, col) {
     if (e.target.closest && e.target.closest('.lattice-hcolor-menu')) return; // klik do sub-pickeru barvy
     close();
   });
+  function close() { off(); menu.remove(); }
+  return close;
+}
+
+/**
+ * Zobrazení BOOLEAN hodnoty — přednastavené varianty (✓/✕, Ano/Ne, 1/0, ✅/❌,
+ * 👍/👎), vlastní texty a přepínač barvení. Ukládá do col.format.
+ */
+function openBoolFormatPicker(anchor, grid, col) {
+  document.querySelectorAll('.lattice-bool-menu').forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el('div.lattice-menu.lattice-bool-menu');
+  const PRESETS = [
+    { tt: '✓', ft: '✕' },
+    { tt: t('bool.yes'), ft: t('bool.no') },
+    { tt: '1', ft: '0' },
+    { tt: '✅', ft: '❌' },
+    { tt: '👍', ft: '👎' },
+  ];
+  const apply = (patch) => {
+    const next = Object.assign({}, col.format, patch);
+    const isDefault = (next.trueText == null || next.trueText === '✓') && (next.falseText == null || next.falseText === '✕') && !next.plain;
+    grid.setColumnFormat(col.field, isDefault ? null : next);
+    render();
+  };
+  function render() {
+    clear(menu);
+    const cur = col.format || {};
+    menu.appendChild(el('div.lattice-summary-menu-head', { text: t('bool.title') }));
+    for (const p of PRESETS) {
+      const active = (cur.trueText || '✓') === p.tt && (cur.falseText || '✕') === p.ft;
+      const item = el('div.lattice-menu-item', { class: active ? 'is-selected' : '' }, [
+        el('span.lattice-ms-check', { text: active ? '✓' : '' }),
+        el('span', { text: p.tt + '  /  ' + p.ft }),
+      ]);
+      item.addEventListener('mousedown', (e) => { e.preventDefault(); apply({ trueText: p.tt, falseText: p.ft }); });
+      menu.appendChild(item);
+    }
+    menu.appendChild(el('div.lattice-summary-menu-sep'));
+    const tIn = el('input.lattice-set-input', { type: 'text', value: cur.trueText || '', placeholder: '✓' });
+    const fIn = el('input.lattice-set-input', { type: 'text', value: cur.falseText || '', placeholder: '✕' });
+    const applyCustom = () => apply({ trueText: tIn.value || undefined, falseText: fIn.value || undefined });
+    tIn.addEventListener('change', applyCustom);
+    fIn.addEventListener('change', applyCustom);
+    menu.appendChild(csField(t('bool.customTrue'), tIn));
+    menu.appendChild(csField(t('bool.customFalse'), fIn));
+    const colorCb = el('input', { type: 'checkbox', checked: !cur.plain });
+    colorCb.addEventListener('change', () => apply({ plain: !colorCb.checked }));
+    menu.appendChild(csField(t('bool.colored'), colorCb));
+    const reset = el('button.lattice-formula-btn', { type: 'button', text: t('bool.reset') });
+    reset.addEventListener('click', () => { grid.setColumnFormat(col.field, null); render(); });
+    menu.appendChild(el('div.lattice-cellfmt-actions', {}, [reset]));
+  }
+  render();
+  document.body.appendChild(menu);
+  positionUnder(menu, anchor);
+  const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
   function close() { off(); menu.remove(); }
   return close;
 }

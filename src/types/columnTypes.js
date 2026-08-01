@@ -84,11 +84,29 @@ registerType('time', (v, col) => {
   return d ? formatDate(d, effFmt(col, 'time').pattern, col._i18n) : '';
 });
 
-registerType('boolean', (v) => {
-  const truthy = v === true || v === 1 || v === '1' || v === 'true';
+/**
+ * Zobrazení boolean hodnoty: výchozí ✓/✕, nebo vlastní texty (Ano/Ne, 1/0, ✅/❌…)
+ * z `col.format` (nastavení v UI, persistuje se) nebo `col.formatterParams` (config).
+ * `plain: true` vypne barvení (zelená/červená).
+ */
+export function boolDisplay(col) {
+  const p = (col && col.format) || (col && col.formatterParams) || {};
+  return {
+    trueText: p.trueText != null ? p.trueText : '✓',
+    falseText: p.falseText != null ? p.falseText : '✕',
+    plain: !!p.plain,
+  };
+}
+export function isTruthy(v) {
+  return v === true || v === 1 || v === '1' || v === 'true' || v === 'True' || v === 'ano' || v === 'yes';
+}
+
+registerType('boolean', (v, col) => {
+  const truthy = isTruthy(v);
+  const d = boolDisplay(col);
   const span = document.createElement('span');
-  span.className = 'lattice-bool ' + (truthy ? 'is-true' : 'is-false');
-  span.textContent = truthy ? '✓' : '✕';
+  span.className = 'lattice-bool ' + (truthy ? 'is-true' : 'is-false') + (d.plain ? ' is-plain' : '');
+  span.textContent = truthy ? d.trueText : d.falseText;
   return span;
 });
 
@@ -269,12 +287,12 @@ registerType('color', (v) => {
 });
 
 /** Tick — zelené ✓ když pravda, jinak prázdno (bez křížku). */
-registerType('tick', (v) => {
-  const truthy = v === true || v === 1 || v === '1' || v === 'true' || v === 'True';
-  if (!truthy) return '';
+registerType('tick', (v, col) => {
+  if (!isTruthy(v)) return '';
+  const d = boolDisplay(col);
   const span = document.createElement('span');
-  span.className = 'lattice-bool is-true';
-  span.textContent = '✓';
+  span.className = 'lattice-bool is-true' + (d.plain ? ' is-plain' : '');
+  span.textContent = d.trueText;
   return span;
 });
 

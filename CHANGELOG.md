@@ -4,6 +4,43 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.3.0] – 2026-08-01
+
+### Přidáno
+- **Generátor stylů** (`demo/styler.html`) — naklikatelný vzhled: všechny theming
+  proměnné `--lattice-*` (barvy s alfa kanálem, písmo, tvary, rozestupy, okraje), živý náhled a export
+  hotového `lattice-custom.css` (ke stažení i kopírování) vč. návodu na použití.
+  Změněné položky jsou zvýrazněné a jdou vrátit na výchozí jednotlivě (↺) i všechny naráz.
+- **Alfa kanál v color pickeru** — `openColorPicker` má nově volitelný jezdec
+  průhlednosti (`opts.alpha`); vrací pak `rgba(...)`.
+- **Paměť naposledy použitých barev** — picker si pamatuje posledních 12 vlastních
+  barev (kolo/vlastní vstup) a nabízí je k výběru (persistováno v `localStorage`).
+- **Okraje sloupců v generátoru stylů** — barva i šířka pro obyčejné svislé linky
+  (`--lattice-cell-vborder-color`/`-width`), hrany skupin (`--lattice-group-border-width`)
+  a dělící linku ukotvených sloupců (`--lattice-frozen-line-width`). Platí hierarchie:
+  **ukotvený okraj > skupinový > obyčejný**.
+- **Spodní okraje záhlaví** — samostatná barva i šířka pod řádkem skupin
+  (`--lattice-group-border-bottom-*`), pod řádkem záhlaví (`--lattice-header-border-*`)
+  a pod řádkem filtrů (`--lattice-filter-border-*`).
+- Sidebar generátoru stylů skládá volby do **2 sloupců** (dle šířky) — méně rolování.
+
+### Změněno
+- **Palety v color pickeru** nabízejí obě varianty Bootstrapu 5 — plné (sytá barva +
+  kontrastní písmo) i jemné „alert" tóny (světlé pozadí + tmavý text). 16 kombinací.
+- **Nastavení tabulky** — „Barvy škály (semafor)" i barvy ve „Vlastních úpravách"
+  otevírají šestiúhelníkový picker (kolo + palety) místo nativního výběru barvy.
+
+### Opraveno
+- **Šířka/barva svislých linek buněk jde přepsat** na úrovni gridu — `--lattice-cell-vborder`
+  se už nedefinuje napevno v `:root` (vnořený `var()` se vyhodnocoval moc brzy a přepis
+  na potomkovi se neprojevil); buňky ho berou přes fallback, takže `--lattice-cell-vborder-width`
+  i `-color` fungují. Svislé linky nově respektují nastavení i v **záhlaví, filtr řádku
+  a skupinovém řádku** (dřív měly barvu/šířku napevno). Motivy ho dál můžou nastavit na `none`.
+- **Color picker se zobrazuje nad modálem** Nastavení tabulky (dřív se schoval pod něj).
+- **Sbalení skupin sloupců se persistuje** i po reloadu — `Store` nově načítá klíč
+  `colGroups` (dosud se ukládal, ale při načtení se zahazoval, takže skupiny byly
+  po obnovení stránky zase rozbalené).
+
 ## [1.2.0] – 2026-08-01
 
 ### Přidáno

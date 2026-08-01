@@ -7,7 +7,7 @@ import { generateCampaigns } from './data.js';
 import { GROUPS, ALL } from './examples.js';
 import { DOC_GROUPS, DOC_ALL } from './docs.js';
 
-const data = generateCampaigns(240);
+const data = generateCampaigns(400);
 
 /* ---------- globální presety / výchozí nastavení (spravuje aplikace) ---------- */
 const PRESET_API = '/api/presets?grid=ex-presets';
@@ -149,7 +149,7 @@ function show(id) {
   if (grid) { try { grid.destroy(); } catch { /* no-op */ } grid = null; }
   els.mount.innerHTML = '';
   els.title.textContent = ex.title;
-  els.blurb.textContent = ex.blurb;
+  els.blurb.innerHTML = ex.blurb; // blurby jsou důvěryhodné (autor příkladu) a smí obsahovat <b>/<code>
   els.code.textContent = ex.code;
   grid = ex.mount(els.mount, {
     data, lang,

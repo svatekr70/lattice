@@ -6,6 +6,7 @@
 import { el, clear } from '../util/dom.js';
 import { CURRENCIES, DATE_PRESETS, DATETIME_PRESETS, TIME_PRESETS, formatDate } from '../core/format.js';
 import { DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
+import { openColorPicker } from './headerColor.js';
 
 const SAMPLE_DATE = new Date(2026, 2, 5, 9, 7, 3); // 5. březen 2026, 9:07:03 — jednociferné dny/měsíce/hodiny odliší dd↔d, mm↔m, HH↔H
 
@@ -129,7 +130,7 @@ export class InstanceSettings {
       ['none', t('instance.headerRotateNone')], ['90', t('instance.headerRotate90')], ['270', t('instance.headerRotate270')],
     ], (v) => set({ headerRotate: v })));
     gA.appendChild(rowToggle(t('instance.zebra'), inst.zebra !== false, (v) => set({ zebra: v })));
-    gA.appendChild(rowScaleColors(t('instance.scaleColors'), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr })));
+    gA.appendChild(rowScaleColors(t('instance.scaleColors'), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
 
     /* ---------- Rozvržení ---------- */
     const gL = makeTab(t('instance.groupLayout'));
@@ -330,13 +331,19 @@ function rgb2hex(s) {
 }
 function effVar(grid, name) { return getComputedStyle(grid.el).getPropertyValue(name).trim(); }
 
-/** Kompaktní grid barevných voleb (2 sloupce) — šetří místo. */
+/** Kompaktní grid barevných voleb (2 sloupce) — šetří místo. Klik → šestiúhelníkový picker. */
 function colorGrid(items, grid, cv, merge) {
+  const t = grid.i18n.t.bind(grid.i18n);
   const wrap = el('div.lattice-color-grid');
   for (const [label, name] of items) {
-    const inp = el('input.lattice-scale-color', { type: 'color', value: cv[name] || rgb2hex(effVar(grid, name)) || '#000000' });
-    inp.addEventListener('input', () => merge(name, inp.value));
-    wrap.appendChild(el('label.lattice-color-cell', {}, [inp, el('span.lattice-color-lbl', { text: label })]));
+    const def = () => rgb2hex(effVar(grid, name)) || '#000000';
+    const btn = el('button.lattice-scale-color', { type: 'button', style: { background: cv[name] || def() } });
+    btn.addEventListener('click', () => openColorPicker(btn, {
+      t, current: cv[name] || def(),
+      onPick: (color) => { btn.style.background = color; merge(name, color); },
+      onClear: () => { btn.style.background = def(); merge(name, null); },
+    }));
+    wrap.appendChild(el('span.lattice-color-cell', {}, [btn, el('span.lattice-color-lbl', { text: label })]));
   }
   return wrap;
 }
@@ -399,14 +406,19 @@ function cssSelectRow(label, name, cv, options, merge) {
   return field(label, sel);
 }
 
-/** Tři barvy škály (low/mid/high) — přeberou je sloupce s podmíněným formátem. */
-function rowScaleColors(labelText, colors, onChange) {
+/** Tři barvy škály (low/mid/high) — přeberou je sloupce s podmíněným formátem. Klik → šestiúhelníkový picker. */
+function rowScaleColors(labelText, colors, onChange, t) {
   const wrap = el('span.lattice-scale-colors');
-  const inputs = [0, 1, 2].map((i) => {
-    const inp = el('input.lattice-scale-color', { type: 'color', value: colors[i] || '#888888' });
-    inp.addEventListener('input', () => onChange(inputs.map((x) => x.value)));
-    return inp;
+  const vals = [colors[0], colors[1], colors[2]];
+  const btns = [0, 1, 2].map((i) => {
+    const btn = el('button.lattice-scale-color', { type: 'button', style: { background: vals[i] || '#888888' } });
+    btn.addEventListener('click', () => openColorPicker(btn, {
+      t, current: vals[i],
+      onPick: (color) => { vals[i] = color; btn.style.background = color; onChange(vals.slice()); },
+      onClear: () => { vals[i] = DEFAULT_SCALE_COLORS[i]; btn.style.background = vals[i]; onChange(vals.slice()); },
+    }));
+    return btn;
   });
-  wrap.append(...inputs);
+  wrap.append(...btns);
   return field(labelText, wrap);
 }

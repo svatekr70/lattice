@@ -15,6 +15,7 @@
   --lattice-header-bg: #f1f3f6;
   --lattice-border: #dfe3e8;
   --lattice-group-border: #9aa1ac;   /* výraznější svislá hrana skupin */
+  --lattice-group-border-width: 2px; /* šířka hrany skupin sloupců */
   --lattice-text: #1f2733;
   --lattice-muted: #6b7583;
   --lattice-accent: #2563eb;
@@ -38,13 +39,24 @@
   --lattice-cell-pad-y: 8px;
   --lattice-cell-pad-x: 10px;
   --lattice-header-pad-y: 8px;
-  --lattice-cell-vborder: 1px solid var(--lattice-border);  /* svislé linky buněk (Material je ruší) */
+  --lattice-cell-vborder-width: 1px;                        /* šířka svislých linek buněk */
+  --lattice-cell-vborder-color: var(--lattice-border);      /* barva svislých linek buněk */
+  /* --lattice-cell-vborder ZÁMĚRNĚ nedefinujeme: buňky ho berou přes fallback
+     var(--lattice-cell-vborder, <width> solid <color>), aby šla šířka/barva přepsat
+     i na potomkovi (grid rootu). Motivy ho můžou nastavit na `none` = bez svislých linek. */
   --lattice-header-weight: 600;
   --lattice-header-transform: none; /* uppercase u některých motivů */
   --lattice-header-spacing: normal; /* letter-spacing hlaviček */
   --lattice-header-size: 1em;
   --lattice-header-color: var(--lattice-text);
   --lattice-frozen-line: #8b95a5;   /* dělící linka ukotveného sloupce (tmavá; v tmavém motivu světlá) */
+  --lattice-frozen-line-width: 1px; /* šířka dělící linky ukotvených sloupců */
+  --lattice-header-border-color: var(--lattice-border);        /* spodní linka pod řádkem záhlaví sloupců */
+  --lattice-header-border-width: 1px;
+  --lattice-group-border-bottom-color: var(--lattice-border);  /* spodní linka pod řádkem skupin sloupců */
+  --lattice-group-border-bottom-width: 1px;
+  --lattice-filter-border-color: var(--lattice-border);        /* spodní linka pod řádkem filtrů */
+  --lattice-filter-border-width: 1px;
 }
 
 /* ---------- motivy (vzhledy) ----------
@@ -441,8 +453,8 @@
   padding: 6px 8px;
   font-weight: 600;
   background: var(--lattice-header-bg);
-  border-right: 1px solid var(--lattice-border);
-  border-bottom: 1px solid var(--lattice-border);
+  border-right: var(--lattice-cell-vborder, var(--lattice-cell-vborder-width) solid var(--lattice-cell-vborder-color));
+  border-bottom: var(--lattice-group-border-bottom-width) solid var(--lattice-group-border-bottom-color);
   overflow: hidden;
   white-space: nowrap;
 }
@@ -486,6 +498,15 @@
 .lattice-hcolor-btn { font-weight: 700; border-radius: 4px; }
 /* picker barvy záhlaví */
 .lattice-hcolor-menu { min-width: 232px; padding: 8px; }
+/* nad modálem Nastavení tabulky (overlay má 3000) — vyšší specificita přebije .lattice-menu (1100) */
+.lattice-menu.lattice-hcolor-menu { z-index: 3100; }
+/* naposledy použité vlastní barvy */
+.lattice-hcolor-recents-lbl { font-size: 11px; color: var(--lattice-muted); margin: 8px 2px 3px; }
+.lattice-hcolor-recents { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 2px 4px; }
+.lattice-hcolor-recent {
+  width: 22px; height: 22px; border: 1px solid var(--lattice-border); border-radius: 5px; cursor: pointer; padding: 0;
+}
+.lattice-hcolor-recent:hover { outline: 2px solid var(--lattice-accent); outline-offset: 1px; }
 /* taby (Kolo / Palety) */
 .lattice-hcolor-tabs { display: flex; gap: 4px; margin: 2px 0 8px; border-bottom: 1px solid var(--lattice-border); }
 .lattice-hcolor-tab {
@@ -557,7 +578,7 @@
 .lattice-header-row .lattice-hcell.is-gedge,
 .lattice-filter-row .lattice-fcell.is-gedge,
 .lattice-body .lattice-cell.is-gedge {
-  border-right: 2px solid var(--lattice-group-border);
+  border-right: var(--lattice-group-border-width) solid var(--lattice-group-border);
 }
 .lattice-gcell.is-dragging { opacity: 0.5; }
 .lattice-gcell.drop-before { box-shadow: inset 3px 0 0 var(--lattice-accent); }
@@ -577,8 +598,8 @@
   letter-spacing: var(--lattice-header-spacing);
   color: var(--lattice-header-color);
   background: var(--lattice-header-bg);
-  border-right: var(--lattice-cell-vborder);
-  border-bottom: 1px solid var(--lattice-border);
+  border-right: var(--lattice-cell-vborder, var(--lattice-cell-vborder-width) solid var(--lattice-cell-vborder-color));
+  border-bottom: var(--lattice-header-border-width) solid var(--lattice-header-border-color);
   user-select: none;
   overflow: hidden;
 }
@@ -642,8 +663,8 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   flex: 0 0 auto;
   padding: 4px 6px;
   background: var(--lattice-header-bg);
-  border-right: 1px solid var(--lattice-border);
-  border-bottom: 1px solid var(--lattice-border);
+  border-right: var(--lattice-cell-vborder, var(--lattice-cell-vborder-width) solid var(--lattice-cell-vborder-color));
+  border-bottom: var(--lattice-filter-border-width) solid var(--lattice-filter-border-color);
   overflow: hidden;
 }
 .lattice-filter-input {
@@ -841,7 +862,7 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   flex: 0 0 auto;
   padding: var(--lattice-cell-pad-y) var(--lattice-cell-pad-x);
   background: var(--lattice-bg);
-  border-right: var(--lattice-cell-vborder);
+  border-right: var(--lattice-cell-vborder, var(--lattice-cell-vborder-width) solid var(--lattice-cell-vborder-color));
   border-bottom: 1px solid var(--lattice-border);
   white-space: nowrap;
   overflow: hidden;
@@ -1205,6 +1226,9 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-color-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lattice-bool.is-true { color: var(--lattice-bool-true, #42a05a); }
 .lattice-bool.is-false { color: var(--lattice-bool-false, #e5534b); }
+/* „plain" varianta — bez barvení (neutrální text), např. pro Ano/Ne či 1/0 */
+.lattice-bool.is-plain { color: var(--lattice-text); font-weight: 400; }
+.lattice-bool-menu { min-width: 210px; }
 
 /* neplatná buňka (deklarativní validace) */
 .lattice-cell.is-invalid { box-shadow: inset 0 0 0 2px var(--lattice-danger); background: var(--lattice-danger-soft) !important; animation: lattice-invalid-flash 0.2s ease; }
@@ -1305,8 +1329,21 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-cell.is-frozen { z-index: 2; }
 .lattice-hcell.is-frozen, .lattice-fcell.is-frozen { z-index: 4; }
 /* dělící 1px linka na vnitřní hraně frozen bloku, tmavší než běžné okraje (inset = žádný posun layoutu) */
-.is-frozen-edge-left { box-shadow: inset -1px 0 0 var(--lattice-frozen-line); }
-.is-frozen-edge-right { box-shadow: inset 1px 0 0 var(--lattice-frozen-line); }
+/* Hierarchie okrajů: ukotvený sloupec má přednost před vším (skupinovým i obyčejným).
+   Vyšší specificita (0,3,0) + pozdější pořadí přebijí skupinový (0,3,0) i obyčejný (0,1,0)
+   okraj; díky box-sizing:border-box se šířkou okraje neposune layout ani sticky offset. */
+.lattice-group-row .lattice-gcell.is-frozen-edge-left,
+.lattice-header-row .lattice-hcell.is-frozen-edge-left,
+.lattice-filter-row .lattice-fcell.is-frozen-edge-left,
+.lattice-body .lattice-cell.is-frozen-edge-left {
+  border-right: var(--lattice-frozen-line-width) solid var(--lattice-frozen-line);
+}
+.lattice-group-row .lattice-gcell.is-frozen-edge-right,
+.lattice-header-row .lattice-hcell.is-frozen-edge-right,
+.lattice-filter-row .lattice-fcell.is-frozen-edge-right,
+.lattice-body .lattice-cell.is-frozen-edge-right {
+  border-left: var(--lattice-frozen-line-width) solid var(--lattice-frozen-line);
+}
 
 /* ---------- patička / paginace ---------- */
 .lattice-footer {

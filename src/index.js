@@ -17,6 +17,7 @@ export { I18n, registerLanguage, availableLanguages } from './i18n/index.js';
 export { Store } from './core/Store.js';
 export { buildColumns, serializeColumns } from './core/ColumnModel.js';
 export { ClientData, ServerData, encodeParams } from './core/DataSource.js';
+export { openColorPicker, openHeaderColorPicker, HEADER_COLOR_PRESETS } from './features/headerColor.js';
 
 /** Verze knihovny (odpovídá package.json). */
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';

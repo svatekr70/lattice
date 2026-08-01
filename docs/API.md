@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.2.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.3.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.2.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.3.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.2.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.3.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -142,7 +142,7 @@ const grid = new Lattice('#grid', {
 | `number` | Číslo (des. místa, oddělovač tisíců, záporná barevně/v závorkách). |
 | `money` | Měna se symbolem (`formatterParams: { currency: 'CZK' }`). |
 | `date` / `datetime` / `time` | Datum/čas dle vzoru (`dd.mm.yyyy`, `d. mmmm yyyy`, …). |
-| `boolean` / `tick` | Ano/Ne (✓/✕, barvy ze škály) / jen ✓ když pravda. |
+| `boolean` / `tick` | Ano/Ne (✓/✕, barvy ze škály) / jen ✓ když pravda. **Zobrazení lze změnit** — `formatterParams: { trueText, falseText, plain }` (nebo v UI přes ikonu formátu ✓): např. `Ano/Ne`, `1/0`, `✅/❌`; `plain:true` vypne barvení. |
 | `progress` | Vodorovný pruh (`formatterParams: { max, color, showValue }`). |
 | `rating` | Hvězdičky (`formatterParams: { max }`). |
 | `sparkline` | Mini graf z pole hodnot — SVG bez závislosti (`formatterParams: { type:'line'\|'bar', color, fill, height, width }`). |
@@ -255,9 +255,12 @@ Vše nastavitelné z **dialogu Sloupce** (ikona ☰) a persistované (localStora
   a **zrušení** (×), aby se na destruktivní akci neklikalo omylem v gridu. Skupina jde v záhlaví
   **sbalit** do úzkého proužku (ikona −/+); sbalený stav se pamatuje. Sloupec může být jen v jedné skupině.
 - **Barvy záhlaví** (sloupce i skupiny) — ikona *A*. Picker má **barevné kolo** (výchozí),
-  jezdec jasu a druhý tab s **Bootstrap presety** a vlastní volbou. Sloupec bez vlastní barvy
-  **zdědí barvu své skupiny**; písmo se u presetů/kola dopočítá kontrastně.
+  jezdec jasu a druhý tab s **Bootstrap paletami** (16 kombinací — plné i jemné „alert" tóny)
+  a vlastní volbou; pamatuje si **naposledy použité** barvy. Sloupec bez vlastní barvy
+  **zdědí barvu své skupiny**; písmo se u presetů/kola dopočítá kontrastně. Stejný picker
+  je i v *Nastavení tabulky* → „Barvy škály" a „Vlastní úpravy".
 - **Formát buňky** — ikona *¶*: zarovnání, tučné/kurzíva/podtržené/přeškrtnuté, barva písma a pozadí.
+- **Zobrazení boolean** — ikona *✓* u boolean sloupce: varianty ✓/✕, Ano/Ne, 1/0, ✅/❌, 👍/👎 nebo vlastní texty, s volbou barvení.
 
 ---
 
@@ -487,22 +490,65 @@ import {
   Store,                         // per-grid persistence
   buildColumns, serializeColumns,
   ClientData, ServerData, encodeParams,
+  openColorPicker, openHeaderColorPicker, HEADER_COLOR_PRESETS,
   VERSION,
 } from 'lattice';
 ```
+
+**Color picker** (stejný, jaký používá UI gridu):
+
+```js
+openColorPicker(anchorEl, {
+  current: '#2563eb',            // výchozí barva (i rgba())
+  alpha: true,                   // volitelný jezdec průhlednosti → vrací rgba(…)
+  onPick: (color) => { … },      // vybraná barva
+  onClear: () => { … },          // „Bez barvy"
+  t: i18n.t.bind(i18n),          // volitelně překlad popisků
+});
+```
+
+Nabízí barevné kolo, **Bootstrap palety** (`HEADER_COLOR_PRESETS` — 16 kombinací, plné i jemné)
+a **paměť naposledy použitých** barev (per prohlížeč). `openHeaderColorPicker` je varianta
+pro dvojici pozadí + písmo (písmo se dopočítá kontrastně).
 
 ---
 
 ## Themování
 
-Motivy = přemapování CSS proměnných `--lattice-*` (barvy i struktura). Instance je lze přepsat
-přes `instance.cssVars` (inline na rootu, vyhraje nad motivem). Klíčové proměnné:
+Motivy = přemapování CSS proměnných `--lattice-*` (barvy i struktura). Tři způsoby, jak vzhled ovlivnit:
 
-`--lattice-bg`, `--lattice-row-odd`, `--lattice-row-hover`, `--lattice-header-bg`,
-`--lattice-border`, `--lattice-text`, `--lattice-muted`, `--lattice-accent`,
-`--lattice-accent-soft`, `--lattice-danger`, `--lattice-success`, `--lattice-star-on/off`,
-`--lattice-progress-track/fill`, `--lattice-frozen-line`, `--lattice-bool-true/false`,
-`--lattice-radius`, `--lattice-font`, `--lattice-font-size`, `--lattice-cell-pad-x/y`.
+1. **Hotový motiv** — `instance.theme` (`default`, `slate`, `minimal`, `compact`, `ocean`, `bootstrap5`, `tailwind`, `material`, …).
+2. **Vlastní CSS soubor** — vlož `.lattice { --lattice-…: … }` **za** `dist/lattice.css`. Nejjednodušší je
+   naklikat ho v **generátoru stylů** (`demo/styler.html`): naklikáš barvy (s alfa kanálem), písmo,
+   tvary, rozestupy i okraje, vidíš živý náhled a stáhneš hotový `lattice-custom.css`.
+3. **Per-instance** — `instance.cssVars: { '--lattice-accent': '#e91e63', … }` (inline na rootu gridu,
+   vyhraje nad motivem i vlastním souborem).
+
+### Proměnné
+
+**Barvy plochy:** `--lattice-bg`, `--lattice-row-odd`, `--lattice-row-hover`, `--lattice-header-bg`,
+`--lattice-header-color`, `--lattice-header-soft`, `--lattice-text`, `--lattice-muted`,
+`--lattice-border`, `--lattice-accent`, `--lattice-accent-soft`, `--lattice-link`.
+
+**Sémantické a prvky:** `--lattice-danger(-soft)`, `--lattice-success(-soft)`, `--lattice-warn(-soft)`,
+`--lattice-star-on/off`, `--lattice-progress-track/fill`, `--lattice-bool-true/false`.
+
+**Okraje sloupců** (barva + šířka; platí hierarchie **ukotvený > skupinový > obyčejný**):
+- obyčejné svislé linky — `--lattice-cell-vborder-color`, `--lattice-cell-vborder-width`
+  (nebo celý shorthand `--lattice-cell-vborder`, `none` = bez linek),
+- hrany skupin sloupců — `--lattice-group-border`, `--lattice-group-border-width`,
+- dělící linka ukotvených sloupců — `--lattice-frozen-line`, `--lattice-frozen-line-width`.
+
+**Spodní linky záhlaví** (barva + šířka): pod řádkem skupin `--lattice-group-border-bottom-color/-width`,
+pod řádkem záhlaví `--lattice-header-border-color/-width`, pod řádkem filtrů `--lattice-filter-border-color/-width`.
+
+**Typografie a tvar:** `--lattice-font`, `--lattice-font-size`, `--lattice-header-font`,
+`--lattice-header-weight/-size/-transform/-spacing`, `--lattice-radius`, `--lattice-control-radius`,
+`--lattice-cell-pad-x/y`, `--lattice-header-pad-y`, `--lattice-max-height`.
+
+> **Pozn.:** `--lattice-font`, `--lattice-font-size`, `--lattice-bool-true` a `--lattice-bool-false`
+> nastavuje grid **inline** na rootu; ve vlastním CSS souboru je proto přebij s `!important`
+> (generátor stylů to dělá automaticky).
 
 Tmavý režim: `theme: 'slate'` nebo `theme: 'auto'` (dle `prefers-color-scheme`).
 
