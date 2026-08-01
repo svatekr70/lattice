@@ -18,6 +18,7 @@ import { formatKind } from '../core/format.js';
 import { formatFields } from './instanceSettings.js';
 import { levelColor, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { DATE_PARTS } from '../core/dateParts.js';
+import { validateFormula, compileFormula, FORMULA_CATALOG, validateAggregate, compileAggregate, AGGREGATE_CATALOG } from '../core/formula.js';
 
 export class Gear {
   constructor(grid) {
@@ -99,6 +100,14 @@ export class Gear {
     panel.appendChild(list);
     this._listEl = list;
     this.filterColumnRows();
+
+    /* --- přidat počítaný sloupec (vzorec) --- */
+    const addBtn = el('button.lattice-addcalc-btn', {
+      type: 'button',
+      html: FX_SVG + '<span>' + t('calc.add') + '</span>',
+    });
+    addBtn.addEventListener('click', () => openFormulaEditor(addBtn, grid, null, this));
+    panel.appendChild(el('div.lattice-gear-addcalc', {}, [addBtn]));
   }
 
   /* ---------------- presety ---------------- */
@@ -184,6 +193,7 @@ export class Gear {
 
   buildRow(col) {
     const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
     const row = el('div.lattice-gear-row', { draggable: true, dataset: { field: col.field, title: String(col.title).toLowerCase() } });
 
     const grip = el('span.lattice-grip', { text: '⋮⋮', title: 'Přetáhnout' });
@@ -192,6 +202,12 @@ export class Gear {
     cb.addEventListener('change', () => grid.setColumnVisible(col.field, cb.checked));
 
     const label = el('label.lattice-gear-label', {}, [cb, el('span', { text: col.title })]);
+    // Počítaný sloupec (vzorec z UI): odznak „ƒ" = klik otevře editor vzorce.
+    if (col.formula != null) {
+      const fx = el('button.lattice-calc-badge', { type: 'button', title: t('calc.edit'), html: FX_SVG });
+      fx.addEventListener('click', (e) => { e.preventDefault(); openFormulaEditor(fx, grid, col, this); });
+      label.appendChild(fx);
+    }
 
     const tools = el('div.lattice-gear-tools');
 
@@ -238,7 +254,6 @@ export class Gear {
     tools.appendChild(grpBtn);
 
     // 4) Otočení hlavičky sloupce (podle tabulky / vodorovně / 90° / 270°).
-    const t = grid.i18n.t.bind(grid.i18n);
     const rotBtn = el('button.lattice-gbtn', {
       type: 'button',
       title: t('columns.headerRotate'),
@@ -429,6 +444,15 @@ function openSummaryPicker(anchor, grid, col) {
   };
 
   section('columns.summaryForColumns', () => col.summary, (v) => grid.setColumnSummary(col.field, v));
+  // Vážený / vlastní souhrn vzorcem (poolované poměry) — otevře editor.
+  const fx = el('div.lattice-menu-item.lattice-summary-fxitem', { class: col.summaryFormula ? 'is-selected' : '' }, [
+    el('span.lattice-ms-check', { text: col.summaryFormula ? '✓' : '' }),
+    el('span.lattice-summary-menu-sym', { text: 'ƒ' }),
+    el('span', { text: t('calc.sumFormulaOption') }),
+  ]);
+  fx.addEventListener('mousedown', (e) => { e.preventDefault(); close(); openSummaryFormulaEditor(anchor, grid, col); });
+  menu.appendChild(fx);
+
   menu.appendChild(el('div.lattice-summary-menu-sep'));
   section('columns.summaryForRows', () => col.rowSummary, (v) => grid.setColumnRowSummary(col.field, v));
 
@@ -436,6 +460,103 @@ function openSummaryPicker(anchor, grid, col) {
   positionUnder(menu, anchor);
   const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
   function close() { off(); menu.remove(); }
+  return close;
+}
+
+/**
+ * Editor VÁŽENÉHO / VLASTNÍHO souhrnu sloupce (vzorec z agregací jiných sloupců).
+ * Umožní poolované poměry (Σa/Σb) i vážené průměry (Σ(a×b)/Σb) — matematicky
+ * korektní souhrn místo prostého průměru poměrů. Ukládá do col.summaryFormula.
+ */
+function openSummaryFormulaEditor(anchor, grid, col) {
+  document.querySelectorAll('.lattice-formula-menu').forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el('div.lattice-menu.lattice-formula-menu');
+
+  menu.appendChild(el('div.lattice-summary-menu-head', { text: t('calc.sumFormulaTitle') + ' — ' + col.title }));
+  menu.appendChild(el('div.lattice-formula-hint', { text: t('calc.sumFormulaHint') }));
+
+  // Volitelný název řádku (vlevo místo „Vzorec"); sloupce se stejným názvem sdílejí řádek.
+  const nameInp = el('input.lattice-set-input', { type: 'text', value: col.summaryFormulaLabel || '', placeholder: t('calc.sumFormulaLabelPlaceholder') });
+  menu.appendChild(csField(t('calc.sumFormulaLabel'), nameInp));
+
+  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: 'false', placeholder: t('calc.sumFormulaPlaceholder') });
+  ta.value = col.summaryFormula || '';
+  menu.appendChild(el('div.lattice-formula-row', {}, [el('span.lattice-set-label', { text: t('calc.formula') }), ta]));
+
+  // Pole se vkládají dovnitř agregace (klik na „sum" → sum(), pak klik na pole).
+  const chips = el('div.lattice-formula-fields');
+  for (const c of grid.columns) {
+    if (c._rownum) continue;
+    const token = /^[A-Za-z_][A-Za-z0-9_]*$/.test(c.field) ? c.field : '[' + c.field + ']';
+    const chip = el('button.lattice-formula-chip', { type: 'button', text: c.title, title: c.field });
+    chip.addEventListener('mousedown', (e) => { e.preventDefault(); insertAtCursor(ta, token); updatePreview(); });
+    chips.appendChild(chip);
+  }
+  menu.appendChild(el('div.lattice-formula-fieldswrap', {}, [
+    el('div.lattice-formula-hint', { text: t('calc.insertField') }),
+    chips,
+  ]));
+
+  menu.appendChild(buildFnReference(t, AGGREGATE_CATALOG, ta, () => updatePreview(), () => fit()));
+
+  const preview = el('div.lattice-formula-preview');
+  menu.appendChild(preview);
+
+  function scopeRows() {
+    return grid.summarySource(grid.instance.summaryRow === 'page' ? 'page' : 'all');
+  }
+  function updatePreview() {
+    const src = ta.value.trim();
+    if (!src) { preview.className = 'lattice-formula-preview'; preview.textContent = ''; return; }
+    const chk = validateAggregate(src);
+    if (!chk.ok) { preview.className = 'lattice-formula-preview is-error'; preview.textContent = '⚠ ' + chk.error; return; }
+    try {
+      const val = compileAggregate(src)(scopeRows());
+      preview.className = 'lattice-formula-preview is-ok';
+      preview.textContent = t('calc.previewLabel') + ' ' + formatPreview(val);
+    } catch (e) {
+      preview.className = 'lattice-formula-preview is-error';
+      preview.textContent = '⚠ ' + (e && e.message ? e.message : String(e));
+    }
+  }
+  ta.addEventListener('input', updatePreview);
+
+  const save = () => {
+    const src = ta.value.trim();
+    const chk = src ? validateAggregate(src) : { ok: true };
+    if (!chk.ok) { updatePreview(); return; }
+    try { grid.setColumnSummaryFormula(col.field, src, nameInp.value); }
+    catch (e) { preview.className = 'lattice-formula-preview is-error'; preview.textContent = '⚠ ' + (e && e.message ? e.message : String(e)); return; }
+    close();
+  };
+  const saveBtn = el('button.lattice-formula-btn.is-primary', { type: 'button', text: t('calc.save') });
+  saveBtn.addEventListener('click', save);
+  const actions = [saveBtn];
+  if (col.summaryFormula) {
+    const clr = el('button.lattice-formula-btn.is-danger', { type: 'button', text: t('calc.sumFormulaClear') });
+    clr.addEventListener('click', () => { grid.setColumnSummaryFormula(col.field, null); close(); });
+    actions.push(clr);
+  }
+  const cancelBtn = el('button.lattice-formula-btn', { type: 'button', text: t('calc.cancel') });
+  cancelBtn.addEventListener('click', () => close());
+  actions.push(cancelBtn);
+  menu.appendChild(el('div.lattice-formula-actions', {}, actions));
+
+  function fit() {
+    positionUnder(menu, anchor);
+    const vh = window.innerHeight;
+    if (menu.getBoundingClientRect().bottom > vh - 8) {
+      menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + 'px';
+    }
+  }
+
+  updatePreview();
+  document.body.appendChild(menu);
+  fit();
+  const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
+  function close() { off(); menu.remove(); }
+  setTimeout(() => ta.focus(), 0);
   return close;
 }
 
@@ -546,6 +667,255 @@ function csSelect(value, options, onChange) {
   return sel;
 }
 
+/* ------------------------- editor počítaného sloupce ------------------------- */
+
+/**
+ * Popover pro vytvoření/úpravu počítaného sloupce: název, typ (číslo/text/datum),
+ * pole vzorce, klikací seznam sloupců (vkládá odkaz na pole) a živý náhled
+ * (vyhodnotí vzorec na 1. řádku dat → výsledek nebo chyba). Uloží přes
+ * grid.addComputedColumn / grid.updateComputedColumn; smazání přes removeComputedColumn.
+ * @param {Element} anchor  kotva pro umístění
+ * @param {object}  grid
+ * @param {?object} col     upravovaný sloupec, nebo null pro nový
+ * @param {Gear}    gear    reference na dialog (refresh po uložení)
+ */
+function openFormulaEditor(anchor, grid, col, gear) {
+  document.querySelectorAll('.lattice-formula-menu').forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const editing = !!col;
+  const menu = el('div.lattice-menu.lattice-formula-menu');
+
+  menu.appendChild(el('div.lattice-summary-menu-head', { text: t(editing ? 'calc.editTitle' : 'calc.newTitle') }));
+
+  const nameInp = el('input.lattice-set-input', { type: 'text', value: editing ? col.title : '', placeholder: t('calc.namePlaceholder') });
+  menu.appendChild(csField(t('calc.name'), nameInp));
+
+  // Typ se u nového sloupce sám odvodí z výsledku vzorce (dokud ho uživatel
+  // nezmění ručně) — aby textový vzorec neskončil v číselném sloupci prázdný.
+  let userPickedType = editing;
+  const typeSel = csSelect(editing ? col.type : 'number', [
+    ['number', t('calc.typeNumber')],
+    ['text', t('calc.typeText')],
+    ['date', t('calc.typeDate')],
+  ], () => { userPickedType = true; updatePreview(); });
+  menu.appendChild(csField(t('calc.type'), typeSel));
+
+  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: 'false', placeholder: t('calc.formulaPlaceholder') });
+  ta.value = editing ? (col.formula || '') : '';
+  menu.appendChild(el('div.lattice-formula-row', {}, [el('span.lattice-set-label', { text: t('calc.formula') }), ta]));
+
+  // Klikací seznam sloupců — vloží odkaz na pole do vzorce (podle kurzoru).
+  const chips = el('div.lattice-formula-fields');
+  for (const c of grid.columns) {
+    if (editing && c.field === col.field) continue; // neodkazovat sám na sebe
+    if (c.formula != null) continue;                // jiné počítané sloupce nenabízíme (zjednodušení)
+    const token = /^[A-Za-z_][A-Za-z0-9_]*$/.test(c.field) ? c.field : '[' + c.field + ']';
+    const chip = el('button.lattice-formula-chip', { type: 'button', text: c.title, title: c.field });
+    chip.addEventListener('mousedown', (e) => { e.preventDefault(); insertAtCursor(ta, token); updatePreview(); });
+    chips.appendChild(chip);
+  }
+  menu.appendChild(el('div.lattice-formula-fieldswrap', {}, [
+    el('div.lattice-formula-hint', { text: t('calc.insertField') }),
+    chips,
+  ]));
+
+  // Reference funkcí (rozbalovací, prohledávatelná) — sdílená s editorem souhrnu.
+  menu.appendChild(buildFnReference(t, FORMULA_CATALOG, ta, () => updatePreview(), () => fit()));
+
+  const preview = el('div.lattice-formula-preview');
+  menu.appendChild(preview);
+
+  function sampleRow() {
+    const rows = (grid.dataSource && grid.dataSource.allRows) ? grid.dataSource.allRows() : (grid.rows || []);
+    return rows && rows.length ? rows[0] : {};
+  }
+  function updatePreview() {
+    const src = ta.value.trim();
+    if (!src) { preview.className = 'lattice-formula-preview'; preview.textContent = ''; return; }
+    const chk = validateFormula(src);
+    if (!chk.ok) { preview.className = 'lattice-formula-preview is-error'; preview.textContent = '⚠ ' + chk.error; return; }
+    let val;
+    try {
+      val = compileFormula(src)(sampleRow());
+    } catch (e) {
+      preview.className = 'lattice-formula-preview is-error';
+      preview.textContent = '⚠ ' + (e && e.message ? e.message : String(e));
+      return;
+    }
+    // Auto-typ podle výsledku (dokud uživatel typ nezvolil ručně).
+    if (!userPickedType && val != null) {
+      const guessed = inferFormulaType(val);
+      if (typeSel.value !== guessed) typeSel.value = guessed;
+    }
+    // Varování: číselný sloupec, ale výsledek je text → buňka by zůstala prázdná.
+    const numericType = typeSel.value === 'number' || typeSel.value === 'money';
+    const isTextVal = typeof val === 'string' && val.trim() !== '' && !isNumericStr(val);
+    if (numericType && isTextVal) {
+      preview.className = 'lattice-formula-preview is-warn';
+      preview.textContent = t('calc.previewLabel') + ' ' + formatPreview(val) + ' — ' + t('calc.textHint');
+    } else {
+      preview.className = 'lattice-formula-preview is-ok';
+      preview.textContent = t('calc.previewLabel') + ' ' + formatPreview(val);
+    }
+  }
+  ta.addEventListener('input', updatePreview);
+
+  const save = () => {
+    const src = ta.value.trim();
+    const chk = validateFormula(src);
+    if (!chk.ok) { updatePreview(); return; }
+    try {
+      if (editing) grid.updateComputedColumn(col.field, { title: nameInp.value, type: typeSel.value, formula: src });
+      else grid.addComputedColumn({ title: nameInp.value, type: typeSel.value, formula: src });
+    } catch (e) {
+      preview.className = 'lattice-formula-preview is-error';
+      preview.textContent = '⚠ ' + (e && e.message ? e.message : String(e));
+      return;
+    }
+    close();
+    gear.refresh();
+  };
+
+  const saveBtn = el('button.lattice-formula-btn.is-primary', { type: 'button', text: t('calc.save') });
+  saveBtn.addEventListener('click', save);
+  const actions = [saveBtn];
+  if (editing) {
+    const delBtn = el('button.lattice-formula-btn.is-danger', { type: 'button', text: t('calc.delete') });
+    delBtn.addEventListener('click', () => { grid.removeComputedColumn(col.field); close(); gear.refresh(); });
+    actions.push(delBtn);
+  }
+  const cancelBtn = el('button.lattice-formula-btn', { type: 'button', text: t('calc.cancel') });
+  cancelBtn.addEventListener('click', () => close());
+  actions.push(cancelBtn);
+  menu.appendChild(el('div.lattice-formula-actions', {}, actions));
+
+  // Umístí editor pod kotvu; když je vysoký a přetekl by dolů, posune ho nahoru.
+  function fit() {
+    positionUnder(menu, anchor);
+    const vh = window.innerHeight;
+    if (menu.getBoundingClientRect().bottom > vh - 8) {
+      menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + 'px';
+    }
+  }
+
+  updatePreview();
+  document.body.appendChild(menu);
+  fit();
+  const off = onOutside(menu, (e) => { if (!anchor.contains(e.target)) close(); });
+  function close() { off(); menu.remove(); }
+  setTimeout(() => (editing ? ta : nameInp).focus(), 0);
+  return close;
+}
+
+/** Vloží funkci `name()` do textarey a umístí kurzor dovnitř závorek. */
+function insertFunction(ta, name, sig) {
+  const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const e = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  const before = ta.value.slice(0, s);
+  const after = ta.value.slice(e);
+  const pad = before && !/[\s(,]$/.test(before) ? ' ' : '';
+  const insert = name + '()';
+  ta.value = before + pad + insert + after;
+  const base = (before + pad + insert).length;
+  // bezargumentové funkce (today(), now()) → kurzor za závorky, jinak dovnitř
+  const zeroArg = /\(\s*\)\s*$/.test(sig);
+  const pos = zeroArg ? base : base - 1;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+}
+
+/**
+ * Rozbalovací, prohledávatelná reference funkcí. `catalog` = FORMULA_CATALOG
+ * (per-row) nebo AGGREGATE_CATALOG (souhrn). Klik na funkci ji vloží do `ta`.
+ * @returns {Element} obal (`div.lattice-formula-fnwrap`)
+ */
+function buildFnReference(t, catalog, ta, onInsert, fit) {
+  const fnBody = el('div.lattice-formula-fnbody');
+  const fnToggle = el('button.lattice-formula-fntoggle', {
+    type: 'button',
+    html: FX_SVG + '<span>' + t('calc.fnTitle') + '</span><span class="lattice-formula-caret">▾</span>',
+  });
+  const fnSearch = el('input.lattice-set-input.lattice-formula-fnsearch', { type: 'text', placeholder: t('calc.fnSearch') });
+  const fnList = el('div.lattice-formula-fnlist');
+  const fnCats = [];
+  for (const group of catalog) {
+    const head = el('div.lattice-formula-fncat', { text: t('calc.fnCat.' + group.cat) });
+    fnList.appendChild(head);
+    const cat = { head, items: [] };
+    // agregační funkce mají popisy pod `calc.agg.*`, ostatní pod `calc.fn.*`.
+    const base = group.cat === 'agg' ? 'calc.agg.' : 'calc.fn.';
+    for (const name of group.fns) {
+      const sig = t(base + name + '.sig');
+      const desc = t(base + name + '.desc');
+      const item = el('button.lattice-formula-fnitem', { type: 'button', title: sig + ' — ' + desc }, [
+        el('code.lattice-formula-fnsig', { text: sig }),
+        el('span.lattice-formula-fndesc', { text: desc }),
+      ]);
+      item.addEventListener('mousedown', (e) => { e.preventDefault(); insertFunction(ta, name, sig); onInsert(); });
+      fnList.appendChild(item);
+      cat.items.push({ el: item, hay: (name + ' ' + sig + ' ' + desc).toLowerCase() });
+    }
+    fnCats.push(cat);
+  }
+  fnSearch.addEventListener('input', () => {
+    const q = fnSearch.value.trim().toLowerCase();
+    for (const cat of fnCats) {
+      let any = false;
+      for (const it of cat.items) {
+        const show = !q || it.hay.includes(q);
+        it.el.style.display = show ? '' : 'none';
+        if (show) any = true;
+      }
+      cat.head.style.display = any ? '' : 'none';
+    }
+  });
+  fnBody.append(fnSearch, fnList);
+  fnBody.style.display = 'none';
+  fnToggle.addEventListener('click', () => {
+    const open = fnBody.style.display === 'none';
+    fnBody.style.display = open ? '' : 'none';
+    fnToggle.classList.toggle('is-open', open);
+    if (open) setTimeout(() => fnSearch.focus(), 0);
+    if (fit) fit();
+  });
+  return el('div.lattice-formula-fnwrap', {}, [fnToggle, fnBody]);
+}
+
+/** Vloží text do textarey na pozici kurzoru (s mezerou, když navazuje na slovo). */
+function insertAtCursor(ta, text) {
+  const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const e = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  const before = ta.value.slice(0, s);
+  const after = ta.value.slice(e);
+  const pad = before && !/\s$/.test(before) ? ' ' : '';
+  ta.value = before + pad + text + after;
+  const pos = (before + pad + text).length;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+}
+
+/** Odvodí datový typ počítaného sloupce z výsledku vzorce. */
+function inferFormulaType(v) {
+  if (typeof v === 'number') return 'number';
+  if (v instanceof Date) return 'date';
+  return 'text';
+}
+
+/** Je hodnota (i řetězec „1 234,56") číselná? */
+function isNumericStr(v) {
+  if (typeof v === 'number') return Number.isFinite(v);
+  return Number.isFinite(Number(String(v).replace(/\s/g, '').replace(',', '.')));
+}
+
+/** Krátký náhled hodnoty pro editor (číslo zaokrouhlí, datum na YYYY-MM-DD). */
+function formatPreview(v) {
+  if (v == null) return '—';
+  if (v instanceof Date) return isNaN(v.getTime()) ? '—' : v.toISOString().slice(0, 10);
+  if (typeof v === 'number') return Number.isFinite(v) ? String(Math.round(v * 100) / 100) : '—';
+  if (typeof v === 'boolean') return v ? '✓' : '✗';
+  return String(v);
+}
+
 const GROUP_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h8v6H3V5zm10 0h8v2h-8V5zm0 4h8v2h-8V9zM3 13h18v2H3v-2zm0 4h18v2H3v-2z"/></svg>';
 // Řádkové seskupení: odsazené řádky (bracket) — vizuálně odlišné od skupiny sloupců.
 const ROWGROUP_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"/></svg>';
@@ -562,3 +932,5 @@ const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-h
 const RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 const GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
 const BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+// „ƒx" — počítaný sloupec (vzorec)
+const FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';

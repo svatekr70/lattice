@@ -9,7 +9,8 @@
  *   načti blob → sestav finální sloupce → postav skelet → vykresli → načti data
  */
 import { Store, emptyState } from './core/Store.js';
-import { buildColumns, serializeColumns, flattenGroups } from './core/ColumnModel.js';
+import { buildColumns, serializeColumns, flattenGroups, resolveColumn } from './core/ColumnModel.js';
+import { validateFormula, validateAggregate, FormulaError } from './core/formula.js';
 import { dateBucket } from './core/dateParts.js';
 import { deriveColumns, columnsFor } from './core/autoColumns.js';
 import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImport.js';
@@ -1006,6 +1007,28 @@ export class Lattice {
     this.gear?.refresh();
   }
 
+  /**
+   * Vzorec pro souhrnný ŘÁDEK sloupce (vážený / poolovaný souhrn z agregací
+   * jiných sloupců — viz core/formula.js). `formula` null/'' vzorec zruší.
+   * @throws {FormulaError} když je vzorec neplatný.
+   */
+  setColumnSummaryFormula(field, formula, label) {
+    const col = this.columns.find((c) => c.field === field);
+    if (!col) return;
+    const src = String(formula == null ? '' : formula).trim();
+    if (src) {
+      const chk = validateAggregate(src);
+      if (!chk.ok) throw new FormulaError(chk.error);
+    }
+    col.summaryFormula = src || null;
+    // Název řádku (vlevo) — jen když je vzorec; jinak se zruší i popisek.
+    if (label !== undefined) col.summaryFormulaLabel = src ? (String(label).trim() || null) : null;
+    else if (!src) col.summaryFormulaLabel = null;
+    this.saveState();
+    this.renderer.renderBody();
+    this.gear?.refresh();
+  }
+
   /* =================== formát zobrazení (číslo/měna/datum) =================== */
 
   /**
@@ -1215,6 +1238,80 @@ export class Lattice {
     if (!keepState) this.state.columns = [];
     this.saveState();
     this.rerenderColumns();
+  }
+
+  /* =================== počítané sloupce (vzorec z UI) =================== */
+
+  /**
+   * Přidá počítaný sloupec definovaný vzorcem. Hodnota se počítá z ostatních
+   * sloupců (viz src/core/formula.js). Počítané sloupce jsou jen ke čtení a
+   * persistují se (localStorage i presety). Vrací `field` nového sloupce.
+   * @throws {FormulaError} když je vzorec neplatný.
+   */
+  addComputedColumn({ title, type = 'number', formula } = {}) {
+    const src = String(formula == null ? '' : formula).trim();
+    if (!src) throw new FormulaError('Prázdný vzorec');
+    const chk = validateFormula(src);
+    if (!chk.ok) throw new FormulaError(chk.error);
+    const field = this._uniqueComputedField();
+    const def = {
+      field,
+      title: (title != null && String(title).trim()) ? String(title).trim() : this.i18n.t('calc.defaultTitle'),
+      type: type || 'text',
+      computed: true,
+      formula: src,
+    };
+    this.columns.push(resolveColumn(def, null));
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+    return field;
+  }
+
+  /**
+   * Upraví existující počítaný sloupec (název / typ / vzorec). Zachová
+   * uživatelský stav sloupce (šířka, viditelnost, souhrny, formát, pořadí).
+   * @throws {FormulaError} když je nový vzorec neplatný.
+   */
+  updateComputedColumn(field, { title, type, formula } = {}) {
+    const idx = this.columns.findIndex((c) => c.field === field);
+    if (idx < 0 || this.columns[idx].formula == null) return;
+    const old = this.columns[idx];
+    const src = formula != null ? String(formula).trim() : old.formula;
+    const chk = validateFormula(src);
+    if (!chk.ok) throw new FormulaError(chk.error);
+    const def = {
+      field,
+      title: (title != null && String(title).trim()) ? String(title).trim() : old.title,
+      type: type || old.type,
+      computed: true,
+      formula: src,
+    };
+    // Zachovat persistovaný stav sloupce (serializace jednoho sloupce → resolve).
+    this.columns[idx] = resolveColumn(def, serializeColumns([old])[0]);
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+  }
+
+  /** Odebere počítaný sloupec (jen sloupce vytvořené vzorcem lze smazat). */
+  removeComputedColumn(field) {
+    const idx = this.columns.findIndex((c) => c.field === field);
+    if (idx < 0 || this.columns[idx].formula == null) return;
+    this.columns.splice(idx, 1);
+    delete this.filters[field];
+    this.sort = this.sort.filter((s) => s.field !== field);
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+  }
+
+  /** Vygeneruje neobsazený `field` pro počítaný sloupec (calc1, calc2, …). */
+  _uniqueComputedField() {
+    const used = new Set(this.columns.map((c) => c.field));
+    let n = 1, f;
+    do { f = 'calc' + n++; } while (used.has(f));
+    return f;
   }
 
   /* =================== import dat / souboru =================== */

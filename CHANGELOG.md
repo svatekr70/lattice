@@ -4,6 +4,35 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.1.0] – 2026-08-01
+
+### Přidáno
+- **Počítané sloupce z UI** — nový sloupec definovaný **vzorcem** (`formula`): aritmetika,
+  spojování textu, podmínky (`if`, ternár), datumové výpočty. Bezpečné vyhodnocení vlastním
+  parserem (**bez `eval`/`new Function`**). Vytvoření/úprava v dialogu „Sloupce" tlačítkem
+  „＋ Přidat počítaný sloupec"; pole i funkce se vkládají klikáním, **živý náhled**, **typ**
+  se sám odvodí z výsledku. Persistuje se (localStorage i presety). API:
+  `addComputedColumn`, `updateComputedColumn`, `removeComputedColumn`.
+- **Reference funkcí** v editoru vzorce — prohledávatelný seznam v kategoriích
+  (Čísla / Text / Logika / Datum) se zápisem a popisem; klik funkci vloží do vzorce.
+- **Vážený / poolovaný souhrn** sloupce vzorcem z agregací jiných sloupců (`summaryFormula`) —
+  funkce `sum/avg/count/min/max/median` nad výrazem. Umožní matematicky správné **poměry
+  součtů** (Σa/Σb) i **vážené průměry** (Σ(a×b)/Σb) místo prostého průměru poměrů. Volitelný
+  **název řádku** (`summaryFormulaLabel`); sloupce se stejným názvem sdílejí řádek. Nastavení
+  přes Σ → „Vzorec (vážený souhrn)". API: `setColumnSummaryFormula`.
+
+### Dokumentace
+- **Presety a globální nastavení** — nová vyčerpávající sekce v `docs/API.md`: kompletní
+  kontrakt globálních presetů (`globalPresets`, `onSaveGlobalPreset`, `onDeleteGlobalPreset`)
+  i globálních výchozích nastavení (`globalDefaults`, `onSaveGlobalDefaults`), tok dat a
+  příklad s MySQL. *Tyto callbacky byly v kódu už dříve — v1.1.0 je poprvé vydává v tagu.*
+- Uživatelská příručka: sekce „Počítaný sloupec (vlastní vzorec)" a „Vážený souhrn vzorcem"
+  s obrázky.
+
+### Změněno
+- Demo: příklad „Computed (odvozené) sloupce" přejmenován na „Počítané sloupce"
+  (sjednocení s příručkou i aplikací).
+
 ## [1.0.1] – 2026-07-30
 ### Přidáno
 - **Ikona nápovědy** (**?**) v toolbaru vpravo od ⚙ „Nastavení tabulky" — otevře
@@ -59,6 +88,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.1.0]: https://github.com/svatekr70/lattice/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/svatekr70/lattice/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/svatekr70/lattice/compare/v0.5.0...v1.0.0
 [0.5.0]: https://github.com/svatekr70/lattice/compare/v0.4.1...v0.5.0

@@ -1457,6 +1457,97 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-fmt-radio input { margin: 0; }
 .lattice-fmt-fields { margin-top: 4px; border-top: 1px solid var(--lattice-border); padding-top: 4px; }
 
+/* ---------- počítané sloupce (vzorec z UI) ---------- */
+/* tlačítko „Přidat počítaný sloupec" pod seznamem sloupců */
+.lattice-gear-addcalc { padding: 6px 2px 2px; border-top: 1px solid var(--lattice-border); margin-top: 4px; }
+.lattice-addcalc-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 6px 8px; border: 1px dashed var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-accent);
+  cursor: pointer; font: inherit; font-size: 13px;
+}
+.lattice-addcalc-btn:hover { background: var(--lattice-accent-soft); border-color: var(--lattice-accent); }
+.lattice-addcalc-btn svg { flex: none; }
+/* odznak „ƒx" u počítaného sloupce v seznamu (klik = úprava vzorce) */
+.lattice-calc-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 4px; padding: 0 3px; height: 18px;
+  border: 1px solid var(--lattice-border); border-radius: 4px;
+  background: var(--lattice-accent-soft); color: var(--lattice-accent);
+  cursor: pointer;
+}
+.lattice-calc-badge:hover { border-color: var(--lattice-accent); }
+
+/* editor vzorce (popover) */
+.lattice-formula-menu { min-width: 340px; max-width: 400px; padding: 10px; max-height: 88vh; overflow-y: auto; }
+.lattice-formula-menu .lattice-set-row { grid-template-columns: 70px 1fr; padding: 4px 2px; }
+.lattice-formula-row { display: flex; flex-direction: column; gap: 4px; padding: 4px 2px; }
+.lattice-formula-input {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 48px;
+  padding: 6px 8px; border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px;
+}
+.lattice-formula-fieldswrap { padding: 4px 2px 2px; }
+.lattice-formula-hint { font-size: 0.78em; color: var(--lattice-muted); margin-bottom: 4px; }
+.lattice-formula-fields { display: flex; flex-wrap: wrap; gap: 4px; max-height: 96px; overflow: auto; }
+.lattice-formula-chip {
+  padding: 2px 8px; border: 1px solid var(--lattice-border); border-radius: 999px;
+  background: var(--lattice-bg); color: var(--lattice-text);
+  cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap;
+}
+.lattice-formula-chip:hover { background: var(--lattice-accent-soft); border-color: var(--lattice-accent); }
+/* reference funkcí (rozbalovací) */
+.lattice-formula-fnwrap { margin-top: 6px; border-top: 1px solid var(--lattice-border); padding-top: 6px; }
+.lattice-formula-fntoggle {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 6px; border: 0; background: none; color: var(--lattice-accent);
+  cursor: pointer; font: inherit; font-size: 13px;
+}
+.lattice-formula-fntoggle:hover { text-decoration: underline; }
+.lattice-formula-fntoggle .lattice-formula-caret { margin-left: auto; transition: transform .12s; }
+.lattice-formula-fntoggle.is-open .lattice-formula-caret { transform: rotate(180deg); }
+.lattice-formula-fnsearch { width: 100%; box-sizing: border-box; margin: 4px 0 6px; }
+.lattice-formula-fnlist { max-height: 168px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.lattice-formula-fncat {
+  font-size: 0.72em; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--lattice-muted); padding: 6px 4px 2px;
+}
+.lattice-formula-fnitem {
+  display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+  padding: 4px 6px; border: 0; border-radius: 6px; background: none; color: var(--lattice-text);
+  cursor: pointer; font: inherit;
+}
+.lattice-formula-fnitem:hover { background: var(--lattice-accent-soft); }
+.lattice-formula-fnsig {
+  flex: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; color: var(--lattice-accent); white-space: nowrap;
+}
+.lattice-formula-fndesc { font-size: 12px; color: var(--lattice-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lattice-formula-preview {
+  margin: 8px 2px 2px; padding: 6px 8px; min-height: 16px;
+  border-radius: var(--lattice-control-radius); font-size: 13px;
+  border: 1px solid transparent; white-space: pre-wrap; word-break: break-word;
+}
+.lattice-formula-preview.is-ok { background: var(--lattice-accent-soft); color: var(--lattice-text); }
+.lattice-formula-preview.is-warn { background: var(--lattice-warn-soft, #fdf3e0); color: var(--lattice-warn, #9a6b00); }
+.lattice-formula-preview.is-error { background: var(--lattice-danger-soft); color: var(--lattice-danger); }
+.lattice-formula-actions { display: flex; gap: 6px; margin-top: 8px; }
+.lattice-formula-btn {
+  padding: 6px 12px; border: 1px solid var(--lattice-border);
+  border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text);
+  cursor: pointer; font: inherit; font-size: 13px;
+}
+.lattice-formula-btn:hover { background: var(--lattice-accent-soft); }
+.lattice-formula-btn.is-primary { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); margin-right: auto; }
+.lattice-formula-btn.is-primary:hover { filter: brightness(1.06); }
+.lattice-formula-btn.is-danger { color: var(--lattice-danger); border-color: var(--lattice-danger); }
+.lattice-formula-btn.is-danger:hover { background: var(--lattice-danger-soft); }
+
 /* ---------- panel hlavička + nástroje ---------- */
 .lattice-panel-head {
   display: flex;

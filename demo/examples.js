@@ -614,14 +614,21 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
     items: [
       {
         id: 'ex-computed',
-        title: 'Computed (odvozené) sloupce',
-        blurb: 'Sloupec nemusí číst jen jedno pole — může hodnotu spočítat z celého řádku funkcí `value: (row) => …`. Řadí se, filtruje, hledá i exportuje podle spočítané hodnoty. Odvozené sloupce se needitují. Tady: „Vlastník (region)" a „Cena za bod" = rozpočet ÷ skóre.',
-        code: `columns = [
-  { field: 'owner', title: 'Vlastník (region)',
+        title: 'Počítané sloupce',
+        blurb: 'Sloupec nemusí číst jen jedno pole — hodnotu spočítá z celého řádku. V kódu funkcí `value: (row) => …`, nebo vzorcem `formula: \'…\'` (bezpečně vyhodnocený, bez eval). Nově i přímo v UI: v dialogu „Sloupce" (ozubené kolo) tlačítkem „＋ Přidat počítaný sloupec" — zadáš vzorec jako `budget / score` a pole vkládáš klikáním, s živým náhledem. Řadí se, filtruje, hledá i exportuje podle spočítané hodnoty; odvozené sloupce se needitují a UI-vzorce se pamatují (i v presetech).',
+        code: `// v kódu — funkcí nebo vzorcem (řetězec):
+columns = [
+  { field: 'who', title: 'Vlastník (region)',
     value: (r) => r.owner + ' — ' + r.region },
   { field: 'perScore', title: 'Cena za bod', type: 'money',
-    value: (r) => r.score ? Math.round(r.budget / r.score) : 0 },
-]`,
+    formula: 'round(budget / score, 0)' },
+]
+
+// za běhu / z UI (dialog Sloupce → „＋ Přidat počítaný sloupec"):
+grid.addComputedColumn({
+  title: 'Cena za bod', type: 'number',
+  formula: 'round(budget / score, 0)',
+})`,
         mount: (el, ctx) => new Lattice(el, base(ctx, {
           id: 'ex-computed', keyField: 'id', pageSize: 15, data: ctx.data,
           columns: [
@@ -630,7 +637,8 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
             { field: 'who', title: 'Vlastník (region)', type: 'text', width: 200, value: (r) => r.owner + ' — ' + r.region },
             { field: 'budget', title: 'Rozpočet', type: 'money', width: 140, formatterParams: { currency: 'CZK' } },
             { field: 'score', title: 'Skóre', type: 'number', width: 90 },
-            { field: 'perScore', title: 'Cena za bod', type: 'money', width: 130, filter: 'number-range', formatterParams: { currency: 'CZK' }, value: (r) => r.score ? Math.round(r.budget / r.score) : 0 },
+            // Počítaný sloupec zadaný VZORCEM (řetězec) — stejný engine jako v UI.
+            { field: 'perScore', title: 'Cena za bod', type: 'money', width: 130, filter: 'number-range', formatterParams: { currency: 'CZK' }, formula: 'score > 0 ? round(budget / score, 0) : 0' },
           ],
         })),
       },
@@ -759,7 +767,7 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-date-group', 'ex-filter-universal', 'ex-filter-advanced'],
+  'Novinky': ['ex-computed', 'ex-date-group', 'ex-filter-universal', 'ex-filter-advanced'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',

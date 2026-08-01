@@ -115,6 +115,570 @@ function memoryStorage() {
   };
 }
 
+// src/core/formula.js
+var FormulaError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "FormulaError";
+  }
+};
+var ID_START = /[A-Za-z_À-ɏ]/;
+var ID_PART = /[A-Za-z0-9_À-ɏ]/;
+function tokenize(src) {
+  const toks = [];
+  const n = src.length;
+  let i = 0;
+  while (i < n) {
+    const c = src[i];
+    if (c === " " || c === "	" || c === "\n" || c === "\r") {
+      i++;
+      continue;
+    }
+    if (c >= "0" && c <= "9" || c === "." && src[i + 1] >= "0" && src[i + 1] <= "9") {
+      let j = i + 1;
+      while (j < n && (src[j] >= "0" && src[j] <= "9" || src[j] === ".")) j++;
+      const num5 = parseFloat(src.slice(i, j));
+      if (!Number.isFinite(num5)) throw new FormulaError("Neplatn\xE9 \u010D\xEDslo: " + src.slice(i, j));
+      toks.push({ t: "num", v: num5 });
+      i = j;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      const q = c;
+      let j = i + 1;
+      let s = "";
+      while (j < n) {
+        if (src[j] === q) {
+          if (src[j + 1] === q) {
+            s += q;
+            j += 2;
+            continue;
+          }
+          break;
+        }
+        s += src[j];
+        j++;
+      }
+      if (j >= n) throw new FormulaError("Neuzav\u0159en\xFD \u0159et\u011Bzec");
+      toks.push({ t: "str", v: s });
+      i = j + 1;
+      continue;
+    }
+    if (c === "[") {
+      let j = i + 1;
+      let s = "";
+      while (j < n && src[j] !== "]") {
+        s += src[j];
+        j++;
+      }
+      if (j >= n) throw new FormulaError("Neuzav\u0159en\xE1 [z\xE1vorka] pole");
+      toks.push({ t: "field", v: s.trim() });
+      i = j + 1;
+      continue;
+    }
+    if (ID_START.test(c)) {
+      let j = i + 1;
+      while (j < n && ID_PART.test(src[j])) j++;
+      toks.push({ t: "ident", v: src.slice(i, j) });
+      i = j;
+      continue;
+    }
+    const two = src.slice(i, i + 2);
+    if (two === "<=" || two === ">=" || two === "==" || two === "!=" || two === "<>" || two === "&&" || two === "||") {
+      toks.push({ t: "op", v: two === "<>" ? "!=" : two });
+      i += 2;
+      continue;
+    }
+    if ("+-*/%<>".includes(c)) {
+      toks.push({ t: "op", v: c });
+      i++;
+      continue;
+    }
+    if (c === "=") {
+      toks.push({ t: "op", v: "==" });
+      i++;
+      continue;
+    }
+    if (c === "!") {
+      toks.push({ t: "op", v: "!" });
+      i++;
+      continue;
+    }
+    if ("(),?:".includes(c)) {
+      toks.push({ t: "punct", v: c });
+      i++;
+      continue;
+    }
+    throw new FormulaError("Nezn\xE1m\xFD znak: \u201E" + c + '"');
+  }
+  toks.push({ t: "eof" });
+  return toks;
+}
+function parse(toks) {
+  let pos = 0;
+  const peek = () => toks[pos];
+  const next = () => toks[pos++];
+  const expect = (t, v) => {
+    const tk = next();
+    if (tk.t !== t || v != null && tk.v !== v) throw new FormulaError("O\u010Dek\xE1v\xE1no \u201E" + (v || t) + '"');
+    return tk;
+  };
+  const isOp = (v) => {
+    const tk = peek();
+    return tk.t === "op" && v.includes(tk.v);
+  };
+  const isPunct = (v) => {
+    const tk = peek();
+    return tk.t === "punct" && tk.v === v;
+  };
+  function binLevel(sub, ops) {
+    let left = sub();
+    while (isOp(ops)) {
+      const op = next().v;
+      left = { k: "bin", op, l: left, r: sub() };
+    }
+    return left;
+  }
+  const parseExpr = () => parseTernary();
+  function parseTernary() {
+    const cond = parseOr();
+    if (isPunct("?")) {
+      next();
+      const a = parseExpr();
+      expect("punct", ":");
+      const b = parseExpr();
+      return { k: "if", args: [cond, a, b] };
+    }
+    return cond;
+  }
+  const parseOr = () => binLevel(parseAnd, ["||"]);
+  const parseAnd = () => binLevel(parseCmp, ["&&"]);
+  const parseCmp = () => binLevel(parseAdd, ["==", "!=", "<", "<=", ">", ">="]);
+  const parseAdd = () => binLevel(parseMul, ["+", "-"]);
+  const parseMul = () => binLevel(parseUnary, ["*", "/", "%"]);
+  function parseUnary() {
+    if (isOp(["-", "+", "!"])) {
+      const op = next().v;
+      return { k: "un", op, x: parseUnary() };
+    }
+    return parsePrimary();
+  }
+  function parsePrimary() {
+    const tk = peek();
+    if (tk.t === "num") {
+      next();
+      return { k: "num", v: tk.v };
+    }
+    if (tk.t === "str") {
+      next();
+      return { k: "str", v: tk.v };
+    }
+    if (tk.t === "field") {
+      next();
+      return { k: "field", v: tk.v };
+    }
+    if (isPunct("(")) {
+      next();
+      const e = parseExpr();
+      expect("punct", ")");
+      return e;
+    }
+    if (tk.t === "ident") {
+      next();
+      const name = tk.v;
+      const low = name.toLowerCase();
+      if (low === "true") return { k: "lit", v: true };
+      if (low === "false") return { k: "lit", v: false };
+      if (low === "null") return { k: "lit", v: null };
+      if (isPunct("(")) {
+        next();
+        const args = [];
+        if (!isPunct(")")) {
+          args.push(parseExpr());
+          while (isPunct(",")) {
+            next();
+            args.push(parseExpr());
+          }
+        }
+        expect("punct", ")");
+        return { k: "call", name: low, args };
+      }
+      return { k: "field", v: name };
+    }
+    throw new FormulaError("Neo\u010Dek\xE1van\xFD vstup ve v\xFDrazu");
+  }
+  const ast = parseExpr();
+  if (peek().t !== "eof") throw new FormulaError("P\u0159eb\xFDvaj\xEDc\xED vstup za v\xFDrazem");
+  return ast;
+}
+function num(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "boolean") return v ? 1 : 0;
+  if (v instanceof Date) return v.getTime();
+  if (v == null || v === "") return NaN;
+  const n = parseFloat(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+}
+function isNum(v) {
+  return Number.isFinite(num(v));
+}
+function str(v) {
+  if (v == null) return "";
+  if (v instanceof Date) return isNaN(v.getTime()) ? "" : v.toISOString();
+  return String(v);
+}
+function bool(v) {
+  if (typeof v === "boolean") return v;
+  if (v == null) return false;
+  if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
+  const s = String(v).trim().toLowerCase();
+  return !(s === "" || s === "0" || s === "false" || s === "ne" || s === "no");
+}
+function toDate(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  if (typeof v === "number") {
+    const d2 = new Date(v);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+  if (v == null || v === "") return null;
+  const d = new Date(String(v));
+  return isNaN(d.getTime()) ? null : d;
+}
+function midnight(d) {
+  const x = new Date(d.getTime());
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+var FUNCS = {
+  // matematika
+  abs: (a) => Math.abs(num(a)),
+  round: (a, d) => {
+    const p = Math.pow(10, d == null ? 0 : Math.trunc(num(d)));
+    return Math.round(num(a) * p) / p;
+  },
+  floor: (a) => Math.floor(num(a)),
+  ceil: (a) => Math.ceil(num(a)),
+  sqrt: (a) => Math.sqrt(num(a)),
+  pow: (a, b) => Math.pow(num(a), num(b)),
+  mod: (a, b) => num(a) % num(b),
+  min: (...xs) => Math.min(...xs.map(num)),
+  max: (...xs) => Math.max(...xs.map(num)),
+  number: (a) => num(a),
+  // text
+  concat: (...xs) => xs.map(str).join(""),
+  upper: (a) => str(a).toUpperCase(),
+  lower: (a) => str(a).toLowerCase(),
+  trim: (a) => str(a).trim(),
+  len: (a) => str(a).length,
+  left: (a, n) => {
+    const k = Math.trunc(num(n));
+    return k <= 0 ? "" : str(a).slice(0, k);
+  },
+  right: (a, n) => {
+    const s = str(a), k = Math.trunc(num(n));
+    return k <= 0 ? "" : s.slice(Math.max(0, s.length - k));
+  },
+  substr: (a, start, len) => {
+    const s = str(a), st = Math.trunc(num(start));
+    return len == null ? s.slice(st) : s.slice(st, st + Math.trunc(num(len)));
+  },
+  replace: (a, from, to) => str(a).split(str(from)).join(str(to)),
+  contains: (a, sub) => str(a).toLowerCase().includes(str(sub).toLowerCase()),
+  // logika
+  coalesce: (...xs) => {
+    for (const x of xs) if (x != null && x !== "" && !(typeof x === "number" && Number.isNaN(x))) return x;
+    return xs.length ? xs[xs.length - 1] : null;
+  },
+  isblank: (a) => a == null || str(a).trim() === "",
+  not: (a) => !bool(a),
+  text: (a) => str(a),
+  // datum (dnešní datum se bere z reálného času prohlížeče)
+  today: () => midnight(/* @__PURE__ */ new Date()),
+  now: () => /* @__PURE__ */ new Date(),
+  date: (a) => toDate(a),
+  year: (a) => {
+    const d = toDate(a);
+    return d ? d.getFullYear() : NaN;
+  },
+  month: (a) => {
+    const d = toDate(a);
+    return d ? d.getMonth() + 1 : NaN;
+  },
+  day: (a) => {
+    const d = toDate(a);
+    return d ? d.getDate() : NaN;
+  },
+  weekday: (a) => {
+    const d = toDate(a);
+    return d ? (d.getDay() + 6) % 7 + 1 : NaN;
+  },
+  // 1=Po … 7=Ne
+  days: (a, b) => {
+    const da = toDate(a), db = toDate(b);
+    if (!da || !db) return NaN;
+    return Math.round((midnight(db) - midnight(da)) / 864e5);
+  },
+  age: (a) => {
+    const d = toDate(a);
+    if (!d) return NaN;
+    const t = /* @__PURE__ */ new Date();
+    let y = t.getFullYear() - d.getFullYear();
+    const m = t.getMonth() - d.getMonth();
+    if (m < 0 || m === 0 && t.getDate() < d.getDate()) y--;
+    return y;
+  }
+};
+var FORMULA_FUNCTIONS = Object.keys(FUNCS).concat(["if"]);
+var FORMULA_CATALOG = [
+  { cat: "num", fns: ["round", "floor", "ceil", "abs", "sqrt", "pow", "mod", "min", "max", "number"] },
+  { cat: "text", fns: ["concat", "upper", "lower", "trim", "len", "left", "right", "substr", "replace", "contains", "text"] },
+  { cat: "logic", fns: ["if", "coalesce", "isblank", "not"] },
+  { cat: "date", fns: ["today", "now", "date", "year", "month", "day", "weekday", "days", "age"] }
+];
+var hasOwn = Object.prototype.hasOwnProperty;
+function evalNode(node, row) {
+  switch (node.k) {
+    case "num":
+    case "str":
+    case "lit":
+      return node.v;
+    // Jen VLASTNÍ vlastnosti řádku — nikdy zděděné z prototypu (constructor,
+    // __proto__, toString…), aby vzorec nemohl sáhnout mimo data.
+    case "field":
+      return row != null && hasOwn.call(row, node.v) ? row[node.v] : void 0;
+    case "un": {
+      const x = evalNode(node.x, row);
+      if (node.op === "-") return -num(x);
+      if (node.op === "+") return num(x);
+      return !bool(x);
+    }
+    case "bin":
+      return evalBin(node, row);
+    case "if":
+      return bool(evalNode(node.args[0], row)) ? evalNode(node.args[1], row) : node.args[2] !== void 0 ? evalNode(node.args[2], row) : null;
+    case "call": {
+      if (node.name === "if") {
+        return bool(evalNode(node.args[0], row)) ? evalNode(node.args[1], row) : node.args[2] !== void 0 ? evalNode(node.args[2], row) : null;
+      }
+      const fn = FUNCS[node.name];
+      return fn(...node.args.map((a) => evalNode(a, row)));
+    }
+  }
+  return void 0;
+}
+function evalBin(node, row) {
+  const op = node.op;
+  if (op === "&&") return bool(evalNode(node.l, row)) && bool(evalNode(node.r, row));
+  if (op === "||") return bool(evalNode(node.l, row)) || bool(evalNode(node.r, row));
+  const a = evalNode(node.l, row), b = evalNode(node.r, row);
+  switch (op) {
+    // '+' sčítá jen když jsou obě strany číselné, jinak spojuje text
+    case "+":
+      return isNum(a) && isNum(b) ? num(a) + num(b) : str(a) + str(b);
+    case "-":
+      return num(a) - num(b);
+    case "*":
+      return num(a) * num(b);
+    case "/": {
+      const d = num(b);
+      return d === 0 ? NaN : num(a) / d;
+    }
+    case "%": {
+      const d = num(b);
+      return d === 0 ? NaN : num(a) % d;
+    }
+    case "==":
+      return eq(a, b);
+    case "!=":
+      return !eq(a, b);
+    case "<":
+    case "<=":
+    case ">":
+    case ">=":
+      return cmp(op, a, b);
+  }
+  return void 0;
+}
+function eq(a, b) {
+  if (isNum(a) && isNum(b)) return num(a) === num(b);
+  return str(a) === str(b);
+}
+function cmp(op, a, b) {
+  let x, y;
+  if (isNum(a) && isNum(b)) {
+    x = num(a);
+    y = num(b);
+  } else {
+    x = str(a);
+    y = str(b);
+  }
+  switch (op) {
+    case "<":
+      return x < y;
+    case "<=":
+      return x <= y;
+    case ">":
+      return x > y;
+    case ">=":
+      return x >= y;
+  }
+}
+function validate(node) {
+  if (!node || typeof node !== "object") return;
+  if (node.k === "call") {
+    if (node.name === "if") {
+      if (node.args.length < 2) throw new FormulaError("if() pot\u0159ebuje aspo\u0148 podm\xEDnku a hodnotu: if(podm\xEDnka, kdy\u017E ano, kdy\u017E ne)");
+    } else if (!FUNCS[node.name]) {
+      throw new FormulaError("Nezn\xE1m\xE1 funkce: " + node.name + "()");
+    }
+  }
+  for (const key of ["x", "l", "r"]) if (node[key]) validate(node[key]);
+  if (node.args) node.args.forEach(validate);
+}
+function parseFormula(src) {
+  return parse(tokenize(String(src == null ? "" : src)));
+}
+function compileFormula(src) {
+  const ast = parseFormula(src);
+  validate(ast);
+  return (row) => evalNode(ast, row);
+}
+function validateFormula(src) {
+  try {
+    const ast = parseFormula(src);
+    validate(ast);
+    return { ok: true, ast };
+  } catch (e) {
+    return { ok: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+var AGG_FNS = {
+  sum: (vs) => vs.reduce((a, b) => a + b, 0),
+  avg: (vs) => vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : NaN,
+  min: (vs) => vs.length ? Math.min(...vs) : NaN,
+  max: (vs) => vs.length ? Math.max(...vs) : NaN,
+  median: (vs) => {
+    if (!vs.length) return NaN;
+    const s = [...vs].sort((a, b) => a - b);
+    const m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  }
+};
+function aggNums(argNode, rows) {
+  const out = [];
+  for (const r of rows) {
+    const n = num(evalNode(argNode, r));
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+function aggCount(argNode, rows) {
+  let c = 0;
+  for (const r of rows) {
+    const v = argNode ? evalNode(argNode, r) : 1;
+    if (v != null && v !== "" && !(typeof v === "number" && Number.isNaN(v))) c++;
+  }
+  return c;
+}
+function evalAgg(node, rows) {
+  switch (node.k) {
+    case "num":
+    case "str":
+    case "lit":
+      return node.v;
+    case "field":
+      return void 0;
+    // pole mimo agregaci (validace to nepustí)
+    case "un": {
+      const x = evalAgg(node.x, rows);
+      if (node.op === "-") return -num(x);
+      if (node.op === "+") return num(x);
+      return !bool(x);
+    }
+    case "bin":
+      return evalAggBin(node, rows);
+    case "if":
+      return bool(evalAgg(node.args[0], rows)) ? evalAgg(node.args[1], rows) : node.args[2] !== void 0 ? evalAgg(node.args[2], rows) : null;
+    case "call": {
+      const n = node.name;
+      if (n === "count") return aggCount(node.args[0], rows);
+      if (AGG_FNS[n]) return AGG_FNS[n](aggNums(node.args[0], rows));
+      if (n === "if") {
+        return bool(evalAgg(node.args[0], rows)) ? evalAgg(node.args[1], rows) : node.args[2] !== void 0 ? evalAgg(node.args[2], rows) : null;
+      }
+      return FUNCS[n](...node.args.map((a) => evalAgg(a, rows)));
+    }
+  }
+  return void 0;
+}
+function evalAggBin(node, rows) {
+  const op = node.op;
+  if (op === "&&") return bool(evalAgg(node.l, rows)) && bool(evalAgg(node.r, rows));
+  if (op === "||") return bool(evalAgg(node.l, rows)) || bool(evalAgg(node.r, rows));
+  const a = evalAgg(node.l, rows), b = evalAgg(node.r, rows);
+  switch (op) {
+    case "+":
+      return isNum(a) && isNum(b) ? num(a) + num(b) : str(a) + str(b);
+    case "-":
+      return num(a) - num(b);
+    case "*":
+      return num(a) * num(b);
+    case "/": {
+      const d = num(b);
+      return d === 0 ? NaN : num(a) / d;
+    }
+    case "%": {
+      const d = num(b);
+      return d === 0 ? NaN : num(a) % d;
+    }
+    case "==":
+      return eq(a, b);
+    case "!=":
+      return !eq(a, b);
+    case "<":
+    case "<=":
+    case ">":
+    case ">=":
+      return cmp(op, a, b);
+  }
+  return void 0;
+}
+var AGG_NAMES = /* @__PURE__ */ new Set(["sum", "avg", "count", "min", "max", "median"]);
+function validateAgg(node, insideAgg) {
+  if (!node || typeof node !== "object") return;
+  if (node.k === "field" && !insideAgg) {
+    throw new FormulaError("Pole \u201E" + node.v + '" mus\xED b\xFDt uvnit\u0159 agregace \u2014 nap\u0159. sum(' + node.v + ")");
+  }
+  if (node.k === "call") {
+    const isAgg = AGG_NAMES.has(node.name);
+    if (isAgg && insideAgg) throw new FormulaError("Agregaci nelze vno\u0159it do jin\xE9 agregace: " + node.name + "()");
+    if (!isAgg && node.name !== "if" && !FUNCS[node.name]) throw new FormulaError("Nezn\xE1m\xE1 funkce: " + node.name + "()");
+    const inner = insideAgg || isAgg;
+    node.args.forEach((a) => validateAgg(a, inner));
+    return;
+  }
+  for (const key of ["x", "l", "r"]) if (node[key]) validateAgg(node[key], insideAgg);
+  if (node.args) node.args.forEach((a) => validateAgg(a, insideAgg));
+}
+function compileAggregate(src) {
+  const ast = parseFormula(src);
+  validateAgg(ast, false);
+  return (rows) => evalAgg(ast, rows || []);
+}
+function validateAggregate(src) {
+  try {
+    const ast = parseFormula(src);
+    validateAgg(ast, false);
+    return { ok: true, ast };
+  } catch (e) {
+    return { ok: false, error: e && e.message ? e.message : String(e) };
+  }
+}
+var AGGREGATE_CATALOG = [
+  { cat: "agg", fns: ["sum", "avg", "count", "min", "max", "median"] },
+  { cat: "num", fns: ["round", "abs", "floor", "ceil"] }
+];
+
 // src/core/ColumnModel.js
 var DEFAULT_WIDTH = 150;
 var DEFAULT_MIN_WIDTH = 40;
@@ -133,9 +697,15 @@ function buildColumns(defs, savedColumns = []) {
   const result = [];
   const used = /* @__PURE__ */ new Set();
   for (const saved of savedColumns) {
-    if (!saved || !byField.has(saved.field)) continue;
+    if (!saved) continue;
+    let def = byField.get(saved.field);
+    if (!def) {
+      if (saved.computed && typeof saved.formula === "string") {
+        def = { field: saved.field, title: saved.title != null ? saved.title : saved.field, type: saved.type || "text", computed: true, formula: saved.formula };
+      } else continue;
+    }
     if (used.has(saved.field)) continue;
-    result.push(resolveColumn(byField.get(saved.field), saved));
+    result.push(resolveColumn(def, saved));
     used.add(saved.field);
   }
   for (const def of defs) {
@@ -162,6 +732,15 @@ function flattenGroups(defs) {
 function resolveColumn(def, saved) {
   const s = saved || {};
   const availableFilters = deriveAvailableFilters(def);
+  const formula = typeof def.formula === "string" ? def.formula : null;
+  let value = typeof def.value === "function" ? def.value : null;
+  if (!value && formula) {
+    try {
+      value = compileFormula(formula);
+    } catch {
+      value = () => void 0;
+    }
+  }
   const filterExplicit = !!(def.filter || Array.isArray(def.filterTypes));
   const defaultFilter = def.filter || availableFilters[0] || null;
   const defaultFilterEnabled = def.filterEnabled !== void 0 ? def.filterEnabled !== false : filterExplicit;
@@ -180,8 +759,10 @@ function resolveColumn(def, saved) {
     // pro select/multiselect z API
     formatter: def.formatter || null,
     // vlastní formátor buňky
-    value: typeof def.value === "function" ? def.value : null,
-    // odvozená (computed) hodnota z celého řádku
+    value,
+    // odvozená (computed) hodnota z celého řádku (funkce nebo null)
+    formula,
+    // vzorec počítaného sloupce (řetězec) — jen u sloupců z UI; jinak null
     validator: def.validator != null ? def.validator : null,
     // deklarativní validace editace
     cellClass: typeof def.cellClass === "function" ? def.cellClass : null,
@@ -232,6 +813,14 @@ function resolveColumn(def, saved) {
     // Zapojení sloupce do souhrnu ŘÁDKŮ (pravý sloupec); pole funkcí jako summary.
     defaultRowSummary: normSummary(def.rowSummary),
     rowSummary: s.rowSummary !== void 0 ? normSummary(s.rowSummary) : normSummary(def.rowSummary),
+    // Vzorec pro souhrnný ŘÁDEK dole (vážený/poolovaný souhrn z agregací jiných
+    // sloupců, viz core/formula.js). null = žádný, jinak řetězec.
+    defaultSummaryFormula: def.summaryFormula || null,
+    summaryFormula: s.summaryFormula !== void 0 ? s.summaryFormula : def.summaryFormula || null,
+    // Volitelný název řádku souhrnného vzorce (vlevo místo generického „Vzorec").
+    // Sloupce se stejným názvem sdílejí jeden řádek; různé názvy = víc řádků.
+    defaultSummaryFormulaLabel: def.summaryFormulaLabel || null,
+    summaryFormulaLabel: s.summaryFormulaLabel !== void 0 ? s.summaryFormulaLabel : def.summaryFormulaLabel || null,
     // Formát zobrazení (číslo/měna/datum) — výjimka sloupce vůči globálnímu formátu.
     // null = řídit se globálním nastavením tabulky.
     defaultColFormat: def.format || null,
@@ -279,6 +868,9 @@ function normalizeFrozen(v) {
 function serializeColumns(columns) {
   return columns.map((c) => ({
     field: c.field,
+    // Počítaný sloupec (definovaný v UI) se persistuje celý — bez configu ho
+    // po reloadu nelze zrekonstruovat, tak uložíme i jeho titulek, typ a vzorec.
+    ...c.formula != null ? { computed: true, formula: c.formula, title: c.title, type: c.type } : {},
     visible: c.visible,
     width: c.width,
     frozen: c.frozen,
@@ -294,6 +886,9 @@ function serializeColumns(columns) {
     // souhrnné funkce se ukládají, jen když se liší od výchozích.
     ...JSON.stringify(c.summary) !== JSON.stringify(c.defaultSummary) ? { summary: c.summary } : {},
     ...JSON.stringify(c.rowSummary) !== JSON.stringify(c.defaultRowSummary) ? { rowSummary: c.rowSummary } : {},
+    // vzorec souhrnu (+ jeho název řádku) se ukládá jen když se liší od výchozího.
+    ...c.summaryFormula !== c.defaultSummaryFormula ? { summaryFormula: c.summaryFormula } : {},
+    ...c.summaryFormulaLabel !== c.defaultSummaryFormulaLabel ? { summaryFormulaLabel: c.summaryFormulaLabel } : {},
     // formát se ukládá jen když se liší od výchozího (uživatel udělal výjimku).
     ...JSON.stringify(c.format) !== JSON.stringify(c.defaultColFormat) ? { format: c.format } : {},
     ...JSON.stringify(c.condFormat) !== JSON.stringify(c.defaultCondFormat) ? { condFormat: c.condFormat } : {}
@@ -313,7 +908,7 @@ function numberOr(...vals) {
 
 // src/core/dateParts.js
 var DATE_PARTS = ["year", "quarter", "month", "week", "weekday", "day", "hour", "minute"];
-function toDate(v) {
+function toDate2(v) {
   if (v == null || v === "") return null;
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -328,7 +923,7 @@ function isoWeek(d) {
   return 1 + Math.round(((t - firstThu) / 864e5 - 3 + firstDay) / 7);
 }
 function dateBucket(value, part, i18n) {
-  const d = toDate(value);
+  const d = toDate2(value);
   if (!d) return null;
   const months = i18n && i18n.list("dateRange.months") || [];
   const weekdays = i18n && i18n.list("dateRange.weekdaysLong") || [];
@@ -670,7 +1265,7 @@ function toXML(rows, cols) {
 }
 function toExcelXML(rows, cols, opts = {}) {
   const xe = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const isNum = (c) => c.type === "number" || c.type === "money" || c.type === "progress" || c.type === "rating";
+  const isNum2 = (c) => c.type === "number" || c.type === "money" || c.type === "progress" || c.type === "rating";
   const cell = (v, numeric) => {
     if (numeric && v != null && v !== "" && Number.isFinite(Number(v))) {
       return `<Cell><Data ss:Type="Number">${Number(v)}</Data></Cell>`;
@@ -679,7 +1274,7 @@ function toExcelXML(rows, cols, opts = {}) {
   };
   const head = "<Row>" + cols.map((c) => `<Cell><Data ss:Type="String">${xe(c.title)}</Data></Cell>`).join("") + "</Row>";
   const body = rows.map(
-    (r) => "<Row>" + cols.map((c) => cell(cellValue(r, c), isNum(c))).join("") + "</Row>"
+    (r) => "<Row>" + cols.map((c) => cell(cellValue(r, c), isNum2(c))).join("") + "</Row>"
   ).join("");
   const name = xe(opts.sheetName || "List1");
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -1635,13 +2230,13 @@ function evalCondition(c, row) {
     case "ends":
       return s.endsWith(norm2(v));
     case "gt":
-      return cmp(raw, v) > 0;
+      return cmp2(raw, v) > 0;
     case "gte":
-      return cmp(raw, v) >= 0;
+      return cmp2(raw, v) >= 0;
     case "lt":
-      return cmp(raw, v) < 0;
+      return cmp2(raw, v) < 0;
     case "lte":
-      return cmp(raw, v) <= 0;
+      return cmp2(raw, v) <= 0;
     case "in":
       return splitList(v).map(norm2).includes(s);
     case "nin":
@@ -1653,7 +2248,7 @@ function evalCondition(c, row) {
 function norm2(v) {
   return String(v ?? "").toLowerCase().trim();
 }
-function num(v) {
+function num2(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -1665,8 +2260,8 @@ function day(v) {
   const t = d.getTime();
   return Number.isNaN(t) ? null : t;
 }
-function cmp(a, b) {
-  const na = num(a), nb = num(b);
+function cmp2(a, b) {
+  const na = num2(a), nb = num2(b);
   if (na != null && nb != null) return na - nb;
   const da = day(a), db = day(b);
   if (da != null && db != null) return da - db;
@@ -1882,9 +2477,9 @@ function applySort(rows, sort, colByField) {
     const keys = specs.map((s) => {
       const v = cellValue(row, s.col);
       if (v == null || v === "") return null;
-      if (s.kind === "num") return num2(v);
+      if (s.kind === "num") return num3(v);
       if (s.kind === "date") return time(v);
-      if (s.kind === "bool") return bool(v) ? 1 : 0;
+      if (s.kind === "bool") return bool2(v) ? 1 : 0;
       return String(v);
     });
     return { row, keys, i };
@@ -1892,25 +2487,25 @@ function applySort(rows, sort, colByField) {
   decorated.sort((A, B) => {
     for (let s = 0; s < specs.length; s++) {
       const a = A.keys[s], b = B.keys[s];
-      let cmp2;
-      if (a == null && b == null) cmp2 = 0;
-      else if (a == null) cmp2 = -1;
-      else if (b == null) cmp2 = 1;
-      else if (typeof a === "number") cmp2 = a - b;
-      else cmp2 = COLLATOR.compare(a, b);
-      if (cmp2 !== 0) return specs[s].sign * cmp2;
+      let cmp3;
+      if (a == null && b == null) cmp3 = 0;
+      else if (a == null) cmp3 = -1;
+      else if (b == null) cmp3 = 1;
+      else if (typeof a === "number") cmp3 = a - b;
+      else cmp3 = COLLATOR.compare(a, b);
+      if (cmp3 !== 0) return specs[s].sign * cmp3;
     }
     return A.i - B.i;
   });
   return decorated.map((d) => d.row);
 }
-var num2 = (v) => Number(String(v).replace(/\s/g, "").replace(",", ".")) || 0;
+var num3 = (v) => Number(String(v).replace(/\s/g, "").replace(",", ".")) || 0;
 var time = (v) => {
   const d = new Date(v);
   const t = d.getTime();
   return Number.isNaN(t) ? 0 : t;
 };
-var bool = (v) => v === true || v === 1 || v === "1" || v === "true";
+var bool2 = (v) => v === true || v === 1 || v === "1" || v === "true";
 var ServerData = class {
   /**
    * @param {object} ajax
@@ -2005,6 +2600,81 @@ var cs_default = {
   help: {
     title: "N\xE1pov\u011Bda \u2014 otev\u0159\xEDt u\u017Eivatelskou p\u0159\xEDru\u010Dku"
   },
+  calc: {
+    add: "P\u0159idat po\u010D\xEDtan\xFD sloupec",
+    newTitle: "Nov\xFD po\u010D\xEDtan\xFD sloupec",
+    editTitle: "Upravit po\u010D\xEDtan\xFD sloupec",
+    edit: "Upravit vzorec",
+    name: "N\xE1zev",
+    namePlaceholder: "Nap\u0159. Celkem",
+    type: "Typ",
+    typeNumber: "\u010C\xEDslo",
+    typeText: "Text",
+    typeDate: "Datum",
+    formula: "Vzorec",
+    formulaPlaceholder: "Nap\u0159. cena * mnozstvi   nebo   if(stav == 'hotovo', '\u2713', '\u2014')",
+    insertField: "Vlo\u017Eit sloupec:",
+    previewLabel: "N\xE1hled:",
+    textHint: 'v\xFDsledek je text, zvol typ \u201EText"',
+    fnTitle: "Funkce",
+    fnSearch: "Hledat funkci\u2026",
+    sumFormulaOption: "Vzorec (v\xE1\u017Een\xFD souhrn)",
+    sumFormulaTitle: "V\xE1\u017Een\xFD souhrn (vzorec)",
+    sumFormulaLabel: "N\xE1zev \u0159\xE1dku",
+    sumFormulaLabelPlaceholder: 'nepovinn\xE9 (jinak \u201EVzorec")',
+    sumFormulaHint: "Souhrn dopo\u010D\xEDtan\xFD z agregac\xED jin\xFDch sloupc\u016F \u2014 poolovan\u011B. Nap\u0159. sum(spojeno) / sum(vytoceno) * 100.",
+    sumFormulaPlaceholder: "Nap\u0159. sum(spojeno) / sum(vytoceno) * 100",
+    sumFormulaClear: "Zru\u0161it vzorec",
+    fnCat: { num: "\u010C\xEDsla", text: "Text", logic: "Logika", date: "Datum", agg: "Agregace" },
+    agg: {
+      sum: { sig: "sum(v\xFDraz)", desc: "Sou\u010Det v\xFDrazu p\u0159es \u0159\xE1dky" },
+      avg: { sig: "avg(v\xFDraz)", desc: "Pr\u016Fm\u011Br v\xFDrazu p\u0159es \u0159\xE1dky" },
+      count: { sig: "count(v\xFDraz)", desc: "Po\u010Det nepr\xE1zdn\xFDch" },
+      min: { sig: "min(v\xFDraz)", desc: "Nejmen\u0161\xED hodnota" },
+      max: { sig: "max(v\xFDraz)", desc: "Nejv\u011Bt\u0161\xED hodnota" },
+      median: { sig: "median(v\xFDraz)", desc: "Medi\xE1n (prost\u0159edn\xED hodnota)" }
+    },
+    fn: {
+      round: { sig: "round(\u010D\xEDslo, des?)", desc: "Zaokrouhl\xED (des = po\u010Det desetinn\xFDch m\xEDst)" },
+      floor: { sig: "floor(\u010D\xEDslo)", desc: "Zaokrouhl\xED dol\u016F" },
+      ceil: { sig: "ceil(\u010D\xEDslo)", desc: "Zaokrouhl\xED nahoru" },
+      abs: { sig: "abs(\u010D\xEDslo)", desc: "Absolutn\xED hodnota" },
+      sqrt: { sig: "sqrt(\u010D\xEDslo)", desc: "Druh\xE1 odmocnina" },
+      pow: { sig: "pow(z\xE1klad, exponent)", desc: "Mocnina" },
+      mod: { sig: "mod(a, b)", desc: "Zbytek po d\u011Blen\xED" },
+      min: { sig: "min(a, b, \u2026)", desc: "Nejmen\u0161\xED z hodnot" },
+      max: { sig: "max(a, b, \u2026)", desc: "Nejv\u011Bt\u0161\xED z hodnot" },
+      number: { sig: "number(x)", desc: "P\u0159evede na \u010D\xEDslo" },
+      concat: { sig: "concat(a, b, \u2026)", desc: "Spoj\xED hodnoty do textu" },
+      upper: { sig: "upper(text)", desc: "Velk\xE1 p\xEDsmena" },
+      lower: { sig: "lower(text)", desc: "Mal\xE1 p\xEDsmena" },
+      trim: { sig: "trim(text)", desc: "O\u0159\xEDzne mezery na okraj\xEDch" },
+      len: { sig: "len(text)", desc: "Po\u010Det znak\u016F" },
+      left: { sig: "left(text, n)", desc: "Prvn\xEDch n znak\u016F" },
+      right: { sig: "right(text, n)", desc: "Posledn\xEDch n znak\u016F" },
+      substr: { sig: "substr(text, od, d\xE9lka?)", desc: "\u010C\xE1st textu od pozice (od 0)" },
+      replace: { sig: "replace(text, co, \u010D\xEDm)", desc: "Nahrad\xED v\u0161echny v\xFDskyty" },
+      contains: { sig: "contains(text, co)", desc: "Obsahuje text? (ano/ne)" },
+      text: { sig: "text(x)", desc: "P\u0159evede na text" },
+      if: { sig: "if(podm\xEDnka, ano, ne)", desc: 'Podle podm\xEDnky vr\xE1t\xED \u201Eano", nebo \u201Ene"' },
+      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "Prvn\xED nepr\xE1zdn\xE1 hodnota" },
+      isblank: { sig: "isblank(x)", desc: "Je pr\xE1zdn\xE9? (ano/ne)" },
+      not: { sig: "not(x)", desc: "Logick\xE1 negace" },
+      today: { sig: "today()", desc: "Dne\u0161n\xED datum" },
+      now: { sig: "now()", desc: "Datum a \u010Das te\u010F" },
+      date: { sig: "date(x)", desc: "P\u0159evede na datum" },
+      year: { sig: "year(datum)", desc: "Rok z data" },
+      month: { sig: "month(datum)", desc: "M\u011Bs\xEDc z data (1\u201312)" },
+      day: { sig: "day(datum)", desc: "Den v m\u011Bs\xEDci" },
+      weekday: { sig: "weekday(datum)", desc: "Den v t\xFDdnu (1=Po \u2026 7=Ne)" },
+      days: { sig: "days(od, do)", desc: "Po\u010Det dn\xED mezi daty" },
+      age: { sig: "age(datum)", desc: "V\u011Bk v letech k dne\u0161ku" }
+    },
+    defaultTitle: "V\xFDpo\u010Det",
+    save: "Ulo\u017Eit",
+    cancel: "Zru\u0161it",
+    delete: "Smazat"
+  },
   columns: {
     manage: "Sloupce",
     reset: "Obnovit v\xFDchoz\xED",
@@ -2037,6 +2707,7 @@ var cs_default = {
     scopeAllLong: "V\u0161echny z\xE1znamy",
     scopeToggle: "P\u0159epnout rozsah souhrnu (zobrazen\xE1 str\xE1nka / v\u0161echny z\xE1znamy)",
     barLabel: "Souhrn po\u010D\xEDt\xE1 z:",
+    formulaLabel: "Vzorec",
     name: { sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Minimum", max: "Maximum", count: "Po\u010Det" }
   },
   presets: {
@@ -2328,6 +2999,81 @@ var en_default = {
   help: {
     title: "Help \u2014 open the user guide"
   },
+  calc: {
+    add: "Add computed column",
+    newTitle: "New computed column",
+    editTitle: "Edit computed column",
+    edit: "Edit formula",
+    name: "Name",
+    namePlaceholder: "e.g. Total",
+    type: "Type",
+    typeNumber: "Number",
+    typeText: "Text",
+    typeDate: "Date",
+    formula: "Formula",
+    formulaPlaceholder: "e.g. price * qty   or   if(status == 'done', '\u2713', '\u2014')",
+    insertField: "Insert column:",
+    previewLabel: "Preview:",
+    textHint: "result is text, pick type \u201CText\u201D",
+    fnTitle: "Functions",
+    fnSearch: "Search function\u2026",
+    sumFormulaOption: "Formula (weighted total)",
+    sumFormulaTitle: "Weighted total (formula)",
+    sumFormulaLabel: "Row label",
+    sumFormulaLabelPlaceholder: "optional (defaults to \u201CFormula\u201D)",
+    sumFormulaHint: "Total computed from aggregates of other columns \u2014 pooled. E.g. sum(connected) / sum(dialed) * 100.",
+    sumFormulaPlaceholder: "e.g. sum(connected) / sum(dialed) * 100",
+    sumFormulaClear: "Clear formula",
+    fnCat: { num: "Numbers", text: "Text", logic: "Logic", date: "Date", agg: "Aggregate" },
+    agg: {
+      sum: { sig: "sum(expr)", desc: "Sum of expression across rows" },
+      avg: { sig: "avg(expr)", desc: "Average of expression across rows" },
+      count: { sig: "count(expr)", desc: "Count of non-empty" },
+      min: { sig: "min(expr)", desc: "Smallest value" },
+      max: { sig: "max(expr)", desc: "Largest value" },
+      median: { sig: "median(expr)", desc: "Median (middle value)" }
+    },
+    fn: {
+      round: { sig: "round(num, dec?)", desc: "Round (dec = number of decimals)" },
+      floor: { sig: "floor(num)", desc: "Round down" },
+      ceil: { sig: "ceil(num)", desc: "Round up" },
+      abs: { sig: "abs(num)", desc: "Absolute value" },
+      sqrt: { sig: "sqrt(num)", desc: "Square root" },
+      pow: { sig: "pow(base, exp)", desc: "Power" },
+      mod: { sig: "mod(a, b)", desc: "Remainder after division" },
+      min: { sig: "min(a, b, \u2026)", desc: "Smallest value" },
+      max: { sig: "max(a, b, \u2026)", desc: "Largest value" },
+      number: { sig: "number(x)", desc: "Convert to number" },
+      concat: { sig: "concat(a, b, \u2026)", desc: "Join values into text" },
+      upper: { sig: "upper(text)", desc: "Uppercase" },
+      lower: { sig: "lower(text)", desc: "Lowercase" },
+      trim: { sig: "trim(text)", desc: "Trim surrounding spaces" },
+      len: { sig: "len(text)", desc: "Character count" },
+      left: { sig: "left(text, n)", desc: "First n characters" },
+      right: { sig: "right(text, n)", desc: "Last n characters" },
+      substr: { sig: "substr(text, start, len?)", desc: "Part of text from position (0-based)" },
+      replace: { sig: "replace(text, from, to)", desc: "Replace all occurrences" },
+      contains: { sig: "contains(text, sub)", desc: "Contains text? (yes/no)" },
+      text: { sig: "text(x)", desc: "Convert to text" },
+      if: { sig: "if(cond, yes, no)", desc: "Return yes or no by condition" },
+      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "First non-empty value" },
+      isblank: { sig: "isblank(x)", desc: "Is empty? (yes/no)" },
+      not: { sig: "not(x)", desc: "Logical negation" },
+      today: { sig: "today()", desc: "Today's date" },
+      now: { sig: "now()", desc: "Date and time now" },
+      date: { sig: "date(x)", desc: "Convert to date" },
+      year: { sig: "year(date)", desc: "Year from date" },
+      month: { sig: "month(date)", desc: "Month from date (1\u201312)" },
+      day: { sig: "day(date)", desc: "Day of month" },
+      weekday: { sig: "weekday(date)", desc: "Weekday (1=Mon \u2026 7=Sun)" },
+      days: { sig: "days(from, to)", desc: "Days between dates" },
+      age: { sig: "age(date)", desc: "Age in years to today" }
+    },
+    defaultTitle: "Computed",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete"
+  },
   columns: {
     manage: "Columns",
     reset: "Reset to default",
@@ -2360,6 +3106,7 @@ var en_default = {
     scopeAllLong: "All records",
     scopeToggle: "Toggle summary scope (displayed page / all records)",
     barLabel: "Summary from:",
+    formulaLabel: "Formula",
     name: { sum: "Sum", avg: "Average", min: "Minimum", max: "Maximum", count: "Count" }
   },
   presets: {
@@ -2872,7 +3619,7 @@ function toNumber2(v) {
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
-function toDate2(v) {
+function toDate3(v) {
   if (v == null || v === "") return null;
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
@@ -2890,15 +3637,15 @@ registerType("money", (v, col) => {
   return negText(formatMoney(n, effFmt(col, "money")));
 });
 registerType("date", (v, col) => {
-  const d = toDate2(v);
+  const d = toDate3(v);
   return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
 });
 registerType("datetime", (v, col) => {
-  const d = toDate2(v);
+  const d = toDate3(v);
   return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
 });
 registerType("time", (v, col) => {
-  const d = toDate2(v);
+  const d = toDate3(v);
   return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
 });
 registerType("boolean", (v) => {
@@ -3956,6 +4703,12 @@ var Gear = class {
     panel.appendChild(list);
     this._listEl = list;
     this.filterColumnRows();
+    const addBtn = el("button.lattice-addcalc-btn", {
+      type: "button",
+      html: FX_SVG + "<span>" + t("calc.add") + "</span>"
+    });
+    addBtn.addEventListener("click", () => openFormulaEditor(addBtn, grid, null, this));
+    panel.appendChild(el("div.lattice-gear-addcalc", {}, [addBtn]));
   }
   /* ---------------- presety ---------------- */
   buildPresets() {
@@ -4035,11 +4788,20 @@ var Gear = class {
   }
   buildRow(col) {
     const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
     const row = el("div.lattice-gear-row", { draggable: true, dataset: { field: col.field, title: String(col.title).toLowerCase() } });
     const grip = el("span.lattice-grip", { text: "\u22EE\u22EE", title: "P\u0159et\xE1hnout" });
     const cb = el("input", { type: "checkbox", checked: col.visible });
     cb.addEventListener("change", () => grid.setColumnVisible(col.field, cb.checked));
     const label = el("label.lattice-gear-label", {}, [cb, el("span", { text: col.title })]);
+    if (col.formula != null) {
+      const fx = el("button.lattice-calc-badge", { type: "button", title: t("calc.edit"), html: FX_SVG });
+      fx.addEventListener("click", (e) => {
+        e.preventDefault();
+        openFormulaEditor(fx, grid, col, this);
+      });
+      label.appendChild(fx);
+    }
     const tools = el("div.lattice-gear-tools");
     const pin = el("button.lattice-pin", {
       type: "button",
@@ -4073,7 +4835,6 @@ var Gear = class {
     });
     grpBtn.addEventListener("click", () => openGroupPicker(grpBtn, grid, col, () => this.refresh()));
     tools.appendChild(grpBtn);
-    const t = grid.i18n.t.bind(grid.i18n);
     const rotBtn = el("button.lattice-gbtn", {
       type: "button",
       title: t("columns.headerRotate"),
@@ -4250,6 +5011,17 @@ function openSummaryPicker(anchor, grid, col) {
     }
   };
   section("columns.summaryForColumns", () => col.summary, (v) => grid.setColumnSummary(col.field, v));
+  const fx = el("div.lattice-menu-item.lattice-summary-fxitem", { class: col.summaryFormula ? "is-selected" : "" }, [
+    el("span.lattice-ms-check", { text: col.summaryFormula ? "\u2713" : "" }),
+    el("span.lattice-summary-menu-sym", { text: "\u0192" }),
+    el("span", { text: t("calc.sumFormulaOption") })
+  ]);
+  fx.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    close();
+    openSummaryFormulaEditor(anchor, grid, col);
+  });
+  menu.appendChild(fx);
   menu.appendChild(el("div.lattice-summary-menu-sep"));
   section("columns.summaryForRows", () => col.rowSummary, (v) => grid.setColumnRowSummary(col.field, v));
   document.body.appendChild(menu);
@@ -4261,6 +5033,113 @@ function openSummaryPicker(anchor, grid, col) {
     off();
     menu.remove();
   }
+  return close;
+}
+function openSummaryFormulaEditor(anchor, grid, col) {
+  document.querySelectorAll(".lattice-formula-menu").forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const menu = el("div.lattice-menu.lattice-formula-menu");
+  menu.appendChild(el("div.lattice-summary-menu-head", { text: t("calc.sumFormulaTitle") + " \u2014 " + col.title }));
+  menu.appendChild(el("div.lattice-formula-hint", { text: t("calc.sumFormulaHint") }));
+  const nameInp = el("input.lattice-set-input", { type: "text", value: col.summaryFormulaLabel || "", placeholder: t("calc.sumFormulaLabelPlaceholder") });
+  menu.appendChild(csField(t("calc.sumFormulaLabel"), nameInp));
+  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: "false", placeholder: t("calc.sumFormulaPlaceholder") });
+  ta.value = col.summaryFormula || "";
+  menu.appendChild(el("div.lattice-formula-row", {}, [el("span.lattice-set-label", { text: t("calc.formula") }), ta]));
+  const chips = el("div.lattice-formula-fields");
+  for (const c of grid.columns) {
+    if (c._rownum) continue;
+    const token = /^[A-Za-z_][A-Za-z0-9_]*$/.test(c.field) ? c.field : "[" + c.field + "]";
+    const chip = el("button.lattice-formula-chip", { type: "button", text: c.title, title: c.field });
+    chip.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      insertAtCursor(ta, token);
+      updatePreview();
+    });
+    chips.appendChild(chip);
+  }
+  menu.appendChild(el("div.lattice-formula-fieldswrap", {}, [
+    el("div.lattice-formula-hint", { text: t("calc.insertField") }),
+    chips
+  ]));
+  menu.appendChild(buildFnReference(t, AGGREGATE_CATALOG, ta, () => updatePreview(), () => fit()));
+  const preview = el("div.lattice-formula-preview");
+  menu.appendChild(preview);
+  function scopeRows() {
+    return grid.summarySource(grid.instance.summaryRow === "page" ? "page" : "all");
+  }
+  function updatePreview() {
+    const src = ta.value.trim();
+    if (!src) {
+      preview.className = "lattice-formula-preview";
+      preview.textContent = "";
+      return;
+    }
+    const chk = validateAggregate(src);
+    if (!chk.ok) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + chk.error;
+      return;
+    }
+    try {
+      const val = compileAggregate(src)(scopeRows());
+      preview.className = "lattice-formula-preview is-ok";
+      preview.textContent = t("calc.previewLabel") + " " + formatPreview(val);
+    } catch (e) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + (e && e.message ? e.message : String(e));
+    }
+  }
+  ta.addEventListener("input", updatePreview);
+  const save = () => {
+    const src = ta.value.trim();
+    const chk = src ? validateAggregate(src) : { ok: true };
+    if (!chk.ok) {
+      updatePreview();
+      return;
+    }
+    try {
+      grid.setColumnSummaryFormula(col.field, src, nameInp.value);
+    } catch (e) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + (e && e.message ? e.message : String(e));
+      return;
+    }
+    close();
+  };
+  const saveBtn = el("button.lattice-formula-btn.is-primary", { type: "button", text: t("calc.save") });
+  saveBtn.addEventListener("click", save);
+  const actions = [saveBtn];
+  if (col.summaryFormula) {
+    const clr = el("button.lattice-formula-btn.is-danger", { type: "button", text: t("calc.sumFormulaClear") });
+    clr.addEventListener("click", () => {
+      grid.setColumnSummaryFormula(col.field, null);
+      close();
+    });
+    actions.push(clr);
+  }
+  const cancelBtn = el("button.lattice-formula-btn", { type: "button", text: t("calc.cancel") });
+  cancelBtn.addEventListener("click", () => close());
+  actions.push(cancelBtn);
+  menu.appendChild(el("div.lattice-formula-actions", {}, actions));
+  function fit() {
+    positionUnder(menu, anchor);
+    const vh = window.innerHeight;
+    if (menu.getBoundingClientRect().bottom > vh - 8) {
+      menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + "px";
+    }
+  }
+  updatePreview();
+  document.body.appendChild(menu);
+  fit();
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  setTimeout(() => ta.focus(), 0);
   return close;
 }
 function openFormatPicker(anchor, grid, col) {
@@ -4372,6 +5251,236 @@ function csSelect(value, options, onChange) {
   sel.addEventListener("change", () => onChange(sel.value));
   return sel;
 }
+function openFormulaEditor(anchor, grid, col, gear) {
+  document.querySelectorAll(".lattice-formula-menu").forEach((m) => m.remove());
+  const t = grid.i18n.t.bind(grid.i18n);
+  const editing = !!col;
+  const menu = el("div.lattice-menu.lattice-formula-menu");
+  menu.appendChild(el("div.lattice-summary-menu-head", { text: t(editing ? "calc.editTitle" : "calc.newTitle") }));
+  const nameInp = el("input.lattice-set-input", { type: "text", value: editing ? col.title : "", placeholder: t("calc.namePlaceholder") });
+  menu.appendChild(csField(t("calc.name"), nameInp));
+  let userPickedType = editing;
+  const typeSel = csSelect(editing ? col.type : "number", [
+    ["number", t("calc.typeNumber")],
+    ["text", t("calc.typeText")],
+    ["date", t("calc.typeDate")]
+  ], () => {
+    userPickedType = true;
+    updatePreview();
+  });
+  menu.appendChild(csField(t("calc.type"), typeSel));
+  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: "false", placeholder: t("calc.formulaPlaceholder") });
+  ta.value = editing ? col.formula || "" : "";
+  menu.appendChild(el("div.lattice-formula-row", {}, [el("span.lattice-set-label", { text: t("calc.formula") }), ta]));
+  const chips = el("div.lattice-formula-fields");
+  for (const c of grid.columns) {
+    if (editing && c.field === col.field) continue;
+    if (c.formula != null) continue;
+    const token = /^[A-Za-z_][A-Za-z0-9_]*$/.test(c.field) ? c.field : "[" + c.field + "]";
+    const chip = el("button.lattice-formula-chip", { type: "button", text: c.title, title: c.field });
+    chip.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      insertAtCursor(ta, token);
+      updatePreview();
+    });
+    chips.appendChild(chip);
+  }
+  menu.appendChild(el("div.lattice-formula-fieldswrap", {}, [
+    el("div.lattice-formula-hint", { text: t("calc.insertField") }),
+    chips
+  ]));
+  menu.appendChild(buildFnReference(t, FORMULA_CATALOG, ta, () => updatePreview(), () => fit()));
+  const preview = el("div.lattice-formula-preview");
+  menu.appendChild(preview);
+  function sampleRow() {
+    const rows = grid.dataSource && grid.dataSource.allRows ? grid.dataSource.allRows() : grid.rows || [];
+    return rows && rows.length ? rows[0] : {};
+  }
+  function updatePreview() {
+    const src = ta.value.trim();
+    if (!src) {
+      preview.className = "lattice-formula-preview";
+      preview.textContent = "";
+      return;
+    }
+    const chk = validateFormula(src);
+    if (!chk.ok) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + chk.error;
+      return;
+    }
+    let val;
+    try {
+      val = compileFormula(src)(sampleRow());
+    } catch (e) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + (e && e.message ? e.message : String(e));
+      return;
+    }
+    if (!userPickedType && val != null) {
+      const guessed = inferFormulaType(val);
+      if (typeSel.value !== guessed) typeSel.value = guessed;
+    }
+    const numericType = typeSel.value === "number" || typeSel.value === "money";
+    const isTextVal = typeof val === "string" && val.trim() !== "" && !isNumericStr(val);
+    if (numericType && isTextVal) {
+      preview.className = "lattice-formula-preview is-warn";
+      preview.textContent = t("calc.previewLabel") + " " + formatPreview(val) + " \u2014 " + t("calc.textHint");
+    } else {
+      preview.className = "lattice-formula-preview is-ok";
+      preview.textContent = t("calc.previewLabel") + " " + formatPreview(val);
+    }
+  }
+  ta.addEventListener("input", updatePreview);
+  const save = () => {
+    const src = ta.value.trim();
+    const chk = validateFormula(src);
+    if (!chk.ok) {
+      updatePreview();
+      return;
+    }
+    try {
+      if (editing) grid.updateComputedColumn(col.field, { title: nameInp.value, type: typeSel.value, formula: src });
+      else grid.addComputedColumn({ title: nameInp.value, type: typeSel.value, formula: src });
+    } catch (e) {
+      preview.className = "lattice-formula-preview is-error";
+      preview.textContent = "\u26A0 " + (e && e.message ? e.message : String(e));
+      return;
+    }
+    close();
+    gear.refresh();
+  };
+  const saveBtn = el("button.lattice-formula-btn.is-primary", { type: "button", text: t("calc.save") });
+  saveBtn.addEventListener("click", save);
+  const actions = [saveBtn];
+  if (editing) {
+    const delBtn = el("button.lattice-formula-btn.is-danger", { type: "button", text: t("calc.delete") });
+    delBtn.addEventListener("click", () => {
+      grid.removeComputedColumn(col.field);
+      close();
+      gear.refresh();
+    });
+    actions.push(delBtn);
+  }
+  const cancelBtn = el("button.lattice-formula-btn", { type: "button", text: t("calc.cancel") });
+  cancelBtn.addEventListener("click", () => close());
+  actions.push(cancelBtn);
+  menu.appendChild(el("div.lattice-formula-actions", {}, actions));
+  function fit() {
+    positionUnder(menu, anchor);
+    const vh = window.innerHeight;
+    if (menu.getBoundingClientRect().bottom > vh - 8) {
+      menu.style.top = Math.max(window.scrollY + 8, window.scrollY + vh - menu.offsetHeight - 8) + "px";
+    }
+  }
+  updatePreview();
+  document.body.appendChild(menu);
+  fit();
+  const off = onOutside(menu, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  setTimeout(() => (editing ? ta : nameInp).focus(), 0);
+  return close;
+}
+function insertFunction(ta, name, sig) {
+  const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const e = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  const before = ta.value.slice(0, s);
+  const after = ta.value.slice(e);
+  const pad4 = before && !/[\s(,]$/.test(before) ? " " : "";
+  const insert = name + "()";
+  ta.value = before + pad4 + insert + after;
+  const base = (before + pad4 + insert).length;
+  const zeroArg = /\(\s*\)\s*$/.test(sig);
+  const pos = zeroArg ? base : base - 1;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+}
+function buildFnReference(t, catalog, ta, onInsert, fit) {
+  const fnBody = el("div.lattice-formula-fnbody");
+  const fnToggle = el("button.lattice-formula-fntoggle", {
+    type: "button",
+    html: FX_SVG + "<span>" + t("calc.fnTitle") + '</span><span class="lattice-formula-caret">\u25BE</span>'
+  });
+  const fnSearch = el("input.lattice-set-input.lattice-formula-fnsearch", { type: "text", placeholder: t("calc.fnSearch") });
+  const fnList = el("div.lattice-formula-fnlist");
+  const fnCats = [];
+  for (const group of catalog) {
+    const head = el("div.lattice-formula-fncat", { text: t("calc.fnCat." + group.cat) });
+    fnList.appendChild(head);
+    const cat = { head, items: [] };
+    const base = group.cat === "agg" ? "calc.agg." : "calc.fn.";
+    for (const name of group.fns) {
+      const sig = t(base + name + ".sig");
+      const desc = t(base + name + ".desc");
+      const item = el("button.lattice-formula-fnitem", { type: "button", title: sig + " \u2014 " + desc }, [
+        el("code.lattice-formula-fnsig", { text: sig }),
+        el("span.lattice-formula-fndesc", { text: desc })
+      ]);
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        insertFunction(ta, name, sig);
+        onInsert();
+      });
+      fnList.appendChild(item);
+      cat.items.push({ el: item, hay: (name + " " + sig + " " + desc).toLowerCase() });
+    }
+    fnCats.push(cat);
+  }
+  fnSearch.addEventListener("input", () => {
+    const q = fnSearch.value.trim().toLowerCase();
+    for (const cat of fnCats) {
+      let any = false;
+      for (const it of cat.items) {
+        const show = !q || it.hay.includes(q);
+        it.el.style.display = show ? "" : "none";
+        if (show) any = true;
+      }
+      cat.head.style.display = any ? "" : "none";
+    }
+  });
+  fnBody.append(fnSearch, fnList);
+  fnBody.style.display = "none";
+  fnToggle.addEventListener("click", () => {
+    const open = fnBody.style.display === "none";
+    fnBody.style.display = open ? "" : "none";
+    fnToggle.classList.toggle("is-open", open);
+    if (open) setTimeout(() => fnSearch.focus(), 0);
+    if (fit) fit();
+  });
+  return el("div.lattice-formula-fnwrap", {}, [fnToggle, fnBody]);
+}
+function insertAtCursor(ta, text) {
+  const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length;
+  const e = ta.selectionEnd != null ? ta.selectionEnd : ta.value.length;
+  const before = ta.value.slice(0, s);
+  const after = ta.value.slice(e);
+  const pad4 = before && !/\s$/.test(before) ? " " : "";
+  ta.value = before + pad4 + text + after;
+  const pos = (before + pad4 + text).length;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+}
+function inferFormulaType(v) {
+  if (typeof v === "number") return "number";
+  if (v instanceof Date) return "date";
+  return "text";
+}
+function isNumericStr(v) {
+  if (typeof v === "number") return Number.isFinite(v);
+  return Number.isFinite(Number(String(v).replace(/\s/g, "").replace(",", ".")));
+}
+function formatPreview(v) {
+  if (v == null) return "\u2014";
+  if (v instanceof Date) return isNaN(v.getTime()) ? "\u2014" : v.toISOString().slice(0, 10);
+  if (typeof v === "number") return Number.isFinite(v) ? String(Math.round(v * 100) / 100) : "\u2014";
+  if (typeof v === "boolean") return v ? "\u2713" : "\u2717";
+  return String(v);
+}
 var GROUP_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h8v6H3V5zm10 0h8v2h-8V5zm0 4h8v2h-8V9zM3 13h18v2H3v-2zm0 4h18v2H3v-2z"/></svg>';
 var ROWGROUP_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3 4h18v2H3V4zm4 4h14v2H7V8zm0 4h14v2H7v-2zM3 8h2v10H3V8zm4 8h14v2H7v-2z"/></svg>';
 var ROWGROUP_EXCLUDE = /* @__PURE__ */ new Set(["image", "html", "progress", "rating", "color"]);
@@ -4383,6 +5492,7 @@ var CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hid
 var RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 var GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
 var BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+var FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';
 
 // src/features/menu.js
 function openMenu(anchor, items, onPick, opts = {}) {
@@ -5804,10 +6914,14 @@ var Renderer = class {
   buildGroupSubtotal(node, list) {
     if (!this.grid.instance.groupSubtotals) return null;
     const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    if (!activeFns.length) return null;
+    const hasFormula = list.some((c) => c.summaryFormula);
+    if (!activeFns.length && !hasFormula) return null;
     const rows = collectGroupRows(node);
     const frag = document.createDocumentFragment();
     for (const fn of activeFns) frag.appendChild(this._summaryFnRow(list, fn, rows, { rowClass: "lattice-group-subtotal" }));
+    for (const label of this._summaryFormulaLabels(list)) {
+      frag.appendChild(this._summaryFormulaRow(list, rows, { rowClass: "lattice-group-subtotal", label }));
+    }
     return frag;
   }
   /**
@@ -5986,11 +7100,27 @@ var Renderer = class {
   buildSummary(list, scope) {
     const grid = this.grid;
     const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    if (!activeFns.length) return null;
+    const hasFormula = list.some((c) => c.summaryFormula);
+    if (!activeFns.length && !hasFormula) return null;
     const srcRows = grid.summarySource(scope);
     const wrap = el("div.lattice-summary");
-    activeFns.forEach((fn, idx) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: idx === 0, floatLabel: true })));
+    let i = 0;
+    activeFns.forEach((fn) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: i++ === 0, floatLabel: true })));
+    for (const label of this._summaryFormulaLabels(list)) {
+      wrap.appendChild(this._summaryFormulaRow(list, srcRows, { first: i++ === 0, floatLabel: true, label }));
+    }
     return wrap;
+  }
+  /** Popisky řádků se vzorcem, v pořadí prvního výskytu (výchozí = „Vzorec"). */
+  _summaryFormulaLabels(list) {
+    const def = this.grid.i18n.t("summary.formulaLabel");
+    const out = [];
+    for (const c of list) {
+      if (!c.summaryFormula) continue;
+      const lbl = c.summaryFormulaLabel || def;
+      if (!out.includes(lbl)) out.push(lbl);
+    }
+    return out;
   }
   /** Jeden souhrnný řádek pro danou funkci nad `srcRows` (sdílené: pata i skupiny). */
   _summaryFnRow(list, fn, srcRows, opts = {}) {
@@ -6014,13 +7144,46 @@ var Renderer = class {
     }
     return row;
   }
+  /**
+   * Souhrnný řádek počítaný VZORCEM (vážený/poolovaný souhrn) nad `srcRows`.
+   * `opts.label` = název řádku; zobrazí jen sloupce, jejichž popisek mu odpovídá.
+   */
+  _summaryFormulaRow(list, srcRows, opts = {}) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const rowLabel = opts.label || t("summary.formulaLabel");
+    const defLabel = t("summary.formulaLabel");
+    const row = el("div.lattice-row.lattice-summary-row" + (opts.rowClass ? "." + opts.rowClass : "") + (opts.first ? ".is-first" : ""));
+    for (const col of list) {
+      const cell = el("div.lattice-cell.lattice-summary-cell", {
+        dataset: { field: col.field },
+        class: col.align ? "is-" + col.align : ""
+      });
+      const colLabel = col.summaryFormula ? col.summaryFormulaLabel || defLabel : null;
+      if (!col._rownum && col.summaryFormula && colLabel === rowLabel) {
+        let val = null;
+        try {
+          val = compileAggregate(col.summaryFormula)(srcRows);
+        } catch {
+          val = null;
+        }
+        cell.appendChild(el("span.lattice-summary-sym", { text: "\u0192", title: col.summaryFormula }));
+        cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue("formula", val, col) }));
+      }
+      row.appendChild(cell);
+    }
+    if (opts.floatLabel) {
+      const lbl = el("span.lattice-summary-rowlabel", { text: rowLabel, title: rowLabel });
+      row.appendChild(el("div.lattice-summary-label-wrap", {}, [lbl]));
+    }
+    return row;
+  }
   /** Pruh nad dolní paticí s přepínačem rozsahu souhrnu (Stránka / Vše). */
   renderSummaryBar() {
     const bar = this.nodes.summaryBar;
     clear(bar);
     const grid = this.grid;
     const scope = grid.instance.summaryRow;
-    const anySummary = grid.columns.some((c) => (c.summary || []).length);
+    const anySummary = grid.columns.some((c) => (c.summary || []).length || c.summaryFormula);
     if (scope === "none" || !anySummary) {
       bar.style.display = "none";
       return;
@@ -6037,10 +7200,11 @@ var Renderer = class {
     bar.append(label, toggle);
   }
   formatSummaryValue(fn, val, col) {
-    if (val == null) return "";
+    if (val == null || typeof val === "number" && !Number.isFinite(val)) return "";
     if (fn === "count") return String(val);
     if (col.type === "money") return getFormatter(col)(val, col, {});
-    return Number(val).toLocaleString(void 0, { maximumFractionDigits: fn === "avg" ? 2 : 0 });
+    const maxdec = fn === "avg" || fn === "formula" ? 2 : 0;
+    return Number(val).toLocaleString(void 0, { maximumFractionDigits: maxdec });
   }
   buildBodyCell(col, rowData, index) {
     if (col._actions) {
@@ -6079,18 +7243,18 @@ var Renderer = class {
       return cell2;
     }
     if (col._rownum) {
-      const num4 = col._mode === "perPage" ? index + 1 : (this.grid.page - 1) * this.grid.pageSize + index + 1;
+      const num5 = col._mode === "perPage" ? index + 1 : (this.grid.page - 1) * this.grid.pageSize + index + 1;
       const cell2 = el("div.lattice-cell.lattice-rownum", {
         dataset: { field: col.field },
         class: "is-" + (col.align || "right")
       });
       if (col._menuActions) {
         cell2.classList.add("has-actions-menu");
-        cell2.appendChild(el("span.lattice-rownum-num", { text: String(num4) }));
+        cell2.appendChild(el("span.lattice-rownum-num", { text: String(num5) }));
         const btn = this.buildActionsMenuButton(rowData, index);
         if (btn) cell2.appendChild(btn);
       } else {
-        cell2.textContent = String(num4);
+        cell2.textContent = String(num5);
         if (typeof this.grid.options.rowContextMenu === "function") this._attachRowMenuTrigger(cell2, rowData, index);
       }
       return cell2;
@@ -6956,11 +8120,11 @@ var EditManager = class {
         }
         return;
       }
-      const validate = this.grid.options.onCellValidate;
-      if (typeof validate === "function") {
+      const validate2 = this.grid.options.onCellValidate;
+      if (typeof validate2 === "function") {
         let ok = true;
         try {
-          ok = validate({ field: a.col.field, row: a.rowData, rowIndex: a.idx, oldValue, newValue: val, col: a.col });
+          ok = validate2({ field: a.col.field, row: a.rowData, rowIndex: a.idx, oldValue, newValue: val, col: a.col });
         } catch (err) {
           console.error("[Lattice] onCellValidate selhal:", err);
           ok = false;
@@ -7024,9 +8188,9 @@ function checkRule(rule, value, row, col, i18n) {
     if (rule.required && empty) return rule.message || t("required");
     if (!empty) {
       const s = String(value);
-      const num4 = Number(s.replace(/\s/g, "").replace(",", "."));
-      if (rule.min != null && !(num4 >= rule.min)) return rule.message || t("min").replace("{n}", rule.min);
-      if (rule.max != null && !(num4 <= rule.max)) return rule.message || t("max").replace("{n}", rule.max);
+      const num5 = Number(s.replace(/\s/g, "").replace(",", "."));
+      if (rule.min != null && !(num5 >= rule.min)) return rule.message || t("min").replace("{n}", rule.min);
+      if (rule.max != null && !(num5 <= rule.max)) return rule.message || t("max").replace("{n}", rule.max);
       if (rule.minLen != null && s.length < rule.minLen) return rule.message || t("minLen").replace("{n}", rule.minLen);
       if (rule.maxLen != null && s.length > rule.maxLen) return rule.message || t("maxLen").replace("{n}", rule.maxLen);
       if (rule.pattern) {
@@ -7069,13 +8233,13 @@ function resolveEditor(col) {
   }
 }
 function textEditor(cell, col, rowData, done) {
-  const input = el("input.lattice-edit-input", { type: "text", value: str(rowData[col.field]) });
+  const input = el("input.lattice-edit-input", { type: "text", value: str2(rowData[col.field]) });
   swapCell(cell, input);
   focusInput(input);
   bindInput(input, () => done(input.value), () => done(void 0));
 }
 function numberEditor(cell, col, rowData, done) {
-  const input = el("input.lattice-edit-input.is-number", { type: "text", inputMode: "decimal", value: str(rowData[col.field]) });
+  const input = el("input.lattice-edit-input.is-number", { type: "text", inputMode: "decimal", value: str2(rowData[col.field]) });
   input.addEventListener("input", () => {
     input.value = input.value.replace(/[^\d.,\-]/g, "");
   });
@@ -7089,7 +8253,7 @@ function numberEditor(cell, col, rowData, done) {
   }, () => done(void 0));
 }
 function urlEditor(cell, col, rowData, done) {
-  const input = el("input.lattice-edit-input", { type: "text", value: str(rowData[col.field]) });
+  const input = el("input.lattice-edit-input", { type: "text", value: str2(rowData[col.field]) });
   swapCell(cell, input);
   focusInput(input);
   bindInput(input, () => done(input.value), () => done(void 0));
@@ -7103,7 +8267,7 @@ function tickEditor(cell, col, rowData, done) {
 }
 function ratingEditor(cell, col, rowData, done) {
   const max = col.formatterParams && col.formatterParams.max != null ? col.formatterParams.max : 5;
-  const cur = Math.round(num3(rowData[col.field]) || 0);
+  const cur = Math.round(num4(rowData[col.field]) || 0);
   const wrap = el("span.lattice-edit-rating");
   const render = (val) => {
     clear(wrap);
@@ -7132,7 +8296,7 @@ function ratingEditor(cell, col, rowData, done) {
 }
 function progressEditor(cell, col, rowData, done) {
   const max = col.formatterParams && col.formatterParams.max != null ? col.formatterParams.max : 100;
-  let val = clamp(num3(rowData[col.field]) || 0, 0, max);
+  let val = clamp(num4(rowData[col.field]) || 0, 0, max);
   const bar = el("div.lattice-edit-progress-bar");
   const track = el("div.lattice-edit-progress", {}, [bar]);
   const label = el("span.lattice-edit-progress-label");
@@ -7172,9 +8336,9 @@ function linkEditor(cell, col, rowData, done) {
   const t = (k) => k;
   let inputs;
   if (isObj) {
-    const label = el("input.lattice-edit-input", { type: "text", value: str(cur.label != null ? cur.label : cur.text != null ? cur.text : "") });
-    const url = el("input.lattice-edit-input", { type: "text", value: str(cur.url != null ? cur.url : cur.href != null ? cur.href : "") });
-    const target = el("input.lattice-edit-input", { type: "text", value: str(cur.target || "") });
+    const label = el("input.lattice-edit-input", { type: "text", value: str2(cur.label != null ? cur.label : cur.text != null ? cur.text : "") });
+    const url = el("input.lattice-edit-input", { type: "text", value: str2(cur.url != null ? cur.url : cur.href != null ? cur.href : "") });
+    const target = el("input.lattice-edit-input", { type: "text", value: str2(cur.target || "") });
     menu.append(row("Text", label), row("URL", url), row("Target", target));
     inputs = () => {
       const out = { ...cur };
@@ -7186,7 +8350,7 @@ function linkEditor(cell, col, rowData, done) {
       return out;
     };
   } else {
-    const url = el("input.lattice-edit-input", { type: "text", value: str(cur) });
+    const url = el("input.lattice-edit-input", { type: "text", value: str2(cur) });
     menu.append(row("URL", url));
     inputs = () => url.value;
   }
@@ -7212,7 +8376,7 @@ function linkEditor(cell, col, rowData, done) {
   }
 }
 function colorEditor(cell, col, rowData, done) {
-  let rgb = parseColor(str(rowData[col.field])) || { r: 0, g: 0, b: 0 };
+  let rgb = parseColor(str2(rowData[col.field])) || { r: 0, g: 0, b: 0 };
   const menu = el("div.lattice-menu.lattice-edit-popup.lattice-edit-color");
   const preview = el("input", { type: "color", value: rgbToHex(rgb) });
   const hex = el("input.lattice-edit-input", { type: "text", value: rgbToHex(rgb) });
@@ -7347,7 +8511,7 @@ function dateEditor(withTime) {
 function selectEditor(cell, col, rowData, done) {
   loadOptions(col).then((opts) => {
     const menu = el("div.lattice-menu.lattice-edit-popup.lattice-edit-select");
-    const cur = str(rowData[col.field]);
+    const cur = str2(rowData[col.field]);
     for (const o of opts) {
       const item = el("div.lattice-menu-item" + (norm4(o.value) === norm4(cur) ? ".is-active" : ""), { text: o.label });
       item.addEventListener("mousedown", (e) => {
@@ -7453,10 +8617,10 @@ function openPopup2(cell, menu, onCancelEsc) {
   };
   document.addEventListener("keydown", onKey);
 }
-function str(v) {
+function str2(v) {
   return v == null ? "" : String(v);
 }
-function num3(v) {
+function num4(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -9209,6 +10373,26 @@ var Lattice = class {
     this.renderer.renderBody();
     this.gear?.refresh();
   }
+  /**
+   * Vzorec pro souhrnný ŘÁDEK sloupce (vážený / poolovaný souhrn z agregací
+   * jiných sloupců — viz core/formula.js). `formula` null/'' vzorec zruší.
+   * @throws {FormulaError} když je vzorec neplatný.
+   */
+  setColumnSummaryFormula(field2, formula, label) {
+    const col = this.columns.find((c) => c.field === field2);
+    if (!col) return;
+    const src = String(formula == null ? "" : formula).trim();
+    if (src) {
+      const chk = validateAggregate(src);
+      if (!chk.ok) throw new FormulaError(chk.error);
+    }
+    col.summaryFormula = src || null;
+    if (label !== void 0) col.summaryFormulaLabel = src ? String(label).trim() || null : null;
+    else if (!src) col.summaryFormulaLabel = null;
+    this.saveState();
+    this.renderer.renderBody();
+    this.gear?.refresh();
+  }
   /* =================== formát zobrazení (číslo/měna/datum) =================== */
   /**
    * Efektivní formát sloupce: výchozí < globální (instance) < def.formatterParams
@@ -9418,6 +10602,76 @@ var Lattice = class {
     if (!keepState) this.state.columns = [];
     this.saveState();
     this.rerenderColumns();
+  }
+  /* =================== počítané sloupce (vzorec z UI) =================== */
+  /**
+   * Přidá počítaný sloupec definovaný vzorcem. Hodnota se počítá z ostatních
+   * sloupců (viz src/core/formula.js). Počítané sloupce jsou jen ke čtení a
+   * persistují se (localStorage i presety). Vrací `field` nového sloupce.
+   * @throws {FormulaError} když je vzorec neplatný.
+   */
+  addComputedColumn({ title, type = "number", formula } = {}) {
+    const src = String(formula == null ? "" : formula).trim();
+    if (!src) throw new FormulaError("Pr\xE1zdn\xFD vzorec");
+    const chk = validateFormula(src);
+    if (!chk.ok) throw new FormulaError(chk.error);
+    const field2 = this._uniqueComputedField();
+    const def = {
+      field: field2,
+      title: title != null && String(title).trim() ? String(title).trim() : this.i18n.t("calc.defaultTitle"),
+      type: type || "text",
+      computed: true,
+      formula: src
+    };
+    this.columns.push(resolveColumn(def, null));
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+    return field2;
+  }
+  /**
+   * Upraví existující počítaný sloupec (název / typ / vzorec). Zachová
+   * uživatelský stav sloupce (šířka, viditelnost, souhrny, formát, pořadí).
+   * @throws {FormulaError} když je nový vzorec neplatný.
+   */
+  updateComputedColumn(field2, { title, type, formula } = {}) {
+    const idx = this.columns.findIndex((c) => c.field === field2);
+    if (idx < 0 || this.columns[idx].formula == null) return;
+    const old = this.columns[idx];
+    const src = formula != null ? String(formula).trim() : old.formula;
+    const chk = validateFormula(src);
+    if (!chk.ok) throw new FormulaError(chk.error);
+    const def = {
+      field: field2,
+      title: title != null && String(title).trim() ? String(title).trim() : old.title,
+      type: type || old.type,
+      computed: true,
+      formula: src
+    };
+    this.columns[idx] = resolveColumn(def, serializeColumns([old])[0]);
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+  }
+  /** Odebere počítaný sloupec (jen sloupce vytvořené vzorcem lze smazat). */
+  removeComputedColumn(field2) {
+    const idx = this.columns.findIndex((c) => c.field === field2);
+    if (idx < 0 || this.columns[idx].formula == null) return;
+    this.columns.splice(idx, 1);
+    delete this.filters[field2];
+    this.sort = this.sort.filter((s) => s.field !== field2);
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+  }
+  /** Vygeneruje neobsazený `field` pro počítaný sloupec (calc1, calc2, …). */
+  _uniqueComputedField() {
+    const used = new Set(this.columns.map((c) => c.field));
+    let n = 1, f;
+    do {
+      f = "calc" + n++;
+    } while (used.has(f));
+    return f;
   }
   /* =================== import dat / souboru =================== */
   /**
@@ -9977,7 +11231,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.0.1";
+var VERSION = "1.1.0";
 export {
   ClientData,
   I18n,

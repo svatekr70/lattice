@@ -27,6 +27,7 @@ import { openMenu, openMenuAt } from '../features/menu.js';
 import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
 import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
+import { compileAggregate } from '../core/formula.js';
 import { levelColor, levelIndex, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { dateBucket } from '../core/dateParts.js';
 import { cellValue, isComputed } from '../core/cellValue.js';
@@ -1260,10 +1261,14 @@ export class Renderer {
   buildGroupSubtotal(node, list) {
     if (!this.grid.instance.groupSubtotals) return null;
     const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    if (!activeFns.length) return null;
+    const hasFormula = list.some((c) => c.summaryFormula);
+    if (!activeFns.length && !hasFormula) return null;
     const rows = collectGroupRows(node);
     const frag = document.createDocumentFragment();
     for (const fn of activeFns) frag.appendChild(this._summaryFnRow(list, fn, rows, { rowClass: 'lattice-group-subtotal' }));
+    for (const label of this._summaryFormulaLabels(list)) {
+      frag.appendChild(this._summaryFormulaRow(list, rows, { rowClass: 'lattice-group-subtotal', label }));
+    }
     return frag;
   }
 
@@ -1438,12 +1443,30 @@ export class Renderer {
     const grid = this.grid;
     // Aktivní funkce = sjednocení napříč sloupci, v pevném pořadí.
     const activeFns = SUMMARY_ORDER.filter((fn) => list.some((c) => (c.summary || []).includes(fn)));
-    if (!activeFns.length) return null;
+    const hasFormula = list.some((c) => c.summaryFormula);
+    if (!activeFns.length && !hasFormula) return null;
 
     const srcRows = grid.summarySource(scope);
     const wrap = el('div.lattice-summary');
-    activeFns.forEach((fn, idx) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: idx === 0, floatLabel: true })));
+    let i = 0;
+    activeFns.forEach((fn) => wrap.appendChild(this._summaryFnRow(list, fn, srcRows, { first: i++ === 0, floatLabel: true })));
+    // Řádky se vzorcem: seskupené podle názvu (různé názvy = víc řádků).
+    for (const label of this._summaryFormulaLabels(list)) {
+      wrap.appendChild(this._summaryFormulaRow(list, srcRows, { first: i++ === 0, floatLabel: true, label }));
+    }
     return wrap;
+  }
+
+  /** Popisky řádků se vzorcem, v pořadí prvního výskytu (výchozí = „Vzorec"). */
+  _summaryFormulaLabels(list) {
+    const def = this.grid.i18n.t('summary.formulaLabel');
+    const out = [];
+    for (const c of list) {
+      if (!c.summaryFormula) continue;
+      const lbl = c.summaryFormulaLabel || def;
+      if (!out.includes(lbl)) out.push(lbl);
+    }
+    return out;
   }
 
   /** Jeden souhrnný řádek pro danou funkci nad `srcRows` (sdílené: pata i skupiny). */
@@ -1469,13 +1492,43 @@ export class Renderer {
     return row;
   }
 
+  /**
+   * Souhrnný řádek počítaný VZORCEM (vážený/poolovaný souhrn) nad `srcRows`.
+   * `opts.label` = název řádku; zobrazí jen sloupce, jejichž popisek mu odpovídá.
+   */
+  _summaryFormulaRow(list, srcRows, opts = {}) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const rowLabel = opts.label || t('summary.formulaLabel');
+    const defLabel = t('summary.formulaLabel');
+    const row = el('div.lattice-row.lattice-summary-row'
+      + (opts.rowClass ? '.' + opts.rowClass : '') + (opts.first ? '.is-first' : ''));
+    for (const col of list) {
+      const cell = el('div.lattice-cell.lattice-summary-cell', {
+        dataset: { field: col.field }, class: col.align ? 'is-' + col.align : '',
+      });
+      const colLabel = col.summaryFormula ? (col.summaryFormulaLabel || defLabel) : null;
+      if (!col._rownum && col.summaryFormula && colLabel === rowLabel) {
+        let val = null;
+        try { val = compileAggregate(col.summaryFormula)(srcRows); } catch { val = null; }
+        cell.appendChild(el('span.lattice-summary-sym', { text: 'ƒ', title: col.summaryFormula }));
+        cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue('formula', val, col) }));
+      }
+      row.appendChild(cell);
+    }
+    if (opts.floatLabel) {
+      const lbl = el('span.lattice-summary-rowlabel', { text: rowLabel, title: rowLabel });
+      row.appendChild(el('div.lattice-summary-label-wrap', {}, [lbl]));
+    }
+    return row;
+  }
+
   /** Pruh nad dolní paticí s přepínačem rozsahu souhrnu (Stránka / Vše). */
   renderSummaryBar() {
     const bar = this.nodes.summaryBar;
     clear(bar);
     const grid = this.grid;
     const scope = grid.instance.summaryRow;
-    const anySummary = grid.columns.some((c) => (c.summary || []).length);
+    const anySummary = grid.columns.some((c) => (c.summary || []).length || c.summaryFormula);
     if (scope === 'none' || !anySummary) { bar.style.display = 'none'; return; }
     bar.style.display = '';
     const t = grid.i18n.t.bind(grid.i18n);
@@ -1490,10 +1543,12 @@ export class Renderer {
   }
 
   formatSummaryValue(fn, val, col) {
-    if (val == null) return '';
+    if (val == null || (typeof val === 'number' && !Number.isFinite(val))) return '';
     if (fn === 'count') return String(val);
     if (col.type === 'money') return getFormatter(col)(val, col, {});
-    return Number(val).toLocaleString(undefined, { maximumFractionDigits: fn === 'avg' ? 2 : 0 });
+    // vzorec (vážený souhrn) i průměr ukazujeme s desetinami (poměry), zbytek celé.
+    const maxdec = (fn === 'avg' || fn === 'formula') ? 2 : 0;
+    return Number(val).toLocaleString(undefined, { maximumFractionDigits: maxdec });
   }
 
   buildBodyCell(col, rowData, index) {

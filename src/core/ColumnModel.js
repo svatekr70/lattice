@@ -16,6 +16,8 @@
  * Model je čistá funkce nad daty (žádný DOM) → snadno testovatelné.
  */
 
+import { compileFormula } from './formula.js';
+
 export const DEFAULT_WIDTH = 150;
 export const DEFAULT_MIN_WIDTH = 40;
 
@@ -43,9 +45,18 @@ export function buildColumns(defs, savedColumns = []) {
 
   // 1) Nejdřív sloupce v uloženém pořadí (pokud pro ně existuje definice).
   for (const saved of savedColumns) {
-    if (!saved || !byField.has(saved.field)) continue; // zmizelý sloupec → zahodit
+    if (!saved) continue;
+    let def = byField.get(saved.field);
+    if (!def) {
+      // Počítaný sloupec vytvořený v UI nemá definici v configu — zrekonstruujeme
+      // ji z persistovaného stavu (title/type/formula). Ostatní „zmizelé" sloupce
+      // (v uloženém stavu, ale ne v definici) se zahodí.
+      if (saved.computed && typeof saved.formula === 'string') {
+        def = { field: saved.field, title: saved.title != null ? saved.title : saved.field, type: saved.type || 'text', computed: true, formula: saved.formula };
+      } else continue;
+    }
     if (used.has(saved.field)) continue; // ochrana proti duplicitě v uloženém stavu
-    result.push(resolveColumn(byField.get(saved.field), saved));
+    result.push(resolveColumn(def, saved));
     used.add(saved.field);
   }
 
@@ -84,9 +95,16 @@ export function flattenGroups(defs) {
  * Persistuje se jen uživatelský stav (visible/width/frozen); vše ostatní
  * (title, type, filter, formatter, …) je vždy živé z definice.
  */
-function resolveColumn(def, saved) {
+export function resolveColumn(def, saved) {
   const s = saved || {};
   const availableFilters = deriveAvailableFilters(def);
+  // Počítaný sloupec: hodnota z funkce def.value, nebo zkompilovaná z řetězce
+  // def.formula (počítaný sloupec definovaný v UI, který se persistuje).
+  const formula = typeof def.formula === 'string' ? def.formula : null;
+  let value = typeof def.value === 'function' ? def.value : null;
+  if (!value && formula) {
+    try { value = compileFormula(formula); } catch { value = () => undefined; }
+  }
   // Filtr byl v definici zadán explicitně (def.filter / def.filterTypes) → zapnutý
   // ve výchozím stavu. Odvozený z typu → dostupný, ale ve výchozím stavu vypnutý
   // (uživatel ho zapne v dialogu „Sloupce"), aby se řádek filtrů nezaplnil sám.
@@ -105,7 +123,8 @@ function resolveColumn(def, saved) {
     filterValues: def.filterValues || null,
     filterUrl: def.filterUrl || null,    // pro select/multiselect z API
     formatter: def.formatter || null,    // vlastní formátor buňky
-    value: typeof def.value === 'function' ? def.value : null,   // odvozená (computed) hodnota z celého řádku
+    value,                               // odvozená (computed) hodnota z celého řádku (funkce nebo null)
+    formula,                             // vzorec počítaného sloupce (řetězec) — jen u sloupců z UI; jinak null
     validator: def.validator != null ? def.validator : null,     // deklarativní validace editace
     cellClass: typeof def.cellClass === 'function' ? def.cellClass : null,   // podmíněné třídy buňky
     cellStyle: typeof def.cellStyle === 'function' ? def.cellStyle : null,   // podmíněný inline styl buňky
@@ -142,6 +161,14 @@ function resolveColumn(def, saved) {
     // Zapojení sloupce do souhrnu ŘÁDKŮ (pravý sloupec); pole funkcí jako summary.
     defaultRowSummary: normSummary(def.rowSummary),
     rowSummary: s.rowSummary !== undefined ? normSummary(s.rowSummary) : normSummary(def.rowSummary),
+    // Vzorec pro souhrnný ŘÁDEK dole (vážený/poolovaný souhrn z agregací jiných
+    // sloupců, viz core/formula.js). null = žádný, jinak řetězec.
+    defaultSummaryFormula: def.summaryFormula || null,
+    summaryFormula: s.summaryFormula !== undefined ? s.summaryFormula : (def.summaryFormula || null),
+    // Volitelný název řádku souhrnného vzorce (vlevo místo generického „Vzorec").
+    // Sloupce se stejným názvem sdílejí jeden řádek; různé názvy = víc řádků.
+    defaultSummaryFormulaLabel: def.summaryFormulaLabel || null,
+    summaryFormulaLabel: s.summaryFormulaLabel !== undefined ? s.summaryFormulaLabel : (def.summaryFormulaLabel || null),
     // Formát zobrazení (číslo/měna/datum) — výjimka sloupce vůči globálnímu formátu.
     // null = řídit se globálním nastavením tabulky.
     defaultColFormat: def.format || null,
@@ -215,6 +242,9 @@ function normalizeFrozen(v) {
 export function serializeColumns(columns) {
   return columns.map((c) => ({
     field: c.field,
+    // Počítaný sloupec (definovaný v UI) se persistuje celý — bez configu ho
+    // po reloadu nelze zrekonstruovat, tak uložíme i jeho titulek, typ a vzorec.
+    ...(c.formula != null ? { computed: true, formula: c.formula, title: c.title, type: c.type } : {}),
     visible: c.visible,
     width: c.width,
     frozen: c.frozen,
@@ -230,6 +260,9 @@ export function serializeColumns(columns) {
     // souhrnné funkce se ukládají, jen když se liší od výchozích.
     ...(JSON.stringify(c.summary) !== JSON.stringify(c.defaultSummary) ? { summary: c.summary } : {}),
     ...(JSON.stringify(c.rowSummary) !== JSON.stringify(c.defaultRowSummary) ? { rowSummary: c.rowSummary } : {}),
+    // vzorec souhrnu (+ jeho název řádku) se ukládá jen když se liší od výchozího.
+    ...(c.summaryFormula !== c.defaultSummaryFormula ? { summaryFormula: c.summaryFormula } : {}),
+    ...(c.summaryFormulaLabel !== c.defaultSummaryFormulaLabel ? { summaryFormulaLabel: c.summaryFormulaLabel } : {}),
     // formát se ukládá jen když se liší od výchozího (uživatel udělal výjimku).
     ...(JSON.stringify(c.format) !== JSON.stringify(c.defaultColFormat) ? { format: c.format } : {}),
     ...(JSON.stringify(c.condFormat) !== JSON.stringify(c.defaultCondFormat) ? { condFormat: c.condFormat } : {}),
