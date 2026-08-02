@@ -2825,6 +2825,7 @@ var cs_default = {
     zebra: "Pruhovan\xE9 \u0159\xE1dky",
     scaleColors: "Barvy \u0161k\xE1ly (semafor)",
     wrapText: "Zalamovat text",
+    wrapHeader: "Zalamovat n\xE1zvy sloupc\u016F",
     linkNewTab: "Odkazy otev\xEDrat v nov\xE9 kart\u011B",
     emptyText: "N\xE1hrada pr\xE1zdn\xE9 bu\u0148ky",
     emptyTextPlaceholder: "nap\u0159. \u2014",
@@ -3264,6 +3265,7 @@ var en_default = {
     zebra: "Zebra rows",
     scaleColors: "Scale colors (traffic light)",
     wrapText: "Wrap text",
+    wrapHeader: "Wrap column titles",
     linkNewTab: "Open links in new tab",
     emptyText: "Empty cell placeholder",
     emptyTextPlaceholder: "e.g. \u2014",
@@ -4076,9 +4078,15 @@ function measureColumnWidth(col, grid) {
   meas.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;";
   host.appendChild(meas);
   const cellH = cells[0]?.clientHeight || 0;
+  const rot = col.headerRotate != null ? col.headerRotate : grid.instance.headerRotate;
+  const rotated = rot === "90" || rot === "270";
+  const wrapHeader = grid.instance.wrapHeader === true && !rotated;
   let max = 0;
   try {
-    if (hcell) max = Math.max(max, measureRendered(meas, hcell, cellH));
+    if (hcell) {
+      const one = measureRendered(meas, hcell, cellH);
+      max = Math.max(max, wrapHeader ? measureWrappedHeaderWidth(meas, hcell, one) : one);
+    }
     for (const cell of cells) max = Math.max(max, measureRendered(meas, cell, cellH));
   } finally {
     meas.remove();
@@ -4111,6 +4119,50 @@ function measureRendered(meas, srcNode, cellH) {
   const w = clone2.getBoundingClientRect().width;
   meas.removeChild(clone2);
   return w;
+}
+function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
+  const clone2 = hcell.cloneNode(true);
+  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
+  const title = clone2.querySelector(".lattice-hcell-title");
+  const s = clone2.style;
+  s.maxWidth = "none";
+  s.minWidth = "0";
+  s.flex = "0 0 auto";
+  s.display = "flex";
+  s.alignItems = "center";
+  s.overflow = "visible";
+  s.height = "auto";
+  if (title) {
+    title.style.whiteSpace = "normal";
+    title.style.overflowWrap = "break-word";
+    title.style.overflow = "visible";
+  }
+  meas.appendChild(clone2);
+  try {
+    clone2.style.width = Math.ceil(oneLineWidth) + "px";
+    const oneLineH = clone2.getBoundingClientRect().height;
+    if (!oneLineH) return Math.ceil(oneLineWidth);
+    const limit = oneLineH * 2 - 1;
+    let lo = 24;
+    if (title) {
+      const saved = title.style.overflowWrap;
+      title.style.overflowWrap = "normal";
+      clone2.style.width = "min-content";
+      lo = Math.ceil(clone2.getBoundingClientRect().width);
+      title.style.overflowWrap = saved;
+    }
+    let hi = Math.ceil(oneLineWidth);
+    if (lo >= hi) return hi;
+    for (let i = 0; i < 14 && lo < hi; i++) {
+      const mid = lo + hi >> 1;
+      clone2.style.width = mid + "px";
+      if (clone2.getBoundingClientRect().height <= limit) hi = mid;
+      else lo = mid + 1;
+    }
+    return hi;
+  } finally {
+    meas.removeChild(clone2);
+  }
 }
 function cssEscape(s) {
   return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
@@ -4732,6 +4784,7 @@ var InstanceSettings = class {
       ["guide", t("instance.resizeGuide")]
     ], (v) => set({ resizeGuide: v === "guide" })));
     gL.appendChild(rowToggle(t("instance.wrapText"), inst.wrapText === true, (v) => set({ wrapText: v })));
+    gL.appendChild(rowToggle(t("instance.wrapHeader"), inst.wrapHeader === true, (v) => set({ wrapHeader: v })));
     gL.appendChild(rowToggle(t("instance.linkNewTab"), inst.linkNewTab === true, (v) => set({ linkNewTab: v })));
     gL.appendChild(rowText(t("instance.emptyText"), inst.emptyText || "", t("instance.emptyTextPlaceholder"), (v) => set({ emptyText: v })));
     const gP = makeTab(t("instance.groupPagination"));
@@ -8353,6 +8406,7 @@ var Renderer = class {
     root.classList.toggle("layout-fitData", inst.layout !== "fit");
     root.classList.toggle("no-zebra", inst.zebra === false);
     root.classList.toggle("wrap-text", inst.wrapText === true);
+    root.classList.toggle("wrap-header", inst.wrapHeader === true);
     const theme = inst.theme && inst.theme !== "default" ? inst.theme : null;
     if (theme) document.documentElement.setAttribute("data-lattice-theme", theme);
     else document.documentElement.removeAttribute("data-lattice-theme");
@@ -10294,6 +10348,8 @@ var INSTANCE_DEFAULTS = {
   // pruhované řádky
   wrapText: false,
   // zalamovat text v buňkách (jinak … ořez)
+  wrapHeader: false,
+  // zalamovat názvy sloupců v záhlaví (nezávisle na wrapText); auto-fit počítá s 2 řádky
   emptyText: "",
   // placeholder pro prázdné buňky (např. '—')
   linkNewTab: false,
@@ -12000,6 +12056,9 @@ var Lattice = class {
     }
     if ("headerRotate" in patch) {
       this.renderer.renderHeader();
+      this.renderer.applyLayout();
+    }
+    if ("wrapHeader" in patch) {
       this.renderer.applyLayout();
     }
     if ("summaryRow" in patch || "groupSubtotals" in patch) {

@@ -2022,6 +2022,7 @@ export class Renderer {
     root.classList.toggle('layout-fitData', inst.layout !== 'fit');
     root.classList.toggle('no-zebra', inst.zebra === false);
     root.classList.toggle('wrap-text', inst.wrapText === true);
+    root.classList.toggle('wrap-header', inst.wrapHeader === true);
     // Motiv — atribut na <html>, aby ho dědil grid i plovoucí panely na body.
     const theme = inst.theme && inst.theme !== 'default' ? inst.theme : null;
     if (theme) document.documentElement.setAttribute('data-lattice-theme', theme);

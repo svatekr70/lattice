@@ -55,6 +55,7 @@ const INSTANCE_DEFAULTS = {
   fontFamily: '',         // '' = dle motivu | jinak CSS font-family override
   zebra: true,            // pruhované řádky
   wrapText: false,        // zalamovat text v buňkách (jinak … ořez)
+  wrapHeader: false,      // zalamovat názvy sloupců v záhlaví (nezávisle na wrapText); auto-fit počítá s 2 řádky
   emptyText: '',          // placeholder pro prázdné buňky (např. '—')
   linkNewTab: false,      // odkazy (typ 'link') otevírat v nové kartě (+ ikona); per-sloupec přebije formatterParams.target
   locale: '',             // BCP-47 locale pro formát čísel/měny ('' = dle prohlížeče)
@@ -1881,6 +1882,7 @@ export class Lattice {
     else if ('externalFiltersCollapsed' in patch) this.renderer.renderExternalFilters(); // jen sbalit/rozbalit panel
     if ('rowNumbers' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('headerRotate' in patch) { this.renderer.renderHeader(); this.renderer.applyLayout(); }
+    if ('wrapHeader' in patch) { this.renderer.applyLayout(); } // změna výšky záhlaví → přepočítat sticky offsety
     if ('summaryRow' in patch || 'groupSubtotals' in patch) { this.renderer.renderBody(); }
     if ('emptyText' in patch || 'wrapText' in patch || 'locale' in patch || 'scaleColors' in patch || 'linkNewTab' in patch) { this.renderer.renderBody(); }
     if ('groupBy' in patch || 'groupDisplay' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }

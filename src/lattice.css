@@ -1586,6 +1586,13 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-empty-cell { color: var(--lattice-muted, #6b7583); }
 .lattice.no-zebra .lattice-row.is-odd .lattice-cell { background: var(--lattice-bg); }
 .lattice.wrap-text .lattice-cell { white-space: normal; overflow-wrap: anywhere; }
+/* zalamování názvů sloupců v záhlaví — nezávislé na wrap-text buněk; netýká se
+   otočených hlaviček (ty už si výšku řídí přes writing-mode). Hlavička je flex
+   sloupec, takže při 2 řádcích výška roste a všechny buňky řádku se zarovnají. */
+.lattice.wrap-header .lattice-hcell:not(.is-rot-90):not(.is-rot-270) .lattice-hcell-title {
+  white-space: normal;
+  overflow-wrap: break-word; /* láme přednostně na mezerách; slovo rozdělí až v nouzi */
+}
 
 /* per-column formát: tlačítko „0.0" + popover */
 .lattice-fmtbtn { font-size: 0.62em; font-weight: 700; letter-spacing: -0.03em; }

@@ -4,6 +4,15 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [Nevydáno]
+
+### Přidáno
+- **Zalamování názvů sloupců** (`wrapHeader`) — nezávislé na zalamování dat v buňkách
+  (`wrapText`). Když je zapnuté, auto-fit (dvojklik na oddělovač) změří šířku podle názvu
+  složeného do **2 řádků** (nikdy neužší než nejdelší slovo + ikony), ale zároveň **nikdy
+  neužší než nejširší nezalomená data** na zobrazené stránce — data se tak neořežou.
+  Netýká se otočených hlaviček. Přepínač v „Nastavení tabulky → Rozvržení".
+
 ## [1.3.0] – 2026-08-01
 
 ### Přidáno

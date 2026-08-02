@@ -197,7 +197,8 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
-| `zebra` / `wrapText` / `emptyText` | pruhování / zalamování / placeholder prázdné buňky |
+| `zebra` / `wrapText` / `emptyText` | pruhování / zalamování dat v buňkách / placeholder prázdné buňky |
+| `wrapHeader` | `true` = zalamovat názvy sloupců v záhlaví (nezávisle na `wrapText`). Auto-fit (dvojklik na oddělovač) pak počítá šířku podle názvu složeného do 2 řádků, ale nikdy ne užší než nejširší nezalomená data na stránce. Netýká se otočených hlaviček. |
 | `linkNewTab` | odkazy (typ `link`) otevírat v nové kartě + ikona externího odkazu. Per-sloupec přebije `formatterParams.target`. |
 | `scaleColors` | kotevní barvy semaforu `[low, mid, high]` (ovlivní condFormat i boolean ✓/✕) |
 | `cssVars` | vlastní CSS proměnné `{ '--lattice-accent': '#e91e63', … }` |

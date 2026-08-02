@@ -139,9 +139,19 @@ export function measureColumnWidth(col, grid) {
   host.appendChild(meas);
 
   const cellH = cells[0]?.clientHeight || 0;
+  const rot = col.headerRotate != null ? col.headerRotate : grid.instance.headerRotate;
+  const rotated = rot === '90' || rot === '270';
+  const wrapHeader = grid.instance.wrapHeader === true && !rotated;
   let max = 0;
   try {
-    if (hcell) max = Math.max(max, measureRendered(meas, hcell, cellH));
+    if (hcell) {
+      // Hlavička: při zapnutém zalamování názvů počítáme se šířkou, na kterou se
+      // název složí do (max.) 2 řádků — jinak s plnou šířkou na 1 řádek. Datové
+      // buňky se měří vždy nezalomené (nowrap), takže výsledná šířka je nikdy
+      // menší než nejširší nezalomená hodnota na stránce.
+      const one = measureRendered(meas, hcell, cellH);
+      max = Math.max(max, wrapHeader ? measureWrappedHeaderWidth(meas, hcell, one) : one);
+    }
     for (const cell of cells) max = Math.max(max, measureRendered(meas, cell, cellH));
   } finally {
     meas.remove();
@@ -175,6 +185,51 @@ function measureRendered(meas, srcNode, cellH) {
   const w = clone.getBoundingClientRect().width;
   meas.removeChild(clone);
   return w;
+}
+
+/**
+ * Cílová šířka zalamované hlavičky = nejmenší šířka, při níž se název složí do
+ * (maximálně) 2 řádků. Dolní mez je nejdelší slovo + ikony (nechceme lámat slova),
+ * horní mez je šířka na 1 řádek. Binárně hledáme přes reálně změřenou výšku klonu.
+ */
+function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
+  const clone = hcell.cloneNode(true);
+  clone.querySelectorAll?.('.lattice-resize-handle').forEach((h) => h.remove());
+  const title = clone.querySelector('.lattice-hcell-title');
+  const s = clone.style;
+  s.maxWidth = 'none'; s.minWidth = '0'; s.flex = '0 0 auto';
+  s.display = 'flex'; s.alignItems = 'center'; s.overflow = 'visible'; s.height = 'auto';
+  if (title) { title.style.whiteSpace = 'normal'; title.style.overflowWrap = 'break-word'; title.style.overflow = 'visible'; }
+  meas.appendChild(clone);
+  try {
+    // Výška na jednom řádku (referenční) + práh pro „≤ 2 řádky".
+    clone.style.width = Math.ceil(oneLineWidth) + 'px';
+    const oneLineH = clone.getBoundingClientRect().height;
+    if (!oneLineH) return Math.ceil(oneLineWidth);
+    const limit = oneLineH * 2 - 1; // dvouřádková výška ≤ 2× jednořádková (padding je společný)
+
+    // Dolní mez = min-content (nejdelší slovo + ikony), bez lámání slov.
+    let lo = 24;
+    if (title) {
+      const saved = title.style.overflowWrap;
+      title.style.overflowWrap = 'normal';
+      clone.style.width = 'min-content';
+      lo = Math.ceil(clone.getBoundingClientRect().width);
+      title.style.overflowWrap = saved;
+    }
+    let hi = Math.ceil(oneLineWidth);
+    if (lo >= hi) return hi;
+
+    // Nejmenší šířka, při níž výška nepřeroste 2 řádky.
+    for (let i = 0; i < 14 && lo < hi; i++) {
+      const mid = (lo + hi) >> 1;
+      clone.style.width = mid + 'px';
+      if (clone.getBoundingClientRect().height <= limit) hi = mid; else lo = mid + 1;
+    }
+    return hi;
+  } finally {
+    meas.removeChild(clone);
+  }
 }
 
 function cssEscape(s) {

@@ -143,6 +143,7 @@ export class InstanceSettings {
       ['native', t('instance.resizeNative')], ['guide', t('instance.resizeGuide')],
     ], (v) => set({ resizeGuide: v === 'guide' })));
     gL.appendChild(rowToggle(t('instance.wrapText'), inst.wrapText === true, (v) => set({ wrapText: v })));
+    gL.appendChild(rowToggle(t('instance.wrapHeader'), inst.wrapHeader === true, (v) => set({ wrapHeader: v })));
     gL.appendChild(rowToggle(t('instance.linkNewTab'), inst.linkNewTab === true, (v) => set({ linkNewTab: v })));
     gL.appendChild(rowText(t('instance.emptyText'), inst.emptyText || '', t('instance.emptyTextPlaceholder'), (v) => set({ emptyText: v })));
 
