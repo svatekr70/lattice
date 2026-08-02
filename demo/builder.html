@@ -118,6 +118,7 @@
       <div class="two">
         <label class="row"><input type="checkbox" id="opt-zebra" checked> Pruhované řádky</label>
         <label class="row"><input type="checkbox" id="opt-wrap"> Zalamovat text</label>
+        <label class="row"><input type="checkbox" id="opt-wrapheader"> Zalamovat názvy sloupců</label>
         <label class="row"><input type="checkbox" id="opt-linknewtab"> Odkazy v nové kartě</label>
       </div>
       <div class="field"><span>Barevná škála (semafor) — dolní / střed / horní; ovlivní i ✓/✕ boolean</span>
@@ -561,6 +562,7 @@ function buildInstance() {
   if (chk('opt-resizeguide')) inst.resizeGuide = true;
   if (!$('opt-zebra').checked) inst.zebra = false;
   if (chk('opt-wrap')) inst.wrapText = true;
+  if (chk('opt-wrapheader')) inst.wrapHeader = true;
   if (chk('opt-linknewtab')) inst.linkNewTab = true;
   if ($('opt-empty').value) inst.emptyText = $('opt-empty').value;
   if (val('opt-summary')) inst.summaryRow = val('opt-summary');
