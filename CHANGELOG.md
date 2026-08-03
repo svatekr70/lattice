@@ -4,6 +4,24 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.5.1] – 2026-08-03
+
+### Dokumentace
+- **`docs/API.md` — rozsáhlé doplnění a opravy** (jen dokumentace, chování knihovny beze změny):
+  - Nová sekce **Server-side režim (`serverSide` / `ajax`)**: plný objekt `ajax`
+    (`url, method, params, headers, paramNames, requestBuilder, responseParser`), skládání
+    `ajax.params` při každém dotazu (externí stav + `refresh()`), přesná struktura request
+    parametrů (`page` 1-based, `size`, `sort[]`, `filter[]` s typy `like/!like/=/!=/in/>=/>/<=/</dateRange`,
+    `search`), tvar odpovědi (`data/total/last_page/last_row` + fallbacky) a **auto-refetch**.
+  - Sloupec **`visible: false`** (skrytý po startu, zapnutelný v dialogu Sloupce).
+  - **Rozšířený filtr** — schéma stromu (`applyAdvanced(tree)`) + 14 operátorů; poznámka, že
+    neexistuje externí row-predikát a že se v server-side na server neposílá.
+  - Opravy signatur: `onCellEdit({field,row,rowIndex,oldValue,newValue})`, řádkové `actions`
+    (`title` ne `label`, `onClick(row,index,e)`), rozdělení `rowContextMenu` `(row,index)` vs.
+    `cellContextMenu` `(ctx)`, `select`/`multiselect` editor bere možnosti z `col.filterValues`.
+  - Upřesnění: `summaryRow:'all'` v server-side agreguje jen z načtené stránky; výběr napříč
+    stránkami (`setSelectScope`, `selectKeys`, chování `getSelectedKeys`/`getSelectedRows`).
+
 ## [1.5.0] – 2026-08-03
 
 ### Přidáno
@@ -179,6 +197,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.5.1]: https://github.com/svatekr70/lattice/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/svatekr70/lattice/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/svatekr70/lattice/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/svatekr70/lattice/compare/v1.2.0...v1.3.0

@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.5.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.5.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -69,7 +69,7 @@ const grid = new Lattice('#grid', {
 | `id` | **Povinné.** Klíč persistence (localStorage `lattice:<id>`). |
 | `columns` | Pole definic sloupců (viz níže). |
 | `data` | Client-side data (pole objektů). |
-| `serverSide` / `ajaxUrl` / `progressiveLoad` | Server-side režim. Grid posílá `page, size, sort[], filter[], search`, čeká `{ data, total }`. `progressiveLoad: 'scroll' \| 'load'` = donačítání. |
+| `serverSide` / `ajaxUrl` / `ajax` / `progressiveLoad` | Server-side režim. `ajaxUrl` = jen URL; `ajax` = plný objekt requestu (`url, method, params, headers, requestBuilder, responseParser`). `progressiveLoad: 'scroll' \| 'load'` = donačítání. **Podrobně viz *Server-side režim*.** |
 | `virtualScroll` | Virtuální scrollování (obří client-side data, bez stránkování). |
 | `quickSearch` | Pole rychlého hledání přes všechny viditelné sloupce (předpočítaný index). |
 | `keyField` | Klíč řádku (jinak sloupec typu `id`, jinak `'id'`). |
@@ -87,8 +87,9 @@ const grid = new Lattice('#grid', {
 | `movableRows` / `orderField` / `acceptExternalRows` | Přesouvání řádků (tažením), přečíslování, příjem řádků z jiné tabulky. |
 | `treeData` (+ `treeIdField`, `treeParentField`, `treeChildField`, `treeLeftField`, `treeRightField`, `treeStartExpanded`) | Hierarchická data (strom): zanořené `_children`, plochý `parentId`, nebo nested-set (lft/rgt). |
 | `history` / `historySize` | Undo/redo (client-side). |
-| `actions` | Sloupec akcí: `[{ name, onClick(row), disabled?(row), visible?(row), danger? }]`. Styl řídí `instance.actionsLayout`. |
-| `rowContextMenu` / `cellContextMenu` | Kontextové menu řádku / buňky: `(ctx) => [{ label, action, disabled? }]`. |
+| `actions` | Řádkové akce: `[{ name, title?, icon?, onClick(row, index, e), visible?(row), disabled?(row), danger? }]`. Pole je **`title`** (ne `label`); `onClick` dostává `(row, index, e)`. Styl řídí `instance.actionsLayout`. Viz *Řádkové akce vs. kontextové menu*. |
+| `rowContextMenu` | Kontextové menu řádku (pravý klik na buňku typu `id`): `(row, index) => [{ label, action, disabled? }]`; `action(row, index)`. |
+| `cellContextMenu` | Kontextové menu buňky (pravý klik): `(ctx) => [{ label, action, disabled? }]`, kde `ctx = { row, value, field, index, col, cell, grid }`; `action(ctx)`. |
 | `rowClass` / `rowStyle` | Podmíněné formátování řádku (třídy / inline styl dle dat). |
 | `i18n` | `'cs'` \| `'en'` \| vlastní slovník / objekt. |
 | `helpUrl` | URL nápovědy — ikona **?** v toolbaru (vpravo od ⚙, otevírá se v nové kartě). Default oficiální příručka; `null` ikonu skryje. |
@@ -97,6 +98,27 @@ const grid = new Lattice('#grid', {
 | `globalAdvancedFilters` / `onSaveGlobalAdvancedFilter` / `onDeleteGlobalAdvancedFilter` | Sdílené (globální) rozšířené filtry — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
 | `globalDefaults` / `onSaveGlobalDefaults` | Globální výchozí nastavení tabulky od správce. Viz *Presety a globální nastavení*. |
 | `on…` callbacky | Viz *Callbacky*. |
+
+### Řádkové akce vs. kontextové menu
+
+Dva různé mechanismy, nepleť si je:
+
+- **`actions`** = deklarativní **tlačítka/ikony viditelná v každém řádku** (ve sloupci vpravo, nebo v ⋮ menu podle `instance.actionsLayout: 'column' | 'menu'`). Filtrují se per-řádek přes `visible(row)`.
+- **`rowContextMenu` / `cellContextMenu`** = položky menu **na pravý klik** (na vyžádání). Nemají ikony ani `visible(row)`; `cellContextMenu` má bohatší kontext (`value`, `col`, `cell`).
+
+```js
+new Lattice('#grid', {
+  actions: [
+    { name: 'edit',   title: 'Upravit', onClick: (row, i, e) => openEditor(row) },
+    { name: 'delete', danger: true, disabled: (row) => row.locked,
+      onClick: (row) => remove(row.id) },
+  ],
+  instance: { actionsLayout: 'menu' },        // 'column' (výchozí) | 'menu' (⋮)
+  cellContextMenu: (ctx) => [                  // ctx = { row, value, field, index, col, cell, grid }
+    { label: 'Kopírovat hodnotu', action: (c) => navigator.clipboard.writeText(c.value) },
+  ],
+});
+```
 
 ---
 
@@ -113,11 +135,12 @@ const grid = new Lattice('#grid', {
 | `width` / `minWidth` | number | Šířka v px (uživatel může měnit tažením) / minimální šířka. |
 | `align` | `'left'\|'center'\|'right'` | Zarovnání (jinak dle typu: čísla/datum/`id` vpravo, boolean na střed). |
 | `frozen` | `true\|'left'\|'right'` | Ukotvení sloupce. `'never'` zakáže ukotvení uživatelem. |
+| `visible` | boolean | Výchozí viditelnost (výchozí `true`). **`false` = skrytý po startu, ale zapnutelný** uživatelem v dialogu Sloupce (☰). Uživatelská viditelnost se persistuje (`lattice:<id>`) a má přednost před touto výchozí hodnotou. |
 | `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI **sbalit** do úzkého proužku (ikona −/+ v záhlaví skupiny). Alternativně nested definice: `{ title, columns:[…] }`. |
 | `filter` | string | Typ filtru; když se vynechá, odvodí se z typu. |
 | `filterValues` | array | Hodnoty pro `select`/`multiselect` filtr (jinak `filterUrl`). |
 | `editable` | boolean | Povolí inline editaci buňky. |
-| `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). |
+| `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
 | `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). |
 | `formatterParams` | object | Parametry formátovače daného typu. |
@@ -175,6 +198,36 @@ tabulkou) \| `'universal'` (jedno pole Pole/Typ/Hodnota) \| `'none'`. Navíc **r
 > **Tree:** filtry i rychlé hledání fungují i ve stromovém zobrazení — zachovají cestu k nálezu
 > (rodiče) a větev se shodou se rozbalí.
 
+### Rozšířený filtr (strom pravidel)
+
+`grid.applyAdvanced(tree)` aplikuje strom podmínek, `grid.clearAdvanced()` ho zruší. Schéma:
+
+```js
+// group    = { combinator: 'AND' | 'OR', rules: [ group | condition, … ] }
+// condition = { field, op, value }
+const tree = {
+  combinator: 'AND',
+  rules: [
+    { combinator: 'OR', rules: [
+      { field: 'category', op: 'eq', value: 'PPC' },
+      { field: 'category', op: 'eq', value: 'Bannery' },
+    ] },
+    { field: 'budget', op: 'gte', value: 100000 },
+  ],
+};
+grid.applyAdvanced(tree);
+```
+
+Operátory (`op`): `eq, neq, contains, ncontains, starts, ends, gt, gte, lt, lte, in, nin, empty, nempty`
+(`in`/`nin` = seznam oddělený čárkou; `empty`/`nempty` ignorují `value`). Uložení pojmenovaných
+filtrů viz *Metody instance* (`saveAdvanced`) a *Globální rozšířené filtry*.
+
+> **Externí (programové) filtrování na client-side:** Lattice **nemá** API pro vlastní row-predikát
+> (žádná `filterFunc` / `rowFilter`). Když potřebuješ filtrovat vlastní logikou, buď (a) předej už
+> **předfiltrovaná data** přes `setData(rows)`, nebo (b) sestav strom a použij `applyAdvanced(tree)`.
+> V **server-side** režimu se rozšířený filtr (`advanced`) **na server neposílá** — filtruje se jen
+> client-side; serverovou filtraci řeš přes `setFilter` / `ajax.params`.
+
 ---
 
 ## Nastavení instance (`options.instance` / `setInstance`)
@@ -190,7 +243,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `filterLayout` | `'header'` \| `'external'` \| `'universal'` \| `'none'` |
 | `rowNumbers` | `'none'` \| `'continuous'` \| `'perPage'` |
 | `headerRotate` | `'none'` \| `'90'` \| `'270'` |
-| `summaryRow` | `'none'` \| `'page'` \| `'all'` |
+| `summaryRow` | `'none'` \| `'page'` (zobrazená stránka) \| `'all'`. **Server-side:** `'all'` agreguje jen z **aktuálně načtených řádků** (grid nemá celý dataset) — souhrn „přes vše" musí spočítat server. |
 | `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |
 | `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. |
 | `groupRepeat` | v režimu `'headers'`: opakovat hodnotu seskupení v každém řádku (`true`, výchozí) \| nechat vedoucí sloupce prázdné a hodnotu jen v liště skupiny (`false`). |
@@ -224,7 +277,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `setPage(n)` / `setPageSize(n)` | Stránkování. |
 | `setInstance(patch)` | Nastavení tabulky (theme, layout, …). |
 | `setFormat(kind, patch)` / `setColumnFormat(field, patch)` | Formát globálně / per-sloupec. |
-| `setColumnSummary / setColumnRowSummary(field, fns)` | Souhrny sloupce / řádku. |
+| `setColumnSummary(field, summary)` / `setColumnRowSummary(field, fns)` | Souhrny sloupce (dole) / řádku (vpravo) — pole funkcí `['sum','avg','min','max','count']`. |
 | `setColumnSummaryFormula(field, formula, label?)` | Vážený souhrn sloupce vzorcem (`null` zruší). `label` = název řádku. |
 | `setColumnTitle(field, title)` | Přejmenuje sloupec (prázdné = zpět na výchozí). |
 | `toggleColGroup(title)` / `isColGroupCollapsed(title)` | Sbalí/rozbalí skupinu sloupců / je sbalená? |
@@ -235,18 +288,96 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `updateComputedColumn(field, { title?, type?, formula? })` | Upraví počítaný sloupec (zachová šířku/pořadí/souhrny/formát). |
 | `removeComputedColumn(field)` | Odebere počítaný sloupec (jen sloupce vytvořené vzorcem). |
 | `setPinnedRows({ top?, bottom? })` | Připnuté řádky za běhu. |
-| `getSelectedRows()` / `getSelectedKeys()` / `clearSelection()` | Výběr. |
+| `getSelectedRows()` / `getSelectedKeys()` / `clearSelection()` | Výběr. **Server-side:** `getSelectedKeys()` vrací klíče **napříč stránkami** (přetrvávají při stránkování), ale `getSelectedRows()` vrátí jen řádky **z aktuálně načtené stránky**. |
+| `selectKeys(keys, on?)` / `setSelectScope(scope)` | Programový výběr dle klíčů (`on=false` odznačí) / rozsah „vybrat vše" (`'page' \| 'all'`, výchozí `'page'`). **Server-side:** „vybrat vše filtrované napříč stránkami" grid neumí (nemá celý dataset) — vytáhni ID ze serveru a nastav přes `selectKeys`. |
 | `getColumnLayout()` | Snímek layoutu sloupců. |
 | `undo()` / `redo()` / `clearHistory()` | Historie. |
 | `exportData(fmt, opts)` / `download(fmt, opts)` / `print(opts)` | Export (`csv \| tsv \| json \| xml \| excel`) / tisk. Excel = SpreadsheetML, bez závislosti. |
 | `importFile(file)` / `importFromUrl(url, i, opts)` / `importHTMLTable` / `importXML` | Import. |
 | `setLanguage(lang)` | Změna jazyka. |
 | `applyPreset(preset)` | Aplikace presetu. |
-| `refresh()` | Znovunačtení/překreslení. |
+| `refresh()` | Překreslení / znovunačtení. **Client-side** = přepočet v paměti; **server-side** = **nový HTTP dotaz** (použij po mutaci `ajax.params`). |
 | `destroy()` | Zrušení instance. |
 | `hasGlobalDefaults()` / `globalDefaultsAvailable()` | Jsou k dispozici globální výchozí nastavení / je nová verze, kterou uživatel ještě neviděl. |
 | `applyGlobalDefaults()` / `dismissGlobalDefaults()` | Použít globální výchozí nastavení teď / potvrdit verzi bez použití. |
 | `setGlobalDefaults()` | Uložit aktuální nastavení jako globální výchozí (spustí `onSaveGlobalDefaults`). |
+
+---
+
+## Server-side režim (`serverSide` / `ajax`)
+
+Zapni `serverSide: true` a dodej buď `ajaxUrl: '/api/…'` (jen URL), nebo plný objekt `ajax`:
+
+```js
+new Lattice('#grid', {
+  serverSide: true,
+  ajax: {
+    url: '/api/candidates',
+    method: 'GET',                 // | 'POST' (params se pošlou jako JSON body)
+    params: { tenantId: 5 },       // vlastní parametry do KAŽDÉHO requestu
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    paramNames: { page: 'page', size: 'size', sort: 'sort', filter: 'filter' }, // přejmenování
+    // requestBuilder: (state) => ({ … }),   // volitelně: přestav CELÉ query params
+    // responseParser: (json) => ({ rows, total, lastPage, lastRow }), // volitelně: vlastní parsování
+  },
+});
+```
+
+### `ajax` objekt
+
+| Pole | Typ | Popis |
+|---|---|---|
+| `url` | string | **Povinné** (jinak chyba už při vytvoření). |
+| `method` | `'GET'` \| `'POST'` | Výchozí `'GET'`. GET → params jako query string; POST → params jako **JSON body** (+ `Content-Type: application/json`). |
+| `params` | object | Statické extra parametry přidané do **každého** requestu (viz níže — mutace za běhu). |
+| `headers` | object | Hlavičky do `fetch`. |
+| `paramNames` | object | Přejmenování klíčů. Výchozí `{ page:'page', size:'size', sort:'sort', filter:'filter' }`. Klíč `search` ve výchozí mapě **není** — přidej ho sem, jinak jede pod `'search'`. |
+| `requestBuilder(state)` | fn | Přestaví **celé** query params z `state = { page, pageSize, paginate, sort, filters, universal, search, columns }` (pozor: `pageSize`, ne `size`). Když je zadán, `params` ani `paramNames` se **neaplikují** automaticky. |
+| `responseParser(json)` | fn | Vlastní parsování odpovědi → musí vrátit `{ rows, total, lastPage, lastRow }` (nedostává `pageSize`, takže `lastPage` si spočítej sám). |
+
+### Externí stav přes `ajax.params` (velmi časté)
+
+`ajax.params` se do requestu skládá mělkou kopií (`Object.assign({}, ajax.params)`) **při každém dotazu**, čtenou vždy znovu. Když si podržíš referenci na objekt, zmutuješ ho a zavoláš `refresh()`, nové hodnoty se projeví:
+
+```js
+const params = { tenantId: 5, status: 'active' };
+const grid = new Lattice('#grid', { serverSide: true, ajax: { url: '/api/candidates', params } });
+
+// později — externí filtrovací tlačítko MIMO grid:
+params.status = 'archived';   // zmutuj referenci
+grid.refresh();               // → nový dotaz s aktuálními params
+```
+
+Je to **jediný** způsob, jak poslat na server stav mimo grid (externí filtry). Kopie je **mělká** (vnořené objekty se sdílejí); s `requestBuilder` se `params` neslučuje vůbec.
+
+### Request parametry
+
+- `page` (**1-based**), `size` — posílají se jen při zapnutém stránkování.
+- `sort` = pole `[{ field, dir }]` → serializuje se jako `sort[0][field]`, `sort[0][dir]`, …
+- `filter` = pole `[{ field, type, value }]`, kde `type` ∈ `like, !like, =, !=, in, >=, >, <=, <, dateRange`:
+  - **range** (`number-range`, `date-two`): dva záznamy se stejným `field` (`>=` a `<=`); kterýkoli může chybět.
+  - **date-range**: JEDEN záznam `type:'dateRange'`, `value: "from|to"`.
+  - **multiselect**: `type:'in'`, `value` je **pole** → `filter[0][value][0]`, `filter[0][value][1]`, … (ne spojené `'|'`).
+- `search` (quick search) — trimovaný řetězec, výchozí klíč `search`.
+
+GET serializuje bracket-formátem (`key[i]` pro pole, `key[klíč]` pro objekt); POST pošle stejnou strukturu jako JSON body.
+
+### Odpověď serveru
+
+Grid čte `{ data, total, last_page, last_row }` (nebo přímo top-level pole = `data`):
+
+| Pole | Povinné | Význam |
+|---|---|---|
+| `data` | ~ano | Řádky stránky (může být i celé JSON pole). |
+| `total` | ne\* | Celkový počet po filtraci (napříč stránkami) — pro „Zobrazeno X–Y z **N**". Fallback: `last_row` → `data.length`. |
+| `last_row` | ne | Alternativa/synonymum k `total`. |
+| `last_page` | ne | Počet stránek. Fallback: `ceil(total / size)`. |
+
+\* Bez `total`/`last_row` grid použije `data.length` → počítadlo i paginace budou vědět jen o načtené stránce. Pro korektní stránkování **vracej `total`** (nebo `last_row`). Výpočet: `N = total`, `X = (page−1)·size + 1`, `Y = min(page·size, total)`.
+
+### Auto-refetch
+
+Nový dotaz na server vyvolají **automaticky**: `setFilter`, `clearFilters`, `setQuickSearch`, `setPage` (kromě kliku na aktuální stránku), `setPageSize` a **řazení klikem na hlavičku** (`sortColumn` / `toggleSort`). `refresh()` volej ručně jen po změně `ajax.params` nebo jiného externího stavu — jinak je zbytečné. Rozšířený filtr (`applyAdvanced`) se v server-side na server **neposílá** (filtruje jen client-side).
 
 ---
 
@@ -516,7 +647,7 @@ Grid nikdy nepersistuje sám — přes callbacky říká aplikaci, co se stalo.
 | `onRowClick(row, i, e)` | Levý klik na řádek. |
 | `onCellClick(ctx, e)` | Levý klik na buňku (`{ row, value, field, index, col }`). |
 | `onRowContext(row, i, e)` | Pravý klik na řádek. |
-| `onCellEdit({ field, row, oldValue, newValue })` | Po přijetí inline editace. |
+| `onCellEdit({ field, row, rowIndex, oldValue, newValue })` | Po přijetí inline editace. |
 | `onCellValidate(ctx) => boolean` | Před přijetím editace (false = zamítnout). |
 | `onCellInvalid({ field, row, value, error })` | Deklarativní validace zamítla editaci. |
 | `onDataChange(action, rows)` | Po změně dat (add/update/delete/import…). |
