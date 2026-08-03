@@ -29,6 +29,26 @@ const presetHandlers = {
   },
 };
 
+/* globální rozšířené filtry (spravuje aplikace, stejně jako presety) */
+const ADV_API = '/api/advanced-filters?grid=ex-filter-advanced';
+let globalAdvancedData = [];
+async function loadGlobalAdvanced() {
+  try { globalAdvancedData = await fetch(ADV_API).then((r) => r.json()); } catch { globalAdvancedData = []; }
+  if (mode === 'examples' && currentId === 'ex-filter-advanced') show('ex-filter-advanced');
+}
+const advancedHandlers = {
+  get globalAdvancedFilters() { return globalAdvancedData; },
+  onSaveGlobalAdvancedFilter: (filter) => {
+    globalAdvancedData = globalAdvancedData.filter((f) => f.name !== filter.name).concat(filter);
+    fetch(ADV_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filter }) }).catch(() => {});
+    window.alert('Aplikace → uložit globální rozšířený filtr:\n\n' + JSON.stringify({ name: filter.name }, null, 2));
+  },
+  onDeleteGlobalAdvancedFilter: (filter) => {
+    globalAdvancedData = globalAdvancedData.filter((f) => f.id !== filter.id);
+    fetch(`${ADV_API}&id=${encodeURIComponent(filter.id)}`, { method: 'DELETE' }).catch(() => {});
+  },
+};
+
 const DEFAULTS_API = '/api/defaults';
 let globalDefaultsMap = {};
 async function loadGlobalDefaults() {
@@ -156,6 +176,9 @@ function show(id) {
     globalPresets: presetHandlers.globalPresets,
     onSaveGlobalPreset: presetHandlers.onSaveGlobalPreset,
     onDeleteGlobalPreset: presetHandlers.onDeleteGlobalPreset,
+    globalAdvancedFilters: advancedHandlers.globalAdvancedFilters,
+    onSaveGlobalAdvancedFilter: advancedHandlers.onSaveGlobalAdvancedFilter,
+    onDeleteGlobalAdvancedFilter: advancedHandlers.onDeleteGlobalAdvancedFilter,
     globalDefaultsFor: defaultsHandlers.getFor,
     saveGlobalDefaults: defaultsHandlers.save,
   });
@@ -227,4 +250,5 @@ window.addEventListener('hashchange', () => {
 
 route(location.hash.slice(1) || ALL[0].id);
 loadGlobalPresets();
+loadGlobalAdvanced();
 loadGlobalDefaults();

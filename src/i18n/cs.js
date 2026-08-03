@@ -374,6 +374,7 @@ export default {
     apply: 'Použít',
     clear: 'Vymazat filtr',
     save: 'Uložit',
+    saveGlobal: 'Uložit globálně',
     remove: 'Odebrat',
     delete: 'Smazat uložený filtr',
     ops: {

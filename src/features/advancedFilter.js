@@ -73,21 +73,29 @@ export class AdvancedFilter {
     // Patička: název + uložit; vymazat; použít
     const nameInput = el('input.lattice-adv-name', { type: 'text', placeholder: t('advanced.namePlaceholder') });
     const saveBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.save') });
-    saveBtn.addEventListener('click', () => {
+    const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) { nameInput.focus(); return; }
-      const item = this.grid.saveAdvanced(name, this.tree);
+      const item = this.grid.saveAdvanced(name, this.tree, scope);
       nameInput.value = '';
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
-    });
+    };
+    saveBtn.addEventListener('click', () => saveWithScope('local'));
+    const saveRowEls = [nameInput, saveBtn];
+    // Globus (globální filtr) — jen když aplikace dodala callback; klik pošle callback.
+    if (this.grid.canSaveGlobalAdvanced()) {
+      const globeBtn = el('button.lattice-dr-btn.is-success', { type: 'button', text: t('advanced.saveGlobal') });
+      globeBtn.addEventListener('click', () => saveWithScope('global'));
+      saveRowEls.push(globeBtn);
+    }
     const clearBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.clear') });
     clearBtn.addEventListener('click', () => { this.grid.clearAdvanced(); this.close(); });
     const applyBtn = el('button.lattice-dr-btn.is-primary', { type: 'button', text: t('advanced.apply') });
     applyBtn.addEventListener('click', () => { this.grid.applyAdvanced(this.tree); this.close(); });
 
     panel.appendChild(el('div.lattice-adv-footer', {}, [
-      el('div.lattice-adv-saverow', {}, [nameInput, saveBtn]),
+      el('div.lattice-adv-saverow', {}, saveRowEls),
       el('div.lattice-adv-footer-btns', {}, [clearBtn, applyBtn]),
     ]));
   }
@@ -99,7 +107,8 @@ export class AdvancedFilter {
 
     const sel = el('select.lattice-adv-saved');
     sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
-    for (const f of saved) sel.appendChild(el('option', { value: f.id, text: f.name }));
+    // globální filtry (sdílené aplikací) odlišíme glóbem, ať je poznat od lokálních
+    for (const f of saved) sel.appendChild(el('option', { value: f.id, text: (f.scope === 'global' ? '🌐 ' : '') + f.name }));
     sel.value = this.selectedId || '';
     sel.addEventListener('change', () => {
       this.selectedId = sel.value;

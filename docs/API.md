@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.4.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.4.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.4.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.5.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -94,6 +94,7 @@ const grid = new Lattice('#grid', {
 | `helpUrl` | URL nápovědy — ikona **?** v toolbaru (vpravo od ⚙, otevírá se v nové kartě). Default oficiální příručka; `null` ikonu skryje. |
 | `storage` | Vlastní `Storage` (default `localStorage`; lze in-memory shim). |
 | `globalPresets` / `onSaveGlobalPreset` / `onDeleteGlobalPreset` | Sdílené (globální) presety — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
+| `globalAdvancedFilters` / `onSaveGlobalAdvancedFilter` / `onDeleteGlobalAdvancedFilter` | Sdílené (globální) rozšířené filtry — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
 | `globalDefaults` / `onSaveGlobalDefaults` | Globální výchozí nastavení tabulky od správce. Viz *Presety a globální nastavení*. |
 | `on…` callbacky | Viz *Callbacky*. |
 
@@ -217,7 +218,9 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `sortColumn(field, dir)` / `toggleSort(field, append?)` | Řazení (append = víceúrovňové). |
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
-| `applyAdvanced(tree)` / `saveAdvanced(name, tree)` | Rozšířený filtr (strom pravidel). |
+| `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
+| `saveAdvanced(name, tree, scope?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). |
+| `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
 | `setPage(n)` / `setPageSize(n)` | Stránkování. |
 | `setInstance(patch)` | Nastavení tabulky (theme, layout, …). |
 | `setFormat(kind, patch)` / `setColumnFormat(field, patch)` | Formát globálně / per-sloupec. |
@@ -311,6 +314,34 @@ Vše se váže na **`options.id` gridu** — je to klíč pro localStorage i pro
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
 Knihovna preset po uložení rovnou přidá do své nabídky — nemusíš překreslovat ani znovu načítat.
 
+### Globální rozšířené filtry — kontrakt
+
+Uložené **rozšířené filtry** (strom pravidel z query-builderu) fungují stejným vzorem jako
+presety: **lokální** (per-uživatel, localStorage) a **globální** (sdílené všem, spravuje
+aplikace). Položka filtru je `{ id, name, tree }`, kde `tree` je strom podmínek
+(`{ combinator: 'AND'|'OR', rules: [...] }`).
+
+**Vstup** (aplikace → knihovna) při vytvoření instance:
+
+| Option | Typ | Popis |
+|---|---|---|
+| `globalAdvancedFilters` | `Array<{id,name,tree}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`). V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
+
+**Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
+
+| Callback | Kdy se volá | Argument |
+|---|---|---|
+| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (tlačítko **globus** v panelu) | `{ id, name, tree }` |
+| `onDeleteGlobalAdvancedFilter(filter)` | uživatel smazal globální filtr (**×**) | `{ id, name }` |
+
+Bez `onSaveGlobalAdvancedFilter` se globus v panelu rozšířeného filtru neukáže (globální
+ukládání je vypnuté; `canSaveGlobalAdvanced()` vrací `false`). Globální filtry se
+**nepersistují** do localStorage — zdrojem pravdy je aplikace, která je dodá při každém startu.
+
+Programově: `grid.saveAdvanced(name, tree, 'global')` uloží globálně (spustí callback a vrátí
+`{ id, name, tree, scope:'global' }`), bez třetího argumentu (nebo `'local'`) uloží lokálně.
+`grid.listAdvanced()` vrací obojí sjednoceně, každou položku se `scope: 'local' | 'global'`.
+
 ### Globální výchozí nastavení (defaults) — kontrakt
 
 Nastaví, jak grid vypadá **novému** uživateli, a umožní správci rozeslat aktualizaci.
@@ -384,6 +415,24 @@ new Lattice('#grid', {
 });
 ```
 
+Globální **rozšířené filtry** stejným vzorem — tabulka
+`lattice_advanced_filters(id PK, grid_id, name, tree JSON, …)` (obdoba `lattice_presets`,
+jen místo sloupce `state` je `tree`):
+
+```js
+new Lattice('#grid', {
+  id: GRID_ID, columns, data,
+  // NAČTENÍ: uložené filtry z DB pro tento grid
+  globalAdvancedFilters: await api.get(`/lattice/advanced-filters?grid=${GRID_ID}`),
+  // ULOŽENÍ: knihovna sestaví { id, name, tree }, aplikace ho zapíše do DB
+  onSaveGlobalAdvancedFilter: (filter) =>
+    api.post('/lattice/advanced-filters', { grid_id: GRID_ID, ...filter }),
+  // SMAZÁNÍ:
+  onDeleteGlobalAdvancedFilter: ({ id }) =>
+    api.delete(`/lattice/advanced-filters/${id}`),
+});
+```
+
 > **Legacy adaptér** (stále podporovaný): místo `globalPresets` + callbacků lze dodat
 > `options.presets = { global: { load(), save(preset), remove(id) } }` (async). Nové kódy
 > ať používají `globalPresets` + `onSaveGlobalPreset` / `onDeleteGlobalPreset`.
@@ -391,7 +440,9 @@ new Lattice('#grid', {
 > **Verze:** globální **presety** i **defaults** (`globalPresets`, `onSaveGlobalPreset`,
 > `onDeleteGlobalPreset`, `globalDefaults`, `onSaveGlobalDefaults`) jsou k dispozici **od
 > `v1.1.0`** — ve `v1.0.1` a starších je jen `applyPreset` + lokální presety. Přes CDN připni
-> `@v1.1.0` (nebo novější).
+> `@v1.1.0` (nebo novější). Globální **rozšířené filtry** (`globalAdvancedFilters`,
+> `onSaveGlobalAdvancedFilter`, `onDeleteGlobalAdvancedFilter`, `saveAdvanced(name, tree, scope)`)
+> jsou k dispozici **od `v1.5.0`**.
 
 ---
 

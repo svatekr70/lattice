@@ -3002,6 +3002,7 @@ var cs_default = {
     apply: "Pou\u017E\xEDt",
     clear: "Vymazat filtr",
     save: "Ulo\u017Eit",
+    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
     remove: "Odebrat",
     delete: "Smazat ulo\u017Een\xFD filtr",
     ops: {
@@ -3442,6 +3443,7 @@ var en_default = {
     apply: "Apply",
     clear: "Clear filter",
     save: "Save",
+    saveGlobal: "Save globally",
     remove: "Remove",
     delete: "Delete saved filter",
     ops: {
@@ -8330,7 +8332,7 @@ var Renderer = class {
       if (saved.length) {
         const sel = el("select.lattice-adv-quick", { title: t("advanced.title") });
         sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
-        for (const s of saved) sel.appendChild(el("option", { value: s.id, text: s.name }));
+        for (const s of saved) sel.appendChild(el("option", { value: s.id, text: (s.scope === "global" ? "\u{1F310} " : "") + s.name }));
         sel.value = grid.activeSavedId();
         sel.addEventListener("change", () => {
           if (!sel.value) {
@@ -8720,17 +8722,24 @@ var AdvancedFilter = class {
     panel.appendChild(this.builderEl);
     const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("advanced.namePlaceholder") });
     const saveBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.save") });
-    saveBtn.addEventListener("click", () => {
+    const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) {
         nameInput.focus();
         return;
       }
-      const item = this.grid.saveAdvanced(name, this.tree);
+      const item = this.grid.saveAdvanced(name, this.tree, scope);
       nameInput.value = "";
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
-    });
+    };
+    saveBtn.addEventListener("click", () => saveWithScope("local"));
+    const saveRowEls = [nameInput, saveBtn];
+    if (this.grid.canSaveGlobalAdvanced()) {
+      const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("advanced.saveGlobal") });
+      globeBtn.addEventListener("click", () => saveWithScope("global"));
+      saveRowEls.push(globeBtn);
+    }
     const clearBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.clear") });
     clearBtn.addEventListener("click", () => {
       this.grid.clearAdvanced();
@@ -8742,7 +8751,7 @@ var AdvancedFilter = class {
       this.close();
     });
     panel.appendChild(el("div.lattice-adv-footer", {}, [
-      el("div.lattice-adv-saverow", {}, [nameInput, saveBtn]),
+      el("div.lattice-adv-saverow", {}, saveRowEls),
       el("div.lattice-adv-footer-btns", {}, [clearBtn, applyBtn])
     ]));
   }
@@ -8752,7 +8761,7 @@ var AdvancedFilter = class {
     const saved = grid.listAdvanced();
     const sel = el("select.lattice-adv-saved");
     sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
-    for (const f of saved) sel.appendChild(el("option", { value: f.id, text: f.name }));
+    for (const f of saved) sel.appendChild(el("option", { value: f.id, text: (f.scope === "global" ? "\u{1F310} " : "") + f.name }));
     sel.value = this.selectedId || "";
     sel.addEventListener("change", () => {
       this.selectedId = sel.value;
@@ -10393,6 +10402,7 @@ var Lattice = class {
     this.filters = Object.assign({}, this.state.filters);
     this.quickSearch = "";
     this.advanced = this.state.advanced || null;
+    this.globalAdvanced = (Array.isArray(options.globalAdvancedFilters) ? options.globalAdvancedFilters : []).map((f) => ({ ...f, scope: "global" }));
     this.universal = this.state.universal || null;
     this.urlState = options.urlState ? { key: typeof options.urlState === "object" && options.urlState.key || options.id } : null;
     this.groupsCollapsed = new Set(this.state.groups || []);
@@ -11045,11 +11055,31 @@ var Lattice = class {
   advancedActive() {
     return !!(this.advanced && this.advanced.rules && this.advanced.rules.length);
   }
-  /** Uloží pojmenovaný rozšířený filtr (stejný název přepíše). */
-  saveAdvanced(name, tree) {
+  /** Lze uložit globální rozšířený filtr? (aplikace dodala callback) */
+  canSaveGlobalAdvanced() {
+    return typeof this.options.onSaveGlobalAdvancedFilter === "function";
+  }
+  /**
+   * Uloží pojmenovaný rozšířený filtr (stejný název ve stejném scope přepíše).
+   *  - scope 'local' (výchozí) — do localStorage blobu (jen pro tohoto uživatele),
+   *    kompletně v knihovně, bez závislosti na aplikaci.
+   *  - scope 'global' — knihovna filtr jen sestaví, ukáže v seznamu a předá aplikaci
+   *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
+   *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
+   */
+  saveAdvanced(name, tree, scope = "local") {
     name = String(name || "").trim();
     if (!name) return null;
     const item = { id: uid2(), name, tree: JSON.parse(JSON.stringify(tree)) };
+    if (scope === "global") {
+      this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
+      const norm5 = { ...item, scope: "global" };
+      this.globalAdvanced.push(norm5);
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === "function") cb({ id: item.id, name: item.name, tree: item.tree });
+      this.renderer.renderToolbar();
+      return norm5;
+    }
     const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     list.push(item);
     this.state.advancedFilters = list;
@@ -11057,13 +11087,24 @@ var Lattice = class {
     this.renderer.renderToolbar();
     return item;
   }
+  /** Smaže uložený rozšířený filtr (lokální z blobu; globální z UI + callback aplikace). */
   deleteAdvanced(id) {
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    if (g) {
+      this.globalAdvanced = this.globalAdvanced.filter((f) => f.id !== id);
+      const cb = this.options.onDeleteGlobalAdvancedFilter;
+      if (typeof cb === "function") cb({ id: g.id, name: g.name });
+      this.renderer.renderToolbar();
+      return;
+    }
     this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id !== id);
     this.store.save(this.state);
     this.renderer.renderToolbar();
   }
+  /** Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'). */
   listAdvanced() {
-    return this.state.advancedFilters || [];
+    const loc = (this.state.advancedFilters || []).map((f) => ({ ...f, scope: "local" }));
+    return [...loc, ...this.globalAdvanced];
   }
   /** Id uloženého filtru odpovídajícího aktivnímu (nebo ''). */
   activeSavedId() {
@@ -12130,7 +12171,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.4.0";
+var VERSION = "1.5.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

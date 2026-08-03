@@ -183,11 +183,14 @@ const RAW_GROUPS = [
       {
         id: 'ex-filter-advanced',
         title: 'Rozšířený filtr',
-        blurb: 'Excel-like skládání pravidel: vnořené skupiny A zároveň / NEBO, mnoho operátorů. Filtry lze pojmenovat a uložit. Předvyplněná ukázka je aktivní a uložená v quick-selectu (ikona nálevky v toolbaru ji otevře).',
-        code: `const tree = {\n  combinator: 'AND',\n  rules: [\n    { combinator: 'OR', rules: [\n      { field: 'category', op: 'eq', value: 'PPC' },\n      { field: 'category', op: 'eq', value: 'Bannery' },\n    ] },\n    { field: 'budget', op: 'gte', value: 100000 },\n  ],\n}\ngrid.saveAdvanced('Ukázka: PPC/Bannery ≥ 100k', tree)\ngrid.applyAdvanced(tree)`,
+        blurb: 'Excel-like skládání pravidel: vnořené skupiny A zároveň / NEBO, mnoho operátorů. Filtry lze pojmenovat a uložit — <b>lokálně</b> (jen pro mě, v prohlížeči) nebo <b>globálně</b> (sdílené všem, spravuje APLIKACE). Globální uložení posílá callback (zelený globus v panelu), načtená pole dodá aplikace při startu; globální filtry poznáš v selectu podle 🌐. Předvyplněná ukázka je aktivní a uložená v quick-selectu (ikona nálevky v toolbaru ji otevře).',
+        code: `const tree = {\n  combinator: 'AND',\n  rules: [\n    { combinator: 'OR', rules: [\n      { field: 'category', op: 'eq', value: 'PPC' },\n      { field: 'category', op: 'eq', value: 'Bannery' },\n    ] },\n    { field: 'budget', op: 'gte', value: 100000 },\n  ],\n}\ngrid.saveAdvanced('Lokální filtr', tree)            // jen pro mě (localStorage)\ngrid.saveAdvanced('Sdílený filtr', tree, 'global')  // → onSaveGlobalAdvancedFilter\ngrid.applyAdvanced(tree)\n\n// Globální filtry dodá/persistuje aplikace:\nnew Lattice('#grid', {\n  globalAdvancedFilters,                              // pole uložené aplikací\n  onSaveGlobalAdvancedFilter: (f) => saveToDb(f),     // globus → callback\n  onDeleteGlobalAdvancedFilter: (f) => removeFromDb(f.id),\n})`,
         mount: (el, ctx) => {
           const grid = new Lattice(el, base(ctx, {
             id: 'ex-filter-advanced', columns: campaignColumns(), data: ctx.data, pageSize: 25,
+            globalAdvancedFilters: ctx.globalAdvancedFilters,
+            onSaveGlobalAdvancedFilter: ctx.onSaveGlobalAdvancedFilter,
+            onDeleteGlobalAdvancedFilter: ctx.onDeleteGlobalAdvancedFilter,
           }));
           const sample = {
             combinator: 'AND',

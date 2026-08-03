@@ -111,6 +111,13 @@ export class Lattice {
     this.filters = Object.assign({}, this.state.filters);
     this.quickSearch = ''; // rychlé hledání přes vše (transientní, nepersistuje se)
     this.advanced = this.state.advanced || null; // aktivní rozšířený filtr (strom)
+    // Globální (sdílené) rozšířené filtry — localStorage je per-prohlížeč, takže
+    // sdílení napříč uživateli knihovna sama nezajistí: pole dodá APLIKACE přes
+    // options.globalAdvancedFilters (načtené z DB dle options.id), uložení/smazání
+    // řeší přes callbacky onSaveGlobalAdvancedFilter / onDeleteGlobalAdvancedFilter.
+    // Nepersistují se do blobu (žijí v paměti instance, aplikace je zdroj pravdy).
+    this.globalAdvanced = (Array.isArray(options.globalAdvancedFilters) ? options.globalAdvancedFilters : [])
+      .map((f) => ({ ...f, scope: 'global' }));
     this.universal = this.state.universal || null; // univerzální filtr { field, op, value }
     // Synchronizace stavu do URL query stringu (sdílitelné filtrované pohledy).
     this.urlState = options.urlState ? { key: (typeof options.urlState === 'object' && options.urlState.key) || options.id } : null;
@@ -845,11 +852,32 @@ export class Lattice {
     return !!(this.advanced && this.advanced.rules && this.advanced.rules.length);
   }
 
-  /** Uloží pojmenovaný rozšířený filtr (stejný název přepíše). */
-  saveAdvanced(name, tree) {
+  /** Lze uložit globální rozšířený filtr? (aplikace dodala callback) */
+  canSaveGlobalAdvanced() {
+    return typeof this.options.onSaveGlobalAdvancedFilter === 'function';
+  }
+
+  /**
+   * Uloží pojmenovaný rozšířený filtr (stejný název ve stejném scope přepíše).
+   *  - scope 'local' (výchozí) — do localStorage blobu (jen pro tohoto uživatele),
+   *    kompletně v knihovně, bez závislosti na aplikaci.
+   *  - scope 'global' — knihovna filtr jen sestaví, ukáže v seznamu a předá aplikaci
+   *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
+   *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
+   */
+  saveAdvanced(name, tree, scope = 'local') {
     name = String(name || '').trim();
     if (!name) return null;
     const item = { id: uid(), name, tree: JSON.parse(JSON.stringify(tree)) };
+    if (scope === 'global') {
+      this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
+      const norm = { ...item, scope: 'global' };
+      this.globalAdvanced.push(norm);
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === 'function') cb({ id: item.id, name: item.name, tree: item.tree });
+      this.renderer.renderToolbar(); // aktualizovat rychlý select v toolbaru
+      return norm;
+    }
     const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     list.push(item);
     this.state.advancedFilters = list;
@@ -858,14 +886,25 @@ export class Lattice {
     return item;
   }
 
+  /** Smaže uložený rozšířený filtr (lokální z blobu; globální z UI + callback aplikace). */
   deleteAdvanced(id) {
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    if (g) {
+      this.globalAdvanced = this.globalAdvanced.filter((f) => f.id !== id);
+      const cb = this.options.onDeleteGlobalAdvancedFilter;
+      if (typeof cb === 'function') cb({ id: g.id, name: g.name });
+      this.renderer.renderToolbar();
+      return;
+    }
     this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id !== id);
     this.store.save(this.state);
     this.renderer.renderToolbar();
   }
 
+  /** Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'). */
   listAdvanced() {
-    return this.state.advancedFilters || [];
+    const loc = (this.state.advancedFilters || []).map((f) => ({ ...f, scope: 'local' }));
+    return [...loc, ...this.globalAdvanced];
   }
 
   /** Id uloženého filtru odpovídajícího aktivnímu (nebo ''). */

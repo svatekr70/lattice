@@ -374,6 +374,7 @@ export default {
     apply: 'Apply',
     clear: 'Clear filter',
     save: 'Save',
+    saveGlobal: 'Save globally',
     remove: 'Remove',
     delete: 'Delete saved filter',
     ops: {

@@ -1944,7 +1944,7 @@ export class Renderer {
       if (saved.length) {
         const sel = el('select.lattice-adv-quick', { title: t('advanced.title') });
         sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
-        for (const s of saved) sel.appendChild(el('option', { value: s.id, text: s.name }));
+        for (const s of saved) sel.appendChild(el('option', { value: s.id, text: (s.scope === 'global' ? '🌐 ' : '') + s.name }));
         sel.value = grid.activeSavedId();
         sel.addEventListener('change', () => {
           if (!sel.value) { grid.clearAdvanced(); return; }

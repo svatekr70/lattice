@@ -31,6 +31,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname === '/api/campaigns') return handleApi(url, res);
   if (url.pathname === '/api/presets') return handlePresets(req, url, res);
+  if (url.pathname === '/api/advanced-filters') return handleAdvancedFilters(req, url, res);
   if (url.pathname === '/api/defaults') return handleDefaults(req, url, res);
   if (url.pathname === '/api/fetch' || url.pathname === '/demo/api/fetch.php') return handleFetch(url, res);
   if (url.pathname === '/') return redirect(res, '/demo/');
@@ -80,6 +81,35 @@ async function handlePresets(req, url, res) {
   if (req.method === 'DELETE') {
     const id = url.searchParams.get('id');
     GLOBAL_PRESETS[grid] = GLOBAL_PRESETS[grid].filter((p) => p.id !== id);
+    return json(res, { ok: true });
+  }
+  res.writeHead(405); res.end();
+}
+
+/**
+ * Globální rozšířené filtry — stejná simulace jako presety (sdílené mezi uživateli,
+ * v EverFLOW to bude Nette endpoint + DB). Položka: { id, name, tree }. Keyed dle `grid`.
+ */
+const GLOBAL_ADVANCED = Object.create(null);
+async function handleAdvancedFilters(req, url, res) {
+  const grid = url.searchParams.get('grid') || 'default';
+  GLOBAL_ADVANCED[grid] = GLOBAL_ADVANCED[grid] || [];
+
+  if (req.method === 'GET') {
+    return json(res, GLOBAL_ADVANCED[grid]);
+  }
+  if (req.method === 'POST') {
+    const body = await readBody(req);
+    const filter = body && body.filter ? body.filter : body;
+    if (!filter || !filter.name) return json(res, { error: 'missing filter' });
+    // stejný název přepíše
+    GLOBAL_ADVANCED[grid] = GLOBAL_ADVANCED[grid].filter((f) => f.name !== filter.name);
+    GLOBAL_ADVANCED[grid].push(filter);
+    return json(res, filter);
+  }
+  if (req.method === 'DELETE') {
+    const id = url.searchParams.get('id');
+    GLOBAL_ADVANCED[grid] = GLOBAL_ADVANCED[grid].filter((f) => f.id !== id);
     return json(res, { ok: true });
   }
   res.writeHead(405); res.end();

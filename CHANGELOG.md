@@ -4,6 +4,20 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.5.0] – 2026-08-03
+
+### Přidáno
+- **Globální (sdílené) rozšířené filtry** — uložené rozšířené filtry (strom pravidel) lze
+  teď ukládat nejen lokálně (per-uživatel, localStorage), ale i **globálně** pro všechny.
+  Stejný vzor jako globální presety: aplikace dodá filtry při startu
+  (`options.globalAdvancedFilters: [{id,name,tree}]`) a persistuje je přes callbacky
+  `onSaveGlobalAdvancedFilter({id,name,tree})` / `onDeleteGlobalAdvancedFilter({id,name})`.
+  V UI přibyl v panelu rozšířeného filtru zelený **„Uložit globálně"** (jen když aplikace
+  dodá callback); globální filtry se v nabídce (panel i quick-select v toolbaru) odlišují
+  glóbem (🌐). Nové/rozšířené metody: `saveAdvanced(name, tree, scope)`
+  (`'local'` | `'global'`), `listAdvanced()` (vrací položky se `scope`),
+  `deleteAdvanced(id)` (routuje dle scope), `canSaveGlobalAdvanced()`.
+
 ## [1.4.0] – 2026-08-02
 
 ### Přidáno
@@ -165,6 +179,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.5.0]: https://github.com/svatekr70/lattice/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/svatekr70/lattice/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/svatekr70/lattice/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/svatekr70/lattice/compare/v1.1.0...v1.2.0
