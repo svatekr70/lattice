@@ -291,6 +291,7 @@ export default {
     selectTrigger: 'Vybírat',
     selectByCheckbox: 'Kliknutím na checkbox',
     selectByRow: 'Kliknutím na řádek',
+    rowHighlight: 'Zvýraznění řádku klikem',
     actionsLayout: 'Sloupec akcí',
     actionsAsColumn: 'Poslední sloupec (ikony)',
     actionsAsMenu: 'Menu ⋮ v číslování',

@@ -2977,6 +2977,7 @@ var cs_default = {
     selectTrigger: "Vyb\xEDrat",
     selectByCheckbox: "Kliknut\xEDm na checkbox",
     selectByRow: "Kliknut\xEDm na \u0159\xE1dek",
+    rowHighlight: "Zv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem",
     actionsLayout: "Sloupec akc\xED",
     actionsAsColumn: "Posledn\xED sloupec (ikony)",
     actionsAsMenu: "Menu \u22EE v \u010D\xEDslov\xE1n\xED"
@@ -3421,6 +3422,7 @@ var en_default = {
     selectTrigger: "Select by",
     selectByCheckbox: "Clicking the checkbox",
     selectByRow: "Clicking the row",
+    rowHighlight: "Highlight row on click",
     actionsLayout: "Actions column",
     actionsAsColumn: "Last column (icons)",
     actionsAsMenu: "Menu \u22EE in row numbers"
@@ -4912,6 +4914,7 @@ var InstanceSettings = class {
         ["row", t("instance.selectByRow")]
       ], (v) => set({ selectRowClick: v === "row" })));
     }
+    gC.appendChild(rowToggle(t("instance.rowHighlight"), inst.rowHighlight === true || inst.rowHighlight === "click", (v) => set({ rowHighlight: v })));
     if (grid.hasActions()) {
       gC.appendChild(rowSelect(t("instance.actionsLayout"), inst.actionsLayout || "column", [
         ["column", t("instance.actionsAsColumn")],
@@ -12344,7 +12347,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.8.0";
+var VERSION = "1.8.1";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

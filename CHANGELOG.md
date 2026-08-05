@@ -4,6 +4,13 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.8.1] – 2026-08-05
+
+### Přidáno
+- **Přepínač „Zvýraznění řádku klikem" v UI** (Nastavení tabulky ⚙ → *Sloupce a řádky*) —
+  `instance.rowHighlight` (z v1.8.0) šel doteď zapnout jen kódem. Nově ho uživatel zapne/vypne
+  přímo z dialogu nastavení (persistuje se jako ostatní volby instance).
+
 ## [1.8.0] – 2026-08-05
 
 ### Přidáno
@@ -295,6 +302,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.8.1]: https://github.com/svatekr70/lattice/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/svatekr70/lattice/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/svatekr70/lattice/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/svatekr70/lattice/compare/v1.6.1...v1.6.2

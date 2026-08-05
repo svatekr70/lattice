@@ -291,6 +291,7 @@ export default {
     selectTrigger: 'Select by',
     selectByCheckbox: 'Clicking the checkbox',
     selectByRow: 'Clicking the row',
+    rowHighlight: 'Highlight row on click',
     actionsLayout: 'Actions column',
     actionsAsColumn: 'Last column (icons)',
     actionsAsMenu: 'Menu ⋮ in row numbers',

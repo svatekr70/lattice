@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.8.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.8.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -276,7 +276,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
-| `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Viz *Zvýraznění řádků* (`@v1.8.0`). |
+| `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Přepínatelné i z UI (*Sloupce a řádky*). Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
 | `zebra` / `wrapText` / `emptyText` | pruhování / **globální** zalamování dat v buňkách (per-sloupec přebije `col.wrap`) / placeholder prázdné buňky |
 | `wrapHeader` | `true` = zalamovat názvy sloupců v záhlaví (nezávisle na `wrapText`). Auto-fit (dvojklik na oddělovač) pak počítá šířku podle názvu složeného do 2 řádků, ale nikdy ne užší než nejširší nezalomená data na stránce. Netýká se otočených hlaviček. |
@@ -302,7 +302,8 @@ new Lattice('#grid', { onHighlightChange: (keys) => save(keys) });
 ```
 
 **Klik na řádek přepíná zvýraznění** přes `instance.rowHighlight: true` (nebo `'click'`).
-Klik do editovatelné buňky, akčního tlačítka nebo checkboxu výběru se ignoruje.
+Klik do editovatelné buňky, akčního tlačítka nebo checkboxu výběru se ignoruje. Zapnout/vypnout
+jde i **z UI** — Nastavení tabulky (⚙) → *Sloupce a řádky* → „Zvýraznění řádku klikem" (`@v1.8.1`).
 
 **Barva** je řízena CSS proměnnými (bez `!important` na straně aplikace) — přepiš je globálně,
 na `.lattice`, nebo přes `instance.cssVars`:

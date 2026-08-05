@@ -196,6 +196,7 @@ export class InstanceSettings {
         ['checkbox', t('instance.selectByCheckbox')], ['row', t('instance.selectByRow')],
       ], (v) => set({ selectRowClick: v === 'row' })));
     }
+    gC.appendChild(rowToggle(t('instance.rowHighlight'), inst.rowHighlight === true || inst.rowHighlight === 'click', (v) => set({ rowHighlight: v })));
     if (grid.hasActions()) {
       gC.appendChild(rowSelect(t('instance.actionsLayout'), inst.actionsLayout || 'column', [
         ['column', t('instance.actionsAsColumn')], ['menu', t('instance.actionsAsMenu')],
