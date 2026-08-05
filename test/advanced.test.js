@@ -113,3 +113,48 @@ test('prázdný strom = projde vše', () => {
   assert.equal(isEmptyTree({ combinator: 'AND', rules: [] }), true);
   assert.equal(evalGroup({ combinator: 'AND', rules: [] }, { x: 1 }), true);
 });
+
+/* --- saveAdvanced: přepis pod stejným názvem zachová id (v1.6.1) --- */
+
+import { Lattice } from '../src/Lattice.js';
+
+/** Minimální mock kontextu pro volání saveAdvanced přes prototyp (bez DOM/rendereru). */
+function mockGridCtx({ global = false } = {}) {
+  return {
+    state: { advancedFilters: [] },
+    globalAdvanced: [],
+    store: { save() {} },
+    renderer: { renderToolbar() {} },
+    options: global ? { onSaveGlobalAdvancedFilter() {} } : {},
+  };
+}
+const save = Lattice.prototype.saveAdvanced;
+
+test('saveAdvanced (local) — přepis stejného názvu zachová id', () => {
+  const ctx = mockGridCtx();
+  const a = save.call(ctx, 'Zkušebka', { combinator: 'AND', rules: [] }, 'local');
+  const b = save.call(ctx, 'Zkušebka', { combinator: 'OR', rules: [] }, 'local');
+  assert.equal(a.id, b.id);                       // stejné id → přepis, ne nový záznam
+  assert.equal(ctx.state.advancedFilters.length, 1);
+  assert.equal(ctx.state.advancedFilters[0].tree.combinator, 'OR');
+});
+
+test('saveAdvanced (global) — přepis stejného názvu zachová id', () => {
+  const ctx = mockGridCtx({ global: true });
+  let lastCb = null;
+  ctx.options.onSaveGlobalAdvancedFilter = (x) => { lastCb = x; };
+  const a = save.call(ctx, 'Sdílený', { combinator: 'AND', rules: [] }, 'global');
+  const b = save.call(ctx, 'Sdílený', { combinator: 'OR', rules: [] }, 'global');
+  assert.equal(a.id, b.id);                       // stejné id → aplikace přepíše DB řádek
+  assert.equal(lastCb.id, a.id);                  // callback dostane totéž id
+  assert.equal(ctx.globalAdvanced.length, 1);
+  assert.equal(ctx.globalAdvanced[0].tree.combinator, 'OR');
+});
+
+test('saveAdvanced — různé názvy = různá id', () => {
+  const ctx = mockGridCtx();
+  const a = save.call(ctx, 'A', { combinator: 'AND', rules: [] }, 'local');
+  const b = save.call(ctx, 'B', { combinator: 'AND', rules: [] }, 'local');
+  assert.notEqual(a.id, b.id);
+  assert.equal(ctx.state.advancedFilters.length, 2);
+});

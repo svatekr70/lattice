@@ -1938,6 +1938,10 @@ export class Renderer {
       });
       advBtn.addEventListener('click', () => grid.advancedFilter.toggle(advBtn));
       toolbar.appendChild(advBtn);
+      // Panel drží referenci na toggle tlačítko kvůli ukotvení (positionUnder). Překreslení
+      // toolbaru vyrobí nové tlačítko a staré odpojí z DOM → panel by se přepočítal proti
+      // rectu {0,0,0,0} a skočil do rohu. Když je panel otevřený, přesměruj kotvu na živé tlačítko.
+      if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
 
       // Rychlý výběr uloženého rozšířeného filtru přímo v toolbaru (když nějaký je).
       const saved = grid.listAdvanced();

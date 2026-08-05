@@ -60,12 +60,18 @@ export function clear(node) {
 export function onOutside(node, cb) {
   const onDown = (e) => { if (!node.contains(e.target)) cb(e); };
   const onKey = (e) => { if (e.key === 'Escape') cb(e); };
-  // setTimeout: neodpálit hned na tomtéž kliknutí, které panel otevřelo
-  setTimeout(() => {
+  // setTimeout: neodpálit hned na tomtéž kliknutí, které panel otevřelo.
+  // Když se odpojí dřív, než timer stihne navázat, timer zrušíme — jinak by se
+  // listener navázal „naprázdno" (s odkazem na už odpojený node) a leakoval.
+  let armed = false;
+  const id = setTimeout(() => {
+    armed = true;
     document.addEventListener('mousedown', onDown, true);
     document.addEventListener('keydown', onKey, true);
   }, 0);
   return () => {
+    clearTimeout(id);
+    if (!armed) return;
     document.removeEventListener('mousedown', onDown, true);
     document.removeEventListener('keydown', onKey, true);
   };

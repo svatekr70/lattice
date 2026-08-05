@@ -23,6 +23,7 @@ export class AdvancedFilter {
   }
 
   open(anchor) {
+    if (this.panel) this.close(); // pojistka: nikdy nenech viset starý panel/outside-listener
     this.anchor = anchor;
     // pracovní kopie aktivního filtru, nebo prázdná skupina s jednou podmínkou
     this.tree = this.grid.advanced ? clone(this.grid.advanced) : freshGroup(this.grid);
@@ -34,7 +35,9 @@ export class AdvancedFilter {
     this.renderPanel();
     document.body.appendChild(panel);
     positionUnder(panel, anchor);
-    this.off = onOutside(panel, (e) => { if (!anchor.contains(e.target)) this.close(); });
+    // pozor: kotva se může za běhu přepnout (renderToolbar vyrobí nové tlačítko),
+    // proto testujeme aktuální this.anchor, ne uzavřenou proměnnou anchor.
+    this.off = onOutside(panel, (e) => { if (!this.anchor?.contains(e.target)) this.close(); });
   }
 
   close() {
@@ -72,6 +75,12 @@ export class AdvancedFilter {
 
     // Patička: název + uložit; vymazat; použít
     const nameInput = el('input.lattice-adv-name', { type: 'text', placeholder: t('advanced.namePlaceholder') });
+    this.nameInput = nameInput;
+    // předvyplnit název aktivního uloženého filtru (můžu upravit a uložit pod stejným názvem)
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) nameInput.value = cur.name;
+    }
     const saveBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.save') });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
@@ -115,6 +124,7 @@ export class AdvancedFilter {
       const f = saved.find((x) => x.id === sel.value);
       if (!f) return;
       this.tree = clone(f.tree);
+      if (this.nameInput) this.nameInput.value = f.name; // předvyplň název → uložení pod stejným
       this.renderBuilder();            // překresli JEN strom, select zůstane vybraný
       grid.applyAdvanced(this.tree);   // vybraný filtr rovnou aplikuj
     });

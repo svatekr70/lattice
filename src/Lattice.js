@@ -868,16 +868,23 @@ export class Lattice {
   saveAdvanced(name, tree, scope = 'local') {
     name = String(name || '').trim();
     if (!name) return null;
-    const item = { id: uid(), name, tree: JSON.parse(JSON.stringify(tree)) };
+    const treeCopy = JSON.parse(JSON.stringify(tree));
     if (scope === 'global') {
+      // přepis pod stejným názvem zachová id existující položky → downstream perzistence
+      // (INSERT … ON DUPLICATE KEY UPDATE dle ext_id) přepíše řádek a nezaloží duplicitu.
+      const existing = this.globalAdvanced.find((f) => f.name === name);
+      const id = existing ? existing.id : uid();
       this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
-      const norm = { ...item, scope: 'global' };
+      const norm = { id, name, tree: treeCopy, scope: 'global' };
       this.globalAdvanced.push(norm);
       const cb = this.options.onSaveGlobalAdvancedFilter;
-      if (typeof cb === 'function') cb({ id: item.id, name: item.name, tree: item.tree });
+      if (typeof cb === 'function') cb({ id, name, tree: treeCopy });
       this.renderer.renderToolbar(); // aktualizovat rychlý select v toolbaru
       return norm;
     }
+    // lokální: přepis stejného názvu rovněž zachová id (konzistence s global)
+    const existing = (this.state.advancedFilters || []).find((f) => f.name === name);
+    const item = { id: existing ? existing.id : uid(), name, tree: treeCopy };
     const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     list.push(item);
     this.state.advancedFilters = list;

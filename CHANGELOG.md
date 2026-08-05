@@ -4,6 +4,29 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.6.1] – 2026-08-05
+
+### Opraveno
+- **Panel rozšířeného filtru odskakoval do levého horního rohu.** Po výběru uloženého filtru
+  (nebo jakékoli akci překreslující toolbar) se toggle tlačítko vytvořilo znovu a panel se
+  přepočítal proti odpojenému elementu (rect `{0,0,0,0}`) → skok na `{4,8}`. `renderToolbar()`
+  nyní při otevřeném panelu přesměruje kotvu na živě vytvořené tlačítko; panel zůstává ukotven.
+- **Únik „klik mimo" listeneru (`onOutside`).** Listener se navazuje přes `setTimeout(…,0)`;
+  když se panel zavřel dřív, než timer stihl navázat, disposer odebral ještě neexistující
+  listener a timer ho pak navázal „naprázdno" s odkazem na odpojený panel — takový zbloudilý
+  listener pak zavíral nově otevřený panel (např. hned po kliknutí do selectu uložených filtrů).
+  Disposer nyní timer ruší (`clearTimeout`) a `AdvancedFilter.open()` má pojistku proti dvojímu
+  otevření bez zavření.
+- **Přepis globálního filtru pod stejným názvem generoval nové `id`** při každém uložení →
+  aplikace (perzistence klíčovaná na `id`/`ext_id`) zakládala nový DB řádek a po reloadu vznikla
+  duplicita. `saveAdvanced` teď při přepisu (stejný `name` + `scope`) **znovu použije `id`
+  existující položky** — pro local i global.
+
+### Přidáno
+- **Předvyplnění názvu v panelu rozšířeného filtru.** Po výběru uloženého filtru se jeho název
+  zkopíruje do pole „Název filtru"; při otevření panelu s aktivním uloženým filtrem se název
+  předvyplní hned. Uživatel tak snadno upraví a uloží filtr pod stejným názvem.
+
 ## [1.6.0] – 2026-08-05
 
 ### Přidáno
@@ -212,6 +235,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.6.1]: https://github.com/svatekr70/lattice/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/svatekr70/lattice/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/svatekr70/lattice/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/svatekr70/lattice/compare/v1.4.0...v1.5.0

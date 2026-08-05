@@ -1426,11 +1426,15 @@ function onOutside(node, cb) {
   const onKey = (e) => {
     if (e.key === "Escape") cb(e);
   };
-  setTimeout(() => {
+  let armed = false;
+  const id = setTimeout(() => {
+    armed = true;
     document.addEventListener("mousedown", onDown, true);
     document.addEventListener("keydown", onKey, true);
   }, 0);
   return () => {
+    clearTimeout(id);
+    if (!armed) return;
     document.removeEventListener("mousedown", onDown, true);
     document.removeEventListener("keydown", onKey, true);
   };
@@ -8363,6 +8367,7 @@ var Renderer = class {
       });
       advBtn.addEventListener("click", () => grid.advancedFilter.toggle(advBtn));
       toolbar.appendChild(advBtn);
+      if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
       const saved = grid.listAdvanced();
       if (saved.length) {
         const sel = el("select.lattice-adv-quick", { title: t("advanced.title") });
@@ -8718,6 +8723,7 @@ var AdvancedFilter = class {
     this.open(anchor);
   }
   open(anchor) {
+    if (this.panel) this.close();
     this.anchor = anchor;
     this.tree = this.grid.advanced ? clone(this.grid.advanced) : freshGroup(this.grid);
     this.selectedId = this.matchSavedId(this.grid.advanced);
@@ -8727,7 +8733,7 @@ var AdvancedFilter = class {
     document.body.appendChild(panel);
     positionUnder(panel, anchor);
     this.off = onOutside(panel, (e) => {
-      if (!anchor.contains(e.target)) this.close();
+      if (!this.anchor?.contains(e.target)) this.close();
     });
   }
   close() {
@@ -8756,6 +8762,11 @@ var AdvancedFilter = class {
     this.renderBuilder();
     panel.appendChild(this.builderEl);
     const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("advanced.namePlaceholder") });
+    this.nameInput = nameInput;
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) nameInput.value = cur.name;
+    }
     const saveBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.save") });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
@@ -8803,6 +8814,7 @@ var AdvancedFilter = class {
       const f = saved.find((x) => x.id === sel.value);
       if (!f) return;
       this.tree = clone(f.tree);
+      if (this.nameInput) this.nameInput.value = f.name;
       this.renderBuilder();
       grid.applyAdvanced(this.tree);
     });
@@ -11105,16 +11117,20 @@ var Lattice = class {
   saveAdvanced(name, tree, scope = "local") {
     name = String(name || "").trim();
     if (!name) return null;
-    const item = { id: uid2(), name, tree: JSON.parse(JSON.stringify(tree)) };
+    const treeCopy = JSON.parse(JSON.stringify(tree));
     if (scope === "global") {
+      const existing2 = this.globalAdvanced.find((f) => f.name === name);
+      const id = existing2 ? existing2.id : uid2();
       this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
-      const norm5 = { ...item, scope: "global" };
+      const norm5 = { id, name, tree: treeCopy, scope: "global" };
       this.globalAdvanced.push(norm5);
       const cb = this.options.onSaveGlobalAdvancedFilter;
-      if (typeof cb === "function") cb({ id: item.id, name: item.name, tree: item.tree });
+      if (typeof cb === "function") cb({ id, name, tree: treeCopy });
       this.renderer.renderToolbar();
       return norm5;
     }
+    const existing = (this.state.advancedFilters || []).find((f) => f.name === name);
+    const item = { id: existing ? existing.id : uid2(), name, tree: treeCopy };
     const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     list.push(item);
     this.state.advancedFilters = list;
@@ -12206,7 +12222,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.6.0";
+var VERSION = "1.6.1";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,
