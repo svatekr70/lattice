@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.7.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.7.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.8.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.7.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.8.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -142,6 +142,7 @@ new Lattice('#grid', {
 | `editable` | boolean | Povolí inline editaci buňky. |
 | `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
+| `wrap` | boolean | Per-sloupcové zalamování textu v buňkách (`@v1.8.0`). `true` = zalomit i při vypnutém globálním `instance.wrapText`; `false` = nezalamovat i když je globál zapnutý; nezadáno = řídí se globálem. |
 | `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). |
 | `formatterParams` | object | Parametry formátovače daného typu. |
 | `summary` / `rowSummary` | string[] | Souhrnné funkce sloupce (dole) / řádku (vpravo): `['sum','avg','min','max','count']`. |
@@ -275,14 +276,46 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
+| `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
-| `zebra` / `wrapText` / `emptyText` | pruhování / zalamování dat v buňkách / placeholder prázdné buňky |
+| `zebra` / `wrapText` / `emptyText` | pruhování / **globální** zalamování dat v buňkách (per-sloupec přebije `col.wrap`) / placeholder prázdné buňky |
 | `wrapHeader` | `true` = zalamovat názvy sloupců v záhlaví (nezávisle na `wrapText`). Auto-fit (dvojklik na oddělovač) pak počítá šířku podle názvu složeného do 2 řádků, ale nikdy ne užší než nejširší nezalomená data na stránce. Netýká se otočených hlaviček. |
 | `linkNewTab` | odkazy (typ `link`) otevírat v nové kartě + ikona externího odkazu. Per-sloupec přebije `formatterParams.target`. |
 | `scaleColors` | kotevní barvy semaforu `[low, mid, high]` (ovlivní condFormat i boolean ✓/✕) |
 | `cssVars` | vlastní CSS proměnné `{ '--lattice-accent': '#e91e63', … }` |
 | `fontSize` / `fontFamily` | velikost / rodina písma |
 | `format` | globální formát po druzích: `{ number, money, date, datetime, time }` |
+
+### Zvýraznění (podbarvení) řádků — `@v1.8.0`
+
+Trvalé žluté (themeovatelné) podbarvení vybraných řádků — nezávislé na výběru checkboxy.
+Stav drží knihovna, přežije re-render/řazení/filtr a persistuje se do `lattice:<id>`.
+
+```js
+grid.highlightRow(id);            // zvýraznit
+grid.highlightRow(id, false);     // zrušit u jednoho
+grid.toggleRowHighlight(id);      // přepnout
+grid.clearHighlights();           // zrušit vše
+grid.highlightedRows;             // ['12', '34', …] (getter, klíče keyField)
+// reakce na změnu:
+new Lattice('#grid', { onHighlightChange: (keys) => save(keys) });
+```
+
+**Klik na řádek přepíná zvýraznění** přes `instance.rowHighlight: true` (nebo `'click'`).
+Klik do editovatelné buňky, akčního tlačítka nebo checkboxu výběru se ignoruje.
+
+**Barva** je řízena CSS proměnnými (bez `!important` na straně aplikace) — přepiš je globálně,
+na `.lattice`, nebo přes `instance.cssVars`:
+
+| Proměnná | Výchozí (světlá / tmavá) |
+|---|---|
+| `--lattice-row-highlight-bg` | `#fff3bf` / `#4a3f1e` |
+| `--lattice-row-highlight-hover` | `#ffea8a` / `#5a4d26` |
+
+Barvu lze změnit i **z UI** — dialog **Nastavení tabulky (⚙) → Vlastní úpravy**, swatche
+„Zvýraznění řádku" / „…při najetí" (uloží se do `instance.cssVars`, „Obnovit vlastní úpravy" vrátí
+motiv). Podbarví celý řádek včetně ukotvených, číslovacích a souhrnných buněk. Veřejná třída na řádku
+je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, třídu obvykle nepotřebuješ).
 
 ---
 
@@ -314,7 +347,9 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `removeComputedColumn(field)` | Odebere počítaný sloupec (jen sloupce vytvořené vzorcem). |
 | `setPinnedRows({ top?, bottom? })` | Připnuté řádky za běhu. |
 | `getSelectedRows()` / `getSelectedKeys()` / `clearSelection()` | Výběr. **Server-side:** `getSelectedKeys()` vrací klíče **napříč stránkami** (přetrvávají při stránkování), ale `getSelectedRows()` vrátí jen řádky **z aktuálně načtené stránky**. |
-| `selectKeys(keys, on?)` / `setSelectScope(scope)` | Programový výběr dle klíčů (`on=false` odznačí) / rozsah „vybrat vše" (`'page' \| 'all'`, výchozí `'page'`). **Server-side:** „vybrat vše filtrované napříč stránkami" grid neumí (nemá celý dataset) — vytáhni ID ze serveru a nastav přes `selectKeys`. |
+| `selectKeys(keys, on?)` / `setSelectScope(scope)` | Programový výběr dle klíčů (`on=false` odznačí) / rozsah „vybrat vše" (`'page' \| 'all'`, výchozí `'page'`). **Server-side:** „vybrat vše filtrované napříč stránkami" grid neumí (nemá celý dataset) — vytáhni ID ze serveru (viz `getServerParams`) a nastav přes `selectKeys`. |
+| `highlightRow(key, on?)` / `toggleRowHighlight(key)` / `clearHighlights()` / `highlightedRows` | Zvýraznění (podbarvení) řádků. Přežije re-render/řazení/filtr, persistuje se do `lattice:<id>`. `highlightedRows` (getter) = pole klíčů. Změna překreslí jen dotčený řádek. Viz *Zvýraznění řádků* (`@v1.8.0`). |
+| `getServerParams({ paginate? })` / `getServerQuery({ paginate? })` | **Server-side.** Aktuální serverové parametry (sort/filter/search/advanced dle `ajax.paramNames`, tokeny rozvinuté) jako objekt / hotový urlencoded querystring. `paginate` default `false` (bez page/size = „vše filtrované"). Pro vlastní endpointy (ID všech filtrovaných řádků, export) bez ruční duplikace. Client-side vrací `{}` / `''`. `@v1.8.0`. |
 | `getColumnLayout()` | Snímek layoutu sloupců. |
 | `undo()` / `redo()` / `clearHistory()` | Historie. |
 | `exportData(fmt, opts)` / `download(fmt, opts)` / `print(opts)` | Export (`csv \| tsv \| json \| xml \| excel`) / tisk. Excel = SpreadsheetML, bez závislosti. |
@@ -437,6 +472,27 @@ Grid čte `{ data, total, last_page, last_row }` (nebo přímo top-level pole = 
 ### Auto-refetch
 
 Nový dotaz na server vyvolají **automaticky**: `setFilter`, `clearFilters`, `setQuickSearch`, `setPage` (kromě kliku na aktuální stránku), `setPageSize`, **řazení klikem na hlavičku** (`sortColumn` / `toggleSort`) a **rozšířený filtr** (`applyAdvanced` / `clearAdvanced`, včetně výběru globálního uloženého filtru — `@v1.7.0`; refetch běží přes interní `refresh()` a nově nese parametr `advanced`). `refresh()` volej ručně jen po změně `ajax.params` nebo jiného externího stavu — jinak je zbytečné.
+
+### Vlastní endpointy s aktuálním filtrem — `getServerParams` / `getServerQuery` (`@v1.8.0`)
+
+Když aplikace potřebuje zavolat **vlastní** server-side endpoint se **stejným filtrem**, jaký má
+grid právě aplikovaný — typicky „ID všech filtrovaných řádků napříč stránkami" (pro „vybrat vše
+filtrované") nebo „export všech filtrovaných řádků" — nemusí serializaci duplikovat ručně:
+
+```js
+// objekt parametrů (sort/filter/search/advanced dle paramNames, tokeny rozvinuté; bez stránkování)
+const params = grid.getServerParams();               // { sort:[…], filter:[…], search:'…', advanced:'{…}' }
+
+// nebo rovnou urlencoded querystring (advanced je vždy JSON string → funguje i u POST-mode gridu)
+const qs = grid.getServerQuery();                     // 'sort[0][field]=…&filter[0]…&advanced=%7B…%7D'
+const ids = await fetch(`/api/candidates/ids?${qs}`).then((r) => r.json());
+grid.selectKeys(ids, true);                           // „vybrat vše filtrované"
+
+const csvUrl = `/api/candidates?all=1&${qs}`;         // export všech filtrovaných
+```
+
+`getServerParams({ paginate: true })` přidá i `page`/`size`. Backend čte `advanced` stejně jako u
+běžného dotazu (viz *Rozšířený filtr*). V client-side režimu obě metody vrací prázdno (`{}` / `''`).
 
 ---
 
@@ -718,6 +774,7 @@ Grid nikdy nepersistuje sám — přes callbacky říká aplikaci, co se stalo.
 | `onRowMove(payload)` / `onRowReceive(row, meta)` | Přesun / příjem řádku. |
 | `onRangeCopy(data, tsv)` / `onRangePaste(changed)` / `onFill(changed)` | Rozsah buněk: kopie / vložení / fill. |
 | `onSelectionChange(rows, keys)` | Změna výběru řádků. |
+| `onHighlightChange(keys)` | Změna zvýraznění (podbarvení) řádků — pole klíčů (`@v1.8.0`). |
 | `onSort(sort)` | Řazení — `[{ field, dir }]`. |
 | `onFilter({ filters, universal, advanced })` | Změna filtrů. |
 | `onPageChange({ page, pageSize })` | Změna stránky / velikosti. |
@@ -775,7 +832,8 @@ Motivy = přemapování CSS proměnných `--lattice-*` (barvy i struktura). Tři
 
 **Barvy plochy:** `--lattice-bg`, `--lattice-row-odd`, `--lattice-row-hover`, `--lattice-header-bg`,
 `--lattice-header-color`, `--lattice-header-soft`, `--lattice-text`, `--lattice-muted`,
-`--lattice-border`, `--lattice-accent`, `--lattice-accent-soft`, `--lattice-link`.
+`--lattice-border`, `--lattice-accent`, `--lattice-accent-soft`, `--lattice-link`,
+`--lattice-row-highlight-bg`, `--lattice-row-highlight-hover` (zvýraznění řádku, `@v1.8.0`).
 
 **Sémantické a prvky:** `--lattice-danger(-soft)`, `--lattice-success(-soft)`, `--lattice-warn(-soft)`,
 `--lattice-star-on/off`, `--lattice-progress-track/fill`, `--lattice-bool-true/false`.

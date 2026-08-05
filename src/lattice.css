@@ -20,6 +20,8 @@
   --lattice-muted: #6b7583;
   --lattice-accent: #2563eb;
   --lattice-accent-soft: #dbeafe;
+  --lattice-row-highlight-bg: #fff3bf;      /* zvýraznění (podbarvení) řádku — grid.highlightRow() */
+  --lattice-row-highlight-hover: #ffea8a;
 
   /* --- sémantické barvy (danger/success) + stavové prvky; přebírají motivy --- */
   --lattice-danger: #dc2626;        /* mazání, záporná čísla, chyby */
@@ -99,6 +101,8 @@
   --lattice-muted: #94a2b8;
   --lattice-accent: #5b9bff;
   --lattice-accent-soft: #23375c;
+  --lattice-row-highlight-bg: #4a3f1e;      /* tmavý amber pro zvýraznění řádku */
+  --lattice-row-highlight-hover: #5a4d26;
   --lattice-frozen-line: #97a6bd;   /* světlá linka na tmavém pozadí */
   --lattice-danger: #f87171;
   --lattice-danger-soft: #3b2626;
@@ -122,6 +126,8 @@
     --lattice-muted: #94a2b8;
     --lattice-accent: #5b9bff;
     --lattice-accent-soft: #23375c;
+    --lattice-row-highlight-bg: #4a3f1e;
+    --lattice-row-highlight-hover: #5a4d26;
     --lattice-frozen-line: #97a6bd;
     --lattice-danger: #f87171;
     --lattice-danger-soft: #3b2626;
@@ -1159,6 +1165,17 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-row.is-odd .lattice-cell.lattice-rowsum-cell,
 .lattice-row:hover .lattice-cell.lattice-rowsum-cell { background: var(--lattice-accent-soft); }
 
+/* Zvýraznění (podbarvení) řádku — veřejná třída `.is-highlighted` + themeovatelné proměnné
+   (--lattice-row-highlight-bg / -hover). Záměrně ZA pravidly zebra/hover/výběr/rownum/rowsum,
+   aby je přebilo zdrojovým pořadím i stejnou specificitou — aplikace nepotřebuje !important.
+   Podbarví i číslovací a souhrnný sloupec, ať je řádek zvýrazněný celý. */
+.lattice-row.is-highlighted .lattice-cell,
+.lattice-row.is-highlighted .lattice-rownum-cell,
+.lattice-row.is-highlighted .lattice-cell.lattice-rowsum-cell { background: var(--lattice-row-highlight-bg); }
+.lattice-row.is-highlighted:hover .lattice-cell,
+.lattice-row.is-highlighted:hover .lattice-rownum-cell,
+.lattice-row.is-highlighted:hover .lattice-cell.lattice-rowsum-cell { background: var(--lattice-row-highlight-hover); }
+
 /* pruh nad dolní paticí — přepínač rozsahu souhrnu */
 .lattice-summary-bar {
   display: flex; align-items: center; gap: 8px;
@@ -1587,6 +1604,11 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-empty-cell { color: var(--lattice-muted, #6b7583); }
 .lattice.no-zebra .lattice-row.is-odd .lattice-cell { background: var(--lattice-bg); }
 .lattice.wrap-text .lattice-cell { white-space: normal; overflow-wrap: anywhere; }
+/* per-sloupcové zalamování (col.wrap) — nezávislé na globálním wrap-text.
+   is-wrap zalomí i při vypnutém globálu; is-nowrap přebije zapnutý globál
+   (vyšší specificita než .wrap-text .lattice-cell). */
+.lattice-cell.is-wrap { white-space: normal; overflow-wrap: anywhere; }
+.lattice.wrap-text .lattice-cell.is-nowrap { white-space: nowrap; overflow-wrap: normal; }
 /* zalamování názvů sloupců v záhlaví — nezávislé na wrap-text buněk; netýká se
    otočených hlaviček (ty už si výšku řídí přes writing-mode). Hlavička je flex
    sloupec, takže při 2 řádcích výška roste a všechny buňky řádku se zarovnají. */

@@ -187,6 +187,8 @@ export default {
     cssRowEven: 'Barva sudých řádků',
     cssRowOdd: 'Barva lichých řádků',
     cssRowHover: 'Řádek při najetí',
+    cssRowHighlight: 'Zvýraznění řádku',
+    cssRowHighlightHover: 'Zvýraznění při najetí',
     cssHeaderWeight: 'Tučnost záhlaví',
     cssRadius: 'Zaoblení (px)',
     cssCellPadY: 'Padding buňky – svisle (px)',

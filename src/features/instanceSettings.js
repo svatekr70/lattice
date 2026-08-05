@@ -233,6 +233,7 @@ export class InstanceSettings {
       [t('instance.cssText'), '--lattice-text'], [t('instance.cssBorder'), '--lattice-border'],
       [t('instance.cssHeaderBg'), '--lattice-header-bg'], [t('instance.cssRowEven'), '--lattice-bg'],
       [t('instance.cssRowOdd'), '--lattice-row-odd'], [t('instance.cssRowHover'), '--lattice-row-hover'],
+      [t('instance.cssRowHighlight'), '--lattice-row-highlight-bg'], [t('instance.cssRowHighlightHover'), '--lattice-row-highlight-hover'],
     ], grid, cv, merge));
     gX.appendChild(cssSelectRow(t('instance.cssHeaderWeight'), '--lattice-header-weight', cv,
       [['', '—'], ['400', '400'], ['500', '500'], ['600', '600'], ['700', '700']], merge));

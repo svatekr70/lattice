@@ -187,6 +187,8 @@ export default {
     cssRowEven: 'Even row color',
     cssRowOdd: 'Odd row color',
     cssRowHover: 'Row hover',
+    cssRowHighlight: 'Row highlight',
+    cssRowHighlightHover: 'Row highlight hover',
     cssHeaderWeight: 'Header weight',
     cssRadius: 'Corner radius (px)',
     cssCellPadY: 'Cell padding – vertical (px)',

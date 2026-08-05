@@ -132,6 +132,7 @@ export function resolveColumn(def, saved) {
     cellStyle: typeof def.cellStyle === 'function' ? def.cellStyle : null,   // podmíněný inline styl buňky
     editor: def.editor || null,
     headerSort: def.headerSort !== false, // řadit klikem na hlavičku (default true)
+    wrap: def.wrap, // per-sloupcové zalamování (true/false přebije globální wrapText; undefined = dle globálu)
     minWidth: def.minWidth != null ? def.minWidth : DEFAULT_MIN_WIDTH,
     // Výchozí zarovnání dle datového typu (přepsatelné explicitním def.align):
     // čísla a datumy vpravo, boolean na střed, ostatní vlevo.

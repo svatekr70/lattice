@@ -1041,6 +1041,19 @@ export class Renderer {
     this.renderSelectionBar();
   }
 
+  /** Po změně zvýraznění: přepni třídu `is-highlighted` na řádcích (bez plného re-renderu).
+   *  S `key` se dotkne jen odpovídajícího řádku; bez něj (clearHighlights) projde všechny. */
+  updateHighlightUI(key) {
+    const grid = this.grid;
+    for (const rowEl of this.nodes.body.querySelectorAll('.lattice-row')) {
+      const idx = Number(rowEl.dataset.index);
+      const data = grid.rows[idx];
+      if (!data) continue; // souhrnné řádky nemají data-index
+      if (key != null && grid.rowKey(data) !== String(key)) continue; // překresli jen dotčený řádek
+      rowEl.classList.toggle('is-highlighted', grid.isHighlighted(data));
+    }
+  }
+
   /**
    * Lišta hromadných akcí nad výběrem. Aktivní jen když jsou zadané
    * `options.selectionActions` a je něco vybráno. Akce dostane vybrané řádky,
@@ -1151,6 +1164,7 @@ export class Renderer {
       if (sel) row.classList.add('is-selected');
       row.setAttribute('aria-selected', sel ? 'true' : 'false');
     }
+    if (grid.isHighlighted(rowData)) row.classList.add('is-highlighted'); // zvýraznění přežije re-render
     // Podmíněné formátování řádku (od aplikace): třídy / inline styl dle dat.
     applyCond(row, grid.options.rowClass, grid.options.rowStyle, [rowData, index]);
     for (const col of list) row.appendChild(this.buildBodyCell(col, rowData, index));
@@ -1164,7 +1178,8 @@ export class Renderer {
     // Výběr klikem na řádek (když je zapnutý selectRowClick) — ignoruje interaktivní prvky.
     const rowClickCb = grid.options.onRowClick || grid.options.rowClick; // onRowClick preferováno; rowClick = zpětná kompat.
     const rowClickSelect = grid.isSelectable() && grid.instance.selectRowClick;
-    if (rowClickSelect || rowClickCb) {
+    const rowHighlightClick = grid.instance.rowHighlight === true || grid.instance.rowHighlight === 'click';
+    if (rowClickSelect || rowClickCb || rowHighlightClick) {
       row.addEventListener('click', (e) => {
         if (e.target.closest('.lattice-resize-handle')) return;
         if (rowClickSelect && !e.target.closest('a, button, input, select, textarea, label, .lattice-select-cell')) {
@@ -1175,6 +1190,10 @@ export class Renderer {
             grid.toggleRow(grid.rowKey(rowData));
           }
           this._lastSelIdx = index;
+        }
+        // Zvýraznění klikem — ignoruje interaktivní prvky, editovatelné buňky a checkbox výběru.
+        if (rowHighlightClick && !e.target.closest('a, button, input, select, textarea, label, .lattice-select-cell, .lattice-cell.is-editable')) {
+          grid.toggleRowHighlight(grid.rowKey(rowData));
         }
         if (rowClickCb) rowClickCb(rowData, index, e);
       });
@@ -1702,7 +1721,8 @@ export class Renderer {
     const editable = col.type !== 'id' && !isComputed(col) && (col.editable === true || this.grid.options.editable === true);
     const cell = el('div.lattice-cell', {
       dataset: { field: col.field }, role: 'gridcell',
-      class: [col.align ? 'is-' + col.align : '', editable ? 'is-editable' : ''].filter(Boolean).join(' '),
+      class: [col.align ? 'is-' + col.align : '', editable ? 'is-editable' : '',
+        col.wrap === true ? 'is-wrap' : (col.wrap === false ? 'is-nowrap' : '')].filter(Boolean).join(' '),
       title: editable ? this.grid.i18n.t('edit.hint') : undefined,
     });
     this.applyCellFormat(cell, col); // vzhled buňky (zarovnání, řez, barvy) z UI

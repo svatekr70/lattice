@@ -4,6 +4,33 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.8.0] – 2026-08-05
+
+### Přidáno
+- **Per-sloupcové zalamování textu — `column.wrap`.** Doteď šlo zalamovat jen globálně
+  (`instance.wrapText`). Nově `col.wrap: true` zalomí jen daný sloupec (i při vypnutém globálu),
+  `col.wrap: false` naopak přebije zapnutý globál. Nezadáno = řídí se globálem.
+- **Zvýraznění (podbarvení) řádků — nativní feature + API.** Žluté (themeovatelné) podbarvení
+  řádků nezávislé na výběru checkboxy:
+  - API: `grid.highlightRow(id, on?)`, `grid.toggleRowHighlight(id)`, `grid.clearHighlights()`,
+    getter `grid.highlightedRows` (pole klíčů). Stav přežije re-render/řazení/filtr a **persistuje
+    se** do `lattice:<id>`. Změna překreslí **jen dotčený řádek** (bez plného re-renderu).
+  - Klik na řádek přepíná zvýraznění přes `instance.rowHighlight: true` (nebo `'click'`); ignoruje
+    klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Callback `onHighlightChange(keys)`.
+  - Barva přes CSS proměnné `--lattice-row-highlight-bg` / `-hover` (světlá i tmavá varianta),
+    aplikované tak, aby přebily i ukotvené/číslovací/souhrnné buňky **bez `!important`**. Barvu lze
+    měnit i z UI (**Nastavení tabulky → Vlastní úpravy**, swatche „Zvýraznění řádku / …při najetí").
+- **Server-side: expozice aktuálních serverových parametrů — `grid.getServerParams({ paginate? })`
+  a `grid.getServerQuery({ paginate? })`.** Vrátí filtr/sort/search/advanced (dle `paramNames`,
+  tokeny rozvinuté), jaký má grid aplikovaný, jako objekt / hotový urlencoded querystring. Aplikace
+  tak volá vlastní endpointy („ID všech filtrovaných řádků" pro výběr napříč stránkami, export)
+  s identickým filtrem — bez ruční duplikace serializace a paralelního stavu. Client-side vrací
+  prázdno. `advanced` je v querystringu vždy JSON string (funguje i u `POST`-mode gridu).
+
+### Dokumentace
+- `docs/API.md` — `col.wrap`, sekce *Zvýraznění řádků* (API, `instance.rowHighlight`, CSS proměnné,
+  UI picker), metody `getServerParams`/`getServerQuery` + příklad „vše filtrované" / export.
+
 ## [1.7.0] – 2026-08-05
 
 ### Přidáno
@@ -268,6 +295,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.8.0]: https://github.com/svatekr70/lattice/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/svatekr70/lattice/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/svatekr70/lattice/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/svatekr70/lattice/compare/v1.6.0...v1.6.1

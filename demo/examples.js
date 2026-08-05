@@ -669,6 +669,22 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
     category: 'Novinky',
     items: [
       {
+        id: 'ex-highlight',
+        title: 'Zvýraznění řádků',
+        blurb: 'Klikni na řádek → žluté podbarvení; druhý klik odbarví, klidně víc řádků najednou. Zapíná <code>instance.rowHighlight: true</code>. Stav drží knihovna — přežije řazení/filtr/stránkování i re-render a persistuje se do localStorage. Klik do editovatelné buňky, akčního tlačítka nebo checkboxu výběru se ignoruje. Barvu řídí CSS proměnná <code>--lattice-row-highlight-bg</code> (bez <code>!important</code>). Poslední sloupec „Poznámka" má <code>col.wrap: true</code> — zalamuje se jen on, ostatní zůstávají na jednom řádku.',
+        code: `new Lattice('#grid', {\n  columns, data,\n  instance: { rowHighlight: true },   // klik na řádek přepíná podbarvení\n  onHighlightChange: (keys) => save(keys),\n})\n\n// programově:\ngrid.highlightRow(id)\ngrid.toggleRowHighlight(id)\ngrid.clearHighlights()\ngrid.highlightedRows            // ['12', '34', …]\n\n// per-sloupcové zalamování (nezávislé na globálním wrapText):\ncolumns = [{ field: 'note', title: 'Poznámka', wrap: true }, …]`,
+        mount: (el, ctx) => {
+          const cols = campaignColumns().concat([
+            { field: 'note', title: 'Poznámka', type: 'text', width: 240, wrap: true,
+              value: (r) => `Kampaň ${r.name} v regionu ${r.region} spravuje ${r.owner}; rozpočet ${r.budget} Kč, stav „${r.status}".` },
+          ]);
+          return new Lattice(el, base(ctx, {
+            id: 'ex-highlight', columns: cols, data: ctx.data, pageSize: 15,
+            instance: { rowHighlight: true },
+          }));
+        },
+      },
+      {
         id: 'ex-computed',
         title: 'Počítané sloupce',
         blurb: 'Sloupec nemusí číst jen jedno pole — hodnotu spočítá z celého řádku. V kódu funkcí `value: (row) => …`, nebo vzorcem `formula: \'…\'` (bezpečně vyhodnocený, bez eval). Nově i přímo v UI: v dialogu „Sloupce" (ozubené kolo) tlačítkem „＋ Přidat počítaný sloupec" — zadáš vzorec jako `budget / score` a pole vkládáš klikáním, s živým náhledem. Řadí se, filtruje, hledá i exportuje podle spočítané hodnoty; odvozené sloupce se needitují a UI-vzorce se pamatují (i v presetech).',
@@ -823,7 +839,7 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-groups', 'ex-computed', 'ex-summary'],
+  'Novinky': ['ex-highlight', 'ex-groups', 'ex-computed', 'ex-summary'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',

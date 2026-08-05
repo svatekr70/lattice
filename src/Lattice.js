@@ -16,7 +16,7 @@ import { deriveColumns, columnsFor } from './core/autoColumns.js';
 import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImport.js';
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
 import { printTable } from './features/print.js';
-import { ClientData, ServerData, rowMatches } from './core/DataSource.js';
+import { ClientData, ServerData, rowMatches, encodeParams } from './core/DataSource.js';
 import { I18n } from './i18n/index.js';
 import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
@@ -49,6 +49,7 @@ const INSTANCE_DEFAULTS = {
   groupRepeat: true,      // opakovat hodnotu seskupení v každém řádku (true) | jen v záhlaví skupiny (false, jen headers)
   selectColumn: true,     // zobrazit sloupec s checkboxy (jen když je selectable)
   selectRowClick: false,  // klik na řádek = výběr (false = vybírá jen checkbox)
+  rowHighlight: false,    // klik na řádek = přepnutí zvýraznění (podbarvení); true | 'click' zapne, false vypne
   actionsLayout: 'column', // sloupec akcí: 'column' (poslední sloupec) | 'menu' (⋮ v číslování řádků)
   resizeGuide: false,     // změna šířky sloupce: false = živě | true = s vodicí čárou (aplikuje se v mouseup)
   theme: 'default',       // vzhled: 'default' | 'auto' (dle systému) | 'minimal' | 'compact' | 'slate' (tmavý) | 'ocean' | 'warm' | 'contrast' | 'bootstrap5' | 'tailwind' | 'material'
@@ -161,6 +162,7 @@ export class Lattice {
     this.selectable = normSelectable(options.selectable); // výběr řádků (checkboxy)
     this.selected = new Set(); // klíče vybraných řádků (keyField, string)
     this.selectScope = 'page'; // rozsah výběru pro horní checkbox / invert ('page' | 'all')
+    this.highlightedKeys = new Set(this.state.highlighted || []); // klíče zvýrazněných (podbarvených) řádků; přežívá re-render, persistuje se
     this.serverSide = !!options.serverSide;
     this.dataSource = this.serverSide
       ? new ServerData(resolveAjax(options))
@@ -263,6 +265,7 @@ export class Lattice {
     this.state.instance = { ...this.instance };
     this.state.groups = [...this.groupsCollapsed];
     this.state.colGroups = [...this.colGroupsCollapsed];
+    this.state.highlighted = [...this.highlightedKeys];
     if (this.tree) this.state.tree = [...this.tree.expanded];
     this.store.save(this.state);
   }
@@ -1829,6 +1832,80 @@ export class Lattice {
     if (this.options.onSelectionChange) this.options.onSelectionChange(this.getSelectedRows(), this.getSelectedKeys());
   }
 
+  /**
+   * Serverové request parametry, které by grid právě teď poslal (sort/filter/search/advanced
+   * dle `ajax.paramNames`, s rozvinutými relativními datovými tokeny). Pro vlastní endpointy
+   * aplikace (např. „ID všech filtrovaných řádků" napříč stránkami, nebo export) — týž filtr
+   * bez ruční duplikace serializace. Respektuje i `ajax.requestBuilder`.
+   * Jen v server-side režimu; client-side vrací `{}`.
+   * @param {{paginate?: boolean}} [opts] `paginate:true` přidá i `page`/`size` (default `false` = bez stránkování → „vše filtrované").
+   * @returns {object}
+   */
+  getServerParams({ paginate = false } = {}) {
+    if (!(this.dataSource instanceof ServerData)) return {};
+    const state = {
+      page: this.page,
+      pageSize: this.pageSize,
+      paginate,
+      sort: this.sort,
+      filters: this.filters,
+      advanced: this.advanced,
+      universal: this.universalActive() ? this.universal : null,
+      search: this.quickSearch || '',
+      columns: this.columns,
+    };
+    const ajax = this.dataSource.ajax;
+    return ajax.requestBuilder ? ajax.requestBuilder(state) : this.dataSource.buildParams(state);
+  }
+
+  /**
+   * Hotový urlencoded querystring z {@link getServerParams} (bracket-formát kontraktu).
+   * Rozšířený filtr `advanced` je vždy jako JSON string, takže querystring funguje i u
+   * gridu s `ajax.method: 'POST'`. Připoj za `?`/`&` na vlastní GET endpoint.
+   * @param {{paginate?: boolean}} [opts]
+   * @returns {string}
+   */
+  getServerQuery(opts) {
+    let params = this.getServerParams(opts);
+    const advKey = (this.dataSource.names && this.dataSource.names.advanced) || 'advanced';
+    if (params[advKey] && typeof params[advKey] === 'object') {
+      params = { ...params, [advKey]: JSON.stringify(params[advKey]) };
+    }
+    return encodeParams(params).toString();
+  }
+
+  /* ---------------- zvýraznění (podbarvení) řádků ---------------- */
+
+  /** Zvýrazněné řádky jako pole klíčů (keyField). */
+  get highlightedRows() { return [...this.highlightedKeys]; }
+
+  /** Je řádek (objekt nebo klíč) zvýrazněný? */
+  isHighlighted(row) {
+    return this.highlightedKeys.has(typeof row === 'object' && row !== null ? this.rowKey(row) : String(row));
+  }
+
+  /** Zapne/vypne zvýraznění jednoho řádku. Překreslí jen dotčený řádek (bez plného re-renderu). */
+  highlightRow(key, on = true) {
+    key = String(key);
+    if (on) this.highlightedKeys.add(key); else this.highlightedKeys.delete(key);
+    this._afterHighlightChange(key);
+  }
+
+  toggleRowHighlight(key) { this.highlightRow(key, !this.highlightedKeys.has(String(key))); }
+
+  /** Zruší veškeré zvýraznění. */
+  clearHighlights() {
+    if (!this.highlightedKeys.size) return;
+    this.highlightedKeys.clear();
+    this._afterHighlightChange();
+  }
+
+  _afterHighlightChange(key) {
+    this.renderer.updateHighlightUI(key);
+    this.saveState();
+    if (this.options.onHighlightChange) this.options.onHighlightChange(this.highlightedRows);
+  }
+
   /** Re-render po změně sady/pořadí sloupců (data se nemění, nenačítá se znovu). */
   rerenderColumns() {
     this.renderer.renderHeader();
@@ -1934,7 +2011,7 @@ export class Lattice {
     if ('groupBy' in patch || 'groupDisplay' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); this.gear?.refresh(); }
     if ('groupRepeat' in patch) { this.renderer.renderBody(); }
     if ('selectColumn' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
-    if ('selectRowClick' in patch) { this.renderer.renderBody(); }
+    if ('selectRowClick' in patch || 'rowHighlight' in patch) { this.renderer.renderBody(); } // znovu navázat klik-listenery
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('paginationPosition' in patch || 'pageSize' in patch) {
       this.page = 1;
