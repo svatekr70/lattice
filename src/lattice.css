@@ -284,9 +284,10 @@
 .lattice-clear-filters.is-visible { display: inline-flex; }
 .lattice-tool-btn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
 .lattice-adv-quick {
-  max-width: 200px; height: 26px; padding: 0 6px;
+  max-width: 220px; height: 26px; padding: 0 24px 0 8px;
   border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
   background: var(--lattice-bg); color: var(--lattice-text); font-size: 0.9em; cursor: pointer;
+  text-overflow: ellipsis; /* vpravo 24px na nativní chevron, ať nepřekrývá text */
 }
 
 /* ---------- rozšířený filtr (query builder) ---------- */

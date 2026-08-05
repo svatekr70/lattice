@@ -20,4 +20,4 @@ export { ClientData, ServerData, encodeParams } from './core/DataSource.js';
 export { openColorPicker, openHeaderColorPicker, HEADER_COLOR_PRESETS } from './features/headerColor.js';
 
 /** Verze knihovny (odpovídá package.json). */
-export const VERSION = '1.6.1';
+export const VERSION = '1.6.2';

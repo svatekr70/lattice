@@ -4,6 +4,15 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.6.2] – 2026-08-05
+
+### Opraveno
+- **Rychlý select uložených filtrů v toolbaru (`.lattice-adv-quick`) ořezával název a nativní
+  chevron překrýval poslední znaky.** Pravý padding byl jen `6px`, což je méně než šířka
+  chevronu → text se plazil pod šipku. Nastaven `padding-right: 24px` (vlastní prostor pro
+  chevron), `text-overflow: ellipsis` a `max-width` z 200 na 220 px — dlouhý název se teď
+  úhledně zkrátí tečkami a nepřekrývá se se šipkou.
+
 ## [1.6.1] – 2026-08-05
 
 ### Opraveno
@@ -235,6 +244,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.6.2]: https://github.com/svatekr70/lattice/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/svatekr70/lattice/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/svatekr70/lattice/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/svatekr70/lattice/compare/v1.5.0...v1.5.1
