@@ -120,6 +120,28 @@ export function resolveToken(v) {
   return m[1].toLowerCase() === 'now' ? fmtDateTime(d) : fmtDate(d);
 }
 
+/**
+ * Vrátí hlubokou kopii stromu s hodnotami podmínek rozvinutými přes `resolveToken`
+ * (relativní datové tokeny → konkrétní datum). Určeno pro odeslání server-side, aby
+ * backend dostal konkrétní hodnoty a nemusel tokeny umět parsovat. Client-side se
+ * tokeny rozvíjejí za běhu v `evalCondition`, tudíž pro ně tohle není potřeba.
+ */
+export function resolveTreeTokens(group) {
+  if (!isGroup(group)) return group;
+  return { ...group, rules: group.rules.map((r) => (isGroup(r) ? resolveTreeTokens(r) : resolveConditionTokens(r))) };
+}
+
+function resolveConditionTokens(c) {
+  if (!c || !c.op) return { ...c };
+  const v = c.value;
+  // in/nin: hodnota je seznam (pole nebo CSV) — rozvinout každý prvek zvlášť (viz splitList)
+  if (c.op === 'in' || c.op === 'nin') {
+    if (Array.isArray(v)) return { ...c, value: v.map(resolveToken) };
+    return { ...c, value: String(v ?? '').split(',').map((x) => resolveToken(x.trim())).join(',') };
+  }
+  return { ...c, value: Array.isArray(v) ? v.map(resolveToken) : resolveToken(v) };
+}
+
 function pad2(x) { return String(x).padStart(2, '0'); }
 function fmtDate(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;

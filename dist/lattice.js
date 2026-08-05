@@ -2329,6 +2329,19 @@ function resolveToken(v) {
   }
   return m[1].toLowerCase() === "now" ? fmtDateTime(d) : fmtDate(d);
 }
+function resolveTreeTokens(group) {
+  if (!isGroup(group)) return group;
+  return { ...group, rules: group.rules.map((r) => isGroup(r) ? resolveTreeTokens(r) : resolveConditionTokens(r)) };
+}
+function resolveConditionTokens(c) {
+  if (!c || !c.op) return { ...c };
+  const v = c.value;
+  if (c.op === "in" || c.op === "nin") {
+    if (Array.isArray(v)) return { ...c, value: v.map(resolveToken) };
+    return { ...c, value: String(v ?? "").split(",").map((x) => resolveToken(x.trim())).join(",") };
+  }
+  return { ...c, value: Array.isArray(v) ? v.map(resolveToken) : resolveToken(v) };
+}
 function pad22(x) {
   return String(x).padStart(2, "0");
 }
@@ -2580,17 +2593,18 @@ var ServerData = class {
    *   method: 'GET'|'POST'  (default GET)
    *   headers: object
    *   params: object                 statické extra parametry
-   *   paramNames: { page,size,sort,filter }  přejmenování klíčů (default dle kontraktu)
+   *   paramNames: { page,size,sort,filter,search,advanced }  přejmenování klíčů (default dle kontraktu)
+   *   resolveTokens: bool (default true)     rozvinout relativní datové tokeny v `advanced` před odesláním
    *   requestBuilder(state) -> object        plný override skladby parametrů
    *   responseParser(json) -> { rows,total,lastPage,lastRow }  plný override parsování
    */
   constructor(ajax = {}) {
     if (!ajax.url) throw new Error("Lattice ServerData: chyb\xED `ajax.url`.");
     this.ajax = ajax;
-    this.names = Object.assign({ page: "page", size: "size", sort: "sort", filter: "filter" }, ajax.paramNames);
+    this.names = Object.assign({ page: "page", size: "size", sort: "sort", filter: "filter", search: "search", advanced: "advanced" }, ajax.paramNames);
   }
-  async query({ page, pageSize, paginate, sort, filters, universal, search, columns }) {
-    const state = { page, pageSize, paginate, sort, filters, universal, search, columns };
+  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
+    const state = { page, pageSize, paginate, sort, filters, advanced, universal, search, columns };
     const params = this.ajax.requestBuilder ? this.ajax.requestBuilder(state) : this.buildParams(state);
     const method = (this.ajax.method || "GET").toUpperCase();
     let url = this.ajax.url;
@@ -2608,7 +2622,7 @@ var ServerData = class {
     if (this.ajax.responseParser) return this.ajax.responseParser(json);
     return this.parseResponse(json, pageSize);
   }
-  buildParams({ page, pageSize, paginate, sort, filters, universal, search, columns }) {
+  buildParams({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
     const n = this.names;
     const params = Object.assign({}, this.ajax.params);
     if (search && String(search).trim()) params[n.search || "search"] = String(search).trim();
@@ -2624,6 +2638,11 @@ var ServerData = class {
       flat.push({ field: universal.field, type: UNIVERSAL_SERVER_TYPE[universal.op] || universal.op, value: universal.value });
     }
     if (flat.length) params[n.filter] = flat;
+    if (advanced && !isEmptyTree(advanced)) {
+      const tree = this.ajax.resolveTokens === false ? advanced : resolveTreeTokens(advanced);
+      const method = (this.ajax.method || "GET").toUpperCase();
+      params[n.advanced || "advanced"] = method === "GET" ? JSON.stringify(tree) : tree;
+    }
     return params;
   }
   parseResponse(json, pageSize) {
@@ -12222,7 +12241,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.6.2";
+var VERSION = "1.7.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

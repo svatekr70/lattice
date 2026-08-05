@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.6.2/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.7.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.6.2/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.7.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.6.2`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.7.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -243,14 +243,15 @@ const tree = { combinator: 'AND', rules: [
 Token je běžný **řetězec** (JSON-safe) — rozvine se až při porovnání, žádný spustitelný kód se
 neukládá, takže je bezpečný i pro **globálně sdílené** filtry. Je case-insensitive a toleruje mezery
 (`today + 14 d`). Cokoli, co není platný token (`2026-01-01`, `yesterday`, číslo), se použije beze změny.
-Funguje i uvnitř `in`/`nin` seznamu (`today, today+7`). V **server-side** režimu, kde se rozšířený filtr
-neposílá na server, si token při vlastní filtraci na serveru rozvine aplikace stejnou logikou.
+Funguje i uvnitř `in`/`nin` seznamu (`today, today+7`). V **server-side** režimu (`@v1.7.0+`) se
+tokeny **rozvinou na konkrétní data** už při skládání requestu (viz *Server-side režim → Rozšířený
+filtr (`advanced`)*), takže backend dostane hotové ISO datum a nemusí tokeny umět parsovat.
 
 > **Externí (programové) filtrování na client-side:** Lattice **nemá** API pro vlastní row-predikát
 > (žádná `filterFunc` / `rowFilter`). Když potřebuješ filtrovat vlastní logikou, buď (a) předej už
 > **předfiltrovaná data** přes `setData(rows)`, nebo (b) sestav strom a použij `applyAdvanced(tree)`.
-> V **server-side** režimu se rozšířený filtr (`advanced`) **na server neposílá** — filtruje se jen
-> client-side; serverovou filtraci řeš přes `setFilter` / `ajax.params`.
+> V **server-side** režimu se rozšířený filtr (`advanced`) posílá na backend nativně (`@v1.7.0+`) —
+> viz *Server-side režim*; překlad `advanced` do SQL je na aplikaci.
 
 ---
 
@@ -340,7 +341,8 @@ new Lattice('#grid', {
     method: 'GET',                 // | 'POST' (params se pošlou jako JSON body)
     params: { tenantId: 5 },       // vlastní parametry do KAŽDÉHO requestu
     headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    paramNames: { page: 'page', size: 'size', sort: 'sort', filter: 'filter' }, // přejmenování
+    paramNames: { page: 'page', size: 'size', sort: 'sort', filter: 'filter', search: 'search', advanced: 'advanced' }, // přejmenování
+    // resolveTokens: true,                  // rozvinout relativní datové tokeny v `advanced` (default true)
     // requestBuilder: (state) => ({ … }),   // volitelně: přestav CELÉ query params
     // responseParser: (json) => ({ rows, total, lastPage, lastRow }), // volitelně: vlastní parsování
   },
@@ -355,8 +357,9 @@ new Lattice('#grid', {
 | `method` | `'GET'` \| `'POST'` | Výchozí `'GET'`. GET → params jako query string; POST → params jako **JSON body** (+ `Content-Type: application/json`). |
 | `params` | object | Statické extra parametry přidané do **každého** requestu (viz níže — mutace za běhu). |
 | `headers` | object | Hlavičky do `fetch`. |
-| `paramNames` | object | Přejmenování klíčů. Výchozí `{ page:'page', size:'size', sort:'sort', filter:'filter' }`. Klíč `search` ve výchozí mapě **není** — přidej ho sem, jinak jede pod `'search'`. |
-| `requestBuilder(state)` | fn | Přestaví **celé** query params z `state = { page, pageSize, paginate, sort, filters, universal, search, columns }` (pozor: `pageSize`, ne `size`). Když je zadán, `params` ani `paramNames` se **neaplikují** automaticky. |
+| `paramNames` | object | Přejmenování klíčů. Výchozí `{ page:'page', size:'size', sort:'sort', filter:'filter', search:'search', advanced:'advanced' }` (`search` a `advanced` přidány v `@v1.7.0`). |
+| `resolveTokens` | bool | Rozvinout relativní datové tokeny (`today+14`, `now`, …) v `advanced` na konkrétní data **před odesláním** na server. Výchozí `true` — backend tak dostane hotové ISO datum. `false` = posílá tokeny tak, jak jsou (backend si je rozvine sám). `@v1.7.0`. |
+| `requestBuilder(state)` | fn | Přestaví **celé** query params z `state = { page, pageSize, paginate, sort, filters, advanced, universal, search, columns }` (pozor: `pageSize`, ne `size`; `advanced` je **nerozvinutý** strom — tokeny si rozviň sám, viz `resolveTreeTokens`). Když je zadán, `params` ani `paramNames` se **neaplikují** automaticky. |
 | `responseParser(json)` | fn | Vlastní parsování odpovědi → musí vrátit `{ rows, total, lastPage, lastRow }` (nedostává `pageSize`, takže `lastPage` si spočítej sám). |
 
 ### Externí stav přes `ajax.params` (velmi časté)
@@ -383,8 +386,40 @@ Je to **jediný** způsob, jak poslat na server stav mimo grid (externí filtry)
   - **date-range**: JEDEN záznam `type:'dateRange'`, `value: "from|to"`.
   - **multiselect**: `type:'in'`, `value` je **pole** → `filter[0][value][0]`, `filter[0][value][1]`, … (ne spojené `'|'`).
 - `search` (quick search) — trimovaný řetězec, výchozí klíč `search`.
+- `advanced` (rozšířený filtr, strom AND/OR pravidel) — **jen když je neprázdný**; formát viz níže (`@v1.7.0`).
 
 GET serializuje bracket-formátem (`key[i]` pro pole, `key[klíč]` pro objekt); POST pošle stejnou strukturu jako JSON body.
+
+#### Rozšířený filtr (`advanced`) — `@v1.7.0`
+
+Rozšířený filtr (`grid.applyAdvanced(tree)`, včetně vybraného **globálního** uloženého filtru) se
+posílá na backend nativně — stejně jako `sort`/`filter`/`search`. Je **aditivní**: backendy, které
+`advanced` ignorují, fungují beze změny.
+
+- **Formát:** celý strom jako **JSON** (ne bracket-formát — vnořené skupiny by se rozpadly).
+  - **GET:** `advanced=<urlencoded JSON>` (jeden parametr) → backend: `json_decode($_GET['advanced'])`.
+  - **POST:** `advanced` je **vnořený objekt** přímo v JSON body.
+- **Rozvinuté tokeny:** relativní datové tokeny (`today+14`, `now`, …) se defaultně rozvinou na
+  konkrétní ISO datum (`ajax.resolveTokens`, viz *`ajax` objekt*), takže backend zůstává „hloupý".
+- **Schéma stromu:** `group = { combinator: 'AND'|'OR', rules: [group|condition] }`,
+  `condition = { field, op, value }`; `op` ∈ `eq, neq, contains, ncontains, starts, ends,
+  gt, gte, lt, lte, in, nin, empty, nempty` (u `in`/`nin` je `value` CSV/pole; `empty`/`nempty`
+  bez `value`).
+
+Příklad payloadu (filtr „zkušební doba končí v příštích 14 dnech", dnes `2026-08-05`):
+
+```jsonc
+// GET:  ?…&advanced=%7B%22combinator%22%3A%22AND%22%2C%22rules%22%3A%5B…%5D%7D
+// dekódovaná hodnota parametru `advanced`:
+{ "combinator": "AND", "rules": [
+  { "field": "probation_end", "op": "gte", "value": "2026-08-05" },
+  { "field": "probation_end", "op": "lte", "value": "2026-08-19" }
+] }
+```
+
+**Doporučené zpracování na serveru** (zůstává na aplikaci): `json_decode` → rekurzivní průchod
+stromu → skládání `WHERE` (whitelist `field` → DB sloupec, mapování `op` na SQL, `in`/`nin` →
+`IN (…)`, M:N vztahy přes `EXISTS`). Prázdný / chybějící `advanced` = bez omezení.
 
 ### Odpověď serveru
 
@@ -401,7 +436,7 @@ Grid čte `{ data, total, last_page, last_row }` (nebo přímo top-level pole = 
 
 ### Auto-refetch
 
-Nový dotaz na server vyvolají **automaticky**: `setFilter`, `clearFilters`, `setQuickSearch`, `setPage` (kromě kliku na aktuální stránku), `setPageSize` a **řazení klikem na hlavičku** (`sortColumn` / `toggleSort`). `refresh()` volej ručně jen po změně `ajax.params` nebo jiného externího stavu — jinak je zbytečné. Rozšířený filtr (`applyAdvanced`) se v server-side na server **neposílá** (filtruje jen client-side).
+Nový dotaz na server vyvolají **automaticky**: `setFilter`, `clearFilters`, `setQuickSearch`, `setPage` (kromě kliku na aktuální stránku), `setPageSize`, **řazení klikem na hlavičku** (`sortColumn` / `toggleSort`) a **rozšířený filtr** (`applyAdvanced` / `clearAdvanced`, včetně výběru globálního uloženého filtru — `@v1.7.0`; refetch běží přes interní `refresh()` a nově nese parametr `advanced`). `refresh()` volej ručně jen po změně `ajax.params` nebo jiného externího stavu — jinak je zbytečné.
 
 ---
 
@@ -496,6 +531,11 @@ ukládání je vypnuté; `canSaveGlobalAdvanced()` vrací `false`). Globální f
 Programově: `grid.saveAdvanced(name, tree, 'global')` uloží globálně (spustí callback a vrátí
 `{ id, name, tree, scope:'global' }`), bez třetího argumentu (nebo `'local'`) uloží lokálně.
 `grid.listAdvanced()` vrací obojí sjednoceně, každou položku se `scope: 'local' | 'global'`.
+
+> **Server-side (`@v1.7.0+`):** výběr uloženého (i globálního) rozšířeného filtru jen nastaví
+> `grid.advanced` a spustí refetch — a ten teď nese parametr `advanced` (viz *Server-side režim →
+> Rozšířený filtr*). Uložené rozšířené filtry tak na server-side gridech fungují nativně, bez
+> app-side obcházení `refresh()`.
 
 ### Globální výchozí nastavení (defaults) — kontrakt
 

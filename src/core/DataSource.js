@@ -12,7 +12,7 @@
  * Grid tak neřeší, odkud data jsou.
  */
 import { getFilter } from '../filters/index.js';
-import { evalGroup, isEmptyTree, evalCondition } from '../filters/advancedEval.js';
+import { evalGroup, isEmptyTree, evalCondition, resolveTreeTokens } from '../filters/advancedEval.js';
 import { cellValue } from './cellValue.js';
 
 /** Jeden sdílený collator — řádově rychlejší než String.localeCompare (ten si
@@ -266,18 +266,19 @@ export class ServerData {
    *   method: 'GET'|'POST'  (default GET)
    *   headers: object
    *   params: object                 statické extra parametry
-   *   paramNames: { page,size,sort,filter }  přejmenování klíčů (default dle kontraktu)
+   *   paramNames: { page,size,sort,filter,search,advanced }  přejmenování klíčů (default dle kontraktu)
+   *   resolveTokens: bool (default true)     rozvinout relativní datové tokeny v `advanced` před odesláním
    *   requestBuilder(state) -> object        plný override skladby parametrů
    *   responseParser(json) -> { rows,total,lastPage,lastRow }  plný override parsování
    */
   constructor(ajax = {}) {
     if (!ajax.url) throw new Error('Lattice ServerData: chybí `ajax.url`.');
     this.ajax = ajax;
-    this.names = Object.assign({ page: 'page', size: 'size', sort: 'sort', filter: 'filter' }, ajax.paramNames);
+    this.names = Object.assign({ page: 'page', size: 'size', sort: 'sort', filter: 'filter', search: 'search', advanced: 'advanced' }, ajax.paramNames);
   }
 
-  async query({ page, pageSize, paginate, sort, filters, universal, search, columns }) {
-    const state = { page, pageSize, paginate, sort, filters, universal, search, columns };
+  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
+    const state = { page, pageSize, paginate, sort, filters, advanced, universal, search, columns };
     const params = this.ajax.requestBuilder
       ? this.ajax.requestBuilder(state)
       : this.buildParams(state);
@@ -302,7 +303,7 @@ export class ServerData {
     return this.parseResponse(json, pageSize);
   }
 
-  buildParams({ page, pageSize, paginate, sort, filters, universal, search, columns }) {
+  buildParams({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
     const n = this.names;
     const params = Object.assign({}, this.ajax.params);
     if (search && String(search).trim()) params[n.search || 'search'] = String(search).trim();
@@ -320,6 +321,17 @@ export class ServerData {
       flat.push({ field: universal.field, type: UNIVERSAL_SERVER_TYPE[universal.op] || universal.op, value: universal.value });
     }
     if (flat.length) params[n.filter] = flat;
+
+    // Rozšířený filtr (query-builder strom). Aditivní: backendy, které ho ignorují, fungují dál.
+    // Relativní datové tokeny (today+14, now, …) se defaultně rozvinou na konkrétní data,
+    // aby backend zůstal „hloupý" (opt-out přes ajax.resolveTokens === false).
+    if (advanced && !isEmptyTree(advanced)) {
+      const tree = this.ajax.resolveTokens === false ? advanced : resolveTreeTokens(advanced);
+      // GET: strom jako JSON string v jednom parametru (backend: json_decode).
+      // POST: vnořený objekt (serializuje se v těle jako JSON).
+      const method = (this.ajax.method || 'GET').toUpperCase();
+      params[n.advanced || 'advanced'] = method === 'GET' ? JSON.stringify(tree) : tree;
+    }
     return params;
   }
 

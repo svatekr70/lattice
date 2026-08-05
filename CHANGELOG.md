@@ -4,6 +4,30 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.7.0] – 2026-08-05
+
+### Přidáno
+- **Server-side režim posílá rozšířený filtr (`advanced`) na backend nativně** — stejně jako už
+  posílá `sort`/`filter`/`search`. Doteď se `advanced` (strom AND/OR pravidel) v server-side
+  neposílal a aplikace to musela obcházet (wrap `refresh()` + ruční injektování parametru). Nově:
+  - `ServerData` skládá `advanced` do request parametrů; **prázdný strom se neposílá** (aditivní —
+    backendy, které parametr ignorují, fungují dál).
+  - **Serializace:** celý strom jako **JSON** — GET jako jeden urlencoded parametr
+    (`advanced=<JSON>`), POST jako vnořený objekt v těle. Přejmenovatelné přes
+    `ajax.paramNames.advanced` (default `advanced`).
+  - **Relativní datové tokeny** (`today+14`, `now`, …) se **rozvinou na konkrétní ISO datum už
+    při skládání requestu**, takže backend zůstává „hloupý". Opt-out `ajax.resolveTokens: false`.
+  - Nová exportovaná funkce `resolveTreeTokens(tree)` v `advancedEval.js` (hluboká kopie stromu
+    s rozvinutými tokeny, včetně `in`/`nin` seznamů).
+  - Do defaultů `ajax.paramNames` doplněny klíče `search` a `advanced`.
+- Důsledek: **globální uložené rozšířené filtry na server-side gridech „prostě fungují"** — jejich
+  výběr jen nastaví `grid.advanced` a spustí refetch, který teď nese parametr `advanced`.
+
+### Dokumentace
+- `docs/API.md` — sekce *Server-side režim* doplněna o parametr `advanced` (formát JSON, GET/POST,
+  rozvinuté tokeny, `resolveTokens`, příklad payloadu a doporučené zpracování na serveru);
+  opravena dřívější tvrzení, že se rozšířený filtr na server neposílá.
+
 ## [1.6.2] – 2026-08-05
 
 ### Opraveno
@@ -244,6 +268,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.7.0]: https://github.com/svatekr70/lattice/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/svatekr70/lattice/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/svatekr70/lattice/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/svatekr70/lattice/compare/v1.5.1...v1.6.0

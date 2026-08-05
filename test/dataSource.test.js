@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ClientData, encodeParams } from '../src/core/DataSource.js';
+import { ClientData, ServerData, encodeParams } from '../src/core/DataSource.js';
+import { resolveTreeTokens } from '../src/filters/advancedEval.js';
 
 const columns = [
   { field: 'name', type: 'text', filter: 'text' },
@@ -54,6 +55,79 @@ test('encodeParams: bracket formát kontraktu', () => {
     decodeURIComponent(sp.toString()),
     'page=2&size=50&sort[0][field]=name&sort[0][dir]=asc&filter[0][field]=x&filter[0][type]=like&filter[0][value]=ab',
   );
+});
+
+/* ---- ServerData: rozšířený filtr (advanced) v request parametrech ---- */
+
+/** YYYY-MM-DD o `n` dní od dneška (pro ověření rozvinutých tokenů). */
+function dayStr(n = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+const advTree = { combinator: 'AND', rules: [{ field: 'probation_end', op: 'lte', value: 'today+14' }] };
+const baseReq = { page: 1, pageSize: 25, paginate: true, sort: [], filters: {}, columns: [] };
+
+test('ServerData: GET posílá advanced jako JSON string s rozvinutými tokeny', () => {
+  const sd = new ServerData({ url: '/api' });
+  const params = sd.buildParams({ ...baseReq, advanced: advTree });
+  assert.equal(typeof params.advanced, 'string', 'GET → JSON string');
+  const parsed = JSON.parse(params.advanced);
+  assert.equal(parsed.rules[0].value, dayStr(14), 'token today+14 rozvinut na konkrétní datum');
+  assert.equal(parsed.combinator, 'AND');
+});
+
+test('ServerData: POST posílá advanced jako vnořený objekt', () => {
+  const sd = new ServerData({ url: '/api', method: 'POST' });
+  const params = sd.buildParams({ ...baseReq, advanced: advTree });
+  assert.equal(typeof params.advanced, 'object', 'POST → vnořený objekt');
+  assert.equal(params.advanced.rules[0].value, dayStr(14));
+});
+
+test('ServerData: resolveTokens:false ponechá tokeny', () => {
+  const sd = new ServerData({ url: '/api', method: 'POST', resolveTokens: false });
+  const params = sd.buildParams({ ...baseReq, advanced: advTree });
+  assert.equal(params.advanced.rules[0].value, 'today+14', 'token nerozvinut');
+});
+
+test('ServerData: prázdný strom advanced neposílá', () => {
+  const sd = new ServerData({ url: '/api' });
+  const p1 = sd.buildParams({ ...baseReq, advanced: { combinator: 'AND', rules: [] } });
+  assert.equal('advanced' in p1, false);
+  const p2 = sd.buildParams({ ...baseReq, advanced: null });
+  assert.equal('advanced' in p2, false);
+});
+
+test('ServerData: paramNames.advanced přejmenuje klíč', () => {
+  const sd = new ServerData({ url: '/api', paramNames: { advanced: 'ladv' } });
+  const params = sd.buildParams({ ...baseReq, advanced: advTree });
+  assert.equal('ladv' in params, true);
+  assert.equal('advanced' in params, false);
+});
+
+test('ServerData: advanced přes encodeParams je jeden URL parametr', () => {
+  const sd = new ServerData({ url: '/api' });
+  const params = sd.buildParams({ ...baseReq, paginate: false, advanced: advTree });
+  const sp = encodeParams(params);
+  const raw = sp.get('advanced');
+  assert.equal(typeof raw, 'string');
+  assert.equal(JSON.parse(raw).rules[0].value, dayStr(14));
+  // žádné bracket-rozklady advanced[…]
+  assert.equal([...sp.keys()].some((k) => k.startsWith('advanced[')), false);
+});
+
+test('resolveTreeTokens: rozvine i vnořené skupiny a in/nin seznamy', () => {
+  const tree = { combinator: 'OR', rules: [
+    { field: 'a', op: 'gte', value: 'today' },
+    { combinator: 'AND', rules: [{ field: 'b', op: 'in', value: 'today, today+1' }] },
+  ] };
+  const out = resolveTreeTokens(tree);
+  assert.equal(out.rules[0].value, dayStr(0));
+  assert.equal(out.rules[1].rules[0].value, `${dayStr(0)},${dayStr(1)}`);
+  // původní strom se nezměnil (hluboká kopie)
+  assert.equal(tree.rules[0].value, 'today');
 });
 
 /* ---- computed (odvozené) sloupce: col.value ---- */
