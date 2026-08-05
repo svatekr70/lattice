@@ -198,7 +198,7 @@ export class AdvancedFilter {
     for (const op of ADV_OPS) opSel.appendChild(el('option', { value: op, text: t('advanced.ops.' + op) }));
     opSel.value = cond.op;
 
-    const valInput = el('input.lattice-adv-value', { type: 'text', value: cond.value ?? '', placeholder: t('advanced.valuePlaceholder') });
+    const valInput = el('input.lattice-adv-value', { type: 'text', value: cond.value ?? '', placeholder: t('advanced.valuePlaceholder'), title: t('advanced.valueHint') });
     valInput.addEventListener('input', () => { cond.value = valInput.value; });
     const syncVal = () => { valInput.style.display = (cond.op === 'empty' || cond.op === 'nempty') ? 'none' : ''; };
     opSel.addEventListener('change', () => { cond.op = opSel.value; syncVal(); });

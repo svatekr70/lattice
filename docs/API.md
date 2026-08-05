@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.6.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.5.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.6.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.5.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.6.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -221,6 +221,30 @@ grid.applyAdvanced(tree);
 Operátory (`op`): `eq, neq, contains, ncontains, starts, ends, gt, gte, lt, lte, in, nin, empty, nempty`
 (`in`/`nin` = seznam oddělený čárkou; `empty`/`nempty` ignorují `value`). Uložení pojmenovaných
 filtrů viz *Metody instance* (`saveAdvanced`) a *Globální rozšířené filtry*.
+
+**Relativní datové tokeny.** V `value` můžeš místo pevného data použít token, který se dopočítá
+až při každém vyhodnocení filtru — díky tomu uložený filtr „posouvá okno" s časem:
+
+| Token | Význam |
+| --- | --- |
+| `today` | dnešek (`YYYY-MM-DD`, lokální půlnoc) |
+| `today+14` / `today-7` | ± N dní (jednotka `d` je výchozí) |
+| `today+2w` / `-1m` / `+1y` | jednotky: `d` (den), `w` (týden), `m` (měsíc), `y` (rok) |
+| `now` | aktuální okamžik včetně času (`YYYY-MM-DDThh:mm:ss`) |
+
+```js
+// „Zkušební doba končí v příštích 14 dnech" — bez pevného data:
+const tree = { combinator: 'AND', rules: [
+  { field: 'probation_end', op: 'gte', value: 'today' },
+  { field: 'probation_end', op: 'lte', value: 'today+14' },
+] };
+```
+
+Token je běžný **řetězec** (JSON-safe) — rozvine se až při porovnání, žádný spustitelný kód se
+neukládá, takže je bezpečný i pro **globálně sdílené** filtry. Je case-insensitive a toleruje mezery
+(`today + 14 d`). Cokoli, co není platný token (`2026-01-01`, `yesterday`, číslo), se použije beze změny.
+Funguje i uvnitř `in`/`nin` seznamu (`today, today+7`). V **server-side** režimu, kde se rozšířený filtr
+neposílá na server, si token při vlastní filtraci na serveru rozvine aplikace stejnou logikou.
 
 > **Externí (programové) filtrování na client-side:** Lattice **nemá** API pro vlastní row-predikát
 > (žádná `filterFunc` / `rowFilter`). Když potřebuješ filtrovat vlastní logikou, buď (a) předej už

@@ -367,6 +367,7 @@ export default {
     savedPlaceholder: '— uložené filtry —',
     namePlaceholder: 'Název filtru…',
     valuePlaceholder: 'hodnota',
+    valueHint: 'Relativní datum: today, today+14, today-7, today+2w, +1m, -1y, now (jednotky d/w/m/y)',
     addCondition: 'Podmínka',
     addGroup: 'Skupina',
     and: 'A zároveň (vše)',

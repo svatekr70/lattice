@@ -11,6 +11,15 @@
  *
  * Porovnání je „chytré": u </<=/>/>= zkusí číslo, pak datum (YYYY-MM-DD),
  * jinak řetězec. Textové operátory jsou case-insensitive.
+ *
+ * Relativní datové tokeny v hodnotě:
+ *   today                dnešek (YYYY-MM-DD, lokální půlnoc)
+ *   today+14 / today-7   ± N dní (jednotka d je výchozí)
+ *   today+2w / -1m / +1y  jednotky: d (den), w (týden), m (měsíc), y (rok)
+ *   now                  aktuální okamžik včetně času (YYYY-MM-DDThh:mm:ss)
+ *   now+3d ...           posun po dnech/týdnech/měsících/rocích (d/w/m/y)
+ * Token je běžný řetězec (JSON-safe), rozvine se až při vyhodnocení — proto je
+ * bezpečný i pro globálně sdílené filtry (žádný spustitelný kód).
  */
 
 export const ADV_OPS = ['eq', 'neq', 'contains', 'ncontains', 'starts', 'ends', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'empty', 'nempty'];
@@ -35,7 +44,7 @@ export function evalCondition(c, row) {
   if (!c || !c.op) return true;
   const raw = row[c.field];
   const s = norm(raw);
-  const v = c.value;
+  const v = resolveToken(c.value);
   switch (c.op) {
     case 'empty': return raw == null || raw === '';
     case 'nempty': return !(raw == null || raw === '');
@@ -82,6 +91,39 @@ function cmp(a, b) {
 }
 
 function splitList(v) {
-  if (Array.isArray(v)) return v;
-  return String(v ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (Array.isArray(v)) return v.map(resolveToken);
+  return String(v ?? '').split(',').map((x) => resolveToken(x.trim())).filter(Boolean);
+}
+
+/* ---- relativní datové tokeny ---- */
+
+const TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+
+/**
+ * Rozvine token typu `today`, `today±N[d|w|m|y]`, `now` na konkrétní datum.
+ * Cokoli jiného (běžnou hodnotu) vrátí beze změny.
+ */
+export function resolveToken(v) {
+  if (typeof v !== 'string') return v;
+  const m = TOKEN_RE.exec(v);
+  if (!m) return v;
+  const d = new Date();
+  if (m[2]) {
+    const n = (m[2] === '-' ? -1 : 1) * parseInt(m[3], 10);
+    switch ((m[4] || 'd').toLowerCase()) {
+      case 'w': d.setDate(d.getDate() + n * 7); break;
+      case 'm': d.setMonth(d.getMonth() + n); break;
+      case 'y': d.setFullYear(d.getFullYear() + n); break;
+      default: d.setDate(d.getDate() + n);
+    }
+  }
+  return m[1].toLowerCase() === 'now' ? fmtDateTime(d) : fmtDate(d);
+}
+
+function pad2(x) { return String(x).padStart(2, '0'); }
+function fmtDate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function fmtDateTime(d) {
+  return `${fmtDate(d)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }

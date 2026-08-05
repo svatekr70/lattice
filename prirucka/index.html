@@ -363,6 +363,20 @@
         <figcaption>Dvě skupiny <b>„Nebo"</b> spojené nadřazeným <b>„A zároveň"</b>: (Email nebo Newsletter) <b>a</b> (rozpočet pod 200000 nebo nad 300000).</figcaption>
       </figure>
 
+      <h3>Relativní datum (dnešek ± N)</h3>
+      <p>U datových sloupců nemusíš psát pevné datum. Do <b>hodnoty</b> napiš token, který se
+        <b>přepočítá vždy podle aktuálního dne</b> — uložený filtr tak zůstává platný i zítra:</p>
+      <ul>
+        <li><code>today</code> — dnešek</li>
+        <li><code>today+14</code> — za 14 dní, <code>today-7</code> — před 7 dny (čísla ve dnech)</li>
+        <li>jednotky: <code>today+2w</code> (týdny), <code>today+1m</code> (měsíce), <code>today+1y</code> (roky)</li>
+        <li><code>now</code> — teď včetně času (pro sloupce typu datum a čas)</li>
+      </ul>
+      <p><b>Příklad „Zkušební doba končí do 14 dnů":</b> <i>A zároveň</i> →
+        <i>Konec zkušebky · ≥ větší nebo rovno · <code>today</code></i> a
+        <i>Konec zkušebky · ≤ menší nebo rovno · <code>today+14</code></i>. Filtr ulož pod názvem a
+        můžeš ho i <b>sdílet globálně</b> — token je jen text, žádné pevné datum se do něj nezapíše.</p>
+
       <h3>Uložení filtru</h3>
       <p>Napiš dole <b>název</b> a klikni <b>Uložit</b> — filtr se objeví v rozbalovací nabídce
         „uložené filtry" nahoře a příště ho použiješ jedním klikem. <b>Vymazat filtr</b> vše vynuluje.</p>

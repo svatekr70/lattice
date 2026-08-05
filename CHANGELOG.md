@@ -4,6 +4,21 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.6.0] – 2026-08-05
+
+### Přidáno
+- **Relativní datové tokeny v rozšířeném filtru** — v hodnotě podmínky lze místo pevného data
+  napsat token, který se dopočítá až při každém vyhodnocení filtru (uložený filtr tak „posouvá
+  okno" s časem, ideální pro globálně sdílené filtry):
+  - `today`, `today+14`, `today-7` (± N dní), jednotky `today+2w` / `+1m` / `+1y`
+    (den/týden/měsíc/rok) a `now` (s časem).
+  - Case-insensitive, toleruje mezery (`today + 14 d`); funguje i uvnitř `in`/`nin` seznamu.
+  - Token je **řetězec** (JSON-safe) — žádný spustitelný kód se neukládá, bezpečné pro sdílení.
+  - Nová exportovaná funkce `resolveToken(value)` v `advancedEval.js`; nápověda (tooltip) u pole
+    hodnoty v panelu rozšířeného filtru.
+- Dokumentace (`docs/API.md`), uživatelská příručka a demo ukázka „Rozšířený filtr" doplněny
+  o relativní datum.
+
 ## [1.5.1] – 2026-08-03
 
 ### Dokumentace
@@ -197,6 +212,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.6.0]: https://github.com/svatekr70/lattice/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/svatekr70/lattice/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/svatekr70/lattice/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/svatekr70/lattice/compare/v1.3.0...v1.4.0

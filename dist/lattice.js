@@ -2241,7 +2241,7 @@ function evalCondition(c, row) {
   if (!c || !c.op) return true;
   const raw = row[c.field];
   const s = norm2(raw);
-  const v = c.value;
+  const v = resolveToken(c.value);
   switch (c.op) {
     case "empty":
       return raw == null || raw === "";
@@ -2298,8 +2298,41 @@ function cmp2(a, b) {
   return norm2(a).localeCompare(norm2(b), void 0, { numeric: true });
 }
 function splitList(v) {
-  if (Array.isArray(v)) return v;
-  return String(v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (Array.isArray(v)) return v.map(resolveToken);
+  return String(v ?? "").split(",").map((x) => resolveToken(x.trim())).filter(Boolean);
+}
+var TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+function resolveToken(v) {
+  if (typeof v !== "string") return v;
+  const m = TOKEN_RE.exec(v);
+  if (!m) return v;
+  const d = /* @__PURE__ */ new Date();
+  if (m[2]) {
+    const n = (m[2] === "-" ? -1 : 1) * parseInt(m[3], 10);
+    switch ((m[4] || "d").toLowerCase()) {
+      case "w":
+        d.setDate(d.getDate() + n * 7);
+        break;
+      case "m":
+        d.setMonth(d.getMonth() + n);
+        break;
+      case "y":
+        d.setFullYear(d.getFullYear() + n);
+        break;
+      default:
+        d.setDate(d.getDate() + n);
+    }
+  }
+  return m[1].toLowerCase() === "now" ? fmtDateTime(d) : fmtDate(d);
+}
+function pad22(x) {
+  return String(x).padStart(2, "0");
+}
+function fmtDate(d) {
+  return `${d.getFullYear()}-${pad22(d.getMonth() + 1)}-${pad22(d.getDate())}`;
+}
+function fmtDateTime(d) {
+  return `${fmtDate(d)}T${pad22(d.getHours())}:${pad22(d.getMinutes())}:${pad22(d.getSeconds())}`;
 }
 
 // src/core/DataSource.js
@@ -2995,6 +3028,7 @@ var cs_default = {
     savedPlaceholder: "\u2014 ulo\u017Een\xE9 filtry \u2014",
     namePlaceholder: "N\xE1zev filtru\u2026",
     valuePlaceholder: "hodnota",
+    valueHint: "Relativn\xED datum: today, today+14, today-7, today+2w, +1m, -1y, now (jednotky d/w/m/y)",
     addCondition: "Podm\xEDnka",
     addGroup: "Skupina",
     and: "A z\xE1rove\u0148 (v\u0161e)",
@@ -3436,6 +3470,7 @@ var en_default = {
     savedPlaceholder: "\u2014 saved filters \u2014",
     namePlaceholder: "Filter name\u2026",
     valuePlaceholder: "value",
+    valueHint: "Relative date: today, today+14, today-7, today+2w, +1m, -1y, now (units d/w/m/y)",
     addCondition: "Condition",
     addGroup: "Group",
     and: "And (all)",
@@ -3622,7 +3657,7 @@ var CURRENCIES = ["CZK", "EUR", "USD", "GBP", "PLN", "CHF", "JPY"];
 var DATE_PRESETS = ["dd.mm.yyyy", "d.m.yyyy", "yyyy-mm-dd", "dd/mm/yyyy", "d. mmmm yyyy", "d. mmm yyyy", "ddd d.m.yyyy"];
 var DATETIME_PRESETS = ["dd.mm.yyyy HH:nn", "d.m.yyyy H:nn", "yyyy-mm-dd HH:nn", "dd.mm.yyyy HH:nn:ss", "d. mmmm yyyy H:nn"];
 var TIME_PRESETS = ["HH:nn", "H:nn", "HH:nn:ss", "h:nn a"];
-var pad22 = (x) => String(x).padStart(2, "0");
+var pad23 = (x) => String(x).padStart(2, "0");
 function applyNegative(absText, neg, style) {
   if (!neg) return { text: absText, red: false };
   switch (style) {
@@ -3685,19 +3720,19 @@ function formatDate(d, pattern, i18n) {
     yy: String(d.getFullYear()).slice(-2),
     mmmm: months[mo],
     mmm: monthsShort[mo] || (months[mo] || "").slice(0, 3),
-    mm: pad22(mo + 1),
+    mm: pad23(mo + 1),
     m: mo + 1,
     dddd: weekdaysLong[wd],
     ddd: weekdays[wd],
-    dd: pad22(d.getDate()),
+    dd: pad23(d.getDate()),
     d: d.getDate(),
-    HH: pad22(h24),
+    HH: pad23(h24),
     H: h24,
-    hh: pad22(h12),
+    hh: pad23(h12),
     h: h12,
-    nn: pad22(d.getMinutes()),
+    nn: pad23(d.getMinutes()),
     n: d.getMinutes(),
-    ss: pad22(d.getSeconds()),
+    ss: pad23(d.getSeconds()),
     s: d.getSeconds(),
     A: h24 < 12 ? "AM" : "PM",
     a: h24 < 12 ? "am" : "pm"
@@ -8851,7 +8886,7 @@ var AdvancedFilter = class {
     const opSel = el("select.lattice-adv-op");
     for (const op of ADV_OPS) opSel.appendChild(el("option", { value: op, text: t("advanced.ops." + op) }));
     opSel.value = cond.op;
-    const valInput = el("input.lattice-adv-value", { type: "text", value: cond.value ?? "", placeholder: t("advanced.valuePlaceholder") });
+    const valInput = el("input.lattice-adv-value", { type: "text", value: cond.value ?? "", placeholder: t("advanced.valuePlaceholder"), title: t("advanced.valueHint") });
     valInput.addEventListener("input", () => {
       cond.value = valInput.value;
     });
@@ -12171,7 +12206,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.5.1";
+var VERSION = "1.6.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

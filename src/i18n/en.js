@@ -367,6 +367,7 @@ export default {
     savedPlaceholder: '— saved filters —',
     namePlaceholder: 'Filter name…',
     valuePlaceholder: 'value',
+    valueHint: 'Relative date: today, today+14, today-7, today+2w, +1m, -1y, now (units d/w/m/y)',
     addCondition: 'Condition',
     addGroup: 'Group',
     and: 'And (all)',
