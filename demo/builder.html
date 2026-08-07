@@ -261,6 +261,7 @@
 </div>
 
 <script type="module">
+import './mock-api.js'; // fallback API pro statický hosting (živý náhled server-mode)
 import { Lattice, openColorPicker, I18n } from '../src/index.js';
 import { generateCampaigns, CATEGORY_ICONS, OPTIONS } from './data.js';
 const pickerI18n = new I18n('cs');

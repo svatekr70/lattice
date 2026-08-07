@@ -3,6 +3,7 @@
  * (referenční stránky se živými ukázkami). Sidebar se přepíná dle režimu.
  * Routování přes #hash: `#ex-…` = příklad, `#doc-…` = dokumentace.
  */
+import './mock-api.js'; // fallback API pro statický hosting (self-install mimo localhost)
 import { generateCampaigns } from './data.js';
 import { GROUPS, ALL } from './examples.js';
 import { DOC_GROUPS, DOC_ALL } from './docs.js';
