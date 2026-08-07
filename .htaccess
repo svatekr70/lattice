@@ -12,3 +12,14 @@
     Require all denied
   </Directory>
 </IfModule>
+
+# Demo/dokumentace importují ESM moduly přímo z /src/ (bez verzování). Aby po
+# nasazení nové verze prohlížeč nedržel staré moduly z cache, necháme JS/CSS
+# revalidovat: "no-cache" = smí se kešovat, ale před použitím se vždy ověří u
+# serveru (podmíněný GET → 304 když se nezměnilo, jinak čerstvá 200).
+# Knihovny konzumují přes jsDelivr @vX (verzované), takže tohle je jen pro demo web.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|mjs|css)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
