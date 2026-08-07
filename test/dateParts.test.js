@@ -45,3 +45,15 @@ test('kvartály přes rok mají rostoucí sort', () => {
   const q4 = dateBucket('2026-11-01', 'quarter', i18n).sort;
   assert.ok(q1 < q4);
 });
+
+test('date-only string se bucketuje lokálně (shodně s Date objektem)', () => {
+  // regrese: 'YYYY-MM-DD' se parsovalo jako UTC a lokální getter posunul den
+  // v záporném UTC pásmu. Musí sedět s ekvivalentním lokálním Date objektem.
+  for (const part of ['year', 'month', 'day']) {
+    assert.deepEqual(
+      dateBucket('2024-03-01', part, i18n),
+      dateBucket(new Date(2024, 2, 1), part, i18n),
+      `část ${part}`,
+    );
+  }
+});

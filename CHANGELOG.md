@@ -4,6 +4,58 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.9.0] – 2026-08-08
+
+Opravný release z hloubkového auditu — správnost napříč vzorci, filtry, výběrem,
+řazením a exportem. Bez breaking changes.
+
+### Opraveno
+- **Vzorce – porovnání datumů.** `num()` parsovalo `"2024-03-15"` přes `parseFloat` na
+  `2024` (rok) a `today()`/`now()` vrací epoch ms → `[termin] < today()` bylo **vždy pravda**
+  a `[start] < [konec]` porovnávalo jen roky. Nově se datumy (Date i `YYYY-MM-DD[ HH:MM]`)
+  porovnávají jako datumy (lokální čas, konzistentně s `today()`/`now()`).
+- **Rozšířený filtr – prázdná podskupina pod `OR`.** Prázdná/nedokončená podskupina vracela
+  `true` a pod `OR` rodičem **propustila všechny řádky**. Nyní se neúčinné podskupiny a podmínky
+  bez operátoru ignorují (neutrální prvek).
+- **Rozšířený filtr – prázdné pole a `lt/lte/gt/gte`.** Prázdné/chybějící pole se řadilo jako
+  „menší než cokoli" a splnilo `lt/lte`. Nově prázdné pole žádné ordering nesplní.
+- **Rozšířený filtr – relativní tokeny `today±Nm/y`.** Přetékaly na konci měsíce
+  (`31.1 + 1m` → `3.3.` místo `28.2.`). Nově se den ořízne na poslední den cílového měsíce.
+- **Progresivní načítání – race.** `loadMore()` neměl request-id guard; opožděná odpověď mohla
+  přisypat staré řádky na akumulátor resetovaný souběžným `refresh()`. Doplněn stejný token jako v `refresh()`.
+- **Nastavení – `pageSize` přes `setInstance()`.** `setInstance({ pageSize })` nesynchronizoval
+  `this.pageSize` (čte ho `refresh()`/pager) → změna se projevila až po reloadu. Nyní synchronizuje.
+- **Výběr rozsahu vs. připnuté řádky.** Připnuté řádky mají string index (`'pt0'`); klik na ně
+  ukládal do `_lastSelIdx` string a rozbil následný shift-výběr na normálních řádcích. Ošetřeno
+  (mimo výběr rozsahu). Připnuté řádky navíc nezobrazí nesmyslné pořadové číslo (`"pt01"`).
+- **Fulltext hledání.** Pole se spojovala bez oddělovače (`join('')`) → hledaný výraz přes hranici
+  dvou polí falešně matchoval. Vloženo oddělení polí.
+- **Datumové seskupení / date-only.** `YYYY-MM-DD` se parsovalo jako UTC a lokální getter posunul
+  den v záporném UTC pásmu; nově se parsuje lokálně.
+- **Preset marker.** Sloupcové settery (šířka, barva, formát, titulek, souhrn, otočení, filtr…) i
+  `autoFit` nerušily „aktivní preset" → marker visel i po odchylce. Doplněno rušení presetu.
+- **Nastavení sloupců (⚙).** Klik na název sloupce skryl/zobrazil sloupec, ale checkbox v panelu
+  se neobnovil (`setColumnVisible` teď volá `gear.refresh()`).
+- **Responsive.** Vypnuté číslování řádků (`rowNumbers: 'none'`, truthy) rezervovalo 44 px navíc.
+- **Menu.** Opětovný klik na spouštěč (např. otočení hlavičky) stohoval druhé menu přes první.
+- **Editor barvy.** Cyan spinner měl `max=255` místo `100`.
+- **Formulářová pole vzorců.** `spellcheck` zůstával zapnutý (řetězec `'false'` byl truthy).
+- **Výběr rozsahu.** `field` se skládal do CSS selektoru bez escapování (rozbití u polí s `"`/`.`/`[]`);
+  helper `cssEscape` sjednocen s `resize.js` v `util/dom.js`.
+
+### Přidáno
+- **Otevřený rozsah v date-range filtru.** Jeden klik = „od X dál" (`to: null`); jeden den = klik
+  na týž den dvakrát. Model, zobrazení i vyhodnocení to už podporovaly, jen picker to srážel na jeden den.
+
+### Bezpečnost
+- **Export CSV/TSV – ochrana proti formula-injection.** Buňky začínající `= + - @` (a nejsou číslo)
+  se neutralizují prefixem apostrofu, aby je Excel/Calc nespustily jako vzorec.
+
+### Demo
+- **Klientský fallback-mock API** (`demo/mock-api.js`) pro statický hosting — server-side příklady
+  (progresivní načítání, řazení/filtry na serveru, presety) fungují i bez Node backendu; lokální
+  `npm run demo` běží dál proti reálnému `demo/server.js`.
+
 ## [1.8.1] – 2026-08-05
 
 ### Přidáno
@@ -302,6 +354,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.9.0]: https://github.com/svatekr70/lattice/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/svatekr70/lattice/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/svatekr70/lattice/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/svatekr70/lattice/compare/v1.6.2...v1.7.0

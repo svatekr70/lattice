@@ -5,7 +5,7 @@
  *  - Dvojklik na oddělovač → auto-fit na nejširší buňku (obsah + hlavička).
  *  - Šířka se persistuje (grid.saveState).
  */
-import { debounce } from '../util/dom.js';
+import { debounce, cssEscape } from '../util/dom.js';
 
 export function attachResize(handle, col, grid) {
   let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
@@ -230,8 +230,4 @@ function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
   } finally {
     meas.removeChild(clone);
   }
-}
-
-function cssEscape(s) {
-  return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&');
 }

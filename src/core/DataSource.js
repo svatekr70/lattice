@@ -47,6 +47,14 @@ export class ClientData {
     return row;
   }
 
+  /** Vloží řádek na konkrétní index (clamp do rozsahu). Pro undo smazání. */
+  insertRow(row, index) {
+    const i = index == null ? this.data.length : Math.max(0, Math.min(index, this.data.length));
+    this.data.splice(i, 0, row);
+    this._filtered = null;
+    return row;
+  }
+
   /** Najde řádek dle keyField (porovnání odolné na number vs string) a sloučí patch. */
   updateRow(keyField, key, patch) {
     const k = String(key);
@@ -129,7 +137,7 @@ export class ClientData {
     this._searchSig = cols.map((c) => c.field).join(',');
     this._searchCache = new WeakMap();
     for (const row of this.data) {
-      this._searchCache.set(row, cols.map((c) => norm(cellValue(row, c))).join(''));
+      this._searchCache.set(row, cols.map((c) => norm(cellValue(row, c))).join(''));
     }
   }
 
@@ -174,7 +182,7 @@ export function rowMatches(row, { filters, search, columns, universal, advanced 
   if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
   if (search && String(search).trim()) {
     const needle = norm(search).trim();
-    const text = (columns || []).filter(searchableCol).map((c) => norm(cellValue(row, c))).join('');
+    const text = (columns || []).filter(searchableCol).map((c) => norm(cellValue(row, c))).join('');
     if (!text.includes(needle)) return false;
   }
   return true;

@@ -502,13 +502,27 @@ function evalBin(node, row) {
   }
   return void 0;
 }
+function dateLike(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v.getTime();
+  if (typeof v === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(v.trim());
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+  }
+  return null;
+}
 function eq(a, b) {
+  const da = dateLike(a), db = dateLike(b);
+  if (da != null && db != null) return da === db;
   if (isNum(a) && isNum(b)) return num(a) === num(b);
   return str(a) === str(b);
 }
 function cmp(op, a, b) {
   let x, y;
-  if (isNum(a) && isNum(b)) {
+  const da = dateLike(a), db = dateLike(b);
+  if (da != null && db != null) {
+    x = da;
+    y = db;
+  } else if (isNum(a) && isNum(b)) {
     x = num(a);
     y = num(b);
   } else {
@@ -942,7 +956,12 @@ function numberOr(...vals) {
 var DATE_PARTS = ["year", "quarter", "month", "week", "weekday", "day", "hour", "minute"];
 function toDate2(v) {
   if (v == null || v === "") return null;
-  const d = v instanceof Date ? v : new Date(v);
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+  if (typeof v === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(v.trim());
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  }
+  const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 var pad2 = (n) => String(n).padStart(2, "0");
@@ -1264,7 +1283,8 @@ function isComputed(col) {
 
 // src/core/exporter.js
 function esc(value, delim) {
-  const s = value == null ? "" : String(value);
+  let s = value == null ? "" : String(value);
+  if (/^[=+\-@]/.test(s) && !/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(s)) s = "'" + s;
   if (s.includes(delim) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
@@ -1450,6 +1470,9 @@ function debounce(fn, ms) {
   wrapped.cancel = () => clearTimeout(t);
   return wrapped;
 }
+function cssEscape(s) {
+  return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
+}
 
 // src/filters/dateRangePicker.js
 function buildDateRangePicker(column, ctx) {
@@ -1557,7 +1580,7 @@ function buildDateRangePicker(column, ctx) {
     applied = cloneRange(draft);
     const { from, to } = applied;
     if (!from && !to) ctx.onChange(null);
-    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : from ? toISO(from) : null });
+    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : null });
     updateControl();
     close();
   }
@@ -2239,8 +2262,10 @@ function isEmptyTree(group) {
   return group.rules.every((r) => isGroup(r) ? isEmptyTree(r) : !r || !r.op);
 }
 function evalGroup(group, row) {
-  if (!isGroup(group) || group.rules.length === 0) return true;
-  const results = group.rules.map((r) => isGroup(r) ? evalGroup(r, row) : evalCondition(r, row));
+  if (!isGroup(group)) return true;
+  const active = group.rules.filter((r) => isGroup(r) ? !isEmptyTree(r) : r && r.op);
+  if (active.length === 0) return true;
+  const results = active.map((r) => isGroup(r) ? evalGroup(r, row) : evalCondition(r, row));
   return group.combinator === "OR" ? results.some(Boolean) : results.every(Boolean);
 }
 function evalCondition(c, row) {
@@ -2265,14 +2290,16 @@ function evalCondition(c, row) {
       return s.startsWith(norm2(v));
     case "ends":
       return s.endsWith(norm2(v));
+    // Prázdné/chybějící pole není porovnatelné → nesmí splnit ordering (jinak by
+    // se prázdná hodnota chovala jako „menší než cokoli" a splnila lt/lte).
     case "gt":
-      return cmp2(raw, v) > 0;
+      return raw != null && raw !== "" && cmp2(raw, v) > 0;
     case "gte":
-      return cmp2(raw, v) >= 0;
+      return raw != null && raw !== "" && cmp2(raw, v) >= 0;
     case "lt":
-      return cmp2(raw, v) < 0;
+      return raw != null && raw !== "" && cmp2(raw, v) < 0;
     case "lte":
-      return cmp2(raw, v) <= 0;
+      return raw != null && raw !== "" && cmp2(raw, v) <= 0;
     case "in":
       return splitList(v).map(norm2).includes(s);
     case "nin":
@@ -2308,6 +2335,13 @@ function splitList(v) {
   return String(v ?? "").split(",").map((x) => resolveToken(x.trim())).filter(Boolean);
 }
 var TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+function addMonths2(d, n) {
+  const day2 = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day2, lastDay));
+}
 function resolveToken(v) {
   if (typeof v !== "string") return v;
   const m = TOKEN_RE.exec(v);
@@ -2320,10 +2354,10 @@ function resolveToken(v) {
         d.setDate(d.getDate() + n * 7);
         break;
       case "m":
-        d.setMonth(d.getMonth() + n);
+        addMonths2(d, n);
         break;
       case "y":
-        d.setFullYear(d.getFullYear() + n);
+        addMonths2(d, n * 12);
         break;
       default:
         d.setDate(d.getDate() + n);
@@ -2375,6 +2409,13 @@ var ClientData = class {
   addRow(row, atStart = false) {
     if (atStart) this.data.unshift(row);
     else this.data.push(row);
+    this._filtered = null;
+    return row;
+  }
+  /** Vloží řádek na konkrétní index (clamp do rozsahu). Pro undo smazání. */
+  insertRow(row, index) {
+    const i = index == null ? this.data.length : Math.max(0, Math.min(index, this.data.length));
+    this.data.splice(i, 0, row);
     this._filtered = null;
     return row;
   }
@@ -2477,7 +2518,7 @@ var ClientData = class {
     this._searchSig = cols.map((c) => c.field).join(",");
     this._searchCache = /* @__PURE__ */ new WeakMap();
     for (const row of this.data) {
-      this._searchCache.set(row, cols.map((c) => norm3(cellValue(row, c))).join(""));
+      this._searchCache.set(row, cols.map((c) => norm3(cellValue(row, c))).join(""));
     }
   }
   _quickSearch(rows, search, columns) {
@@ -2516,7 +2557,7 @@ function rowMatches(row, { filters, search, columns, universal, advanced } = {})
   if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
   if (search && String(search).trim()) {
     const needle = norm3(search).trim();
-    const text = (columns || []).filter(searchableCol).map((c) => norm3(cellValue(row, c))).join("");
+    const text = (columns || []).filter(searchableCol).map((c) => norm3(cellValue(row, c))).join("");
     if (!text.includes(needle)) return false;
   }
   return true;
@@ -3837,7 +3878,12 @@ function boolDisplay(col) {
   };
 }
 function isTruthy(v) {
-  return v === true || v === 1 || v === "1" || v === "true" || v === "True" || v === "ano" || v === "yes";
+  if (v === true || v === 1) return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "1" || s === "true" || s === "ano" || s === "yes";
+  }
+  return false;
 }
 registerType("boolean", (v, col) => {
   const truthy = isTruthy(v);
@@ -4231,9 +4277,6 @@ function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
   } finally {
     meas.removeChild(clone2);
   }
-}
-function cssEscape(s) {
-  return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
 }
 
 // src/features/columnDrag.js
@@ -5699,7 +5742,7 @@ function openSummaryFormulaEditor(anchor, grid, col) {
   menu.appendChild(el("div.lattice-formula-hint", { text: t("calc.sumFormulaHint") }));
   const nameInp = el("input.lattice-set-input", { type: "text", value: col.summaryFormulaLabel || "", placeholder: t("calc.sumFormulaLabelPlaceholder") });
   menu.appendChild(csField(t("calc.sumFormulaLabel"), nameInp));
-  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: "false", placeholder: t("calc.sumFormulaPlaceholder") });
+  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: false, placeholder: t("calc.sumFormulaPlaceholder") });
   ta.value = col.summaryFormula || "";
   menu.appendChild(el("div.lattice-formula-row", {}, [el("span.lattice-set-label", { text: t("calc.formula") }), ta]));
   const chips = el("div.lattice-formula-fields");
@@ -6062,7 +6105,7 @@ function openFormulaEditor(anchor, grid, col, gear) {
     updatePreview();
   });
   menu.appendChild(csField(t("calc.type"), typeSel));
-  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: "false", placeholder: t("calc.formulaPlaceholder") });
+  const ta = el("textarea.lattice-formula-input", { rows: 2, spellcheck: false, placeholder: t("calc.formulaPlaceholder") });
   ta.value = editing ? col.formula || "" : "";
   menu.appendChild(el("div.lattice-formula-row", {}, [el("span.lattice-set-label", { text: t("calc.formula") }), ta]));
   const chips = el("div.lattice-formula-fields");
@@ -6293,6 +6336,7 @@ var FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"
 
 // src/features/menu.js
 function openMenu(anchor, items, onPick, opts = {}) {
+  document.querySelectorAll(".lattice-menu").forEach((m) => m.remove());
   const menu = buildMenu(items, () => close(), onPick, opts);
   document.body.appendChild(menu);
   positionUnder(menu, anchor);
@@ -7648,13 +7692,13 @@ var Renderer = class {
       row.addEventListener("click", (e) => {
         if (e.target.closest(".lattice-resize-handle")) return;
         if (rowClickSelect && !e.target.closest("a, button, input, select, textarea, label, .lattice-select-cell")) {
-          if (e.shiftKey && this._lastSelIdx != null) {
+          if (e.shiftKey && this._lastSelIdx != null && typeof index === "number") {
             const [a, b] = [this._lastSelIdx, index].sort((x, y) => x - y);
             grid.selectKeys(grid.rows.slice(a, b + 1).map((r) => grid.rowKey(r)), true);
           } else {
             grid.toggleRow(grid.rowKey(rowData));
           }
-          this._lastSelIdx = index;
+          if (typeof index === "number") this._lastSelIdx = index;
         }
         if (rowHighlightClick && !e.target.closest("a, button, input, select, textarea, label, .lattice-select-cell, .lattice-cell.is-editable")) {
           grid.toggleRowHighlight(grid.rowKey(rowData));
@@ -7743,7 +7787,7 @@ var Renderer = class {
     let reserve = 8 + 24;
     if (grid.isMovable()) reserve += 32;
     if (grid.isSelectable()) reserve += 36;
-    if (grid.instance.rowNumbers) reserve += 44;
+    if (grid.instance.rowNumbers && grid.instance.rowNumbers !== "none") reserve += 44;
     let fixed = 0;
     const collapsible = [];
     let idx = 0;
@@ -8133,19 +8177,19 @@ var Renderer = class {
       const cb = el("input.lattice-select-cb", { type: "checkbox", checked: grid.isSelected(rowData) });
       cb.addEventListener("click", (e) => {
         e.stopPropagation();
-        if (e.shiftKey && this._lastSelIdx != null) {
+        if (e.shiftKey && this._lastSelIdx != null && typeof index === "number") {
           const [a, b] = [this._lastSelIdx, index].sort((x, y) => x - y);
           grid.selectKeys(grid.rows.slice(a, b + 1).map((r) => grid.rowKey(r)), cb.checked);
         } else {
           grid.setRowSelected(grid.rowKey(rowData), cb.checked);
         }
-        this._lastSelIdx = index;
+        if (typeof index === "number") this._lastSelIdx = index;
       });
       cell2.appendChild(cb);
       return cell2;
     }
     if (col._rownum) {
-      const num5 = col._mode === "perPage" ? index + 1 : (this.grid.page - 1) * this.grid.pageSize + index + 1;
+      const num5 = typeof index !== "number" ? "" : col._mode === "perPage" ? index + 1 : (this.grid.page - 1) * this.grid.pageSize + index + 1;
       const cell2 = el("div.lattice-cell.lattice-rownum", {
         dataset: { field: col.field },
         class: "is-" + (col.align || "right")
@@ -9306,7 +9350,7 @@ function colorEditor(cell, col, rowData, done) {
   const hex = el("input.lattice-edit-input", { type: "text", value: rgbToHex2(rgb) });
   const r = numIn(rgb.r), g = numIn(rgb.g), b = numIn(rgb.b);
   const cmyk = rgbToCmyk(rgb);
-  const c = numIn(cmyk.c), m = numIn(cmyk.m, 100), y = numIn(cmyk.y, 100), k = numIn(cmyk.k, 100);
+  const c = numIn(cmyk.c, 100), m = numIn(cmyk.m, 100), y = numIn(cmyk.y, 100), k = numIn(cmyk.k, 100);
   const syncFrom = (src) => {
     if (src === "picker") rgb = parseColor(preview.value);
     else if (src === "hex") {
@@ -10074,7 +10118,7 @@ var RangeManager = class {
     return parts.join("   \xB7   ");
   }
   cellIn(rowEl, col) {
-    return col ? rowEl.querySelector('.lattice-cell[data-field="' + col.field + '"]') : null;
+    return col ? rowEl.querySelector('.lattice-cell[data-field="' + cssEscape(col.field) + '"]') : null;
   }
   cellAt(coord) {
     if (!coord) return null;
@@ -10404,8 +10448,10 @@ var History = class {
       if (dir === "undo") src.deleteRow(grid.keyField, grid.rowKey(e.row));
       else src.addRow(e.row, e.atStart);
     } else if (e.type === "delete") {
-      if (dir === "undo") src.addRow(e.row);
-      else src.deleteRow(grid.keyField, grid.rowKey(e.row));
+      if (dir === "undo") {
+        if (src.insertRow) src.insertRow(e.row, e.index);
+        else src.addRow(e.row);
+      } else src.deleteRow(grid.keyField, grid.rowKey(e.row));
     }
   }
 };
@@ -10803,6 +10849,7 @@ var Lattice = class {
     this._loadingMore = true;
     this.renderer.setProgressiveLoading(true);
     const next = this.loadedPage + 1;
+    const reqId = this._reqId = (this._reqId || 0) + 1;
     try {
       const res = await this.dataSource.query({
         page: next,
@@ -10814,6 +10861,7 @@ var Lattice = class {
         universal: this.universalActive() ? this.universal : null,
         columns: this.columns
       });
+      if (reqId !== this._reqId) return;
       this.loadedRows.push(...res.rows || []);
       this.loadedPage = next;
       this.total = res.total ?? this.total;
@@ -10922,6 +10970,7 @@ var Lattice = class {
     const w = measureColumnWidth(col, this);
     if (w) {
       col.width = w;
+      this._clearActivePreset();
       this.saveState();
       this.renderer.applyLayout();
     }
@@ -11311,12 +11360,14 @@ var Lattice = class {
     col.visible = !!visible;
     this.saveState();
     this.rerenderColumns();
+    this.gear?.refresh();
     this._emitColumnLayout("visibility", { field: field2, visible: col.visible });
   }
   setColumnWidth(field2, width) {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.width = Math.max(col.minWidth, width);
+    this._clearActivePreset();
     this.saveState();
     this.renderer.applyLayout();
     this._emitColumnLayout("resize", { field: field2, width: col.width });
@@ -11355,6 +11406,7 @@ var Lattice = class {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.summary = Array.isArray(summary) ? summary : [];
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -11365,6 +11417,7 @@ var Lattice = class {
     if (!col) return;
     const v = String(title == null ? "" : title).trim();
     col.title = v || col.defaultTitle;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -11376,6 +11429,7 @@ var Lattice = class {
     if (!col) return;
     col.headerBackground = background || null;
     col.headerColor = color || null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -11393,6 +11447,7 @@ var Lattice = class {
       }
     }
     if (!any) return;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -11411,6 +11466,7 @@ var Lattice = class {
       const hasAny = Object.keys(next).some((k) => next[k]);
       col.cellFormat = hasAny ? next : null;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -11431,6 +11487,7 @@ var Lattice = class {
     col.summaryFormula = src || null;
     if (label !== void 0) col.summaryFormulaLabel = src ? String(label).trim() || null : null;
     else if (!src) col.summaryFormulaLabel = null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -11507,6 +11564,7 @@ var Lattice = class {
       }
       col.condFormat = next;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -11516,6 +11574,7 @@ var Lattice = class {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.format = patch === null ? null : Object.assign({}, col.format, patch);
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -11525,6 +11584,7 @@ var Lattice = class {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.rowSummary = Array.isArray(fns) ? fns : [];
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.renderBody();
@@ -11547,6 +11607,7 @@ var Lattice = class {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.headerRotate = rotate || null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -11557,6 +11618,7 @@ var Lattice = class {
     const col = this.columns.find((c) => c.field === field2);
     if (!col) return;
     col.filterEnabled = !!enabled;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -11623,6 +11685,7 @@ var Lattice = class {
       const w = measureColumnWidth(col, this);
       if (w) col.width = w;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.applyLayout();
   }
@@ -11879,11 +11942,12 @@ var Lattice = class {
   deleteRow(key) {
     const src = this._mutableSource();
     if (!src) return false;
-    const row = src.data.find((r) => this.rowKey(r) === String(key));
+    const index = src.data.findIndex((r) => this.rowKey(r) === String(key));
+    const row = index >= 0 ? src.data[index] : null;
     const ok = src.deleteRow(this.keyField, key);
     this.refresh();
     if (ok) {
-      if (row) this.history?.record({ type: "delete", row });
+      if (row) this.history?.record({ type: "delete", row, index });
       this._emitDataChange("delete", [{ [this.keyField]: key }]);
     }
     return ok;
@@ -11894,10 +11958,11 @@ var Lattice = class {
     if (!src) return 0;
     const removed = [], entries = [];
     for (const k of Array.isArray(keys) ? keys : [keys]) {
-      const row = src.data.find((r) => this.rowKey(r) === String(k));
+      const index = src.data.findIndex((r) => this.rowKey(r) === String(k));
+      const row = index >= 0 ? src.data[index] : null;
       if (src.deleteRow(this.keyField, k)) {
         removed.push({ [this.keyField]: k });
-        if (row) entries.push({ type: "delete", row });
+        if (row) entries.push({ type: "delete", row, index });
       }
     }
     this.refresh();
@@ -12307,6 +12372,7 @@ var Lattice = class {
       this.renderer.applyLayout();
     }
     if ("paginationPosition" in patch || "pageSize" in patch) {
+      if ("pageSize" in patch) this.pageSize = this.instance.pageSize;
       this.page = 1;
       this.refresh();
     } else {
@@ -12347,7 +12413,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.8.1";
+var VERSION = "1.9.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

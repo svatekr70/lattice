@@ -158,3 +158,33 @@ test('formulaFields vrátí odkazovaná pole', () => {
   const ast = parseFormula("cena * mnozstvi + if(sleva > 0, sleva, 0)");
   assert.deepEqual(formulaFields(ast).sort(), ['cena', 'mnozstvi', 'sleva']);
 });
+
+/* ----------------------- porovnání datumů ----------------------- */
+
+/** YYYY-MM-DD o `n` dní od dneška (lokálně). */
+function dayStr(n = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+test('datum vs today(): porovnává se jako datum, ne jako rok', () => {
+  // regrese: num("2024-03-15") → parseFloat → 2024, a today() → epoch ms,
+  // takže dřív [due] < today() bylo vždy true (2024 < 1.7e12).
+  assert.equal(ev('[due] < today()', { due: '2024-03-15' }), true, 'minulé datum je před dneškem');
+  assert.equal(ev('[due] < today()', { due: dayStr(5) }), false, 'budoucí datum není před dneškem');
+  assert.equal(ev('if([due] < today(), "po", "ok")', { due: dayStr(3) }), 'ok');
+});
+
+test('datum vs datum: porovnává dny, ne jen roky', () => {
+  assert.equal(ev('[a] < [b]', { a: '2024-03-01', b: '2024-09-15' }), true);
+  assert.equal(ev('[a] < [b]', { a: '2024-09-15', b: '2024-03-01' }), false);
+  assert.equal(ev('[a] == [b]', { a: '2024-03-01', b: '2024-03-01' }), true);
+  assert.equal(ev('[a] == [b]', { a: '2024-03-01', b: '2024-03-02' }), false);
+});
+
+test('čísla se dál porovnávají číselně (ne jako datum)', () => {
+  assert.equal(ev('5 < 10'), true);
+  assert.equal(ev('[a] > [b]', { a: 2024, b: 1000 }), true);
+});

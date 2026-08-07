@@ -110,3 +110,65 @@ test('clearHighlights je no-op když není co mazat (nevolá saveState)', () => 
   ctx.clearHighlights();
   assert.equal(ctx.savedSnapshots.length, 0);
 });
+
+/* ---- setInstance({pageSize}) synchronizuje this.pageSize ---- */
+
+function instanceCtx() {
+  const ctx = Object.create(Lattice.prototype);
+  const noop = () => {};
+  ctx.instance = { pageSize: 20 };
+  ctx.pageSize = 20;
+  ctx.page = 3;
+  ctx.saveState = noop;
+  ctx.renderer = new Proxy({}, { get: () => noop }); // libovolná renderer.* metoda = no-op
+  ctx._refreshed = 0;
+  ctx.refresh = function () { this._refreshed++; };
+  return ctx;
+}
+
+test('setInstance({pageSize}) synchronizuje this.pageSize a refreshuje', () => {
+  // regrese: refresh()/pager čtou this.pageSize, ne this.instance.pageSize —
+  // bez sync se změna projevila až po reloadu.
+  const ctx = instanceCtx();
+  ctx.setInstance({ pageSize: 50 });
+  assert.equal(ctx.pageSize, 50, 'this.pageSize synchronizován');
+  assert.equal(ctx.instance.pageSize, 50);
+  assert.equal(ctx.page, 1, 'reset na první stránku');
+  assert.equal(ctx._refreshed, 1, 'proběhl refresh');
+});
+
+/* ---- loadMore: request-id guard proti opožděné odpovědi ---- */
+
+function progressiveCtx(query) {
+  const ctx = Object.create(Lattice.prototype);
+  const noop = () => {};
+  Object.assign(ctx, {
+    progressive: true, _loadingMore: false, loadedRows: [], loadedPage: 0,
+    pageSize: 10, sort: [], filters: {}, advanced: null, universal: null, columns: [],
+    lastPage: 5, total: 50, options: {},
+    progressiveDone: () => false, universalActive: () => false,
+    renderer: new Proxy({}, { get: () => noop }),
+    dataSource: { query },
+  });
+  return ctx;
+}
+
+test('loadMore: happy path přisype řádky a posune loadedPage', async () => {
+  const ctx = progressiveCtx(async () => ({ rows: [{ id: 1 }, { id: 2 }], total: 50, lastPage: 5 }));
+  await ctx.loadMore();
+  assert.deepEqual(ctx.loadedRows, [{ id: 1 }, { id: 2 }]);
+  assert.equal(ctx.loadedPage, 1);
+});
+
+test('loadMore: opožděná odpověď přebitá refreshem se zahodí', async () => {
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  const ctx = progressiveCtx(async () => { await gate; return { rows: [{ id: 9 }], total: 50, lastPage: 5 }; });
+  const p = ctx.loadMore();          // rozjede request, reqId = 1, čeká na gate
+  ctx._reqId = 999;                  // simulace: mezitím proběhl refresh (bump reqId + reset)
+  ctx.loadedRows = []; ctx.loadedPage = 0;
+  release();
+  await p;
+  assert.deepEqual(ctx.loadedRows, [], 'stará odpověď nesmí přisypat řádky');
+  assert.equal(ctx.loadedPage, 0, 'cursor se neposune');
+});

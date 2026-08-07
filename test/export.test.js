@@ -70,3 +70,25 @@ test('Excel: buildExport přes formát "excel"', () => {
   const c = [{ field: 'id', title: 'ID', type: 'number' }];
   assert.match(buildExport('excel', [{ id: 7 }], c), /<Data ss:Type="Number">7<\/Data>/);
 });
+
+/* ------------------------- CSV/formula-injection ------------------------- */
+
+test('CSV: hodnoty začínající =,+,-,@ (vzorec) se neutralizují apostrofem', () => {
+  const c = [{ field: 'v', title: 'V' }];
+  const line = (val) => toDelimited([{ v: val }], c, { delimiter: ',', header: false });
+  assert.equal(line('=1+2'), "'=1+2");
+  assert.equal(line('=HYPERLINK("http://x")'), '"\'=HYPERLINK(""http://x"")"'); // + uvozovkování
+  assert.equal(line('+CMD'), "'+CMD");
+  assert.equal(line('@SUM'), "'@SUM");
+  assert.equal(line('-2+3'), "'-2+3", 'vzorec začínající - se také neutralizuje');
+});
+
+test('CSV: obyčejná čísla (i záporná) zůstanou beze změny', () => {
+  const c = [{ field: 'v', title: 'V' }];
+  const line = (val) => toDelimited([{ v: val }], c, { delimiter: ',', header: false });
+  assert.equal(line(-5), '-5', 'záporné číslo zůstane číslem');
+  assert.equal(line('-5'), '-5');
+  assert.equal(line('-5.5'), '-5.5');
+  assert.equal(line(42), '42');
+  assert.equal(line('běžný text'), 'běžný text');
+});

@@ -8,7 +8,7 @@ globalThis.document = {
   createElement: () => ({ setAttribute() {}, appendChild() {} }),
 };
 
-const { getFormatter } = await import('../src/types/columnTypes.js');
+const { getFormatter, isTruthy } = await import('../src/types/columnTypes.js');
 
 const linkFmt = getFormatter({ type: 'link' });
 
@@ -43,4 +43,18 @@ test('link: label přebije zobrazený text, URL zůstane z urlField', () => {
 test('link: prázdná hodnota → prázdný výstup', () => {
   assert.equal(linkFmt('', { type: 'link' }, {}), '');
   assert.equal(linkFmt(null, { type: 'link' }, {}), '');
+});
+
+/* ----------------------------- isTruthy ----------------------------- */
+
+test('isTruthy: case-insensitive true/ano/yes (i velkými písmeny)', () => {
+  for (const v of [true, 1, '1', 'true', 'True', 'TRUE', 'ano', 'ANO', 'yes', 'YES', 'Yes', ' ano ']) {
+    assert.equal(isTruthy(v), true, `${JSON.stringify(v)} má být truthy`);
+  }
+});
+
+test('isTruthy: ostatní hodnoty jsou false', () => {
+  for (const v of [false, 0, '0', 'false', 'ne', 'no', '', null, undefined, 'cokoli']) {
+    assert.equal(isTruthy(v), false, `${JSON.stringify(v)} má být false`);
+  }
 });

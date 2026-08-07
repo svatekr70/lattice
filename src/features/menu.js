@@ -12,6 +12,9 @@ import { positionUnder } from './gear.js';
  * @returns {() => void} funkce pro zavření
  */
 export function openMenu(anchor, items, onPick, opts = {}) {
+  // Zavři případné dřív otevřené menu — jinak by opětovný klik na anchor (u non-multi
+  // ho onOutside nezavře) navršil druhé menu přes první. Stejně jako openMenuAt.
+  document.querySelectorAll('.lattice-menu').forEach((m) => m.remove());
   const menu = buildMenu(items, () => close(), onPick, opts);
   document.body.appendChild(menu);
   positionUnder(menu, anchor);

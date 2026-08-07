@@ -77,3 +77,15 @@ test('moveRow — after cíle', () => {
   d.moveRow('id', 1, 3, 'after');
   assert.deepEqual(d.data.map((r) => r.id), [2, 3, 1]);
 });
+
+test('insertRow — vloží na index a clampuje do rozsahu (undo smazání)', () => {
+  const d = new ClientData([{ id: 1 }, { id: 2 }, { id: 3 }]);
+  d.insertRow({ id: 99 }, 1);
+  assert.deepEqual(d.data.map((r) => r.id), [1, 99, 2, 3]);
+  d.insertRow({ id: 100 }, 999);   // clamp na konec
+  assert.equal(d.data.at(-1).id, 100);
+  d.insertRow({ id: 0 }, 0);
+  assert.equal(d.data[0].id, 0);
+  d.insertRow({ id: 7 });          // bez indexu → na konec
+  assert.equal(d.data.at(-1).id, 7);
+});

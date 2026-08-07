@@ -328,13 +328,33 @@ function evalBin(node, row) {
   return undefined;
 }
 
+/**
+ * Datumová hodnota → epoch ms, jinak null. Bere jen `Date` a řetězce ve tvaru
+ * `YYYY-MM-DD` (volitelně s časem `HH:MM[:SS]`); řetězec se parsuje jako LOKÁLNÍ
+ * čas, aby seděl s `today()`/`now()`. Plain čísla NEjsou datumy (aby se rok jako
+ * číslo neporovnával jako epoch). Používá se v cmp/eq PŘED číselnou větví, jinak
+ * by `num('2024-03-15')` spadlo na parseFloat → 2024 a porovnání datumů bylo špatně.
+ */
+function dateLike(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v.getTime();
+  if (typeof v === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(v.trim());
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+  }
+  return null;
+}
 function eq(a, b) {
+  const da = dateLike(a), db = dateLike(b);
+  if (da != null && db != null) return da === db;
   if (isNum(a) && isNum(b)) return num(a) === num(b);
   return str(a) === str(b);
 }
 function cmp(op, a, b) {
   let x, y;
-  if (isNum(a) && isNum(b)) { x = num(a); y = num(b); } else { x = str(a); y = str(b); }
+  const da = dateLike(a), db = dateLike(b);
+  if (da != null && db != null) { x = da; y = db; }
+  else if (isNum(a) && isNum(b)) { x = num(a); y = num(b); }
+  else { x = str(a); y = str(b); }
   switch (op) { case '<': return x < y; case '<=': return x <= y; case '>': return x > y; case '>=': return x >= y; }
 }
 

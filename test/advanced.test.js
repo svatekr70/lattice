@@ -158,3 +158,53 @@ test('saveAdvanced — různé názvy = různá id', () => {
   assert.notEqual(a.id, b.id);
   assert.equal(ctx.state.advancedFilters.length, 2);
 });
+
+test('prázdná podskupina pod OR neprosákne jako true (nefiltruje vše)', () => {
+  // regrese: prázdná skupina vracela true → pod OR rodičem propustila VŠECHNY řádky.
+  const tree = {
+    combinator: 'OR',
+    rules: [
+      { field: 'category', op: 'eq', value: 'Newsletter' }, // reálná podmínka
+      { combinator: 'AND', rules: [] },                       // prázdná podskupina
+    ],
+  };
+  assert.equal(evalGroup(tree, { category: 'Newsletter' }), true, 'shoda přes reálnou podmínku');
+  assert.equal(evalGroup(tree, { category: 'PPC' }), false, 'prázdná podskupina nesmí propustit');
+});
+
+test('nedokončená podmínka (bez op) v OR neprosákne', () => {
+  const tree = {
+    combinator: 'OR',
+    rules: [
+      { field: 'category', op: 'eq', value: 'Newsletter' },
+      { field: 'region', value: 'Praha' }, // chybí op → neúčinná
+    ],
+  };
+  assert.equal(evalGroup(tree, { category: 'PPC', region: 'Brno' }), false);
+});
+
+test('úplně prázdná skupina nefiltruje (matchne vše)', () => {
+  assert.equal(evalGroup({ combinator: 'OR', rules: [] }, { x: 1 }), true);
+  assert.equal(evalGroup({ combinator: 'AND', rules: [] }, { x: 1 }), true);
+});
+
+test('prázdné/chybějící pole nesplní ordering (lt/lte/gt/gte)', () => {
+  // regrese: prázdné pole se řadilo jako „< cokoli" → splnilo lt/lte.
+  for (const op of ['lt', 'lte', 'gt', 'gte']) {
+    assert.equal(evalCondition({ field: 'budget', op, value: '100' }, { budget: '' }), false, `prázdné + ${op}`);
+    assert.equal(evalCondition({ field: 'missing', op, value: '100' }, {}), false, `chybějící + ${op}`);
+  }
+  // neprázdná hodnota se dál porovnává normálně
+  assert.equal(evalCondition({ field: 'budget', op: 'lt', value: '100' }, { budget: '50' }), true);
+});
+
+test('relativní měsíční/roční token nepřeteče přes konec měsíce', () => {
+  // regrese: today+1m přes setMonth přetékalo (31.1 → 3.3). Invariant: měsíc je
+  // přesně +1 (mod 12), nikdy +2. (Reálně se projeví na 29.–31. dni.)
+  const now = new Date();
+  const parseMonth = (iso) => Number(iso.slice(0, 10).split('-')[1]);
+  const expMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth() + 1;
+  assert.equal(parseMonth(resolveToken('today+1m')), expMonth);
+  const expYearMonth = new Date(now.getFullYear() + 1, now.getMonth(), 1).getMonth() + 1;
+  assert.equal(parseMonth(resolveToken('today+1y')), expYearMonth);
+});

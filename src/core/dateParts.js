@@ -12,7 +12,14 @@ export const DATE_PARTS = ['year', 'quarter', 'month', 'week', 'weekday', 'day',
 /** Bezpečný převod na Date (podpora Date, timestampu i ISO/řetězce). */
 function toDate(v) {
   if (v == null || v === '') return null;
-  const d = v instanceof Date ? v : new Date(v);
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
+  if (typeof v === 'string') {
+    // 'YYYY-MM-DD' (příp. s časem bez timezone) parsovat jako LOKÁLNÍ čas — jinak
+    // new Date bere date-only jako UTC a lokální getter posune den v záporném UTC.
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(v.trim());
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+  }
+  const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

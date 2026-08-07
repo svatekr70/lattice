@@ -35,8 +35,12 @@ export function isEmptyTree(group) {
 }
 
 export function evalGroup(group, row) {
-  if (!isGroup(group) || group.rules.length === 0) return true;
-  const results = group.rules.map((r) => (isGroup(r) ? evalGroup(r, row) : evalCondition(r, row)));
+  if (!isGroup(group)) return true;
+  // Prázdné podskupiny a nedokončené podmínky (bez `op`) se ignorují — jinak by
+  // prázdná podskupina vrátila true a pod `OR` rodičem by propustila VŠECHNY řádky.
+  const active = group.rules.filter((r) => (isGroup(r) ? !isEmptyTree(r) : r && r.op));
+  if (active.length === 0) return true; // nic aktivního → skupina nefiltruje
+  const results = active.map((r) => (isGroup(r) ? evalGroup(r, row) : evalCondition(r, row)));
   return group.combinator === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
@@ -54,10 +58,12 @@ export function evalCondition(c, row) {
     case 'ncontains': return !s.includes(norm(v));
     case 'starts': return s.startsWith(norm(v));
     case 'ends': return s.endsWith(norm(v));
-    case 'gt': return cmp(raw, v) > 0;
-    case 'gte': return cmp(raw, v) >= 0;
-    case 'lt': return cmp(raw, v) < 0;
-    case 'lte': return cmp(raw, v) <= 0;
+    // Prázdné/chybějící pole není porovnatelné → nesmí splnit ordering (jinak by
+    // se prázdná hodnota chovala jako „menší než cokoli" a splnila lt/lte).
+    case 'gt': return raw != null && raw !== '' && cmp(raw, v) > 0;
+    case 'gte': return raw != null && raw !== '' && cmp(raw, v) >= 0;
+    case 'lt': return raw != null && raw !== '' && cmp(raw, v) < 0;
+    case 'lte': return raw != null && raw !== '' && cmp(raw, v) <= 0;
     case 'in': return splitList(v).map(norm).includes(s);
     case 'nin': return !splitList(v).map(norm).includes(s);
     default: return true;
@@ -100,6 +106,18 @@ function splitList(v) {
 const TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
 
 /**
+ * Přičte `n` měsíců s ošetřením přetečení: 31.1. + 1m → 28./29.2. (ne 3.3.).
+ * Den se ořízne na poslední den cílového měsíce. Roky se řeší jako n*12 měsíců.
+ */
+function addMonths(d, n) {
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+}
+
+/**
  * Rozvine token typu `today`, `today±N[d|w|m|y]`, `now` na konkrétní datum.
  * Cokoli jiného (běžnou hodnotu) vrátí beze změny.
  */
@@ -112,8 +130,8 @@ export function resolveToken(v) {
     const n = (m[2] === '-' ? -1 : 1) * parseInt(m[3], 10);
     switch ((m[4] || 'd').toLowerCase()) {
       case 'w': d.setDate(d.getDate() + n * 7); break;
-      case 'm': d.setMonth(d.getMonth() + n); break;
-      case 'y': d.setFullYear(d.getFullYear() + n); break;
+      case 'm': addMonths(d, n); break;
+      case 'y': addMonths(d, n * 12); break;
       default: d.setDate(d.getDate() + n);
     }
   }

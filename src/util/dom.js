@@ -87,3 +87,8 @@ export function debounce(fn, ms) {
   wrapped.cancel = () => clearTimeout(t);
   return wrapped;
 }
+
+/** Escapuje řetězec pro použití v CSS selektoru (např. data-field s uvozovkami/tečkou). */
+export function cssEscape(s) {
+  return (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&');
+}

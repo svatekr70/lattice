@@ -76,7 +76,9 @@ export class History {
       if (dir === 'undo') src.deleteRow(grid.keyField, grid.rowKey(e.row));
       else src.addRow(e.row, e.atStart);
     } else if (e.type === 'delete') {
-      if (dir === 'undo') src.addRow(e.row);
+      // undo obnoví řádek na jeho původní pozici (ne na konec); batch se přehrává
+      // v opačném pořadí, takže indexy zachycené při mazání sedí.
+      if (dir === 'undo') { if (src.insertRow) src.insertRow(e.row, e.index); else src.addRow(e.row); }
       else src.deleteRow(grid.keyField, grid.rowKey(e.row));
     }
   }

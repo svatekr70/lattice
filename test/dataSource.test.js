@@ -210,3 +210,12 @@ test('rowMatches: text filtr + quickSearch', () => {
 test('rowMatches: prázdné filtry → vždy true', () => {
   assert.equal(rowMatches({ a: 1 }, { filters: {}, search: '', columns: [{ field: 'a' }] }), true);
 });
+
+test('rowMatches: fulltext nematchuje přes hranici polí', () => {
+  // regrese: pole se spojovala join('') → "abc"+"def"="abcdef" a hledání "cde"
+  // (přes hranici) falešně matchlo. Oddělovač  to odstraní.
+  const cols = [{ field: 'a' }, { field: 'b' }];
+  assert.equal(rowMatches({ a: 'abc', b: 'def' }, { search: 'cde', columns: cols }), false, 'přes hranici NE');
+  assert.equal(rowMatches({ a: 'abc', b: 'def' }, { search: 'abc', columns: cols }), true);
+  assert.equal(rowMatches({ a: 'abc', b: 'def' }, { search: 'def', columns: cols }), true);
+});

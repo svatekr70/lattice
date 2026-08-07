@@ -472,12 +472,17 @@ export class Lattice {
     this._loadingMore = true;
     this.renderer.setProgressiveLoading(true);
     const next = this.loadedPage + 1;
+    // Stejný token jako refresh() — když mezitím proběhne refresh (změna řazení/
+    // filtru → reset loadedRows), opožděná odpověď loadMore se zahodí a nepřisype
+    // staré řádky na nový akumulátor.
+    const reqId = (this._reqId = (this._reqId || 0) + 1);
     try {
       const res = await this.dataSource.query({
         page: next, pageSize: this.pageSize, paginate: true,
         sort: this.sort, filters: this.filters, advanced: this.advanced,
         universal: this.universalActive() ? this.universal : null, columns: this.columns,
       });
+      if (reqId !== this._reqId) return; // přebito novějším requestem → zahodit
       this.loadedRows.push(...(res.rows || []));
       this.loadedPage = next;
       this.total = res.total ?? this.total;
@@ -585,7 +590,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     const w = measureColumnWidth(col, this);
-    if (w) { col.width = w; this.saveState(); this.renderer.applyLayout(); }
+    if (w) { col.width = w; this._clearActivePreset(); this.saveState(); this.renderer.applyLayout(); }
   }
 
   /* =================== filtry =================== */
@@ -1026,6 +1031,7 @@ export class Lattice {
     col.visible = !!visible;
     this.saveState();
     this.rerenderColumns();
+    this.gear?.refresh(); // sync checkboxu v panelu (klik na název sloupce ho jinak nechá viset)
     this._emitColumnLayout('visibility', { field, visible: col.visible });
   }
 
@@ -1033,6 +1039,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.width = Math.max(col.minWidth, width);
+    this._clearActivePreset();
     this.saveState();
     this.renderer.applyLayout();
     this._emitColumnLayout('resize', { field, width: col.width });
@@ -1074,6 +1081,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.summary = Array.isArray(summary) ? summary : [];
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -1085,6 +1093,7 @@ export class Lattice {
     if (!col) return;
     const v = String(title == null ? '' : title).trim();
     col.title = v || col.defaultTitle;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1097,6 +1106,7 @@ export class Lattice {
     if (!col) return;
     col.headerBackground = background || null;
     col.headerColor = color || null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1111,6 +1121,7 @@ export class Lattice {
       if (c.group === title) { c.groupHeaderBackground = background || null; c.groupHeaderColor = color || null; any = true; }
     }
     if (!any) return;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1131,6 +1142,7 @@ export class Lattice {
       const hasAny = Object.keys(next).some((k) => next[k]);
       col.cellFormat = hasAny ? next : null;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -1153,6 +1165,7 @@ export class Lattice {
     // Název řádku (vlevo) — jen když je vzorec; jinak se zruší i popisek.
     if (label !== undefined) col.summaryFormulaLabel = src ? (String(label).trim() || null) : null;
     else if (!src) col.summaryFormulaLabel = null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -1223,6 +1236,7 @@ export class Lattice {
       }
       col.condFormat = next;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -1233,6 +1247,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.format = patch === null ? null : Object.assign({}, col.format, patch);
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderBody();
     this.gear?.refresh();
@@ -1243,6 +1258,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.rowSummary = Array.isArray(fns) ? fns : [];
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();  // přibývá/ubývá pravý sloupec → přestav i hlavičku
     this.renderer.renderBody();
@@ -1268,6 +1284,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.headerRotate = rotate || null;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1279,6 +1296,7 @@ export class Lattice {
     const col = this.columns.find((c) => c.field === field);
     if (!col) return;
     col.filterEnabled = !!enabled;
+    this._clearActivePreset();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1344,6 +1362,7 @@ export class Lattice {
       const w = measureColumnWidth(col, this);
       if (w) col.width = w;
     }
+    this._clearActivePreset();
     this.saveState();
     this.renderer.applyLayout();
   }
@@ -1607,10 +1626,11 @@ export class Lattice {
   deleteRow(key) {
     const src = this._mutableSource();
     if (!src) return false;
-    const row = src.data.find((r) => this.rowKey(r) === String(key));
+    const index = src.data.findIndex((r) => this.rowKey(r) === String(key)); // pozice pro undo
+    const row = index >= 0 ? src.data[index] : null;
     const ok = src.deleteRow(this.keyField, key);
     this.refresh();
-    if (ok) { if (row) this.history?.record({ type: 'delete', row }); this._emitDataChange('delete', [{ [this.keyField]: key }]); }
+    if (ok) { if (row) this.history?.record({ type: 'delete', row, index }); this._emitDataChange('delete', [{ [this.keyField]: key }]); }
     return ok;
   }
 
@@ -1620,8 +1640,9 @@ export class Lattice {
     if (!src) return 0;
     const removed = [], entries = [];
     for (const k of (Array.isArray(keys) ? keys : [keys])) {
-      const row = src.data.find((r) => this.rowKey(r) === String(k));
-      if (src.deleteRow(this.keyField, k)) { removed.push({ [this.keyField]: k }); if (row) entries.push({ type: 'delete', row }); }
+      const index = src.data.findIndex((r) => this.rowKey(r) === String(k)); // pozice pro undo
+      const row = index >= 0 ? src.data[index] : null;
+      if (src.deleteRow(this.keyField, k)) { removed.push({ [this.keyField]: k }); if (row) entries.push({ type: 'delete', row, index }); }
     }
     this.refresh();
     if (removed.length) { if (entries.length) this.history?.record({ type: 'batch', entries }); this._emitDataChange('delete', removed); }
@@ -2014,6 +2035,9 @@ export class Lattice {
     if ('selectRowClick' in patch || 'rowHighlight' in patch) { this.renderer.renderBody(); } // znovu navázat klik-listenery
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('paginationPosition' in patch || 'pageSize' in patch) {
+      // pozor: refresh()/pager čtou this.pageSize (ne this.instance.pageSize) —
+      // bez této synchronizace by se změna projevila až po reloadu.
+      if ('pageSize' in patch) this.pageSize = this.instance.pageSize;
       this.page = 1;
       this.refresh(); // refresh překreslí i pagery (renderFooter)
     } else {

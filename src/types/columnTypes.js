@@ -98,7 +98,12 @@ export function boolDisplay(col) {
   };
 }
 export function isTruthy(v) {
-  return v === true || v === 1 || v === '1' || v === 'true' || v === 'True' || v === 'ano' || v === 'yes';
+  if (v === true || v === 1) return true;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    return s === '1' || s === 'true' || s === 'ano' || s === 'yes';
+  }
+  return false;
 }
 
 registerType('boolean', (v, col) => {

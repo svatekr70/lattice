@@ -1183,13 +1183,15 @@ export class Renderer {
       row.addEventListener('click', (e) => {
         if (e.target.closest('.lattice-resize-handle')) return;
         if (rowClickSelect && !e.target.closest('a, button, input, select, textarea, label, .lattice-select-cell')) {
-          if (e.shiftKey && this._lastSelIdx != null) {
+          // index je číslo jen u řádků těla; připnuté řádky mají string index ('pt0')
+          // → nesmí se dostat do shift-range ani do _lastSelIdx (rozbily by rozsah).
+          if (e.shiftKey && this._lastSelIdx != null && typeof index === 'number') {
             const [a, b] = [this._lastSelIdx, index].sort((x, y) => x - y);
             grid.selectKeys(grid.rows.slice(a, b + 1).map((r) => grid.rowKey(r)), true);
           } else {
             grid.toggleRow(grid.rowKey(rowData));
           }
-          this._lastSelIdx = index;
+          if (typeof index === 'number') this._lastSelIdx = index;
         }
         // Zvýraznění klikem — ignoruje interaktivní prvky, editovatelné buňky a checkbox výběru.
         if (rowHighlightClick && !e.target.closest('a, button, input, select, textarea, label, .lattice-select-cell, .lattice-cell.is-editable')) {
@@ -1287,7 +1289,8 @@ export class Renderer {
     let reserve = 8 + 24; // padding + místo na šipku detailu
     if (grid.isMovable()) reserve += 32;
     if (grid.isSelectable()) reserve += 36;
-    if (grid.instance.rowNumbers) reserve += 44;
+    // 'none' je truthy — rezervovat jen když je číslování skutečně zapnuté.
+    if (grid.instance.rowNumbers && grid.instance.rowNumbers !== 'none') reserve += 44;
     let fixed = 0;
     const collapsible = [];
     let idx = 0;
@@ -1675,22 +1678,26 @@ export class Renderer {
       const cb = el('input.lattice-select-cb', { type: 'checkbox', checked: grid.isSelected(rowData) });
       cb.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (e.shiftKey && this._lastSelIdx != null) {
+        // připnuté řádky mají string index ('pt0') → mimo shift-range i _lastSelIdx.
+        if (e.shiftKey && this._lastSelIdx != null && typeof index === 'number') {
           const [a, b] = [this._lastSelIdx, index].sort((x, y) => x - y);
           grid.selectKeys(grid.rows.slice(a, b + 1).map((r) => grid.rowKey(r)), cb.checked);
         } else {
           grid.setRowSelected(grid.rowKey(rowData), cb.checked);
         }
-        this._lastSelIdx = index;
+        if (typeof index === 'number') this._lastSelIdx = index;
       });
       cell.appendChild(cb);
       return cell;
     }
     // Sloupec s čísly řádků — číslo zobrazených řádků dle režimu.
     if (col._rownum) {
-      const num = col._mode === 'perPage'
-        ? index + 1
-        : (this.grid.page - 1) * this.grid.pageSize + index + 1;
+      // připnuté řádky mají string index ('pt0') → bez pořadového čísla (jinak "pt01").
+      const num = typeof index !== 'number'
+        ? ''
+        : col._mode === 'perPage'
+          ? index + 1
+          : (this.grid.page - 1) * this.grid.pageSize + index + 1;
       const cell = el('div.lattice-cell.lattice-rownum', {
         dataset: { field: col.field }, class: 'is-' + (col.align || 'right'),
       });

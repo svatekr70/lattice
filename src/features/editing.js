@@ -305,7 +305,7 @@ function colorEditor(cell, col, rowData, done) {
   const hex = el('input.lattice-edit-input', { type: 'text', value: rgbToHex(rgb) });
   const r = numIn(rgb.r), g = numIn(rgb.g), b = numIn(rgb.b);
   const cmyk = rgbToCmyk(rgb);
-  const c = numIn(cmyk.c), m = numIn(cmyk.m, 100), y = numIn(cmyk.y, 100), k = numIn(cmyk.k, 100);
+  const c = numIn(cmyk.c, 100), m = numIn(cmyk.m, 100), y = numIn(cmyk.y, 100), k = numIn(cmyk.k, 100);
 
   const syncFrom = (src) => {
     if (src === 'picker') rgb = parseColor(preview.value);

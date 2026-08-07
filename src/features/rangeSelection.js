@@ -10,6 +10,8 @@
  * Rozsah se počítá nad reálnými datovými sloupci (bez syntetických) a řádky
  * aktuální stránky (grid.rows). Zdrojově agnostické — pracuje s hodnotami řádků.
  */
+import { cssEscape } from '../util/dom.js';
+
 export class RangeManager {
   constructor(grid) {
     this.grid = grid;
@@ -125,7 +127,7 @@ export class RangeManager {
     return parts.join('   ·   ');
   }
 
-  cellIn(rowEl, col) { return col ? rowEl.querySelector('.lattice-cell[data-field="' + col.field + '"]') : null; }
+  cellIn(rowEl, col) { return col ? rowEl.querySelector('.lattice-cell[data-field="' + cssEscape(col.field) + '"]') : null; }
   cellAt(coord) {
     if (!coord) return null;
     const rowEl = [...this.grid.renderer.nodes.body.querySelectorAll('.lattice-row')].find((r) => Number(r.dataset.index) === coord.r);

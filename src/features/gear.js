@@ -573,7 +573,7 @@ function openSummaryFormulaEditor(anchor, grid, col) {
   const nameInp = el('input.lattice-set-input', { type: 'text', value: col.summaryFormulaLabel || '', placeholder: t('calc.sumFormulaLabelPlaceholder') });
   menu.appendChild(csField(t('calc.sumFormulaLabel'), nameInp));
 
-  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: 'false', placeholder: t('calc.sumFormulaPlaceholder') });
+  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: false, placeholder: t('calc.sumFormulaPlaceholder') });
   ta.value = col.summaryFormula || '';
   menu.appendChild(el('div.lattice-formula-row', {}, [el('span.lattice-set-label', { text: t('calc.formula') }), ta]));
 
@@ -919,7 +919,7 @@ function openFormulaEditor(anchor, grid, col, gear) {
   ], () => { userPickedType = true; updatePreview(); });
   menu.appendChild(csField(t('calc.type'), typeSel));
 
-  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: 'false', placeholder: t('calc.formulaPlaceholder') });
+  const ta = el('textarea.lattice-formula-input', { rows: 2, spellcheck: false, placeholder: t('calc.formulaPlaceholder') });
   ta.value = editing ? (col.formula || '') : '';
   menu.appendChild(el('div.lattice-formula-row', {}, [el('span.lattice-set-label', { text: t('calc.formula') }), ta]));
 

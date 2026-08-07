@@ -125,7 +125,9 @@ export function buildDateRangePicker(column, ctx) {
     applied = cloneRange(draft);
     const { from, to } = applied;
     if (!from && !to) ctx.onChange(null);
-    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : from ? toISO(from) : null });
+    // Jen `from` (jeden klik) = otevřený rozsah „od X dál" (to:null) — model,
+    // zobrazení („X –") i match to podporují. Jeden den = klik na týž den dvakrát.
+    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : null });
     updateControl();
     close();
   }

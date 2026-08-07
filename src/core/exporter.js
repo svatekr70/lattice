@@ -8,7 +8,12 @@ import { cellValue } from './cellValue.js';
 
 /** Escapuje hodnotu pro oddělovačový formát (uvozovky když je třeba). */
 function esc(value, delim) {
-  const s = value == null ? '' : String(value);
+  let s = value == null ? '' : String(value);
+  // Ochrana proti CSV/formula-injection: buňka začínající =,+,-,@ se v Excelu/Calcu
+  // vyhodnotí jako vzorec (např. =HYPERLINK(), =cmd|…, -2+3+cmd|…). Neutralizujeme
+  // prefixem apostrofu — ale jen když CELÁ hodnota není validní číslo (aby „-5"
+  // zůstalo číslem, zatímco „-2+3" i „-5abc" se ošetří).
+  if (/^[=+\-@]/.test(s) && !/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(s)) s = "'" + s;
   if (s.includes(delim) || s.includes('"') || s.includes('\n') || s.includes('\r')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }

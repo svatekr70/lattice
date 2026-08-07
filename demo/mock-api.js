@@ -54,9 +54,9 @@ export function installMockApi() {
     ).toUpperCase();
 
     if (path === '/api/campaigns') return json(handleCampaigns(u));
-    if (path === '/api/presets') return handleStore(GLOBAL_PRESETS, u, method, init, 'preset');
-    if (path === '/api/advanced-filters') return handleStore(GLOBAL_ADVANCED, u, method, init, 'filter');
-    if (path === '/api/defaults') return handleDefaults(u, method, init);
+    if (path === '/api/presets') return handleStore(GLOBAL_PRESETS, u, method, input, init, 'preset');
+    if (path === '/api/advanced-filters') return handleStore(GLOBAL_ADVANCED, u, method, input, init, 'filter');
+    if (path === '/api/defaults') return handleDefaults(u, method, input, init);
     if (path === '/api/fetch' || path === '/demo/api/fetch.php') return handleFetch(u, orig);
 
     return orig ? orig(input, init) : Promise.reject(new Error('mock: no passthrough fetch'));
@@ -133,13 +133,13 @@ function sortRows(rows, sort) {
 
 /* ---------------- /api/presets + /api/advanced-filters (sdílená logika) ---------------- */
 
-async function handleStore(store, u, method, init, itemKey) {
+async function handleStore(store, u, method, input, init, itemKey) {
   const grid = u.searchParams.get('grid') || 'default';
   store[grid] = store[grid] || [];
 
   if (method === 'GET') return json(store[grid]);
   if (method === 'POST') {
-    const body = await readBody(init);
+    const body = await readBody(input, init);
     const item = body && body[itemKey] ? body[itemKey] : body;
     if (!item || !item.name) return json({ error: 'missing ' + itemKey });
     store[grid] = store[grid].filter((p) => p.name !== item.name); // stejný název přepíše
@@ -151,21 +151,21 @@ async function handleStore(store, u, method, init, itemKey) {
     store[grid] = store[grid].filter((p) => p.id !== id);
     return json({ ok: true });
   }
-  return json({ error: 'method not allowed' }, 405);
+  return empty(405); // jako server.js: prázdné tělo
 }
 
 /* ---------------- /api/defaults ---------------- */
 
-async function handleDefaults(u, method, init) {
+async function handleDefaults(u, method, input, init) {
   if (method === 'GET') return json(GLOBAL_DEFAULTS);
   if (method === 'POST') {
-    const body = await readBody(init);
+    const body = await readBody(input, init);
     const grid = (body && body.grid) || u.searchParams.get('grid');
     if (!grid || !body.defaults) return json({ error: 'missing grid/defaults' });
     GLOBAL_DEFAULTS[grid] = body.defaults;
     return json({ ok: true });
   }
-  return json({ error: 'method not allowed' }, 405);
+  return empty(405); // jako server.js: prázdné tělo
 }
 
 /* ---------------- /api/fetch (proxy pro „import z URL") ----------------
@@ -202,10 +202,17 @@ function html(body, status = 200) {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
+function empty(status) { return new Response('', { status }); }
 
-async function readBody(init) {
-  if (!init || init.body == null) return {};
-  try { return typeof init.body === 'string' ? JSON.parse(init.body || '{}') : {}; } catch { return {}; }
+/** Přečte JSON tělo z init.body (string) nebo z Request objektu (fetch(new Request(...))). */
+async function readBody(input, init) {
+  if (init && typeof init.body === 'string') {
+    try { return JSON.parse(init.body || '{}'); } catch { return {}; }
+  }
+  if (input && typeof input === 'object' && typeof input.clone === 'function') {
+    try { return await input.clone().json(); } catch { return {}; }
+  }
+  return {};
 }
 
 /** filter[0][field]=x → { filter: { '0': { field:'x' } } } */
