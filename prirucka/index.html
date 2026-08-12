@@ -108,6 +108,7 @@
     <a href="#filtry">Filtry a typy filtrů</a>
     <a href="#negace">Negace a operátory</a>
     <a href="#rozsireny">Rozšířený filtr</a>
+    <a href="#ulozene-filtry">Ukládání a sdílení filtrů</a>
     <h4>Dialogy</h4>
     <a href="#dialog-sloupce">Dialog „Sloupce"</a>
     <a href="#skupiny">Skupiny a vzhled sloupců</a>
@@ -152,6 +153,8 @@
           <div><b>Nastavení tabulky</b> (ozubené kolo) — vzhled a chování celé tabulky. Viz <a href="#nastaveni">Nastavení tabulky</a>.</div></li>
         <li><span class="ic"><img src="img/ic-clearfilter.png" alt=""></span>
           <div><b>Zrušit všechny filtry</b> (trychtýř s červeným křížkem) — <b>objeví se jen tehdy, když je nějaký filtr aktivní</b>. Jedním klikem smaže všechny filtry.</div></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="var(--accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"></path><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"></path><path fill="#fff" d="M15.5 18h4v2.4h-4z"></path></svg></span>
+          <div><b>Uložit sloupcové filtry</b> (trychtýř s disketou) — <b>objeví se jen když filtruješ</b> v hlavičce. Uloží „naklikané" filtry pod názvem (i jako tlačítko, lokálně/globálně). Viz <a href="#ulozene-filtry">Ukládání a sdílení filtrů</a>.</div></li>
       </ul>
       <figure>
         <img src="img/prehled.png" alt="Přehled tabulky Lattice">
@@ -291,7 +294,8 @@
       </figure>
 
       <h3>Datum: „rozsah" vs „Od / Do"</h3>
-      <p>U dat jsou dva režimy a je mezi nimi <b>důležitý rozdíl</b>:</p>
+      <p>U dat jsou <b>tři</b> režimy (třetí, <b>Dynamické</b>, je níže). Mezi prvními dvěma je
+        <b>důležitý rozdíl</b>:</p>
       <ul>
         <li><b>Datum (rozsah)</b> — jedno pole s kalendářem, kde vybereš <b>celé období najednou</b>
           (od–do). Vyžaduje <b>obě</b> hraniční data.</li>
@@ -305,6 +309,27 @@
       <figure>
         <img src="img/filtr-datum-oddo.png" alt="Datumový filtr Od/Do">
         <figcaption>„Datum (Od / Do)" — tady stačí jen „Od"; „Do" necháš prázdné a filtr bere vše od daného data dál.</figcaption>
+      </figure>
+
+      <h3>Datum: Dynamické (vlastní výraz)</h3>
+      <p>Třetí režim u data je <b>Dynamické</b> — do jednoho pole napíšeš <b>vlastní podmínku</b> s operátory
+        a relativními datumy. Hodí se na „posuvná okna", která platí i zítra, třeba
+        <code>&gt;today-14 AND &lt;today+14</code> (posledních 14 dní a příštích 14 dní).</p>
+      <ul>
+        <li><b>Operátory:</b> <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code>.</li>
+        <li><b>Datum:</b> pevné (<code>2024-01-31</code>) nebo relativní token — <code>today</code>,
+          <code>today+14</code>, <code>today-7</code>, <code>today+2w</code>, <code>today-1m</code>,
+          <code>today+1y</code>, <code>now</code> (jednotky d/w/m/y). Relativní datum se
+          <b>přepočítává podle dneška</b>, takže uložený filtr zůstává platný i další dny.</li>
+        <li><b>Spojky:</b> <code>AND</code> a <code>OR</code> (přičemž <code>AND</code> váže těsněji než
+          <code>OR</code>). Např. <code>&lt;2025-01-01 OR &gt;today</code>.</li>
+      </ul>
+      <p class="muted">Chybnou část výrazu tabulka <b>tiše ignoruje</b> (nechá filtr být, dokud ho nedopíšeš);
+        nápovědu k zápisu ukazuje bublina po najetí na pole. Režim <b>Dynamické</b> zvolíš trychtýřem u sloupce,
+        stejně jako „Datum (rozsah)" a „Datum (Od / Do)".</p>
+      <figure>
+        <img src="img/filtr-datum-dynamicky.png" alt="Dynamický datumový filtr s výrazem">
+        <figcaption>Trychtýř u datumového sloupce nabídne třetí režim <b>„Dynamické"</b> (vedle „Datum (rozsah)" a „Datum (Od / Do)"); do pole napíšeš vlastní výraz, např. <code>&gt;today-14 AND &lt;today+14</code>.</figcaption>
       </figure>
 
       <h3>Kde jsou filtry (umístění)</h3>
@@ -384,6 +409,8 @@
         filtr se <b>sdílí všem uživatelům</b>, ne jen tobě. Globální filtry poznáš v nabídce podle
         <b>glóbu (🌐)</b>. Sdílené filtry ukládá a spravuje aplikace (stejně jako globální
         <a href="#presety">presety</a>).</p>
+      <p>Při ukládání můžeš zaškrtnout <b>„jako tlačítko"</b> — filtr se pak zobrazí jako přepínací tlačítko
+        nad ikonami (viz <a href="#ulozene-filtry">Ukládání a sdílení filtrů</a>).</p>
 
       <h3>Zapnout / vypnout filtr u sloupce</h3>
       <p>V dialogu <b>„Sloupce"</b> (ikona ⊟) ikonou <b>trychtýře</b> u řádku sloupce <b>zapneš nebo
@@ -395,8 +422,46 @@
       </figure>
     </section>
 
+    <section id="ulozene-filtry">
+      <h2><span class="n">8</span>Ukládání a sdílení filtrů</h2>
+      <p>Filtry, které si často zapínáš, nemusíš pokaždé klikat znovu. Můžeš je <b>uložit pod názvem</b>,
+        zobrazit jako <b>přepínací tlačítka</b> nad ikonami a — když to aplikace dovolí — <b>sdílet globálně</b>
+        všem uživatelům. Uložit jde jak <a href="#rozsireny">rozšířený filtr</a>, tak i obyčejné
+        <b>„naklikané" sloupcové filtry</b> z hlavičky.</p>
+
+      <h3>Uložené filtry jako tlačítka</h3>
+      <p>U každého uloženého filtru je při ukládání zaškrtávátko <b>„jako tlačítko"</b>. Když ho zapneš,
+        filtr se místo skryté položky v rozbalovací nabídce zobrazí jako <b>tlačítko v řadě nad ikonami</b>
+        vpravo v záhlaví tabulky. <b>Klik tlačítko zapne, další klik vypne</b> (funguje jako přepínač);
+        aktivní filtr je zvýrazněný.</p>
+      <figure>
+        <img src="img/filtry-tlacitka.png" alt="Řada uložených filtrů jako tlačítka nad ikonami">
+        <figcaption>Uložené filtry označené <b>„jako tlačítko"</b> se ukážou v řadě nad nástrojovými ikonami — jedním klikem je zapneš/vypneš (aktivní je modrý).</figcaption>
+      </figure>
+
+      <h3>Uložit „naklikané" sloupcové filtry (snímek)</h3>
+      <p>Nemusíš skládat rozšířený filtr — stačí <b>nastavit filtry přímo v hlavičce</b> sloupců a pak je
+        uložit jako celek. Jakmile je aspoň jeden sloupcový filtr aktivní, objeví se vpravo nahoře ikona
+        <b>trychtýře s disketou</b>
+        (<span class="ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="var(--accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"></path><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"></path><path fill="#fff" d="M15.5 18h4v2.4h-4z"></path></svg></span>).
+        Klikem na ni otevřeš panel, kde filtr <b>pojmenuješ</b> a uložíš — volitelně <b>jako tlačítko</b>
+        a <b>lokálně</b> nebo <b>globálně</b>.</p>
+      <figure>
+        <img src="img/ulozit-filtry.png" alt="Panel Uložit sloupcové filtry">
+        <figcaption>Ikona trychtýře s disketou (vpravo nahoře, objeví se jen když filtruješ) → panel <b>„Uložit sloupcové filtry"</b>: název, „jako tlačítko", Uložit / Uložit globálně a seznam už uložených.</figcaption>
+      </figure>
+      <p>Když snímek později <b>použiješ</b> (z tlačítka nebo z nabídky uložených), filtry se <b>vrátí zpět
+        do políček v hlavičce</b> — takže je vidíš a můžeš je po sloupcích doladit. Uložené snímky se objevují
+        ve <b>stejné nabídce a řadě tlačítek</b> jako uložené rozšířené filtry.</p>
+
+      <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> filtr má jen tvůj prohlížeč. <b>Globální</b>
+        (zelené <b>Uložit globálně</b>, jen když to aplikace umožní) se <b>sdílí všem uživatelům</b> a v nabídce
+        ho poznáš podle <b>glóbu 🌐</b>. Sdílené filtry ukládá a spravuje aplikace (stejně jako globální
+        <a href="#presety">presety</a>).</div>
+    </section>
+
     <section id="dialog-sloupce">
-      <h2><span class="n">8</span>Dialog „Sloupce"</h2>
+      <h2><span class="n">9</span>Dialog „Sloupce"</h2>
       <p>Ikonou <b>⊟</b> vpravo nahoře otevřeš správu sloupců. Je to hlavní místo, odkud řídíš,
         <b>co a jak</b> se v tabulce zobrazuje: viditelnost, pořadí, ukotvení, filtry, souhrny,
         formát, seskupení i presety.</p>
@@ -418,10 +483,11 @@
       <h3>Presety (uložené pohledy)</h3>
       <p>Preset je <b>pojmenované nastavení</b> tabulky — sloupce, jejich pořadí a šířky, řazení,
         filtry. Do pole <b>„Název presetu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
-        (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží. Uložené presety se pak
+        (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží lokálně. Uložené presety se pak
         nabízejí k výběru a jedním klikem si tabulku přepneš do uloženého stavu.</p>
-      <p><b>Globální preset:</b> aplikace může mít i presety nastavené <b>správcem</b> (společné pro
-        všechny). Poznáš je v nabídce a fungují stejně jako tvoje vlastní.</p>
+      <p><b>Globální preset:</b> vedle záložky může být i <b>globus</b> (jen když to aplikace umožní) —
+        tím uložíš preset <b>globálně</b>, sdílený <b>všem uživatelům</b> (v nabídce s glóbem 🌐). Aplikace
+        může mít i presety nastavené <b>správcem</b>. Fungují stejně jako tvoje vlastní.</p>
       <p><b>Hledat sloupec:</b> když má tabulka hodně sloupců, do pole <b>„Hledat sloupec…"</b>
         napiš část názvu a seznam se zúží — rychle tak najdeš ten, který chceš zapnout/vypnout.</p>
       <p class="muted">Co přesně se do presetu ukládá a k čemu je to praktické — viz sekce
@@ -487,7 +553,7 @@
     </section>
 
     <section id="skupiny">
-      <h2><span class="n">9</span>Skupiny a vzhled sloupců</h2>
+      <h2><span class="n">10</span>Skupiny a vzhled sloupců</h2>
       <p>Sloupce můžeš sdružit do <b>skupin</b>, skupiny <b>sbalit</b>, a jak skupinám, tak
         jednotlivým sloupcům dát <b>vlastní barvy záhlaví</b> i <b>formát buňky</b>. Vše se nastaví
         v <a href="#dialog-sloupce">dialogu Sloupce</a> a pamatuje se.</p>
@@ -531,7 +597,7 @@
     </section>
 
     <section id="pocitany">
-      <h2><span class="n">10</span>Počítaný sloupec (vlastní vzorec)</h2>
+      <h2><span class="n">11</span>Počítaný sloupec (vlastní vzorec)</h2>
       <p>Občas potřebuješ sloupec, který v datech <b>není</b> — třeba <b>Celkem</b> = cena × množství,
         <b>marži</b>, nebo <b>celé jméno</b> složené z více polí. Takový sloupec si <b>vytvoříš přímo
         v tabulce</b> zadáním vzorce — nemusíš nic programovat.</p>
@@ -585,7 +651,7 @@
     </section>
 
     <section id="nastaveni">
-      <h2><span class="n">11</span>Nastavení tabulky</h2>
+      <h2><span class="n">12</span>Nastavení tabulky</h2>
       <p>Ozubené kolo <b>⚙</b> vpravo nahoře otevře <b>Nastavení tabulky</b> — vzhled a chování
         celé tabulky, rozdělené do záložek.</p>
       <figure>
@@ -607,7 +673,7 @@
     </section>
 
     <section id="presety">
-      <h2><span class="n">12</span>Presety (uložené pohledy)</h2>
+      <h2><span class="n">13</span>Presety (uložené pohledy)</h2>
       <p>Preset je <b>pojmenovaný pohled</b> na tabulku. Nejdřív si tabulku <b>naklikáš</b> přesně
         tak, jak ji chceš — zvolíš viditelnost a pořadí sloupců, jejich šířky, nastavíš filtry
         a řazení — a celý tenhle stav uložíš pod názvem. Když pak preset <b>použiješ</b>, tabulka
@@ -641,13 +707,15 @@
 
       <h3>Jak preset vytvořit</h3>
       <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): do pole <b>„Název presetu…"</b>
-        napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží. Uložené presety se pak
-        nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>
-      <div class="note"><b>Pozn.:</b> Některé aplikace mají i <b>globální presety</b> nastavené
-        správcem (společné pro všechny) — ty poznáš v nabídce a fungují stejně.</div>
+        napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží lokálně. Vedle záložky může být
+        i <b>globus</b> (jen když to aplikace umožní): tím preset uložíš <b>globálně</b> pro všechny.
+        Uložené presety se pak nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>
+      <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> preset má jen tvůj prohlížeč;
+        <b>globální</b> (glóbus 🌐) se sdílí všem — ukládá ho aplikace. Některé aplikace mají navíc
+        <b>globální presety nastavené správcem</b>. Všechny se v nabídce chovají stejně.</div>
     </section>
     <section id="seskupeni">
-      <h2><span class="n">13</span>Seskupení řádků (i podle data)</h2>
+      <h2><span class="n">14</span>Seskupení řádků (i podle data)</h2>
       <p>Řádky můžeš <b>seskupit podle hodnoty sloupce</b> — třeba všechny kampaně jedné kategorie
         pohromadě. Zapneš to v dialogu <b>„Sloupce"</b> (ikona ⊟): u sloupce klikni na ikonu
         <b>Seskupovat řádky</b> (seznam vpravo). Seskupovat lze i <b>víceúrovňově</b> (skupina ve skupině).
@@ -685,7 +753,7 @@
         seskupení v dialogu „Sloupce" (odškrtnutím).</p>
     </section>
     <section id="editace">
-      <h2><span class="n">14</span>Inline editace</h2>
+      <h2><span class="n">15</span>Inline editace</h2>
       <p>Pokud to aplikace povolí, hodnotu upravíš <b>přímo v buňce</b> — <b>dvojklik</b> (nebo
         Enter na vybrané buňce) ji přepne do editace. Napiš novou hodnotu a potvrď <kbd>Enter</kbd>;
         <kbd>Esc</kbd> úpravu zruší.</p>
@@ -701,7 +769,7 @@
     </section>
 
     <section id="vyber">
-      <h2><span class="n">15</span>Výběr buněk a kopírování</h2>
+      <h2><span class="n">16</span>Výběr buněk a kopírování</h2>
       <p>Buňky můžeš označit jako v tabulkovém procesoru: klikni do buňky a <b>táhni</b> přes
         obdélník (nebo drž <kbd>Shift</kbd> a klikni na protilehlý roh). Označený rozsah se
         podbarví a dole se ukáže jeho <b>souhrn</b>.</p>
@@ -713,7 +781,7 @@
         Excelu. Souhrn dole je praktický pro rychlou kontrolu (kolik to je celkem, průměr…).</p>
     </section>
     <section id="radek">
-      <h2><span class="n">16</span>Klik na řádek, menu a popup</h2>
+      <h2><span class="n">17</span>Klik na řádek, menu a popup</h2>
       <h3>Klik na řádek</h3>
       <p>V mnoha aplikacích má <b>kliknutí na řádek</b> akci — třeba otevře detail záznamu.
         Jestli řádek reaguje, poznáš podle toho, že se při najetí <b>zvýrazní</b> a kurzor je
@@ -730,7 +798,7 @@
     </section>
 
     <section id="hromadne">
-      <h2><span class="n">17</span>Hromadné úpravy (výběr více řádků)</h2>
+      <h2><span class="n">18</span>Hromadné úpravy (výběr více řádků)</h2>
       <p>Vlevo je (pokud to aplikace zapne) sloupec s <b>checkboxy</b>. Zaškrtni řádky, které chceš
         zpracovat najednou — nahoře se objeví <b>lišta hromadných akcí</b> s tím, co lze s výběrem udělat.</p>
       <figure>
@@ -741,7 +809,7 @@
         napříč stránkami nebo výběr invertovat. Konkrétní akce určuje aplikace.</p>
     </section>
     <section id="strom">
-      <h2><span class="n">18</span>Stromové zobrazení</h2>
+      <h2><span class="n">19</span>Stromové zobrazení</h2>
       <p>Když jsou data <b>hierarchická</b> (např. organizační struktura, kategorie a podkategorie),
         tabulka je ukáže jako <b>strom</b>: v prvním sloupci je <b>rozbalovací šipka</b> a odsazení
         podle úrovně. Klik na šipku větev rozbalí/sbalí.</p>
@@ -755,7 +823,7 @@
     </section>
 
     <section id="presun-radku">
-      <h2><span class="n">19</span>Přesouvání řádků</h2>
+      <h2><span class="n">20</span>Přesouvání řádků</h2>
       <p>Pokud to aplikace zapne (a struktura dat to dovolí), můžeš <b>měnit pořadí řádků myší</b>.
         Vlevo v každém řádku je <b>úchyt ⠿</b> — chytni ho a <b>přetáhni</b> řádek nad nebo pod jiný.
         Při tažení ukazuje <b>modrá linka</b>, kam řádek spadne. Nové pořadí si aplikace uloží.</p>
@@ -797,7 +865,7 @@
     </section>
 
     <section id="detail-radku">
-      <h2><span class="n">20</span>Rozbalovací detail řádku</h2>
+      <h2><span class="n">21</span>Rozbalovací detail řádku</h2>
       <p>Některé řádky umí <b>rozbalit panel s detailem</b> pod sebou (tzv. master-detail). Poznáš je
         podle <b>šipky ▸</b> na začátku řádku (obvykle ve sloupci <b>ID</b>). Klikem na šipku se pod
         řádkem otevře panel se souvisejícími údaji, které se nevejdou do sloupců; dalším klikem ho zavřeš.</p>
@@ -810,7 +878,7 @@
     </section>
 
     <section id="cislovani">
-      <h2><span class="n">21</span>Číslování řádků</h2>
+      <h2><span class="n">22</span>Číslování řádků</h2>
       <p>Tabulka může vlevo zobrazit <b>sloupec s pořadovým číslem řádku</b>. Zapneš (a vypneš) ho
         v <b>Nastavení tabulky → Sloupce a řádky → „Číslování řádků"</b>. Na výběr jsou tři možnosti:</p>
       <ul>
@@ -827,7 +895,7 @@
     </section>
 
     <section id="formaty">
-      <h2><span class="n">22</span>Formáty a podmíněné formáty</h2>
+      <h2><span class="n">23</span>Formáty a podmíněné formáty</h2>
       <h3>Formát hodnot</h3>
       <p>Jak se zobrazují <b>čísla, měny a data</b>, nastavíš v <b>Nastavení tabulky → Formát hodnot</b>:
         desetinná místa, oddělovač tisíců, jak psát záporná čísla, symbol měny, jazyk formátu (locale).</p>
@@ -859,7 +927,7 @@
     </section>
 
     <section id="souhrny">
-      <h2><span class="n">23</span>Souhrny a mezisoučty</h2>
+      <h2><span class="n">24</span>Souhrny a mezisoučty</h2>
       <p>Pod tabulkou může být <b>souhrnný řádek</b> — součet, průměr, minimum, maximum, počet
         za vybrané sloupce. Nejdřív ho ale musíš <b>zapnout</b> v <b>Nastavení tabulky →
         Sloupce a řádky → Souhrnný řádek</b>; které sloupce a jaké funkce se počítají, nastavíš
@@ -917,7 +985,7 @@
     </section>
 
     <section id="export">
-      <h2><span class="n">24</span>Export a tisk</h2>
+      <h2><span class="n">25</span>Export a tisk</h2>
       <p>Data z tabulky lze <b>vyexportovat</b> — typicky do <b>CSV</b> (otevřeš v Excelu) nebo
         <b>JSON</b>, případně <b>vytisknout</b>. Export respektuje tvůj aktuální pohled: řazení,
         filtry i viditelné sloupce, takže dostaneš přesně to, co máš na obrazovce.</p>
