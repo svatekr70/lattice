@@ -321,15 +321,31 @@
           <code>today+14</code>, <code>today-7</code>, <code>today+2w</code>, <code>today-1m</code>,
           <code>today+1y</code>, <code>now</code> (jednotky d/w/m/y). Relativní datum se
           <b>přepočítává podle dneška</b>, takže uložený filtr zůstává platný i další dny.</li>
+        <li><b>Hranice období:</b> <code>sow</code>/<code>eow</code> (začátek/konec týdne, Po–Ne),
+          <code>som</code>/<code>eom</code> (měsíc), <code>soq</code>/<code>eoq</code> (kvartál),
+          <code>soy</code>/<code>eoy</code> (rok) — i s offsetem: <code>sow-1w</code> = minulý týden,
+          <code>eom-1m</code> = konec minulého měsíce.</li>
         <li><b>Spojky:</b> <code>AND</code> a <code>OR</code> (přičemž <code>AND</code> váže těsněji než
           <code>OR</code>). Např. <code>&lt;2025-01-01 OR &gt;today</code>.</li>
       </ul>
-      <p class="muted">Chybnou část výrazu tabulka <b>tiše ignoruje</b> (nechá filtr být, dokud ho nedopíšeš);
-        nápovědu k zápisu ukazuje bublina po najetí na pole. Režim <b>Dynamické</b> zvolíš trychtýřem u sloupce,
-        stejně jako „Datum (rozsah)" a „Datum (Od / Do)".</p>
+      <p class="muted">Chybnou část výrazu tabulka <b>tiše ignoruje</b> (nechá filtr být, dokud ho nedopíšeš).
+        Nemusíš syntaxi znát zpaměti — tlačítko <b>„?"</b> u pole nabídne <b>hotová období</b> (Dnes,
+        Minulý týden, Tento měsíc…); klik je vyplní a rovnou použije. Režim <b>Dynamické</b> zvolíš trychtýřem
+        u sloupce, stejně jako „Datum (rozsah)" a „Datum (Od / Do)".</p>
       <figure>
         <img src="img/filtr-datum-dynamicky.png" alt="Dynamický datumový filtr s výrazem">
         <figcaption>Trychtýř u datumového sloupce nabídne třetí režim <b>„Dynamické"</b> (vedle „Datum (rozsah)" a „Datum (Od / Do)"); do pole napíšeš vlastní výraz, např. <code>&gt;today-14 AND &lt;today+14</code>.</figcaption>
+      </figure>
+
+      <h3>Dynamická období v kalendáři („Datum (rozsah)")</h3>
+      <p>I kalendářový režim <b>Datum (rozsah)</b> umí <b>dynamické období</b>. V dialogu je nahoře přepínač
+        <b>„dynamické období"</b>: když ho zapneš a klikneš na některý preset (Dnes, Minulý týden, Tento
+        měsíc…), uloží se <b>relativně</b> místo pevných dat — takže <b>uložený filtr zůstane platný i
+        příště</b> (za týden „Minulý týden" znamená zase minulý týden). V poli to pak poznáš podle
+        <b>↻</b> a názvu období. <b>Ruční výběr</b> dnů v kalendáři zůstává <b>pevný</b>.</p>
+      <figure>
+        <img src="img/filtr-datum-preset-dyn.png" alt="Přepínač dynamické období v date-range pickeru">
+        <figcaption>Dialog „Datum (rozsah)" s přepínačem <b>„dynamické období"</b> (nahoře, zapnutý). S ním preset uloží relativní období (např. „Minulý týden") a filtr se přepočítává; bez něj nastaví pevná data.</figcaption>
       </figure>
 
       <h3>Kde jsou filtry (umístění)</h3>

@@ -7,6 +7,7 @@
  * takže match/toServer/persistence date-range filtru se nemění.
  */
 import { el, clear, onOutside } from '../util/dom.js';
+import { resolveToken } from './advancedEval.js';
 
 export function buildDateRangePicker(column, ctx) {
   const t = (k) => ctx.i18n.t('dateRange.' + k);
@@ -23,11 +24,23 @@ export function buildDateRangePicker(column, ctx) {
 
   // `applied` = aktuálně použitý filtr (co vidí pole); `draft` = rozpracovaný
   // výběr v dialogu (Zrušit ho zahodí, Použít ho promítne do applied).
-  let applied = { from: parseISO(ctx.value?.from), to: parseISO(ctx.value?.to) };
+  // Hodnota může nést relativní tokeny (dynamický preset) nebo pevná data. `appliedRaw` drží
+  // syrovou hodnotu (tokeny/ISO), `applied` je rozvinutá na Date pro kalendář a zobrazení.
+  let appliedRaw = { from: ctx.value?.from ?? null, to: ctx.value?.to ?? null };
+  let applied = resolveRange(appliedRaw);
+  let dynamic = isToken(appliedRaw.from) || isToken(appliedRaw.to);
+  let presetTokens = matchPresetTokens(appliedRaw); // tokeny odpovídajícího presetu, nebo null
   let draft = cloneRange(applied);
   let leftView = viewOf(draft.from) || viewOf(new Date());
   let rightView = viewOf(draft.to) || nextMonth(leftView);
   if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
+
+  /** Popisek presetu odpovídajícího syrové hodnotě (pro „↻ Minulý týden"), nebo null. */
+  function presetLabel(raw) {
+    if (!raw) return null;
+    const p = PRESETS.find((x) => x.tokens && x.tokens.from === raw.from && x.tokens.to === raw.to);
+    return p ? ctx.i18n.t('dateRange.presets.' + p.key) : null;
+  }
 
   let panel = null;
   let closeFn = null;
@@ -46,21 +59,25 @@ export function buildDateRangePicker(column, ctx) {
   });
 
   function updateControl() {
-    const { from, to } = applied;
-    if (!from && !to) {
+    if (!appliedRaw.from && !appliedRaw.to) {
       text.textContent = t('placeholder');
       text.classList.add('is-placeholder');
       clearBtn.style.display = 'none';
     } else {
       text.classList.remove('is-placeholder');
-      text.textContent = rangeText(from, to);
+      const dyn = isToken(appliedRaw.from) || isToken(appliedRaw.to);
+      const lbl = presetLabel(appliedRaw);
+      // dynamický preset → „↻ Minulý týden"; jinak konkrétní rozsah dat
+      text.textContent = (dyn ? '↻ ' : '') + (lbl || rangeText(applied.from, applied.to));
       clearBtn.style.display = '';
     }
   }
 
   function clearFilter() {
     applied = { from: null, to: null };
+    appliedRaw = { from: null, to: null };
     draft = { from: null, to: null };
+    presetTokens = null;
     ctx.onChange(null);
     updateControl();
     close();
@@ -79,6 +96,7 @@ export function buildDateRangePicker(column, ctx) {
     if (panel) return;
     // vždy začít od aktuálně použité hodnoty (Zrušit pak zahodí rozdělané změny)
     draft = cloneRange(applied);
+    presetTokens = matchPresetTokens(appliedRaw);
     leftView = viewOf(draft.from) || viewOf(new Date());
     rightView = viewOf(draft.to) || nextMonth(leftView);
     if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
@@ -124,10 +142,19 @@ export function buildDateRangePicker(column, ctx) {
   function apply() {
     applied = cloneRange(draft);
     const { from, to } = applied;
-    if (!from && !to) ctx.onChange(null);
-    // Jen `from` (jeden klik) = otevřený rozsah „od X dál" (to:null) — model,
-    // zobrazení („X –") i match to podporují. Jeden den = klik na týž den dvakrát.
-    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : null });
+    if (!from && !to) {
+      appliedRaw = { from: null, to: null };
+      ctx.onChange(null);
+    } else if (dynamic && presetTokens) {
+      // dynamický preset → ulož tokeny (filtr zůstane živý i po uložení)
+      appliedRaw = { from: presetTokens.from, to: presetTokens.to };
+      ctx.onChange({ from: presetTokens.from, to: presetTokens.to });
+    } else {
+      // Jen `from` (jeden klik) = otevřený rozsah „od X dál" (to:null) — model,
+      // zobrazení („X –") i match to podporují. Jeden den = klik na týž den dvakrát.
+      appliedRaw = { from: from ? toISO(from) : null, to: to ? toISO(to) : null };
+      ctx.onChange({ from: appliedRaw.from, to: appliedRaw.to });
+    }
     updateControl();
     close();
   }
@@ -147,9 +174,16 @@ export function buildDateRangePicker(column, ctx) {
   function renderPresets() {
     const { presets } = panel._nodes;
     clear(presets);
+    // Přepínač „dynamické období": zapnutý → klik na preset uloží token (zůstane živý po uložení).
+    const dyn = el('label.lattice-dr-dyn', { title: t('dynamicHint') });
+    const cb = el('input', { type: 'checkbox' });
+    cb.checked = dynamic;
+    cb.addEventListener('change', () => { dynamic = cb.checked; renderAll(); });
+    dyn.append(cb, el('span', { text: t('dynamic') }));
+    presets.appendChild(dyn);
     for (const p of PRESETS) {
       const row = el('div.lattice-dr-preset', { text: ctx.i18n.t('dateRange.presets.' + p.key) });
-      row.addEventListener('click', () => setRange(p.range()));
+      row.addEventListener('click', () => setRange(p.range(), p.tokens));
       presets.appendChild(row);
     }
     const clearRow = el('div.lattice-dr-preset.is-clear', { text: '✕ ' + t('clear') });
@@ -157,8 +191,9 @@ export function buildDateRangePicker(column, ctx) {
     presets.appendChild(clearRow);
   }
 
-  function setRange({ from, to }) {
+  function setRange({ from, to }, tokens) {
     draft = { from: from || null, to: to || null };
+    presetTokens = tokens || null;
     if (draft.from) leftView = viewOf(draft.from);
     if (draft.to) rightView = viewOf(draft.to);
     else rightView = nextMonth(leftView);
@@ -171,7 +206,10 @@ export function buildDateRangePicker(column, ctx) {
   function renderAll() {
     renderMonth('left', leftView);
     renderMonth('right', rightView);
-    panel._nodes.rangeLabel.textContent = rangeText(draft.from, draft.to);
+    // u dynamického presetu ukaž „↻ Minulý týden", jinak konkrétní rozsah
+    const dyn = dynamic && presetTokens;
+    const lbl = dyn ? presetLabel(presetTokens) : null;
+    panel._nodes.rangeLabel.textContent = (dyn ? '↻ ' : '') + (lbl || rangeText(draft.from, draft.to));
   }
 
   function renderMonth(side, view) {
@@ -210,6 +248,7 @@ export function buildDateRangePicker(column, ctx) {
   }
 
   function pickDay(date) {
+    presetTokens = null; // ruční výběr v kalendáři = pevný rozsah (ne dynamický token)
     if (!draft.from || (draft.from && draft.to)) {
       draft = { from: date, to: null };
     } else if (date.getTime() < draft.from.getTime()) {
@@ -240,6 +279,20 @@ function parseISO(s) {
   const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return null;
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+/** Je hodnota relativní token (rozvine se na jiný řetězec)? Pevné ISO datum → false. */
+function isToken(s) {
+  return typeof s === 'string' && s !== '' && String(resolveToken(s)) !== s;
+}
+/** Rozvine syrovou hodnotu {from,to} (tokeny i ISO) na Date objekty pro kalendář/zobrazení. */
+function resolveRange(raw) {
+  return { from: parseISO(resolveToken(raw && raw.from)), to: parseISO(resolveToken(raw && raw.to)) };
+}
+/** Tokeny presetu odpovídajícího syrové hodnotě (nebo null), pro rozpoznání dynamického presetu. */
+function matchPresetTokens(raw) {
+  if (!raw) return null;
+  const p = PRESETS.find((x) => x.tokens && x.tokens.from === raw.from && x.tokens.to === raw.to);
+  return p ? p.tokens : null;
 }
 function toISO(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -275,20 +328,22 @@ function startOfWeek(d) { return addDays(d, -((d.getDay() + 6) % 7)); } // pond�
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
 
+// Každý preset má i `tokens` (relativní zápis) — když je zapnuté „dynamické období", uloží se
+// místo pevných dat token, takže filtr zůstane živý i po uložení (viz resolveToken).
 const PRESETS = [
-  { key: 'today', range: () => ({ from: today(), to: today() }) },
-  { key: 'yesterday', range: () => ({ from: addDays(today(), -1), to: addDays(today(), -1) }) },
-  { key: 'weekToDate', range: () => ({ from: startOfWeek(today()), to: today() }) },
-  { key: 'thisWeek', range: () => ({ from: startOfWeek(today()), to: addDays(startOfWeek(today()), 6) }) },
-  { key: 'lastWeek', range: () => ({ from: addDays(startOfWeek(today()), -7), to: addDays(startOfWeek(today()), -1) }) },
-  { key: 'last7', range: () => ({ from: addDays(today(), -6), to: today() }) },
-  { key: 'last30', range: () => ({ from: addDays(today(), -29), to: today() }) },
-  { key: 'monthToDate', range: () => ({ from: startOfMonth(today()), to: today() }) },
-  { key: 'thisMonth', range: () => ({ from: startOfMonth(today()), to: endOfMonth(today()) }) },
-  { key: 'lastMonth', range: () => { const d = new Date(today().getFullYear(), today().getMonth() - 1, 1); return { from: startOfMonth(d), to: endOfMonth(d) }; } },
-  { key: 'thisQuarter', range: () => { const t = today(); const qs = Math.floor(t.getMonth() / 3) * 3; return { from: new Date(t.getFullYear(), qs, 1), to: new Date(t.getFullYear(), qs + 3, 0) }; } },
-  { key: 'nextMonth', range: () => { const d = new Date(today().getFullYear(), today().getMonth() + 1, 1); return { from: startOfMonth(d), to: endOfMonth(d) }; } },
-  { key: 'next3Months', range: () => { const s = new Date(today().getFullYear(), today().getMonth() + 1, 1); const e = new Date(s.getFullYear(), s.getMonth() + 3, 0); return { from: s, to: e }; } },
+  { key: 'today', tokens: { from: 'today', to: 'today' }, range: () => ({ from: today(), to: today() }) },
+  { key: 'yesterday', tokens: { from: 'today-1', to: 'today-1' }, range: () => ({ from: addDays(today(), -1), to: addDays(today(), -1) }) },
+  { key: 'weekToDate', tokens: { from: 'sow', to: 'today' }, range: () => ({ from: startOfWeek(today()), to: today() }) },
+  { key: 'thisWeek', tokens: { from: 'sow', to: 'eow' }, range: () => ({ from: startOfWeek(today()), to: addDays(startOfWeek(today()), 6) }) },
+  { key: 'lastWeek', tokens: { from: 'sow-1w', to: 'eow-1w' }, range: () => ({ from: addDays(startOfWeek(today()), -7), to: addDays(startOfWeek(today()), -1) }) },
+  { key: 'last7', tokens: { from: 'today-6', to: 'today' }, range: () => ({ from: addDays(today(), -6), to: today() }) },
+  { key: 'last30', tokens: { from: 'today-29', to: 'today' }, range: () => ({ from: addDays(today(), -29), to: today() }) },
+  { key: 'monthToDate', tokens: { from: 'som', to: 'today' }, range: () => ({ from: startOfMonth(today()), to: today() }) },
+  { key: 'thisMonth', tokens: { from: 'som', to: 'eom' }, range: () => ({ from: startOfMonth(today()), to: endOfMonth(today()) }) },
+  { key: 'lastMonth', tokens: { from: 'som-1m', to: 'eom-1m' }, range: () => { const d = new Date(today().getFullYear(), today().getMonth() - 1, 1); return { from: startOfMonth(d), to: endOfMonth(d) }; } },
+  { key: 'thisQuarter', tokens: { from: 'soq', to: 'eoq' }, range: () => { const t = today(); const qs = Math.floor(t.getMonth() / 3) * 3; return { from: new Date(t.getFullYear(), qs, 1), to: new Date(t.getFullYear(), qs + 3, 0) }; } },
+  { key: 'nextMonth', tokens: { from: 'som+1m', to: 'eom+1m' }, range: () => { const d = new Date(today().getFullYear(), today().getMonth() + 1, 1); return { from: startOfMonth(d), to: endOfMonth(d) }; } },
+  { key: 'next3Months', tokens: { from: 'som+1m', to: 'eom+3m' }, range: () => { const s = new Date(today().getFullYear(), today().getMonth() + 1, 1); const e = new Date(s.getFullYear(), s.getMonth() + 3, 0); return { from: s, to: e }; } },
 ];
 
 const CAL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2v2H5a2 2 0 00-2 2v13a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm12 7v10H5V9h14z"/></svg>';

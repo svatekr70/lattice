@@ -40,6 +40,22 @@ test('date-range: jedno pole → jeden server param "from|to"', () => {
     [{ field: 'd', type: 'dateRange', value: '2026-01-01|2026-12-31' }]);
 });
 
+test('date-range: dynamický preset (tokeny) — match i toServer rozvine relativně', () => {
+  const f = getFilter('date-range');
+  const iso = (d) => { const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+  const today = iso(new Date());
+  // {from:'today', to:'today'} matchne dnešek, ne včerejšek
+  assert.equal(f.match({ from: 'today', to: 'today' }, today), true);
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  assert.equal(f.match({ from: 'today', to: 'today' }, iso(y)), false);
+  // toServer rozvine token na konkrétní datum (server tokeny neřeší)
+  assert.deepEqual(f.toServer('d', { from: 'today', to: 'today' }),
+    [{ field: 'd', type: 'dateRange', value: `${today}|${today}` }]);
+  // minulý týden = sow-1w..eow-1w → obě konkrétní data
+  const [lw] = f.toServer('d', { from: 'sow-1w', to: 'eow-1w' });
+  assert.match(lw.value, /^\d{4}-\d{2}-\d{2}\|\d{4}-\d{2}-\d{2}$/);
+});
+
 test('date-two: dvě pole → dva server params (jedno nepovinné)', () => {
   const f = getFilter('date-two');
   assert.deepEqual(f.toServer('d', { from: '2026-01-01', to: null }),

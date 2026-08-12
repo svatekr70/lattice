@@ -1474,283 +1474,6 @@ function cssEscape(s) {
   return typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s) : String(s).replace(/["\\]/g, "\\$&");
 }
 
-// src/filters/dateRangePicker.js
-function buildDateRangePicker(column, ctx) {
-  const t = (k) => ctx.i18n.t("dateRange." + k);
-  const monthName = (m) => dictArr("months")[m];
-  const weekdayNames = () => dictArr("weekdays");
-  function dictArr(key) {
-    const d = ctx.i18n.dict && ctx.i18n.dict.dateRange && ctx.i18n.dict.dateRange[key];
-    if (Array.isArray(d)) return d;
-    return key === "months" ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-  }
-  let applied = { from: parseISO(ctx.value?.from), to: parseISO(ctx.value?.to) };
-  let draft = cloneRange(applied);
-  let leftView = viewOf(draft.from) || viewOf(/* @__PURE__ */ new Date());
-  let rightView = viewOf(draft.to) || nextMonth(leftView);
-  if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
-  let panel = null;
-  let closeFn = null;
-  const control = el("div.lattice-dr", { tabindex: "0" });
-  const text = el("span.lattice-dr-text");
-  const clearBtn = el("button.lattice-dr-clear", { type: "button", html: "\xD7", title: t("clear") });
-  clearBtn.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    clearFilter();
-  });
-  control.append(text, clearBtn, el("span.lattice-dr-icon", { html: CAL_SVG }));
-  updateControl();
-  control.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    panel ? close() : open();
-  });
-  control.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      panel ? close() : open();
-    }
-    if (e.key === "Escape") close();
-  });
-  function updateControl() {
-    const { from, to } = applied;
-    if (!from && !to) {
-      text.textContent = t("placeholder");
-      text.classList.add("is-placeholder");
-      clearBtn.style.display = "none";
-    } else {
-      text.classList.remove("is-placeholder");
-      text.textContent = rangeText(from, to);
-      clearBtn.style.display = "";
-    }
-  }
-  function clearFilter() {
-    applied = { from: null, to: null };
-    draft = { from: null, to: null };
-    ctx.onChange(null);
-    updateControl();
-    close();
-  }
-  function rangeText(from, to) {
-    if (from && to) return disp(from) + " \u2013 " + disp(to);
-    if (from) return disp(from) + " \u2013";
-    if (to) return "\u2013 " + disp(to);
-    return "";
-  }
-  function open() {
-    if (panel) return;
-    draft = cloneRange(applied);
-    leftView = viewOf(draft.from) || viewOf(/* @__PURE__ */ new Date());
-    rightView = viewOf(draft.to) || nextMonth(leftView);
-    if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
-    panel = el("div.lattice-dr-panel");
-    const body = el("div.lattice-dr-body");
-    const presets = el("div.lattice-dr-presets");
-    const cals = el("div.lattice-dr-cals");
-    const leftCal = el("div.lattice-dr-cal");
-    const rightCal = el("div.lattice-dr-cal");
-    cals.append(leftCal, rightCal);
-    body.append(presets, cals);
-    const footer = el("div.lattice-dr-footer");
-    const rangeLabel = el("span.lattice-dr-range");
-    const cancelBtn = el("button.lattice-dr-btn", { type: "button", text: t("cancel") });
-    const applyBtn = el("button.lattice-dr-btn.is-primary", { type: "button", text: t("apply") });
-    cancelBtn.addEventListener("click", () => close());
-    applyBtn.addEventListener("click", () => apply());
-    footer.append(rangeLabel, el("div.lattice-dr-footer-btns", {}, [cancelBtn, applyBtn]));
-    panel.append(body, footer);
-    document.body.appendChild(panel);
-    panel._nodes = { presets, leftCal, rightCal, rangeLabel };
-    renderPresets();
-    renderAll();
-    position();
-    control.classList.add("is-open");
-    closeFn = onOutside(panel, (e) => {
-      if (!control.contains(e.target)) close();
-    });
-  }
-  function close() {
-    closeFn?.();
-    panel?.remove();
-    panel = null;
-    closeFn = null;
-    control.classList.remove("is-open");
-  }
-  function apply() {
-    applied = cloneRange(draft);
-    const { from, to } = applied;
-    if (!from && !to) ctx.onChange(null);
-    else ctx.onChange({ from: from ? toISO(from) : null, to: to ? toISO(to) : null });
-    updateControl();
-    close();
-  }
-  function position() {
-    const r = control.getBoundingClientRect();
-    panel.style.position = "absolute";
-    panel.style.top = window.scrollY + r.bottom + 2 + "px";
-    const w = panel.offsetWidth;
-    let left = window.scrollX + r.left;
-    const maxLeft = window.scrollX + document.documentElement.clientWidth - w - 8;
-    panel.style.left = Math.max(8, Math.min(left, maxLeft)) + "px";
-  }
-  function renderPresets() {
-    const { presets } = panel._nodes;
-    clear(presets);
-    for (const p of PRESETS) {
-      const row = el("div.lattice-dr-preset", { text: ctx.i18n.t("dateRange.presets." + p.key) });
-      row.addEventListener("click", () => setRange(p.range()));
-      presets.appendChild(row);
-    }
-    const clearRow = el("div.lattice-dr-preset.is-clear", { text: "\u2715 " + t("clear") });
-    clearRow.addEventListener("click", () => clearFilter());
-    presets.appendChild(clearRow);
-  }
-  function setRange({ from, to }) {
-    draft = { from: from || null, to: to || null };
-    if (draft.from) leftView = viewOf(draft.from);
-    if (draft.to) rightView = viewOf(draft.to);
-    else rightView = nextMonth(leftView);
-    if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
-    renderAll();
-  }
-  function renderAll() {
-    renderMonth("left", leftView);
-    renderMonth("right", rightView);
-    panel._nodes.rangeLabel.textContent = rangeText(draft.from, draft.to);
-  }
-  function renderMonth(side, view) {
-    const container = side === "left" ? panel._nodes.leftCal : panel._nodes.rightCal;
-    clear(container);
-    const head = el("div.lattice-dr-cal-head");
-    const prev = el("button.lattice-dr-nav", { type: "button", html: "\u2039" });
-    const next = el("button.lattice-dr-nav", { type: "button", html: "\u203A" });
-    prev.addEventListener("click", () => shift(side, -1));
-    next.addEventListener("click", () => shift(side, 1));
-    head.append(prev, el("span.lattice-dr-cal-title", { text: monthName(view.m) + " " + view.y }), next);
-    container.appendChild(head);
-    const wd = el("div.lattice-dr-weekdays");
-    for (const w of weekdayNames()) wd.appendChild(el("span", { text: w }));
-    container.appendChild(wd);
-    const grid = el("div.lattice-dr-grid");
-    for (const cell of monthMatrix(view.y, view.m)) {
-      const btn = el("button.lattice-dr-day", { type: "button", text: String(cell.date.getDate()) });
-      if (!cell.inMonth) btn.classList.add("is-out");
-      markDay(btn, cell.date);
-      btn.addEventListener("click", () => pickDay(cell.date));
-      grid.appendChild(btn);
-    }
-    container.appendChild(grid);
-  }
-  function markDay(btn, date) {
-    const { from, to } = draft;
-    const ts = date.getTime();
-    if (from && ts === from.getTime()) btn.classList.add("is-selected", "is-from");
-    if (to && ts === to.getTime()) btn.classList.add("is-selected", "is-to");
-    if (from && to && ts > from.getTime() && ts < to.getTime()) btn.classList.add("is-in-range");
-  }
-  function pickDay(date) {
-    if (!draft.from || draft.from && draft.to) {
-      draft = { from: date, to: null };
-    } else if (date.getTime() < draft.from.getTime()) {
-      draft = { from: date, to: draft.from };
-    } else {
-      draft.to = date;
-    }
-    renderAll();
-  }
-  function shift(side, delta) {
-    if (side === "left") leftView = addMonths(leftView, delta);
-    else rightView = addMonths(rightView, delta);
-    renderMonth(side, side === "left" ? leftView : rightView);
-  }
-  function disp(d) {
-    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
-  }
-  return control;
-}
-function parseISO(s) {
-  if (!s) return null;
-  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return null;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-function toISO(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-var pad = (n) => String(n).padStart(2, "0");
-function cloneRange(r) {
-  return { from: r.from ? new Date(r.from) : null, to: r.to ? new Date(r.to) : null };
-}
-function viewOf(d) {
-  return d ? { y: d.getFullYear(), m: d.getMonth() } : null;
-}
-function sameView(a, b) {
-  return a && b && a.y === b.y && a.m === b.m;
-}
-function nextMonth(v) {
-  return addMonths(v, 1);
-}
-function addMonths(v, delta) {
-  const d = new Date(v.y, v.m + delta, 1);
-  return { y: d.getFullYear(), m: d.getMonth() };
-}
-function monthMatrix(y, m) {
-  const first = new Date(y, m, 1);
-  const offset = (first.getDay() + 6) % 7;
-  const cells = [];
-  for (let i = 0; i < 42; i++) {
-    const date = new Date(y, m, 1 - offset + i);
-    cells.push({ date, inMonth: date.getMonth() === m });
-  }
-  return cells;
-}
-function today() {
-  const d = /* @__PURE__ */ new Date();
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-function addDays(d, n) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
-}
-function startOfWeek(d) {
-  return addDays(d, -((d.getDay() + 6) % 7));
-}
-function startOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-function endOfMonth(d) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
-}
-var PRESETS = [
-  { key: "today", range: () => ({ from: today(), to: today() }) },
-  { key: "yesterday", range: () => ({ from: addDays(today(), -1), to: addDays(today(), -1) }) },
-  { key: "weekToDate", range: () => ({ from: startOfWeek(today()), to: today() }) },
-  { key: "thisWeek", range: () => ({ from: startOfWeek(today()), to: addDays(startOfWeek(today()), 6) }) },
-  { key: "lastWeek", range: () => ({ from: addDays(startOfWeek(today()), -7), to: addDays(startOfWeek(today()), -1) }) },
-  { key: "last7", range: () => ({ from: addDays(today(), -6), to: today() }) },
-  { key: "last30", range: () => ({ from: addDays(today(), -29), to: today() }) },
-  { key: "monthToDate", range: () => ({ from: startOfMonth(today()), to: today() }) },
-  { key: "thisMonth", range: () => ({ from: startOfMonth(today()), to: endOfMonth(today()) }) },
-  { key: "lastMonth", range: () => {
-    const d = new Date(today().getFullYear(), today().getMonth() - 1, 1);
-    return { from: startOfMonth(d), to: endOfMonth(d) };
-  } },
-  { key: "thisQuarter", range: () => {
-    const t = today();
-    const qs = Math.floor(t.getMonth() / 3) * 3;
-    return { from: new Date(t.getFullYear(), qs, 1), to: new Date(t.getFullYear(), qs + 3, 0) };
-  } },
-  { key: "nextMonth", range: () => {
-    const d = new Date(today().getFullYear(), today().getMonth() + 1, 1);
-    return { from: startOfMonth(d), to: endOfMonth(d) };
-  } },
-  { key: "next3Months", range: () => {
-    const s = new Date(today().getFullYear(), today().getMonth() + 1, 1);
-    const e = new Date(s.getFullYear(), s.getMonth() + 3, 0);
-    return { from: s, to: e };
-  } }
-];
-var CAL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2v2H5a2 2 0 00-2 2v13a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm12 7v10H5V9h14z"/></svg>';
-
 // src/filters/advancedEval.js
 var ADV_OPS = ["eq", "neq", "contains", "ncontains", "starts", "ends", "gt", "gte", "lt", "lte", "in", "nin", "empty", "nempty"];
 function isGroup(r) {
@@ -1833,19 +1556,25 @@ function splitList(v) {
   if (Array.isArray(v)) return v.map(resolveToken);
   return String(v ?? "").split(",").map((x) => resolveToken(x.trim())).filter(Boolean);
 }
-var TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
-function addMonths2(d, n) {
+var TOKEN_RE = /^\s*(today|now|sow|eow|som|eom|soq|eoq|soy|eoy)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+function addMonths(d, n) {
   const day2 = d.getDate();
   d.setDate(1);
   d.setMonth(d.getMonth() + n);
   const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
   d.setDate(Math.min(day2, lastDay));
 }
+function startOfWeekMonday(d) {
+  const off = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - off);
+}
 function resolveToken(v) {
   if (typeof v !== "string") return v;
   const m = TOKEN_RE.exec(v);
   if (!m) return v;
+  const base = m[1].toLowerCase();
   const d = /* @__PURE__ */ new Date();
+  if (base !== "now") d.setHours(0, 0, 0, 0);
   if (m[2]) {
     const n = (m[2] === "-" ? -1 : 1) * parseInt(m[3], 10);
     switch ((m[4] || "d").toLowerCase()) {
@@ -1853,16 +1582,45 @@ function resolveToken(v) {
         d.setDate(d.getDate() + n * 7);
         break;
       case "m":
-        addMonths2(d, n);
+        addMonths(d, n);
         break;
       case "y":
-        addMonths2(d, n * 12);
+        addMonths(d, n * 12);
         break;
       default:
         d.setDate(d.getDate() + n);
     }
   }
-  return m[1].toLowerCase() === "now" ? fmtDateTime(d) : fmtDate(d);
+  switch (base) {
+    case "sow":
+      startOfWeekMonday(d);
+      break;
+    case "eow":
+      startOfWeekMonday(d);
+      d.setDate(d.getDate() + 6);
+      break;
+    case "som":
+      d.setDate(1);
+      break;
+    case "eom":
+      d.setMonth(d.getMonth() + 1, 0);
+      break;
+    case "soq":
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1);
+      break;
+    case "eoq":
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3 + 3, 0);
+      break;
+    case "soy":
+      d.setMonth(0, 1);
+      break;
+    case "eoy":
+      d.setMonth(11, 31);
+      break;
+    default:
+      break;
+  }
+  return base === "now" ? fmtDateTime(d) : fmtDate(d);
 }
 function resolveTreeTokens(group) {
   if (!isGroup(group)) return group;
@@ -1887,1927 +1645,451 @@ function fmtDateTime(d) {
   return `${fmtDate(d)}T${pad22(d.getHours())}:${pad22(d.getMinutes())}:${pad22(d.getSeconds())}`;
 }
 
-// src/filters/index.js
-var registry = /* @__PURE__ */ new Map();
-function registerFilter(name, def) {
-  registry.set(name, def);
+// src/filters/dateRangePicker.js
+function buildDateRangePicker(column, ctx) {
+  const t = (k) => ctx.i18n.t("dateRange." + k);
+  const monthName = (m) => dictArr("months")[m];
+  const weekdayNames = () => dictArr("weekdays");
+  function dictArr(key) {
+    const d = ctx.i18n.dict && ctx.i18n.dict.dateRange && ctx.i18n.dict.dateRange[key];
+    if (Array.isArray(d)) return d;
+    return key === "months" ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] : ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  }
+  let appliedRaw = { from: ctx.value?.from ?? null, to: ctx.value?.to ?? null };
+  let applied = resolveRange(appliedRaw);
+  let dynamic = isToken(appliedRaw.from) || isToken(appliedRaw.to);
+  let presetTokens = matchPresetTokens(appliedRaw);
+  let draft = cloneRange(applied);
+  let leftView = viewOf(draft.from) || viewOf(/* @__PURE__ */ new Date());
+  let rightView = viewOf(draft.to) || nextMonth(leftView);
+  if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
+  function presetLabel(raw) {
+    if (!raw) return null;
+    const p = PRESETS.find((x) => x.tokens && x.tokens.from === raw.from && x.tokens.to === raw.to);
+    return p ? ctx.i18n.t("dateRange.presets." + p.key) : null;
+  }
+  let panel = null;
+  let closeFn = null;
+  const control = el("div.lattice-dr", { tabindex: "0" });
+  const text = el("span.lattice-dr-text");
+  const clearBtn = el("button.lattice-dr-clear", { type: "button", html: "\xD7", title: t("clear") });
+  clearBtn.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearFilter();
+  });
+  control.append(text, clearBtn, el("span.lattice-dr-icon", { html: CAL_SVG }));
+  updateControl();
+  control.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    panel ? close() : open();
+  });
+  control.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      panel ? close() : open();
+    }
+    if (e.key === "Escape") close();
+  });
+  function updateControl() {
+    if (!appliedRaw.from && !appliedRaw.to) {
+      text.textContent = t("placeholder");
+      text.classList.add("is-placeholder");
+      clearBtn.style.display = "none";
+    } else {
+      text.classList.remove("is-placeholder");
+      const dyn = isToken(appliedRaw.from) || isToken(appliedRaw.to);
+      const lbl = presetLabel(appliedRaw);
+      text.textContent = (dyn ? "\u21BB " : "") + (lbl || rangeText(applied.from, applied.to));
+      clearBtn.style.display = "";
+    }
+  }
+  function clearFilter() {
+    applied = { from: null, to: null };
+    appliedRaw = { from: null, to: null };
+    draft = { from: null, to: null };
+    presetTokens = null;
+    ctx.onChange(null);
+    updateControl();
+    close();
+  }
+  function rangeText(from, to) {
+    if (from && to) return disp(from) + " \u2013 " + disp(to);
+    if (from) return disp(from) + " \u2013";
+    if (to) return "\u2013 " + disp(to);
+    return "";
+  }
+  function open() {
+    if (panel) return;
+    draft = cloneRange(applied);
+    presetTokens = matchPresetTokens(appliedRaw);
+    leftView = viewOf(draft.from) || viewOf(/* @__PURE__ */ new Date());
+    rightView = viewOf(draft.to) || nextMonth(leftView);
+    if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
+    panel = el("div.lattice-dr-panel");
+    const body = el("div.lattice-dr-body");
+    const presets = el("div.lattice-dr-presets");
+    const cals = el("div.lattice-dr-cals");
+    const leftCal = el("div.lattice-dr-cal");
+    const rightCal = el("div.lattice-dr-cal");
+    cals.append(leftCal, rightCal);
+    body.append(presets, cals);
+    const footer = el("div.lattice-dr-footer");
+    const rangeLabel = el("span.lattice-dr-range");
+    const cancelBtn = el("button.lattice-dr-btn", { type: "button", text: t("cancel") });
+    const applyBtn = el("button.lattice-dr-btn.is-primary", { type: "button", text: t("apply") });
+    cancelBtn.addEventListener("click", () => close());
+    applyBtn.addEventListener("click", () => apply());
+    footer.append(rangeLabel, el("div.lattice-dr-footer-btns", {}, [cancelBtn, applyBtn]));
+    panel.append(body, footer);
+    document.body.appendChild(panel);
+    panel._nodes = { presets, leftCal, rightCal, rangeLabel };
+    renderPresets();
+    renderAll();
+    position();
+    control.classList.add("is-open");
+    closeFn = onOutside(panel, (e) => {
+      if (!control.contains(e.target)) close();
+    });
+  }
+  function close() {
+    closeFn?.();
+    panel?.remove();
+    panel = null;
+    closeFn = null;
+    control.classList.remove("is-open");
+  }
+  function apply() {
+    applied = cloneRange(draft);
+    const { from, to } = applied;
+    if (!from && !to) {
+      appliedRaw = { from: null, to: null };
+      ctx.onChange(null);
+    } else if (dynamic && presetTokens) {
+      appliedRaw = { from: presetTokens.from, to: presetTokens.to };
+      ctx.onChange({ from: presetTokens.from, to: presetTokens.to });
+    } else {
+      appliedRaw = { from: from ? toISO(from) : null, to: to ? toISO(to) : null };
+      ctx.onChange({ from: appliedRaw.from, to: appliedRaw.to });
+    }
+    updateControl();
+    close();
+  }
+  function position() {
+    const r = control.getBoundingClientRect();
+    panel.style.position = "absolute";
+    panel.style.top = window.scrollY + r.bottom + 2 + "px";
+    const w = panel.offsetWidth;
+    let left = window.scrollX + r.left;
+    const maxLeft = window.scrollX + document.documentElement.clientWidth - w - 8;
+    panel.style.left = Math.max(8, Math.min(left, maxLeft)) + "px";
+  }
+  function renderPresets() {
+    const { presets } = panel._nodes;
+    clear(presets);
+    const dyn = el("label.lattice-dr-dyn", { title: t("dynamicHint") });
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = dynamic;
+    cb.addEventListener("change", () => {
+      dynamic = cb.checked;
+      renderAll();
+    });
+    dyn.append(cb, el("span", { text: t("dynamic") }));
+    presets.appendChild(dyn);
+    for (const p of PRESETS) {
+      const row = el("div.lattice-dr-preset", { text: ctx.i18n.t("dateRange.presets." + p.key) });
+      row.addEventListener("click", () => setRange(p.range(), p.tokens));
+      presets.appendChild(row);
+    }
+    const clearRow = el("div.lattice-dr-preset.is-clear", { text: "\u2715 " + t("clear") });
+    clearRow.addEventListener("click", () => clearFilter());
+    presets.appendChild(clearRow);
+  }
+  function setRange({ from, to }, tokens) {
+    draft = { from: from || null, to: to || null };
+    presetTokens = tokens || null;
+    if (draft.from) leftView = viewOf(draft.from);
+    if (draft.to) rightView = viewOf(draft.to);
+    else rightView = nextMonth(leftView);
+    if (sameView(leftView, rightView)) rightView = nextMonth(leftView);
+    renderAll();
+  }
+  function renderAll() {
+    renderMonth("left", leftView);
+    renderMonth("right", rightView);
+    const dyn = dynamic && presetTokens;
+    const lbl = dyn ? presetLabel(presetTokens) : null;
+    panel._nodes.rangeLabel.textContent = (dyn ? "\u21BB " : "") + (lbl || rangeText(draft.from, draft.to));
+  }
+  function renderMonth(side, view) {
+    const container = side === "left" ? panel._nodes.leftCal : panel._nodes.rightCal;
+    clear(container);
+    const head = el("div.lattice-dr-cal-head");
+    const prev = el("button.lattice-dr-nav", { type: "button", html: "\u2039" });
+    const next = el("button.lattice-dr-nav", { type: "button", html: "\u203A" });
+    prev.addEventListener("click", () => shift(side, -1));
+    next.addEventListener("click", () => shift(side, 1));
+    head.append(prev, el("span.lattice-dr-cal-title", { text: monthName(view.m) + " " + view.y }), next);
+    container.appendChild(head);
+    const wd = el("div.lattice-dr-weekdays");
+    for (const w of weekdayNames()) wd.appendChild(el("span", { text: w }));
+    container.appendChild(wd);
+    const grid = el("div.lattice-dr-grid");
+    for (const cell of monthMatrix(view.y, view.m)) {
+      const btn = el("button.lattice-dr-day", { type: "button", text: String(cell.date.getDate()) });
+      if (!cell.inMonth) btn.classList.add("is-out");
+      markDay(btn, cell.date);
+      btn.addEventListener("click", () => pickDay(cell.date));
+      grid.appendChild(btn);
+    }
+    container.appendChild(grid);
+  }
+  function markDay(btn, date) {
+    const { from, to } = draft;
+    const ts = date.getTime();
+    if (from && ts === from.getTime()) btn.classList.add("is-selected", "is-from");
+    if (to && ts === to.getTime()) btn.classList.add("is-selected", "is-to");
+    if (from && to && ts > from.getTime() && ts < to.getTime()) btn.classList.add("is-in-range");
+  }
+  function pickDay(date) {
+    presetTokens = null;
+    if (!draft.from || draft.from && draft.to) {
+      draft = { from: date, to: null };
+    } else if (date.getTime() < draft.from.getTime()) {
+      draft = { from: date, to: draft.from };
+    } else {
+      draft.to = date;
+    }
+    renderAll();
+  }
+  function shift(side, delta) {
+    if (side === "left") leftView = addMonths2(leftView, delta);
+    else rightView = addMonths2(rightView, delta);
+    renderMonth(side, side === "left" ? leftView : rightView);
+  }
+  function disp(d) {
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+  }
+  return control;
 }
-function getFilter(name) {
-  return registry.get(name) || null;
+function parseISO(s) {
+  if (!s) return null;
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
-function toNumber(v) {
+function isToken(s) {
+  return typeof s === "string" && s !== "" && String(resolveToken(s)) !== s;
+}
+function resolveRange(raw) {
+  return { from: parseISO(resolveToken(raw && raw.from)), to: parseISO(resolveToken(raw && raw.to)) };
+}
+function matchPresetTokens(raw) {
+  if (!raw) return null;
+  const p = PRESETS.find((x) => x.tokens && x.tokens.from === raw.from && x.tokens.to === raw.to);
+  return p ? p.tokens : null;
+}
+function toISO(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+var pad = (n) => String(n).padStart(2, "0");
+function cloneRange(r) {
+  return { from: r.from ? new Date(r.from) : null, to: r.to ? new Date(r.to) : null };
+}
+function viewOf(d) {
+  return d ? { y: d.getFullYear(), m: d.getMonth() } : null;
+}
+function sameView(a, b) {
+  return a && b && a.y === b.y && a.m === b.m;
+}
+function nextMonth(v) {
+  return addMonths2(v, 1);
+}
+function addMonths2(v, delta) {
+  const d = new Date(v.y, v.m + delta, 1);
+  return { y: d.getFullYear(), m: d.getMonth() };
+}
+function monthMatrix(y, m) {
+  const first = new Date(y, m, 1);
+  const offset = (first.getDay() + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(y, m, 1 - offset + i);
+    cells.push({ date, inMonth: date.getMonth() === m });
+  }
+  return cells;
+}
+function today() {
+  const d = /* @__PURE__ */ new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function addDays(d, n) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+function startOfWeek(d) {
+  return addDays(d, -((d.getDay() + 6) % 7));
+}
+function startOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
+var PRESETS = [
+  { key: "today", tokens: { from: "today", to: "today" }, range: () => ({ from: today(), to: today() }) },
+  { key: "yesterday", tokens: { from: "today-1", to: "today-1" }, range: () => ({ from: addDays(today(), -1), to: addDays(today(), -1) }) },
+  { key: "weekToDate", tokens: { from: "sow", to: "today" }, range: () => ({ from: startOfWeek(today()), to: today() }) },
+  { key: "thisWeek", tokens: { from: "sow", to: "eow" }, range: () => ({ from: startOfWeek(today()), to: addDays(startOfWeek(today()), 6) }) },
+  { key: "lastWeek", tokens: { from: "sow-1w", to: "eow-1w" }, range: () => ({ from: addDays(startOfWeek(today()), -7), to: addDays(startOfWeek(today()), -1) }) },
+  { key: "last7", tokens: { from: "today-6", to: "today" }, range: () => ({ from: addDays(today(), -6), to: today() }) },
+  { key: "last30", tokens: { from: "today-29", to: "today" }, range: () => ({ from: addDays(today(), -29), to: today() }) },
+  { key: "monthToDate", tokens: { from: "som", to: "today" }, range: () => ({ from: startOfMonth(today()), to: today() }) },
+  { key: "thisMonth", tokens: { from: "som", to: "eom" }, range: () => ({ from: startOfMonth(today()), to: endOfMonth(today()) }) },
+  { key: "lastMonth", tokens: { from: "som-1m", to: "eom-1m" }, range: () => {
+    const d = new Date(today().getFullYear(), today().getMonth() - 1, 1);
+    return { from: startOfMonth(d), to: endOfMonth(d) };
+  } },
+  { key: "thisQuarter", tokens: { from: "soq", to: "eoq" }, range: () => {
+    const t = today();
+    const qs = Math.floor(t.getMonth() / 3) * 3;
+    return { from: new Date(t.getFullYear(), qs, 1), to: new Date(t.getFullYear(), qs + 3, 0) };
+  } },
+  { key: "nextMonth", tokens: { from: "som+1m", to: "eom+1m" }, range: () => {
+    const d = new Date(today().getFullYear(), today().getMonth() + 1, 1);
+    return { from: startOfMonth(d), to: endOfMonth(d) };
+  } },
+  { key: "next3Months", tokens: { from: "som+1m", to: "eom+3m" }, range: () => {
+    const s = new Date(today().getFullYear(), today().getMonth() + 1, 1);
+    const e = new Date(s.getFullYear(), s.getMonth() + 3, 0);
+    return { from: s, to: e };
+  } }
+];
+var CAL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2v2H5a2 2 0 00-2 2v13a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm12 7v10H5V9h14z"/></svg>';
+
+// src/features/menu.js
+function openMenu(anchor, items, onPick, opts = {}) {
+  document.querySelectorAll(".lattice-menu").forEach((m) => m.remove());
+  const menu = buildMenu(items, () => close(), onPick, opts);
+  document.body.appendChild(menu);
+  positionUnder(menu, anchor);
+  const off = onOutside(menu, (e) => {
+    if (opts.multi || !anchor.contains(e.target)) close();
+  });
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function openMenuAt(x, y, items, onPick) {
+  document.querySelectorAll(".lattice-menu").forEach((m) => m.remove());
+  const menu = buildMenu(items, () => close(), onPick);
+  menu.style.visibility = "hidden";
+  document.body.appendChild(menu);
+  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+  const left = Math.min(x, window.scrollX + vw - menu.offsetWidth - 8);
+  const top = Math.min(y, window.scrollY + vh - menu.offsetHeight - 8);
+  menu.style.position = "absolute";
+  menu.style.left = Math.max(8, left) + "px";
+  menu.style.top = Math.max(8, top) + "px";
+  menu.style.visibility = "";
+  const off = onOutside(menu, () => close());
+  function close() {
+    off();
+    menu.remove();
+  }
+  return close;
+}
+function buildMenu(items, close, onPick, opts = {}) {
+  const multi = !!opts.multi;
+  const menu = el("div.lattice-menu" + (multi ? ".lattice-menu-multi" : ""));
+  for (const it of items) {
+    if (it.separator) {
+      menu.appendChild(el("div.lattice-menu-sep"));
+      continue;
+    }
+    const cls = [it.active ? "is-active" : "", it.disabled ? "is-disabled" : "", it.danger ? "is-danger" : ""].filter(Boolean).join(" ");
+    const row = el("div.lattice-menu-item" + (multi ? ".is-checkable" : ""), { class: cls });
+    if (multi) row.appendChild(el("span.lattice-menu-check", { "aria-hidden": "true" }));
+    row.appendChild(el("span.lattice-menu-label", { text: it.label }));
+    if (!it.disabled) {
+      row.addEventListener("click", (e) => {
+        if (multi) {
+          e.stopPropagation();
+          onPick(it.value, it);
+          const now = opts.isActive ? opts.isActive(it.value) : !row.classList.contains("is-active");
+          row.classList.toggle("is-active", now);
+        } else {
+          close();
+          onPick(it.value, it);
+        }
+      });
+    }
+    menu.appendChild(row);
+  }
+  return menu;
+}
+
+// src/features/summary.js
+var NUMERIC_TYPES = ["number", "money", "progress", "rating"];
+function isNumericType(type) {
+  return NUMERIC_TYPES.includes(type);
+}
+var SUMMARY_ORDER = ["sum", "avg", "min", "max", "count"];
+function availableSummaries(col) {
+  return isNumericType(col.type) ? SUMMARY_ORDER.slice() : ["count"];
+}
+function toNum(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
 }
-function toTime(v) {
-  if (!v) return null;
-  const d = v instanceof Date ? v : new Date(v);
-  const t = d.getTime();
-  return Number.isNaN(t) ? null : t;
+function nonNull(v) {
+  return v != null && v !== "";
 }
-function dayTime(v) {
-  const t = toTime(v);
-  if (t == null) return null;
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
-}
-function norm2(s) {
-  return String(s ?? "").toLowerCase();
-}
-function normOption(o) {
-  if (o != null && typeof o === "object") return { value: String(o.value), label: String(o.label != null ? o.label : o.value) };
-  return { value: String(o), label: String(o) };
-}
-function sortOptions(opts, column, ctx) {
-  if (column.filterSort === false) return opts;
-  const locale = ctx.i18n && ctx.i18n.locale;
-  return opts.slice().sort((a, b) => a.label.localeCompare(b.label, locale, { numeric: true }));
-}
-function fetchOptions(column, ctx) {
-  if (Array.isArray(column.filterValues)) return Promise.resolve(sortOptions(column.filterValues.map(normOption), column, ctx));
-  if (column.filterUrl && ctx.fetchJson) {
-    return ctx.fetchJson(column.filterUrl).then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx)).catch(() => []);
+function computeSummary(fn, col, rows) {
+  if (fn === "count") return rows.reduce((a, r) => a + (nonNull(cellValue(r, col)) ? 1 : 0), 0);
+  const nums = [];
+  for (const r of rows) {
+    const n = toNum(cellValue(r, col));
+    if (n != null) nums.push(n);
   }
-  if (typeof ctx.distinctValues === "function") return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
-  return Promise.resolve([]);
-}
-registerFilter("text", {
-  build(column, ctx) {
-    const input = el("input.lattice-filter-input", {
-      type: "text",
-      placeholder: ctx.i18n.t("filters.search"),
-      title: ctx.i18n.t("filters.negateHint"),
-      value: ctx.value ?? ""
-    });
-    const clear2 = el("button.lattice-filter-clear", { type: "button", tabindex: "-1", title: ctx.i18n.t("filters.clearOne"), text: "\xD7" });
-    const sync = () => {
-      clear2.style.display = input.value ? "" : "none";
-    };
-    sync();
-    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
-    input.addEventListener("input", () => {
-      sync();
-      fire(input.value);
-    });
-    clear2.addEventListener("mousedown", (e) => e.preventDefault());
-    clear2.addEventListener("click", () => {
-      input.value = "";
-      sync();
-      ctx.onChange("");
-      input.focus();
-    });
-    return el("div.lattice-filter-clearable", {}, [input, clear2]);
-  },
-  isEmpty: (v) => !v || String(v).trim() === "",
-  match(value, cell) {
-    const raw = String(value).trim();
-    const negate = raw.startsWith("!");
-    const needle = norm2(negate ? raw.slice(1) : raw);
-    if (needle === "") return true;
-    const has = norm2(cell).includes(needle);
-    return negate ? !has : has;
-  },
-  toServer: (field2, value) => [{ field: field2, type: "like", value }]
-});
-registerFilter("number", {
-  build(column, ctx) {
-    const input = el("input.lattice-filter-input", {
-      type: "text",
-      placeholder: "=, >, <\u2026",
-      value: ctx.value ?? ""
-    });
-    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
-    input.addEventListener("input", () => fire(input.value));
-    return input;
-  },
-  isEmpty: (v) => !v || String(v).trim() === "",
-  match(value, cell) {
-    const m = String(value).trim().match(/^(>=|<=|>|<|=)?\s*(.+)$/);
-    if (!m) return true;
-    const op = m[1] || "=";
-    const target = toNumber(m[2]);
-    const n = toNumber(cell);
-    if (target == null || n == null) return false;
-    switch (op) {
-      case ">":
-        return n > target;
-      case "<":
-        return n < target;
-      case ">=":
-        return n >= target;
-      case "<=":
-        return n <= target;
-      default:
-        return n === target;
-    }
-  },
-  toServer(field2, value) {
-    const m = String(value).trim().match(/^(>=|<=|>|<|=)?\s*(.+)$/);
-    const op = m && m[1] || "=";
-    const val = m ? m[2] : value;
-    return [{ field: field2, type: op, value: val }];
-  }
-});
-registerFilter("number-range", {
-  build(column, ctx) {
-    const v = ctx.value || {};
-    const min = el("input.lattice-filter-input", { type: "number", placeholder: ctx.i18n.t("filters.from"), value: v.min ?? "" });
-    const max = el("input.lattice-filter-input", { type: "number", placeholder: ctx.i18n.t("filters.to"), value: v.max ?? "" });
-    const fire = debounce(() => ctx.onChange({ min: min.value || null, max: max.value || null }), ctx.debounceMs);
-    min.addEventListener("input", fire);
-    max.addEventListener("input", fire);
-    return stackedPair(ctx, min, max);
-  },
-  isEmpty: (v) => !v || v.min == null && v.max == null,
-  match(value, cell) {
-    const n = toNumber(cell);
-    if (n == null) return false;
-    const lo = toNumber(value.min);
-    const hi = toNumber(value.max);
-    if (lo != null && n < lo) return false;
-    if (hi != null && n > hi) return false;
-    return true;
-  },
-  toServer(field2, value) {
-    const out = [];
-    if (value.min != null && value.min !== "") out.push({ field: field2, type: ">=", value: value.min });
-    if (value.max != null && value.max !== "") out.push({ field: field2, type: "<=", value: value.max });
-    return out;
-  }
-});
-function stackedPair(ctx, fromInput, toInput) {
-  const row = (label, input) => el("label.lattice-stacked-row", {}, [el("span.lattice-stacked-lbl", { text: label }), input]);
-  return el("div.lattice-filter-stacked", {}, [row(ctx.i18n.t("filters.from"), fromInput), row(ctx.i18n.t("filters.to"), toInput)]);
-}
-function buildDatePair(ctx) {
-  const v = ctx.value || {};
-  const from = el("input.lattice-filter-input", { type: "date", value: v.from ?? "" });
-  const to = el("input.lattice-filter-input", { type: "date", value: v.to ?? "" });
-  return { from, to, wrap: stackedPair(ctx, from, to) };
-}
-registerFilter("date-range", {
-  build(column, ctx) {
-    return buildDateRangePicker(column, ctx);
-  },
-  isEmpty: (v) => !v || !v.from && !v.to,
-  match(value, cell) {
-    const t = dayTime(cell);
-    if (t == null) return false;
-    const lo = dayTime(value.from);
-    const hi = dayTime(value.to);
-    if (lo != null && t < lo) return false;
-    if (hi != null && t > hi) return false;
-    return true;
-  },
-  // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to"
-  toServer: (field2, value) => [{ field: field2, type: "dateRange", value: `${value.from || ""}|${value.to || ""}` }]
-});
-registerFilter("date-two", {
-  build(column, ctx) {
-    const { from, to, wrap } = buildDatePair(ctx);
-    const fire = () => ctx.onChange({ from: from.value || null, to: to.value || null });
-    from.addEventListener("change", fire);
-    to.addEventListener("change", fire);
-    return wrap;
-  },
-  isEmpty: (v) => !v || !v.from && !v.to,
-  match(value, cell) {
-    const t = dayTime(cell);
-    if (t == null) return false;
-    const lo = dayTime(value.from);
-    const hi = dayTime(value.to);
-    if (lo != null && t < lo) return false;
-    if (hi != null && t > hi) return false;
-    return true;
-  },
-  // DVĚ samostatná pole → dva parametry (jedno může chybět)
-  toServer(field2, value) {
-    const out = [];
-    if (value.from) out.push({ field: field2, type: ">=", value: value.from });
-    if (value.to) out.push({ field: field2, type: "<=", value: value.to });
-    return out;
-  }
-});
-var DYN_CLAUSE_RE = /^\s*(>=|<=|>|<|=)?\s*(.+)$/;
-function dynClause(str3) {
-  const m = String(str3).match(DYN_CLAUSE_RE);
-  if (!m) return null;
-  const target = dayTime(resolveToken(m[2].trim()));
-  if (target == null) return null;
-  return { op: m[1] || "=", target };
-}
-function dynParse(value) {
-  const groups = [];
-  for (const g of String(value).split(/\bOR\b|\|\|/i)) {
-    const clauses = g.split(/\bAND\b|&&/i).map(dynClause).filter(Boolean);
-    if (clauses.length) groups.push(clauses);
-  }
-  return groups;
-}
-function dynTest(t, c) {
-  switch (c.op) {
-    case ">":
-      return t > c.target;
-    case "<":
-      return t < c.target;
-    case ">=":
-      return t >= c.target;
-    case "<=":
-      return t <= c.target;
+  if (!nums.length) return null;
+  switch (fn) {
+    case "min":
+      return Math.min(...nums);
+    case "max":
+      return Math.max(...nums);
+    case "sum":
+      return nums.reduce((a, b) => a + b, 0);
+    case "avg":
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
     default:
-      return t === c.target;
-  }
-}
-registerFilter("dynamic", {
-  build(column, ctx) {
-    const input = el("input.lattice-filter-input", {
-      type: "text",
-      placeholder: ctx.i18n.t("filters.dynamicPlaceholder"),
-      title: ctx.i18n.t("filters.dynamicHint"),
-      value: ctx.value ?? ""
-    });
-    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
-    input.addEventListener("input", () => fire(input.value));
-    return input;
-  },
-  isEmpty: (v) => !v || String(v).trim() === "",
-  match(value, cell) {
-    const t = dayTime(cell);
-    if (t == null) return false;
-    const groups = dynParse(value);
-    if (!groups.length) return true;
-    return groups.some((clauses) => clauses.every((c) => dynTest(t, c)));
-  },
-  toServer(field2, value) {
-    const orGroups = String(value).split(/\bOR\b|\|\|/i);
-    const multiOr = orGroups.length > 1;
-    const out = [];
-    orGroups.forEach((g, gi) => {
-      for (const s of g.split(/\bAND\b|&&/i)) {
-        const m = String(s).match(DYN_CLAUSE_RE);
-        if (!m) continue;
-        const operand = resolveToken(m[2].trim());
-        if (dayTime(operand) == null) continue;
-        const param = { field: field2, type: m[1] || "=", value: operand };
-        if (multiOr) {
-          param.combinator = "OR";
-          param.group = gi;
-        }
-        out.push(param);
-      }
-    });
-    return out;
-  }
-});
-registerFilter("select", {
-  build(column, ctx) {
-    return buildSelect(column, ctx);
-  },
-  isEmpty: (v) => v == null || v === "",
-  match: (value, cell) => norm2(cell) === norm2(value),
-  toServer: (field2, value) => [{ field: field2, type: "=", value }]
-});
-function buildSelect(column, ctx) {
-  let value = ctx.value != null && ctx.value !== "" ? String(ctx.value) : null;
-  let options = [];
-  let panel = null;
-  let closePanel = null;
-  const control = el("div.lattice-ms.lattice-ms-single", { tabindex: "0" });
-  const text = el("span.lattice-ms-text");
-  const caret = el("span.lattice-ms-caret", { html: CARET_SVG });
-  control.append(text, caret);
-  const labelFor = (v) => {
-    const o = options.find((o2) => o2.value === v);
-    return o ? o.label : v;
-  };
-  function renderText() {
-    clear(text);
-    if (value == null) {
-      text.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t("filters.all") }));
-    } else {
-      text.appendChild(el("span.lattice-ms-single-label", { text: labelFor(value) }));
-    }
-  }
-  function pick2(v) {
-    value = v;
-    renderText();
-    close();
-    ctx.onChange(value != null ? value : null);
-  }
-  function open() {
-    if (panel) return;
-    panel = el("div.lattice-ms-panel");
-    const search = el("input.lattice-ms-search", { type: "text", placeholder: ctx.i18n.t("filters.search") });
-    const list = el("div.lattice-ms-list");
-    panel._search = search;
-    panel._list = list;
-    search.addEventListener("input", () => renderPanelList(list, search.value));
-    panel.append(search, list);
-    document.body.appendChild(panel);
-    positionPanel(panel, control);
-    renderPanelList(list, "");
-    control.classList.add("is-open");
-    closePanel = onOutside(panel, (e) => {
-      if (!control.contains(e.target)) close();
-    });
-    search.focus();
-  }
-  function close() {
-    closePanel?.();
-    panel?.remove();
-    panel = null;
-    closePanel = null;
-    control.classList.remove("is-open");
-  }
-  function renderPanelList(list, q) {
-    clear(list);
-    const needle = (q || "").trim().toLowerCase();
-    const allRow = el("div.lattice-ms-option", { class: value == null ? "is-selected" : "" }, [
-      el("span.lattice-ms-check", { text: value == null ? "\u2713" : "" }),
-      el("span.lattice-ms-muted", { text: ctx.i18n.t("filters.all") })
-    ]);
-    allRow.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      pick2(null);
-    });
-    list.appendChild(allRow);
-    const shown = options.filter((o) => !needle || o.label.toLowerCase().includes(needle));
-    for (const o of shown) {
-      const on = value === o.value;
-      const row = el("div.lattice-ms-option", { class: on ? "is-selected" : "" }, [
-        el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
-        el("span", { text: o.label })
-      ]);
-      row.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        pick2(o.value);
-      });
-      list.appendChild(row);
-    }
-  }
-  control.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    panel ? close() : open();
-  });
-  control.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      panel ? close() : open();
-    }
-    if (e.key === "Escape") close();
-  });
-  fetchOptions(column, ctx).then((opts) => {
-    options = opts;
-    renderText();
-    if (panel) renderPanelList(panel._list, panel._search.value);
-  });
-  renderText();
-  return control;
-}
-registerFilter("multiselect", {
-  build(column, ctx) {
-    return buildMultiselect(column, ctx);
-  },
-  isEmpty: (v) => !Array.isArray(v) || v.length === 0,
-  match(value, cell) {
-    const set = value.map(norm2);
-    return set.includes(norm2(cell));
-  },
-  toServer: (field2, value) => [{ field: field2, type: "in", value }]
-});
-function buildMultiselect(column, ctx) {
-  let selected = Array.isArray(ctx.value) ? ctx.value.map(String) : [];
-  let options = [];
-  let panel = null;
-  let closePanel = null;
-  const control = el("div.lattice-ms", { tabindex: "0" });
-  const chips = el("div.lattice-ms-chips");
-  const caret = el("span.lattice-ms-caret", { html: CARET_SVG });
-  control.append(chips, caret);
-  const labelFor = (v) => {
-    const o = options.find((o2) => o2.value === v);
-    return o ? o.label : v;
-  };
-  function fire() {
-    ctx.onChange(selected.length ? selected.slice() : null);
-  }
-  function renderChips() {
-    clear(chips);
-    if (selected.length === 0) {
-      chips.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t("filters.all") }));
-      return;
-    }
-    for (const v of selected) {
-      const chip = el("span.lattice-ms-chip", {}, [
-        el("span.lattice-ms-chip-label", { text: labelFor(v) }),
-        el("span.lattice-ms-chip-x", {
-          text: "\xD7",
-          on: { mousedown: (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggle(v);
-          } }
-        })
-      ]);
-      chips.appendChild(chip);
-    }
-    scheduleFit();
-  }
-  let fitScheduled = false;
-  function scheduleFit() {
-    if (fitScheduled) return;
-    fitScheduled = true;
-    requestAnimationFrame(() => {
-      fitScheduled = false;
-      if (chips.isConnected) fitChipsToTwoRows();
-    });
-  }
-  function fitChipsToTwoRows() {
-    const old = chips.querySelector(".lattice-ms-more");
-    if (old) old.remove();
-    const chipEls = [...chips.querySelectorAll(".lattice-ms-chip")];
-    for (const c of chipEls) c.style.display = "";
-    if (chipEls.length === 0) return;
-    const rowH = chipEls[0].offsetHeight || 18;
-    const twoRowsBottom = chipEls[0].offsetTop + rowH + rowH * 0.5;
-    const hiddenLabels = [];
-    for (const c of chipEls) {
-      if (c.offsetTop > twoRowsBottom) {
-        c.style.display = "none";
-        hiddenLabels.push(c.textContent.replace(/×$/, ""));
-      }
-    }
-    if (hiddenLabels.length === 0) return;
-    const more = el("span.lattice-ms-chip.lattice-ms-more");
-    chips.appendChild(more);
-    const setMore = () => {
-      more.textContent = "+" + hiddenLabels.length;
-      more.title = hiddenLabels.join(", ");
-    };
-    setMore();
-    let guard = 0;
-    while (more.offsetTop > twoRowsBottom && guard < chipEls.length) {
-      const visible = chipEls.filter((c) => c.style.display !== "none");
-      if (!visible.length) break;
-      const last = visible[visible.length - 1];
-      last.style.display = "none";
-      hiddenLabels.push(last.textContent.replace(/×$/, ""));
-      setMore();
-      guard++;
-    }
-  }
-  function toggle(v) {
-    v = String(v);
-    if (selected.includes(v)) selected = selected.filter((x) => x !== v);
-    else selected = [...selected, v];
-    renderChips();
-    if (panel) renderPanelList(panel._list, panel._search.value);
-    fire();
-  }
-  function open() {
-    if (panel) return;
-    panel = el("div.lattice-ms-panel");
-    const search = el("input.lattice-ms-search", { type: "text", placeholder: ctx.i18n.t("filters.search") });
-    const list = el("div.lattice-ms-list");
-    panel._search = search;
-    panel._list = list;
-    search.addEventListener("input", () => renderPanelList(list, search.value));
-    panel.append(search, list);
-    document.body.appendChild(panel);
-    positionPanel(panel, control);
-    renderPanelList(list, "");
-    control.classList.add("is-open");
-    closePanel = onOutside(panel, (e) => {
-      if (!control.contains(e.target)) close();
-    });
-    search.focus();
-  }
-  function close() {
-    closePanel?.();
-    panel?.remove();
-    panel = null;
-    closePanel = null;
-    control.classList.remove("is-open");
-  }
-  function renderPanelList(list, q) {
-    clear(list);
-    const needle = (q || "").trim().toLowerCase();
-    const shown = options.filter((o) => !needle || o.label.toLowerCase().includes(needle));
-    if (shown.length === 0) {
-      list.appendChild(el("div.lattice-ms-empty", { text: ctx.i18n.t("empty") }));
-      return;
-    }
-    for (const o of shown) {
-      const on = selected.includes(o.value);
-      const row = el("div.lattice-ms-option", { class: on ? "is-selected" : "" }, [
-        el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
-        el("span", { text: o.label })
-      ]);
-      row.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        toggle(o.value);
-      });
-      list.appendChild(row);
-    }
-  }
-  control.addEventListener("mousedown", (e) => {
-    if (e.target.closest(".lattice-ms-chip-x")) return;
-    e.preventDefault();
-    panel ? close() : open();
-  });
-  control.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      panel ? close() : open();
-    }
-    if (e.key === "Escape") close();
-  });
-  fetchOptions(column, ctx).then((opts) => {
-    options = opts;
-    renderChips();
-    if (panel) renderPanelList(panel._list, panel._search.value);
-  });
-  renderChips();
-  return control;
-}
-function positionPanel(panel, control) {
-  const r = control.getBoundingClientRect();
-  panel.style.position = "absolute";
-  panel.style.top = window.scrollY + r.bottom + 2 + "px";
-  panel.style.left = window.scrollX + r.left + "px";
-  panel.style.minWidth = r.width + "px";
-}
-var CARET_SVG = '<svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path fill="currentColor" d="M0 0l5 6 5-6z"/></svg>';
-registerFilter("boolean", {
-  build(column, ctx) {
-    const select = el("select.lattice-filter-input", {}, [
-      el("option", { value: "", text: ctx.i18n.t("filters.all") }),
-      el("option", { value: "true", text: ctx.i18n.t("filters.yes") }),
-      el("option", { value: "false", text: ctx.i18n.t("filters.no") })
-    ]);
-    if (ctx.value != null) select.value = ctx.value;
-    select.addEventListener("change", () => ctx.onChange(select.value || null));
-    return select;
-  },
-  isEmpty: (v) => v == null || v === "",
-  match(value, cell) {
-    const truthy = cell === true || cell === 1 || cell === "1" || cell === "true";
-    return value === "true" ? truthy : !truthy;
-  },
-  toServer: (field2, value) => [{ field: field2, type: "=", value: value === "true" }]
-});
-
-// src/core/DataSource.js
-var COLLATOR = new Intl.Collator(void 0, { numeric: true, sensitivity: "base" });
-var ClientData = class {
-  constructor(data = []) {
-    this.data = Array.isArray(data) ? data.slice() : [];
-    this._searchCache = /* @__PURE__ */ new WeakMap();
-    this._searchSig = "";
-  }
-  setData(data) {
-    this.data = Array.isArray(data) ? data.slice() : [];
-    this._filtered = null;
-    this._searchCache = /* @__PURE__ */ new WeakMap();
-  }
-  /** Celá filtrovaná+seřazená sada (pro souhrn nad všemi řádky). */
-  allRows() {
-    return this._filtered || this.data;
-  }
-  /* ---- granulární mutace (pro grid.addRow/updateRow/deleteRow/updateData) ---- */
-  addRow(row, atStart = false) {
-    if (atStart) this.data.unshift(row);
-    else this.data.push(row);
-    this._filtered = null;
-    return row;
-  }
-  /** Vloží řádek na konkrétní index (clamp do rozsahu). Pro undo smazání. */
-  insertRow(row, index) {
-    const i = index == null ? this.data.length : Math.max(0, Math.min(index, this.data.length));
-    this.data.splice(i, 0, row);
-    this._filtered = null;
-    return row;
-  }
-  /** Najde řádek dle keyField (porovnání odolné na number vs string) a sloučí patch. */
-  updateRow(keyField, key, patch) {
-    const k = String(key);
-    const r = this.data.find((x) => x && String(x[keyField]) === k);
-    if (r) {
-      Object.assign(r, patch);
-      this._filtered = null;
-      this._searchCache.delete(r);
-    }
-    return r || null;
-  }
-  deleteRow(keyField, key) {
-    const k = String(key);
-    const i = this.data.findIndex((x) => x && String(x[keyField]) === k);
-    if (i >= 0) {
-      this.data.splice(i, 1);
-      this._filtered = null;
-      return true;
-    }
-    return false;
-  }
-  /**
-   * Přeuspořádá plochá data: přesune řádek dragKey před/za targetKey. Když je
-   * daný orderField, přečísluje ho (1..n) a vrátí změněné řádky; jinak vrací
-   * jen přesunutý řádek. Vrací null, když přesun není platný.
-   */
-  moveRow(keyField, dragKey, targetKey, zone, orderField) {
-    const from = this.data.findIndex((r) => r && String(r[keyField]) === String(dragKey));
-    if (from < 0) return null;
-    const [moved] = this.data.splice(from, 1);
-    let to = this.data.findIndex((r) => r && String(r[keyField]) === String(targetKey));
-    if (to < 0) {
-      this.data.splice(from, 0, moved);
       return null;
-    }
-    this.data.splice(zone === "after" ? to + 1 : to, 0, moved);
-    this._filtered = null;
-    if (orderField) {
-      const changed = [];
-      this.data.forEach((r, i) => {
-        if (r[orderField] !== i + 1) {
-          r[orderField] = i + 1;
-          changed.push(r);
-        }
-      });
-      return changed;
-    }
-    return [moved];
   }
-  /** Hromadný upsert dle keyField: existující sloučí, nové přidá. Vrací dotčené řádky. */
-  upsertMany(keyField, rows) {
-    const index = /* @__PURE__ */ new Map();
-    this.data.forEach((r, i) => {
-      if (r) index.set(String(r[keyField]), i);
-    });
-    const affected = [];
-    for (const row of rows) {
-      const k = row != null ? String(row[keyField]) : null;
-      if (k != null && index.has(k)) {
-        const t = this.data[index.get(k)];
-        Object.assign(t, row);
-        affected.push(t);
-      } else if (row != null) {
-        index.set(k, this.data.push(row) - 1);
-        affected.push(row);
-      }
-    }
-    this._filtered = null;
-    for (const r of affected) this._searchCache.delete(r);
-    return affected;
-  }
-  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
-    const colByField = indexColumns(columns);
-    let rows = this.data;
-    rows = applyFilters(rows, filters, colByField);
-    if (universal && universal.field) rows = rows.filter((r) => evalCondition(universal, r));
-    if (advanced && !isEmptyTree(advanced)) rows = rows.filter((r) => evalGroup(advanced, r));
-    if (search && String(search).trim()) rows = this._quickSearch(rows, search, columns);
-    rows = applySort(rows, sort, colByField);
-    this._filtered = rows;
-    const total = rows.length;
-    const lastPage = paginate ? Math.max(1, Math.ceil(total / pageSize)) : 1;
-    if (paginate) {
-      const start = (page - 1) * pageSize;
-      rows = rows.slice(start, start + pageSize);
-    }
-    return { rows, total, lastPage, lastRow: total };
-  }
-  /**
-   * Rychlé hledání s cache: pro každý řádek se normalizovaný text (přes všechny
-   * prohledávané sloupce) spočítá jen jednou a uloží. Při psaní do vyhledávání
-   * se pak jen volá `.includes` — čtvrtý úhoz do klávesnice už netahá NFD/regex
-   * přes celý dataset. Cache se invaliduje při změně dat i množiny sloupců.
-   */
-  buildSearchIndex(columns) {
-    const cols = (columns || []).filter(searchableCol);
-    this._searchSig = cols.map((c) => c.field).join(",");
-    this._searchCache = /* @__PURE__ */ new WeakMap();
-    for (const row of this.data) {
-      this._searchCache.set(row, cols.map((c) => norm3(cellValue(row, c))).join(""));
-    }
-  }
-  _quickSearch(rows, search, columns) {
-    const needle = norm3(search).trim();
-    if (!needle) return rows;
-    const cols = (columns || []).filter(searchableCol);
-    const sig = cols.map((c) => c.field).join(",");
-    if (sig !== this._searchSig) {
-      this._searchCache = /* @__PURE__ */ new WeakMap();
-      this._searchSig = sig;
-    }
-    const cache = this._searchCache;
-    return rows.filter((row) => {
-      let text = cache.get(row);
-      if (text === void 0) {
-        text = cols.map((c) => norm3(cellValue(row, c))).join("");
-        cache.set(row, text);
-      }
-      return text.includes(needle);
-    });
-  }
-};
-function searchableCol(c) {
-  return c && c.field && c.visible !== false && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._rowsum;
 }
-function rowMatches(row, { filters, search, columns, universal, advanced } = {}) {
-  const colByField = indexColumns(columns);
-  for (const [field2, value] of Object.entries(filters || {})) {
-    const col = colByField.get(field2);
-    if (!col || !col.filter) continue;
-    const def = getFilter(col.filter);
-    if (!def || def.isEmpty(value)) continue;
-    if (!def.match(value, cellValue(row, col), row, col)) return false;
+function computeRowSummary(fn, cols, row) {
+  if (fn === "count") return cols.reduce((a, c) => a + (nonNull(cellValue(row, c)) ? 1 : 0), 0);
+  const nums = [];
+  for (const c of cols) {
+    const n = toNum(cellValue(row, c));
+    if (n != null) nums.push(n);
   }
-  if (universal && universal.field && !evalCondition(universal, row)) return false;
-  if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
-  if (search && String(search).trim()) {
-    const needle = norm3(search).trim();
-    const text = (columns || []).filter(searchableCol).map((c) => norm3(cellValue(row, c))).join("");
-    if (!text.includes(needle)) return false;
+  if (!nums.length) return null;
+  switch (fn) {
+    case "min":
+      return Math.min(...nums);
+    case "max":
+      return Math.max(...nums);
+    case "sum":
+      return nums.reduce((a, b) => a + b, 0);
+    case "avg":
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
+    default:
+      return null;
   }
-  return true;
 }
-function indexColumns(columns) {
-  const m = /* @__PURE__ */ new Map();
-  for (const c of columns || []) m.set(c.field, c);
-  return m;
-}
-function norm3(s) {
-  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
-function applyFilters(rows, filters, colByField) {
-  const active = [];
-  for (const [field2, value] of Object.entries(filters || {})) {
-    const col = colByField.get(field2);
-    if (!col || !col.filter) continue;
-    const def = getFilter(col.filter);
-    if (!def || def.isEmpty(value)) continue;
-    active.push({ field: field2, value, def, col });
-  }
-  if (!active.length) return rows;
-  return rows.filter(
-    (row) => active.every(({ value, def, col }) => def.match(value, cellValue(row, col), row, col))
-  );
-}
-function sortKind(type) {
-  if (type === "number" || type === "money" || type === "progress" || type === "rating") return "num";
-  if (type === "date" || type === "datetime" || type === "time") return "date";
-  if (type === "boolean") return "bool";
-  return "text";
-}
-function applySort(rows, sort, colByField) {
-  if (!sort || !sort.length) return rows;
-  const specs = sort.map(({ field: field2, dir }) => {
-    const col = colByField.get(field2) || { field: field2 };
-    return { col, sign: dir === "desc" ? -1 : 1, kind: sortKind(col.type) };
-  });
-  const decorated = rows.map((row, i) => {
-    const keys = specs.map((s) => {
-      const v = cellValue(row, s.col);
-      if (v == null || v === "") return null;
-      if (s.kind === "num") return num3(v);
-      if (s.kind === "date") return time(v);
-      if (s.kind === "bool") return bool2(v) ? 1 : 0;
-      return String(v);
-    });
-    return { row, keys, i };
-  });
-  decorated.sort((A, B) => {
-    for (let s = 0; s < specs.length; s++) {
-      const a = A.keys[s], b = B.keys[s];
-      let cmp3;
-      if (a == null && b == null) cmp3 = 0;
-      else if (a == null) cmp3 = -1;
-      else if (b == null) cmp3 = 1;
-      else if (typeof a === "number") cmp3 = a - b;
-      else cmp3 = COLLATOR.compare(a, b);
-      if (cmp3 !== 0) return specs[s].sign * cmp3;
-    }
-    return A.i - B.i;
-  });
-  return decorated.map((d) => d.row);
-}
-var num3 = (v) => Number(String(v).replace(/\s/g, "").replace(",", ".")) || 0;
-var time = (v) => {
-  const d = new Date(v);
-  const t = d.getTime();
-  return Number.isNaN(t) ? 0 : t;
-};
-var bool2 = (v) => v === true || v === 1 || v === "1" || v === "true";
-var ServerData = class {
-  /**
-   * @param {object} ajax
-   *   url: string (povinné)
-   *   method: 'GET'|'POST'  (default GET)
-   *   headers: object
-   *   params: object                 statické extra parametry
-   *   paramNames: { page,size,sort,filter,search,advanced }  přejmenování klíčů (default dle kontraktu)
-   *   resolveTokens: bool (default true)     rozvinout relativní datové tokeny v `advanced` před odesláním
-   *   requestBuilder(state) -> object        plný override skladby parametrů
-   *   responseParser(json) -> { rows,total,lastPage,lastRow }  plný override parsování
-   */
-  constructor(ajax = {}) {
-    if (!ajax.url) throw new Error("Lattice ServerData: chyb\xED `ajax.url`.");
-    this.ajax = ajax;
-    this.names = Object.assign({ page: "page", size: "size", sort: "sort", filter: "filter", search: "search", advanced: "advanced" }, ajax.paramNames);
-  }
-  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
-    const state = { page, pageSize, paginate, sort, filters, advanced, universal, search, columns };
-    const params = this.ajax.requestBuilder ? this.ajax.requestBuilder(state) : this.buildParams(state);
-    const method = (this.ajax.method || "GET").toUpperCase();
-    let url = this.ajax.url;
-    const init = { method, headers: Object.assign({}, this.ajax.headers) };
-    if (method === "GET") {
-      const qs = encodeParams(params).toString();
-      url += (url.includes("?") ? "&" : "?") + qs;
-    } else {
-      init.headers["Content-Type"] = "application/json";
-      init.body = JSON.stringify(params);
-    }
-    const res = await fetch(url, init);
-    if (!res.ok) throw new Error(`Lattice: server vr\xE1til ${res.status}`);
-    const json = await res.json();
-    if (this.ajax.responseParser) return this.ajax.responseParser(json);
-    return this.parseResponse(json, pageSize);
-  }
-  buildParams({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
-    const n = this.names;
-    const params = Object.assign({}, this.ajax.params);
-    if (search && String(search).trim()) params[n.search || "search"] = String(search).trim();
-    if (paginate) {
-      params[n.page] = page;
-      params[n.size] = pageSize;
-    }
-    if (sort && sort.length) {
-      params[n.sort] = sort.map((s) => ({ field: s.field, dir: s.dir }));
-    }
-    const flat = flattenFilters(filters, columns);
-    if (universal && universal.field && String(universal.value ?? "") !== "") {
-      flat.push({ field: universal.field, type: UNIVERSAL_SERVER_TYPE[universal.op] || universal.op, value: universal.value });
-    }
-    if (flat.length) params[n.filter] = flat;
-    if (advanced && !isEmptyTree(advanced)) {
-      const tree = this.ajax.resolveTokens === false ? advanced : resolveTreeTokens(advanced);
-      const method = (this.ajax.method || "GET").toUpperCase();
-      params[n.advanced || "advanced"] = method === "GET" ? JSON.stringify(tree) : tree;
-    }
-    return params;
-  }
-  parseResponse(json, pageSize) {
-    const data = Array.isArray(json) ? json : json.data || [];
-    const total = json.total != null ? json.total : json.last_row != null ? json.last_row : data.length;
-    const lastPage = json.last_page != null ? json.last_page : Math.max(1, Math.ceil(total / pageSize));
-    return { rows: data, total, lastPage, lastRow: json.last_row != null ? json.last_row : total };
-  }
-};
-var UNIVERSAL_SERVER_TYPE = { eq: "=", neq: "!=", lt: "<", lte: "<=", gt: ">", gte: ">=", contains: "like", ncontains: "!like" };
-function flattenFilters(filters, columns) {
-  const colByField = indexColumns(columns);
-  const out = [];
-  for (const [field2, value] of Object.entries(filters || {})) {
-    const col = colByField.get(field2);
-    if (!col || !col.filter) continue;
-    const def = getFilter(col.filter);
-    if (!def || def.isEmpty(value)) continue;
-    out.push(...def.toServer(field2, value, col));
-  }
-  return out;
-}
-function encodeParams(obj) {
-  const sp = new URLSearchParams();
-  const add = (key, val) => {
-    if (val == null) return;
-    if (Array.isArray(val)) {
-      val.forEach((v, i) => add(`${key}[${i}]`, v));
-    } else if (typeof val === "object") {
-      for (const [k, v] of Object.entries(val)) add(`${key}[${k}]`, v);
-    } else {
-      sp.append(key, val);
-    }
-  };
-  for (const [k, v] of Object.entries(obj)) add(k, v);
-  return sp;
-}
-
-// src/i18n/cs.js
-var cs_default = {
-  help: {
-    title: "N\xE1pov\u011Bda \u2014 otev\u0159\xEDt u\u017Eivatelskou p\u0159\xEDru\u010Dku"
-  },
-  cellFormat: {
-    title: "Form\xE1t bu\u0148ky",
-    align: "Zarovn\xE1n\xED",
-    style: "\u0158ez p\xEDsma",
-    bold: "Tu\u010Dn\xE9",
-    italic: "Kurz\xEDva",
-    underline: "Podtr\u017Een\xE9",
-    strike: "P\u0159e\u0161krtnut\xE9",
-    textColor: "Barva p\xEDsma",
-    bgColor: "Barva pozad\xED",
-    clear: "Zru\u0161it form\xE1t"
-  },
-  bool: {
-    title: "Zobrazen\xED Ano/Ne",
-    yes: "Ano",
-    no: "Ne",
-    customTrue: 'Vlastn\xED \u201Eano"',
-    customFalse: 'Vlastn\xED \u201Ene"',
-    colored: "Barevn\u011B (zelen\xE1/\u010Derven\xE1)",
-    reset: "V\xFDchoz\xED (\u2713/\u2715)"
-  },
-  headerColor: {
-    title: "Barva z\xE1hlav\xED",
-    tabWheel: "Kolo",
-    tabPalette: "Palety",
-    brightness: "Jas",
-    alpha: "Pr\u016Fhlednost",
-    recent: "Naposledy pou\u017Eit\xE9",
-    none: "Bez barvy",
-    custom: "Vlastn\xED:",
-    bg: "Pozad\xED",
-    text: "P\xEDsmo",
-    apply: "Pou\u017E\xEDt"
-  },
-  calc: {
-    add: "P\u0159idat po\u010D\xEDtan\xFD sloupec",
-    newTitle: "Nov\xFD po\u010D\xEDtan\xFD sloupec",
-    editTitle: "Upravit po\u010D\xEDtan\xFD sloupec",
-    edit: "Upravit vzorec",
-    name: "N\xE1zev",
-    namePlaceholder: "Nap\u0159. Celkem",
-    type: "Typ",
-    typeNumber: "\u010C\xEDslo",
-    typeText: "Text",
-    typeDate: "Datum",
-    formula: "Vzorec",
-    formulaPlaceholder: "Nap\u0159. cena * mnozstvi   nebo   if(stav == 'hotovo', '\u2713', '\u2014')",
-    insertField: "Vlo\u017Eit sloupec:",
-    previewLabel: "N\xE1hled:",
-    textHint: 'v\xFDsledek je text, zvol typ \u201EText"',
-    fnTitle: "Funkce",
-    fnSearch: "Hledat funkci\u2026",
-    sumFormulaOption: "Vzorec (v\xE1\u017Een\xFD souhrn)",
-    sumFormulaTitle: "V\xE1\u017Een\xFD souhrn (vzorec)",
-    sumFormulaLabel: "N\xE1zev \u0159\xE1dku",
-    sumFormulaLabelPlaceholder: 'nepovinn\xE9 (jinak \u201EVzorec")',
-    sumFormulaHint: "Souhrn dopo\u010D\xEDtan\xFD z agregac\xED jin\xFDch sloupc\u016F \u2014 poolovan\u011B. Nap\u0159. sum(spojeno) / sum(vytoceno) * 100.",
-    sumFormulaPlaceholder: "Nap\u0159. sum(spojeno) / sum(vytoceno) * 100",
-    sumFormulaClear: "Zru\u0161it vzorec",
-    fnCat: { num: "\u010C\xEDsla", text: "Text", logic: "Logika", date: "Datum", agg: "Agregace" },
-    agg: {
-      sum: { sig: "sum(v\xFDraz)", desc: "Sou\u010Det v\xFDrazu p\u0159es \u0159\xE1dky" },
-      avg: { sig: "avg(v\xFDraz)", desc: "Pr\u016Fm\u011Br v\xFDrazu p\u0159es \u0159\xE1dky" },
-      count: { sig: "count(v\xFDraz)", desc: "Po\u010Det nepr\xE1zdn\xFDch" },
-      min: { sig: "min(v\xFDraz)", desc: "Nejmen\u0161\xED hodnota" },
-      max: { sig: "max(v\xFDraz)", desc: "Nejv\u011Bt\u0161\xED hodnota" },
-      median: { sig: "median(v\xFDraz)", desc: "Medi\xE1n (prost\u0159edn\xED hodnota)" }
-    },
-    fn: {
-      round: { sig: "round(\u010D\xEDslo, des?)", desc: "Zaokrouhl\xED (des = po\u010Det desetinn\xFDch m\xEDst)" },
-      floor: { sig: "floor(\u010D\xEDslo)", desc: "Zaokrouhl\xED dol\u016F" },
-      ceil: { sig: "ceil(\u010D\xEDslo)", desc: "Zaokrouhl\xED nahoru" },
-      abs: { sig: "abs(\u010D\xEDslo)", desc: "Absolutn\xED hodnota" },
-      sqrt: { sig: "sqrt(\u010D\xEDslo)", desc: "Druh\xE1 odmocnina" },
-      pow: { sig: "pow(z\xE1klad, exponent)", desc: "Mocnina" },
-      mod: { sig: "mod(a, b)", desc: "Zbytek po d\u011Blen\xED" },
-      min: { sig: "min(a, b, \u2026)", desc: "Nejmen\u0161\xED z hodnot" },
-      max: { sig: "max(a, b, \u2026)", desc: "Nejv\u011Bt\u0161\xED z hodnot" },
-      number: { sig: "number(x)", desc: "P\u0159evede na \u010D\xEDslo" },
-      concat: { sig: "concat(a, b, \u2026)", desc: "Spoj\xED hodnoty do textu" },
-      upper: { sig: "upper(text)", desc: "Velk\xE1 p\xEDsmena" },
-      lower: { sig: "lower(text)", desc: "Mal\xE1 p\xEDsmena" },
-      trim: { sig: "trim(text)", desc: "O\u0159\xEDzne mezery na okraj\xEDch" },
-      len: { sig: "len(text)", desc: "Po\u010Det znak\u016F" },
-      left: { sig: "left(text, n)", desc: "Prvn\xEDch n znak\u016F" },
-      right: { sig: "right(text, n)", desc: "Posledn\xEDch n znak\u016F" },
-      substr: { sig: "substr(text, od, d\xE9lka?)", desc: "\u010C\xE1st textu od pozice (od 0)" },
-      replace: { sig: "replace(text, co, \u010D\xEDm)", desc: "Nahrad\xED v\u0161echny v\xFDskyty" },
-      contains: { sig: "contains(text, co)", desc: "Obsahuje text? (ano/ne)" },
-      text: { sig: "text(x)", desc: "P\u0159evede na text" },
-      if: { sig: "if(podm\xEDnka, ano, ne)", desc: 'Podle podm\xEDnky vr\xE1t\xED \u201Eano", nebo \u201Ene"' },
-      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "Prvn\xED nepr\xE1zdn\xE1 hodnota" },
-      isblank: { sig: "isblank(x)", desc: "Je pr\xE1zdn\xE9? (ano/ne)" },
-      not: { sig: "not(x)", desc: "Logick\xE1 negace" },
-      today: { sig: "today()", desc: "Dne\u0161n\xED datum" },
-      now: { sig: "now()", desc: "Datum a \u010Das te\u010F" },
-      date: { sig: "date(x)", desc: "P\u0159evede na datum" },
-      year: { sig: "year(datum)", desc: "Rok z data" },
-      month: { sig: "month(datum)", desc: "M\u011Bs\xEDc z data (1\u201312)" },
-      day: { sig: "day(datum)", desc: "Den v m\u011Bs\xEDci" },
-      weekday: { sig: "weekday(datum)", desc: "Den v t\xFDdnu (1=Po \u2026 7=Ne)" },
-      days: { sig: "days(od, do)", desc: "Po\u010Det dn\xED mezi daty" },
-      age: { sig: "age(datum)", desc: "V\u011Bk v letech k dne\u0161ku" }
-    },
-    defaultTitle: "V\xFDpo\u010Det",
-    save: "Ulo\u017Eit",
-    cancel: "Zru\u0161it",
-    delete: "Smazat"
-  },
-  columns: {
-    manage: "Sloupce",
-    reset: "Obnovit v\xFDchoz\xED",
-    filterToggle: "Zobrazit / skr\xFDt filtr",
-    groupSet: "Skupina sloupce",
-    collapseGroup: "Sbalit skupinu sloupc\u016F",
-    expandGroup: "Rozbalit skupinu sloupc\u016F",
-    headerColor: "Barva z\xE1hlav\xED sloupce",
-    groupHeaderColor: "Barva z\xE1hlav\xED skupiny",
-    cellFormat: "Form\xE1t bu\u0148ky",
-    renameHint: "dvojklik p\u0159ejmenuje",
-    noGroup: "Bez skupiny",
-    newGroup: "Nov\xE1 skupina\u2026",
-    ungroup: "Zru\u0161it skupinu",
-    fitWidth: "P\u0159izp\u016Fsobit \u0161\xED\u0159ku sloupc\u016F obsahu",
-    clearFilters: "Zru\u0161it v\u0161echny filtry",
-    headerRotate: "Oto\u010Den\xED hlavi\u010Dky",
-    rotateInherit: "Podle nastaven\xED tabulky",
-    rotateNone: "Vodorovn\u011B",
-    rotate90: "90\xB0",
-    rotate270: "270\xB0",
-    rowGroupToggle: "Seskupovat \u0159\xE1dky podle tohoto sloupce",
-    summary: "Souhrn sloupce",
-    summaryForColumns: "Pro sloupce (\u0159\xE1dek dole)",
-    summaryForRows: "Pro \u0159\xE1dky (sloupec vpravo)",
-    summaryMin: "Minimum",
-    summaryMax: "Maximum",
-    summarySum: "Sou\u010Det",
-    summaryAvg: "Pr\u016Fm\u011Br",
-    summaryCount: "Po\u010Det (nepr\xE1zdn\xFDch)"
-  },
-  summary: {
-    scopePage: "Str\xE1nka",
-    scopeAll: "V\u0161e",
-    scopePageLong: "Zobrazen\xE1 str\xE1nka",
-    scopeAllLong: "V\u0161echny z\xE1znamy",
-    scopeToggle: "P\u0159epnout rozsah souhrnu (zobrazen\xE1 str\xE1nka / v\u0161echny z\xE1znamy)",
-    barLabel: "Souhrn po\u010D\xEDt\xE1 z:",
-    formulaLabel: "Vzorec",
-    name: { sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Minimum", max: "Maximum", count: "Po\u010Det" }
-  },
-  presets: {
-    none: "(\u017E\xE1dn\xE9 ulo\u017Een\xE9 presety)",
-    namePlaceholder: "N\xE1zev presetu\u2026",
-    saveLocal: "Ulo\u017Eit preset (jen pro m\u011B)",
-    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B (pro v\u0161echny)",
-    searchColumn: "Hledat sloupec\u2026",
-    global: "Glob\xE1ln\xED preset"
-  },
-  instance: {
-    title: "Nastaven\xED tabulky",
-    done: "Hotovo",
-    saveGlobalDefaults: "Ulo\u017Eit jako v\xFDchoz\xED pro v\u0161echny",
-    saveGlobalHint: "Ode\u0161le aktu\xE1ln\xED nastaven\xED tabulky aplikaci jako v\xFDchoz\xED pro v\u0161echny u\u017Eivatele (p\u0159ep\xED\u0161e i jejich ulo\u017Een\xE9 nastaven\xED).",
-    saveGlobalDone: "Ulo\u017Eeno \u2713",
-    gdAvailable: "Spr\xE1vce nastavil nov\xE9 v\xFDchoz\xED nastaven\xED tabulky.",
-    gdReset: "P\u0159epsat moje \xFApravy v\xFDchoz\xEDm nastaven\xEDm od spr\xE1vce.",
-    gdApply: "Pou\u017E\xEDt",
-    gdKeepMine: "Ponechat moje",
-    groupAppearance: "Vzhled",
-    groupLayout: "Rozvr\u017Een\xED",
-    groupPagination: "Str\xE1nkov\xE1n\xED a filtry",
-    groupColumns: "Sloupce a \u0159\xE1dky",
-    groupFormat: "Form\xE1t hodnot",
-    groupCustom: "Vlastn\xED \xFApravy",
-    cssHint: "P\u0159ep\xED\u0161\xED zvolen\xFD motiv jen pro tuto tabulku. Pr\xE1zdn\xE9 = dle motivu.",
-    cssFontTable: "P\xEDsmo tabulky",
-    cssFontHeader: "P\xEDsmo z\xE1hlav\xED",
-    cssAccent: "Barva akcentu",
-    cssLink: "Barva odkaz\u016F",
-    cssText: "Barva textu",
-    cssBorder: "Barva okraj\u016F",
-    cssHeaderBg: "Pozad\xED z\xE1hlav\xED",
-    cssRowEven: "Barva sud\xFDch \u0159\xE1dk\u016F",
-    cssRowOdd: "Barva lich\xFDch \u0159\xE1dk\u016F",
-    cssRowHover: "\u0158\xE1dek p\u0159i najet\xED",
-    cssRowHighlight: "Zv\xFDrazn\u011Bn\xED \u0159\xE1dku",
-    cssRowHighlightHover: "Zv\xFDrazn\u011Bn\xED p\u0159i najet\xED",
-    cssHeaderWeight: "Tu\u010Dnost z\xE1hlav\xED",
-    cssRadius: "Zaoblen\xED (px)",
-    cssCellPadY: "Padding bu\u0148ky \u2013 svisle (px)",
-    cssCellPadX: "Padding bu\u0148ky \u2013 vodorovn\u011B (px)",
-    cssReset: "Obnovit vlastn\xED \xFApravy",
-    fontFamily: "P\xEDsmo",
-    fontDefault: "Dle motivu",
-    zebra: "Pruhovan\xE9 \u0159\xE1dky",
-    scaleColors: "Barvy \u0161k\xE1ly (semafor)",
-    wrapText: "Zalamovat text",
-    wrapHeader: "Zalamovat n\xE1zvy sloupc\u016F",
-    linkNewTab: "Odkazy otev\xEDrat v nov\xE9 kart\u011B",
-    emptyText: "N\xE1hrada pr\xE1zdn\xE9 bu\u0148ky",
-    emptyTextPlaceholder: "nap\u0159. \u2014",
-    pageSizeDefault: "V\xFDchoz\xED velikost str\xE1nky",
-    fmtNumber: "\u010C\xEDsla",
-    fmtMoney: "M\u011Bna",
-    fmtDate: "Datum",
-    fmtDatetime: "Datum a \u010Das",
-    fmtTime: "\u010Cas",
-    fmtDecimals: "Desetinn\xE1 m\xEDsta",
-    fmtDecimalsAuto: "Automaticky",
-    fmtThousands: "Odd\u011Blova\u010D tis\xEDc\u016F",
-    fmtCurrency: "M\u011Bna (symbol)",
-    fmtNegative: "Z\xE1porn\xE1 \u010D\xEDsla",
-    fmtPattern: "Form\xE1t",
-    fmtCustom: "Vlastn\xED vzor",
-    locale: "Jazyk form\xE1tu (locale)",
-    localeDefault: "Dle prohl\xED\u017Ee\u010De",
-    defaultSort: "V\xFDchoz\xED \u0159azen\xED",
-    sortNone: "Bez \u0159azen\xED",
-    sortAscSuffix: "\u2191",
-    sortDescSuffix: "\u2193",
-    negMinus: "Se znam\xE9nkem \u2212",
-    negRed: "\u010Cerven\u011B",
-    negParen: "V z\xE1vork\xE1ch",
-    negRedParen: "\u010Cerven\u011B v z\xE1vork\xE1ch",
-    colFormatTitle: "Form\xE1t sloupce",
-    colFormatGlobal: "Podle tabulky (glob\xE1ln\xED)",
-    colFormatCustom: "Vlastn\xED form\xE1t",
-    condScale: "Barevn\xE1 \u0161k\xE1la (semafor)",
-    condScaleOn: "Zapnout",
-    condLevels: "Po\u010Det hladin",
-    condReverse: "Obr\xE1cen\u011B (n\xEDzk\xE9 = zelen\xE9)",
-    condApply: "Obarvit",
-    condApplyBg: "Pozad\xED (semafor)",
-    condApplyText: "Text (\u010D\xEDsla)",
-    condThresholds: "Prahy",
-    theme: "Vzhled",
-    themeDefault: "V\xFDchoz\xED",
-    themeAuto: "Automaticky (dle syst\xE9mu)",
-    themeMinimal: "Minimalistick\xFD",
-    themeCompact: "Kompaktn\xED",
-    themeSlate: "Tmav\xFD",
-    themeOcean: "Oce\xE1n",
-    themeWarm: "Tepl\xFD",
-    themeContrast: "Vysok\xFD kontrast",
-    themeBootstrap5: "Bootstrap 5",
-    themeTailwind: "Tailwind",
-    themeMaterial: "Material",
-    pagination: "Str\xE1nkov\xE1n\xED",
-    paginationHeader: "V z\xE1hlav\xED",
-    paginationFooter: "V z\xE1pat\xED",
-    paginationBoth: "Na obou m\xEDstech",
-    paginationNone: "Bez str\xE1nkov\xE1n\xED",
-    density: "Hustota \u0159\xE1dk\u016F",
-    comfortable: "Pohodln\xE1",
-    compact: "Kompaktn\xED",
-    layout: "Rozlo\u017Een\xED",
-    fit: "Rozt\xE1hnout do \u0161\xED\u0159ky",
-    fitData: "Dle obsahu",
-    fitDataFill: "Dle obsahu (vyplnit \u0161\xED\u0159ku)",
-    fitDataStretch: "Dle obsahu (posledn\xED rozt\xE1hnout)",
-    fitColumns: "Rozt\xE1hnout do \u0161\xED\u0159ky (propor\u010Dn\u011B)",
-    resizeMode: "Zm\u011Bna \u0161\xED\u0159ky sloupc\u016F",
-    resizeNative: "\u017Div\u011B (nativn\u011B)",
-    resizeGuide: "S vodic\xED \u010D\xE1rou",
-    fontSize: "Velikost p\xEDsma",
-    filterLayout: "Um\xEDst\u011Bn\xED filtr\u016F",
-    filterInHeader: "V z\xE1hlav\xED sloupc\u016F",
-    filterExternal: "Nad tabulkou",
-    filterUniversal: "Univerz\xE1ln\xED (jeden filtr)",
-    filterOff: "Vypnut\xE9",
-    rowNumbers: "\u010C\xEDslov\xE1n\xED \u0159\xE1dk\u016F",
-    rowNumbersNone: "Vypnut\xE9",
-    rowNumbersContinuous: "Pr\u016Fb\u011B\u017En\xE9 (p\u0159es str\xE1nky)",
-    rowNumbersPerPage: "Od 1 na ka\u017Ed\xE9 str\xE1nce",
-    headerRotate: "Oto\u010Den\xED hlavi\u010Dek",
-    headerRotateNone: "Vodorovn\u011B",
-    headerRotate90: "90\xB0",
-    headerRotate270: "270\xB0",
-    summaryRow: "Souhrnn\xFD \u0159\xE1dek",
-    summaryNone: "Vypnut\xFD",
-    summaryPage: "Zobrazen\xE1 str\xE1nka",
-    summaryAll: "V\u0161echny z\xE1znamy",
-    groupSubtotals: "Mezisou\u010Dty skupin",
-    rowGroup: "Seskupen\xED \u0159\xE1dk\u016F",
-    rowGroupNone: "Bez seskupen\xED",
-    selectColumn: "Sloupec s v\xFDb\u011Brem",
-    selectTrigger: "Vyb\xEDrat",
-    selectByCheckbox: "Kliknut\xEDm na checkbox",
-    selectByRow: "Kliknut\xEDm na \u0159\xE1dek",
-    rowHighlight: "Zv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem",
-    actionsLayout: "Sloupec akc\xED",
-    actionsAsColumn: "Posledn\xED sloupec (ikony)",
-    actionsAsMenu: "Menu \u22EE v \u010D\xEDslov\xE1n\xED"
-  },
-  filterTypes: {
-    change: "Zm\u011Bnit typ filtru",
-    text: "Text",
-    number: "\u010C\xEDslo (=, >, <)",
-    "number-range": "Rozsah (Od\u2013Do)",
-    "date-range": "Datum (rozsah)",
-    "date-two": "Datum (Od / Do)",
-    dynamic: "Dynamick\xE9",
-    select: "V\xFDb\u011Br",
-    multiselect: "V\xEDce hodnot",
-    boolean: "Ano / Ne"
-  },
-  filters: {
-    all: "V\u0161e",
-    yes: "Ano",
-    no: "Ne",
-    from: "Od",
-    to: "Do",
-    dynamicPlaceholder: ">today-14 AND <today+14",
-    dynamicHint: "Oper\xE1tory >, <, >=, <=, =. Datum absolutn\u011B (2024-01-31) nebo relativn\u011B: today, today+14, today-7, +2w, -1m, now (jednotky d/w/m/y). Spojky AND / OR (AND v\xE1\u017Ee t\u011Bsn\u011Bji ne\u017E OR).",
-    search: "Hledat\u2026",
-    quickSearch: "Hledat ve v\u0161em\u2026",
-    clear: "Zru\u0161it filtry",
-    clearOne: "Vy\u010Distit filtr",
-    negateHint: "Prefix ! = neobsahuje",
-    panelTitle: "Filtry",
-    hidePanel: "Skr\xFDt filtry",
-    showPanel: "Zobrazit filtry",
-    activeCount: "{n} aktivn\xEDch"
-  },
-  dateRange: {
-    placeholder: "Obdob\xED\u2026",
-    apply: "Pou\u017E\xEDt",
-    cancel: "Zru\u0161it",
-    clear: "Zru\u0161it filtr",
-    custom: "Vlastn\xED obdob\xED",
-    presets: {
-      today: "Dnes",
-      yesterday: "V\u010Dera",
-      weekToDate: "Tento t\xFDden do dne\u0161ka",
-      thisWeek: "Tento t\xFDden",
-      lastWeek: "Minul\xFD t\xFDden",
-      last7: "Posledn\xEDch 7 dn\xED",
-      last30: "Posledn\xEDch 30 dn\xED",
-      monthToDate: "Tento m\u011Bs\xEDc do dne\u0161ka",
-      thisMonth: "Tento m\u011Bs\xEDc",
-      lastMonth: "Minul\xFD m\u011Bs\xEDc",
-      thisQuarter: "Tento kvart\xE1l",
-      nextMonth: "P\u0159\xED\u0161t\xED m\u011Bs\xEDc",
-      next3Months: "P\u0159\xED\u0161t\xED 3 m\u011Bs\xEDce"
-    },
-    months: ["Leden", "\xDAnor", "B\u0159ezen", "Duben", "Kv\u011Bten", "\u010Cerven", "\u010Cervenec", "Srpen", "Z\xE1\u0159\xED", "\u0158\xEDjen", "Listopad", "Prosinec"],
-    monthsShort: ["led", "\xFAno", "b\u0159e", "dub", "kv\u011B", "\u010Dvn", "\u010Dvc", "srp", "z\xE1\u0159", "\u0159\xEDj", "lis", "pro"],
-    weekdays: ["Po", "\xDAt", "St", "\u010Ct", "P\xE1", "So", "Ne"],
-    weekdaysLong: ["pond\u011Bl\xED", "\xFAter\xFD", "st\u0159eda", "\u010Dtvrtek", "p\xE1tek", "sobota", "ned\u011Ble"]
-  },
-  pagination: {
-    first: "\xAB",
-    prev: "\u2039",
-    next: "\u203A",
-    last: "\xBB",
-    firstTitle: "Prvn\xED",
-    prevTitle: "P\u0159edchoz\xED",
-    nextTitle: "Dal\u0161\xED",
-    lastTitle: "Posledn\xED",
-    pageSize: "Velikost str\xE1nky",
-    all: "V\u0161e",
-    showing: "Zobrazeno {from}-{to} z {total} \u0159\xE1dk\u016F",
-    empty: "\u017D\xE1dn\xE9 z\xE1znamy",
-    pageLabel: "Strana",
-    gotoTitle: "P\u0159ej\xEDt na str\xE1nku"
-  },
-  advanced: {
-    title: "Roz\u0161\xED\u0159en\xFD filtr",
-    savedPlaceholder: "\u2014 ulo\u017Een\xE9 filtry \u2014",
-    namePlaceholder: "N\xE1zev filtru\u2026",
-    valuePlaceholder: "hodnota",
-    valueHint: "Relativn\xED datum: today, today+14, today-7, today+2w, +1m, -1y, now (jednotky d/w/m/y)",
-    addCondition: "Podm\xEDnka",
-    addGroup: "Skupina",
-    and: "A z\xE1rove\u0148 (v\u0161e)",
-    or: "Nebo (aspo\u0148 jedno)",
-    apply: "Pou\u017E\xEDt",
-    clear: "Vymazat filtr",
-    save: "Ulo\u017Eit",
-    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
-    asButton: "jako tla\u010D\xEDtko",
-    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
-    remove: "Odebrat",
-    delete: "Smazat ulo\u017Een\xFD filtr",
-    ops: {
-      eq: "rovn\xE1 se",
-      neq: "nerovn\xE1 se",
-      contains: "obsahuje",
-      ncontains: "neobsahuje",
-      starts: "za\u010D\xEDn\xE1 na",
-      ends: "kon\u010D\xED na",
-      gt: "> v\u011Bt\u0161\xED ne\u017E",
-      gte: "\u2265 v\u011Bt\u0161\xED nebo rovno",
-      lt: "< men\u0161\xED ne\u017E",
-      lte: "\u2264 men\u0161\xED nebo rovno",
-      in: "je jeden z (a, b, c)",
-      nin: "nen\xED \u017E\xE1dn\xFD z (a, b, c)",
-      empty: "je pr\xE1zdn\xE9",
-      nempty: "nen\xED pr\xE1zdn\xE9"
-    }
-  },
-  saveFilters: {
-    title: "Ulo\u017Eit sloupcov\xE9 filtry",
-    namePlaceholder: "N\xE1zev filtru\u2026",
-    asButton: "jako tla\u010D\xEDtko",
-    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
-    save: "Ulo\u017Eit",
-    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
-    none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
-    apply: "Pou\u017E\xEDt filtr",
-    delete: "Smazat ulo\u017Een\xFD filtr"
-  },
-  universal: { field: "Pole", type: "Typ", valueLabel: "Hodnota", value: "hodnota k filtrov\xE1n\xED\u2026", clear: "Zru\u0161it filtr" },
-  group: {
-    empty: "(pr\xE1zdn\xE9)",
-    weekLabel: "T\xFDden",
-    sort: "Se\u0159adit skupiny (vzestupn\u011B/sestupn\u011B)",
-    by: "Seskupit podle",
-    display: "\xDArovn\u011B seskupen\xED",
-    displayHeaders: "Vno\u0159en\xE9 hlavi\u010Dky",
-    displayColumns: "Vedouc\xED sloupce",
-    repeat: "Opakovat hodnoty skupin v \u0159\xE1dc\xEDch",
-    parts: { year: "Rok", quarter: "Kvart\xE1l", month: "M\u011Bs\xEDc", week: "T\xFDden", weekday: "Den v t\xFDdnu", day: "Den v m\u011Bs\xEDci", hour: "Hodina", minute: "Minuta" }
-  },
-  select: { scopePage: "Str\xE1nka", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
-  move: { drag: "P\u0159et\xE1hnout \u0159\xE1dek" },
-  actions: { title: "Akce", view: "Zobrazit", edit: "Upravit", delete: "Smazat" },
-  tree: { collapseAll: "Sbalit v\u0161e", expandAll: "Rozbalit v\u0161e", level: "\xDArove\u0148", levelUp: "Rozbalit dal\u0161\xED \xFArove\u0148", levelDown: "Sbalit o \xFArove\u0148" },
-  popup: { info: "Zobrazit info" },
-  history: { undo: "Zp\u011Bt", redo: "Znovu", clear: "Vymazat historii" },
-  menu: {
-    column: "Menu sloupce",
-    sortAsc: "Se\u0159adit vzestupn\u011B",
-    sortDesc: "Se\u0159adit sestupn\u011B",
-    sortClear: "Zru\u0161it \u0159azen\xED",
-    hide: "Skr\xFDt sloupec",
-    pinLeft: "Ukotvit vlevo",
-    pinRight: "Ukotvit vpravo",
-    unpin: "Zru\u0161it ukotven\xED",
-    groupBy: "Seskupit podle tohoto",
-    ungroup: "Zru\u0161it seskupen\xED",
-    fitWidth: "P\u0159izp\u016Fsobit \u0161\xED\u0159ku",
-    row: "Menu \u0159\xE1dku",
-    sortMulti: "Klik = \u0159adit \xB7 Shift+klik = v\xEDce\xFArov\u0148ov\xE9"
-  },
-  progressive: { loaded: "Na\u010Dteno {loaded} z {total}", loadMore: "Na\u010D\xEDst dal\u0161\xED ({n})", loading: "Na\u010D\xEDt\xE1m\u2026", allLoaded: "V\u0161e na\u010Dteno" },
-  edit: { hint: "Dvojklik pro \xFApravu" },
-  detail: { toggle: "Zobrazit / skr\xFDt detail" },
-  selection: { count: "Vybr\xE1no: {n}", clear: "Zru\u0161it v\xFDb\u011Br" },
-  range: { cells: "{n} bun\u011Bk", sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Min", max: "Max", fill: "T\xE1hni pro vypln\u011Bn\xED" },
-  validate: { required: "Povinn\xE9 pole", invalid: "Neplatn\xE1 hodnota", pattern: "Nespr\xE1vn\xFD form\xE1t", min: "Mus\xED b\xFDt \u2265 {n}", max: "Mus\xED b\xFDt \u2264 {n}", minLen: "Nejm\xE9n\u011B {n} znak\u016F", maxLen: "Nejv\xEDce {n} znak\u016F" },
-  empty: "\u017D\xE1dn\xE1 data",
-  loading: "Na\u010D\xEDt\xE1n\xED\u2026",
-  error: "Chyba na\u010Dten\xED dat"
-};
-
-// src/i18n/en.js
-var en_default = {
-  help: {
-    title: "Help \u2014 open the user guide"
-  },
-  cellFormat: {
-    title: "Cell format",
-    align: "Alignment",
-    style: "Font style",
-    bold: "Bold",
-    italic: "Italic",
-    underline: "Underline",
-    strike: "Strikethrough",
-    textColor: "Text color",
-    bgColor: "Background color",
-    clear: "Clear format"
-  },
-  bool: {
-    title: "Yes/No display",
-    yes: "Yes",
-    no: "No",
-    customTrue: "Custom \u201Cyes\u201D",
-    customFalse: "Custom \u201Cno\u201D",
-    colored: "Colored (green/red)",
-    reset: "Default (\u2713/\u2715)"
-  },
-  headerColor: {
-    title: "Header color",
-    tabWheel: "Wheel",
-    tabPalette: "Palettes",
-    brightness: "Brightness",
-    alpha: "Opacity",
-    recent: "Recently used",
-    none: "No color",
-    custom: "Custom:",
-    bg: "Background",
-    text: "Text",
-    apply: "Apply"
-  },
-  calc: {
-    add: "Add computed column",
-    newTitle: "New computed column",
-    editTitle: "Edit computed column",
-    edit: "Edit formula",
-    name: "Name",
-    namePlaceholder: "e.g. Total",
-    type: "Type",
-    typeNumber: "Number",
-    typeText: "Text",
-    typeDate: "Date",
-    formula: "Formula",
-    formulaPlaceholder: "e.g. price * qty   or   if(status == 'done', '\u2713', '\u2014')",
-    insertField: "Insert column:",
-    previewLabel: "Preview:",
-    textHint: "result is text, pick type \u201CText\u201D",
-    fnTitle: "Functions",
-    fnSearch: "Search function\u2026",
-    sumFormulaOption: "Formula (weighted total)",
-    sumFormulaTitle: "Weighted total (formula)",
-    sumFormulaLabel: "Row label",
-    sumFormulaLabelPlaceholder: "optional (defaults to \u201CFormula\u201D)",
-    sumFormulaHint: "Total computed from aggregates of other columns \u2014 pooled. E.g. sum(connected) / sum(dialed) * 100.",
-    sumFormulaPlaceholder: "e.g. sum(connected) / sum(dialed) * 100",
-    sumFormulaClear: "Clear formula",
-    fnCat: { num: "Numbers", text: "Text", logic: "Logic", date: "Date", agg: "Aggregate" },
-    agg: {
-      sum: { sig: "sum(expr)", desc: "Sum of expression across rows" },
-      avg: { sig: "avg(expr)", desc: "Average of expression across rows" },
-      count: { sig: "count(expr)", desc: "Count of non-empty" },
-      min: { sig: "min(expr)", desc: "Smallest value" },
-      max: { sig: "max(expr)", desc: "Largest value" },
-      median: { sig: "median(expr)", desc: "Median (middle value)" }
-    },
-    fn: {
-      round: { sig: "round(num, dec?)", desc: "Round (dec = number of decimals)" },
-      floor: { sig: "floor(num)", desc: "Round down" },
-      ceil: { sig: "ceil(num)", desc: "Round up" },
-      abs: { sig: "abs(num)", desc: "Absolute value" },
-      sqrt: { sig: "sqrt(num)", desc: "Square root" },
-      pow: { sig: "pow(base, exp)", desc: "Power" },
-      mod: { sig: "mod(a, b)", desc: "Remainder after division" },
-      min: { sig: "min(a, b, \u2026)", desc: "Smallest value" },
-      max: { sig: "max(a, b, \u2026)", desc: "Largest value" },
-      number: { sig: "number(x)", desc: "Convert to number" },
-      concat: { sig: "concat(a, b, \u2026)", desc: "Join values into text" },
-      upper: { sig: "upper(text)", desc: "Uppercase" },
-      lower: { sig: "lower(text)", desc: "Lowercase" },
-      trim: { sig: "trim(text)", desc: "Trim surrounding spaces" },
-      len: { sig: "len(text)", desc: "Character count" },
-      left: { sig: "left(text, n)", desc: "First n characters" },
-      right: { sig: "right(text, n)", desc: "Last n characters" },
-      substr: { sig: "substr(text, start, len?)", desc: "Part of text from position (0-based)" },
-      replace: { sig: "replace(text, from, to)", desc: "Replace all occurrences" },
-      contains: { sig: "contains(text, sub)", desc: "Contains text? (yes/no)" },
-      text: { sig: "text(x)", desc: "Convert to text" },
-      if: { sig: "if(cond, yes, no)", desc: "Return yes or no by condition" },
-      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "First non-empty value" },
-      isblank: { sig: "isblank(x)", desc: "Is empty? (yes/no)" },
-      not: { sig: "not(x)", desc: "Logical negation" },
-      today: { sig: "today()", desc: "Today's date" },
-      now: { sig: "now()", desc: "Date and time now" },
-      date: { sig: "date(x)", desc: "Convert to date" },
-      year: { sig: "year(date)", desc: "Year from date" },
-      month: { sig: "month(date)", desc: "Month from date (1\u201312)" },
-      day: { sig: "day(date)", desc: "Day of month" },
-      weekday: { sig: "weekday(date)", desc: "Weekday (1=Mon \u2026 7=Sun)" },
-      days: { sig: "days(from, to)", desc: "Days between dates" },
-      age: { sig: "age(date)", desc: "Age in years to today" }
-    },
-    defaultTitle: "Computed",
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete"
-  },
-  columns: {
-    manage: "Columns",
-    reset: "Reset to default",
-    filterToggle: "Show / hide filter",
-    groupSet: "Column group",
-    collapseGroup: "Collapse column group",
-    expandGroup: "Expand column group",
-    headerColor: "Column header color",
-    groupHeaderColor: "Group header color",
-    cellFormat: "Cell format",
-    renameHint: "double-click to rename",
-    noGroup: "No group",
-    newGroup: "New group\u2026",
-    ungroup: "Dissolve group",
-    fitWidth: "Fit column widths to content",
-    clearFilters: "Clear all filters",
-    headerRotate: "Header rotation",
-    rotateInherit: "Follow table setting",
-    rotateNone: "Horizontal",
-    rotate90: "90\xB0",
-    rotate270: "270\xB0",
-    rowGroupToggle: "Group rows by this column",
-    summary: "Column summary",
-    summaryForColumns: "For columns (bottom row)",
-    summaryForRows: "For rows (right column)",
-    summaryMin: "Minimum",
-    summaryMax: "Maximum",
-    summarySum: "Sum",
-    summaryAvg: "Average",
-    summaryCount: "Count (non-empty)"
-  },
-  summary: {
-    scopePage: "Page",
-    scopeAll: "All",
-    scopePageLong: "Displayed page",
-    scopeAllLong: "All records",
-    scopeToggle: "Toggle summary scope (displayed page / all records)",
-    barLabel: "Summary from:",
-    formulaLabel: "Formula",
-    name: { sum: "Sum", avg: "Average", min: "Minimum", max: "Maximum", count: "Count" }
-  },
-  presets: {
-    none: "(no saved presets)",
-    namePlaceholder: "Preset name\u2026",
-    saveLocal: "Save preset (only me)",
-    saveGlobal: "Save globally (everyone)",
-    searchColumn: "Search column\u2026",
-    global: "Global preset"
-  },
-  instance: {
-    title: "Table settings",
-    done: "Done",
-    saveGlobalDefaults: "Set as default for everyone",
-    saveGlobalHint: "Sends the current table settings to the app as the default for all users (overrides their saved settings too).",
-    saveGlobalDone: "Saved \u2713",
-    gdAvailable: "Your admin set new default table settings.",
-    gdReset: "Reset your changes to the admin default settings.",
-    gdApply: "Apply",
-    gdKeepMine: "Keep mine",
-    groupAppearance: "Appearance",
-    groupLayout: "Layout",
-    groupPagination: "Pagination & filters",
-    groupColumns: "Columns & rows",
-    groupFormat: "Value format",
-    groupCustom: "Custom tweaks",
-    cssHint: "Override the chosen theme for this table only. Empty = follow theme.",
-    cssFontTable: "Table font",
-    cssFontHeader: "Header font",
-    cssAccent: "Accent color",
-    cssLink: "Link color",
-    cssText: "Text color",
-    cssBorder: "Border color",
-    cssHeaderBg: "Header background",
-    cssRowEven: "Even row color",
-    cssRowOdd: "Odd row color",
-    cssRowHover: "Row hover",
-    cssRowHighlight: "Row highlight",
-    cssRowHighlightHover: "Row highlight hover",
-    cssHeaderWeight: "Header weight",
-    cssRadius: "Corner radius (px)",
-    cssCellPadY: "Cell padding \u2013 vertical (px)",
-    cssCellPadX: "Cell padding \u2013 horizontal (px)",
-    cssReset: "Reset custom tweaks",
-    fontFamily: "Font",
-    fontDefault: "Theme default",
-    zebra: "Zebra rows",
-    scaleColors: "Scale colors (traffic light)",
-    wrapText: "Wrap text",
-    wrapHeader: "Wrap column titles",
-    linkNewTab: "Open links in new tab",
-    emptyText: "Empty cell placeholder",
-    emptyTextPlaceholder: "e.g. \u2014",
-    pageSizeDefault: "Default page size",
-    fmtNumber: "Numbers",
-    fmtMoney: "Currency",
-    fmtDate: "Date",
-    fmtDatetime: "Date & time",
-    fmtTime: "Time",
-    fmtDecimals: "Decimal places",
-    fmtDecimalsAuto: "Automatic",
-    fmtThousands: "Thousands separator",
-    fmtCurrency: "Currency (symbol)",
-    fmtNegative: "Negative numbers",
-    fmtPattern: "Format",
-    fmtCustom: "Custom pattern",
-    locale: "Format language (locale)",
-    localeDefault: "Browser default",
-    defaultSort: "Default sort",
-    sortNone: "No sorting",
-    sortAscSuffix: "\u2191",
-    sortDescSuffix: "\u2193",
-    negMinus: "With \u2212 sign",
-    negRed: "Red",
-    negParen: "In parentheses",
-    negRedParen: "Red in parentheses",
-    colFormatTitle: "Column format",
-    colFormatGlobal: "Follow table (global)",
-    colFormatCustom: "Custom format",
-    condScale: "Color scale (traffic light)",
-    condScaleOn: "Enable",
-    condLevels: "Levels",
-    condReverse: "Reversed (low = green)",
-    condApply: "Apply to",
-    condApplyBg: "Background (traffic light)",
-    condApplyText: "Text (numbers)",
-    condThresholds: "Thresholds",
-    theme: "Theme",
-    themeDefault: "Default",
-    themeAuto: "Automatic (system)",
-    themeMinimal: "Minimal",
-    themeCompact: "Compact",
-    themeSlate: "Dark",
-    themeOcean: "Ocean",
-    themeWarm: "Warm",
-    themeContrast: "High contrast",
-    themeBootstrap5: "Bootstrap 5",
-    themeTailwind: "Tailwind",
-    themeMaterial: "Material",
-    pagination: "Pagination",
-    paginationHeader: "In header",
-    paginationFooter: "In footer",
-    paginationBoth: "Both places",
-    paginationNone: "No pagination",
-    density: "Row density",
-    comfortable: "Comfortable",
-    compact: "Compact",
-    layout: "Layout",
-    fit: "Stretch to width",
-    fitData: "Fit to data",
-    fitDataFill: "Fit to data (fill width)",
-    fitDataStretch: "Fit to data (stretch last)",
-    fitColumns: "Fit columns (stretch proportionally)",
-    resizeMode: "Column resize",
-    resizeNative: "Live (native)",
-    resizeGuide: "With guide line",
-    fontSize: "Font size",
-    filterLayout: "Filters position",
-    filterInHeader: "In column headers",
-    filterExternal: "Above the table",
-    filterUniversal: "Universal (single filter)",
-    filterOff: "Off",
-    rowNumbers: "Row numbers",
-    rowNumbersNone: "Off",
-    rowNumbersContinuous: "Continuous (across pages)",
-    rowNumbersPerPage: "From 1 on each page",
-    headerRotate: "Header rotation",
-    headerRotateNone: "Horizontal",
-    headerRotate90: "90\xB0",
-    headerRotate270: "270\xB0",
-    summaryRow: "Summary row",
-    summaryNone: "Off",
-    summaryPage: "Displayed page",
-    summaryAll: "All records",
-    groupSubtotals: "Group subtotals",
-    rowGroup: "Row grouping",
-    rowGroupNone: "No grouping",
-    selectColumn: "Selection column",
-    selectTrigger: "Select by",
-    selectByCheckbox: "Clicking the checkbox",
-    selectByRow: "Clicking the row",
-    rowHighlight: "Highlight row on click",
-    actionsLayout: "Actions column",
-    actionsAsColumn: "Last column (icons)",
-    actionsAsMenu: "Menu \u22EE in row numbers"
-  },
-  filterTypes: {
-    change: "Change filter type",
-    text: "Text",
-    number: "Number (=, >, <)",
-    "number-range": "Range (from\u2013to)",
-    "date-range": "Date (range)",
-    "date-two": "Date (from / to)",
-    dynamic: "Dynamic",
-    select: "Select",
-    multiselect: "Multi-select",
-    boolean: "Yes / No"
-  },
-  filters: {
-    all: "All",
-    yes: "Yes",
-    no: "No",
-    from: "From",
-    to: "To",
-    dynamicPlaceholder: ">today-14 AND <today+14",
-    dynamicHint: "Operators >, <, >=, <=, =. Absolute date (2024-01-31) or relative: today, today+14, today-7, +2w, -1m, now (units d/w/m/y). Joiners AND / OR (AND binds tighter than OR).",
-    search: "Search\u2026",
-    quickSearch: "Search all\u2026",
-    clear: "Clear filters",
-    clearOne: "Clear filter",
-    negateHint: "Prefix ! = does not contain",
-    panelTitle: "Filters",
-    hidePanel: "Hide filters",
-    showPanel: "Show filters",
-    activeCount: "{n} active"
-  },
-  dateRange: {
-    placeholder: "Period\u2026",
-    apply: "Apply",
-    cancel: "Cancel",
-    clear: "Clear filter",
-    custom: "Custom range",
-    presets: {
-      today: "Today",
-      yesterday: "Yesterday",
-      weekToDate: "Week to date",
-      thisWeek: "This week",
-      lastWeek: "Last week",
-      last7: "Last 7 days",
-      last30: "Last 30 days",
-      monthToDate: "Month to date",
-      thisMonth: "This month",
-      lastMonth: "Last month",
-      thisQuarter: "This quarter",
-      nextMonth: "Next month",
-      next3Months: "Next 3 months"
-    },
-    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    monthsShort: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-    weekdaysLong: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-  },
-  pagination: {
-    first: "\xAB",
-    prev: "\u2039",
-    next: "\u203A",
-    last: "\xBB",
-    firstTitle: "First",
-    prevTitle: "Previous",
-    nextTitle: "Next",
-    lastTitle: "Last",
-    pageSize: "Page size",
-    all: "All",
-    showing: "Showing {from}-{to} of {total} rows",
-    empty: "No rows",
-    pageLabel: "Page",
-    gotoTitle: "Go to page"
-  },
-  advanced: {
-    title: "Advanced filter",
-    savedPlaceholder: "\u2014 saved filters \u2014",
-    namePlaceholder: "Filter name\u2026",
-    valuePlaceholder: "value",
-    valueHint: "Relative date: today, today+14, today-7, today+2w, +1m, -1y, now (units d/w/m/y)",
-    addCondition: "Condition",
-    addGroup: "Group",
-    and: "And (all)",
-    or: "Or (any)",
-    apply: "Apply",
-    clear: "Clear filter",
-    save: "Save",
-    saveGlobal: "Save globally",
-    asButton: "as button",
-    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
-    remove: "Remove",
-    delete: "Delete saved filter",
-    ops: {
-      eq: "equals",
-      neq: "not equals",
-      contains: "contains",
-      ncontains: "does not contain",
-      starts: "starts with",
-      ends: "ends with",
-      gt: "> greater than",
-      gte: "\u2265 greater or equal",
-      lt: "< less than",
-      lte: "\u2264 less or equal",
-      in: "is one of (a, b, c)",
-      nin: "is none of (a, b, c)",
-      empty: "is empty",
-      nempty: "is not empty"
-    }
-  },
-  saveFilters: {
-    title: "Save column filters",
-    namePlaceholder: "Filter name\u2026",
-    asButton: "as button",
-    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
-    save: "Save",
-    saveGlobal: "Save globally",
-    none: "Nothing saved yet",
-    apply: "Apply filter",
-    delete: "Delete saved filter"
-  },
-  universal: { field: "Field", type: "Type", valueLabel: "Value", value: "value to filter\u2026", clear: "Clear filter" },
-  group: {
-    empty: "(empty)",
-    weekLabel: "Week",
-    sort: "Sort groups (ascending/descending)",
-    by: "Group by",
-    display: "Grouping levels",
-    displayHeaders: "Nested headers",
-    displayColumns: "Leading columns",
-    repeat: "Repeat group values in rows",
-    parts: { year: "Year", quarter: "Quarter", month: "Month", week: "Week", weekday: "Weekday", day: "Day of month", hour: "Hour", minute: "Minute" }
-  },
-  select: { scopePage: "Page", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
-  move: { drag: "Drag to reorder" },
-  actions: { title: "Actions", view: "View", edit: "Edit", delete: "Delete" },
-  tree: { collapseAll: "Collapse all", expandAll: "Expand all", level: "Level", levelUp: "Expand one more level", levelDown: "Collapse one level" },
-  popup: { info: "Show info" },
-  history: { undo: "Undo", redo: "Redo", clear: "Clear history" },
-  menu: {
-    column: "Column menu",
-    sortAsc: "Sort ascending",
-    sortDesc: "Sort descending",
-    sortClear: "Clear sort",
-    hide: "Hide column",
-    pinLeft: "Pin left",
-    pinRight: "Pin right",
-    unpin: "Unpin",
-    groupBy: "Group by this",
-    ungroup: "Ungroup",
-    fitWidth: "Fit width",
-    row: "Row menu",
-    sortMulti: "Click = sort \xB7 Shift+click = multi-level"
-  },
-  progressive: { loaded: "Loaded {loaded} of {total}", loadMore: "Load more ({n})", loading: "Loading\u2026", allLoaded: "All loaded" },
-  edit: { hint: "Double-click to edit" },
-  detail: { toggle: "Show / hide detail" },
-  selection: { count: "Selected: {n}", clear: "Clear selection" },
-  range: { cells: "{n} cells", sum: "Sum", avg: "Avg", min: "Min", max: "Max", fill: "Drag to fill" },
-  validate: { required: "Required", invalid: "Invalid value", pattern: "Wrong format", min: "Must be \u2265 {n}", max: "Must be \u2264 {n}", minLen: "At least {n} characters", maxLen: "At most {n} characters" },
-  empty: "No data",
-  loading: "Loading\u2026",
-  error: "Failed to load data"
-};
-
-// src/i18n/index.js
-var BUILTIN = { cs: cs_default, en: en_default };
-var DEFAULT = en_default;
-function registerLanguage(code, dict) {
-  if (code && dict && typeof dict === "object") BUILTIN[code] = dict;
-  return BUILTIN;
-}
-function availableLanguages() {
-  return Object.keys(BUILTIN);
-}
-var I18n = class {
-  /**
-   * @param {string|object} lang  Kód vestavěného jazyka nebo vlastní slovník.
-   */
-  constructor(lang) {
-    this.setLang(lang);
-  }
-  setLang(lang) {
-    if (typeof lang === "string") {
-      this.lang = lang;
-      this.dict = BUILTIN[lang] || DEFAULT;
-    } else if (lang && typeof lang === "object") {
-      this.lang = lang.locale || lang.lang || void 0;
-      this.dict = lang;
-    } else {
-      this.lang = void 0;
-      this.dict = DEFAULT;
-    }
-  }
-  /** BCP-47 kód pro locale-aware řazení (localeCompare). Může být undefined. */
-  get locale() {
-    return this.lang || void 0;
-  }
-  /** Vrátí pole ze slovníku (měsíce, dny…) — t() vrací jen stringy. Fallback na default. */
-  list(path) {
-    const walk = (obj) => {
-      let cur = obj;
-      for (const key of path.split(".")) {
-        if (cur == null) return void 0;
-        cur = cur[key];
-      }
-      return Array.isArray(cur) ? cur : void 0;
-    };
-    return walk(this.dict) || walk(DEFAULT) || [];
-  }
-  /**
-   * Přeloží tečkovou cestu. Volitelné `vars` nahradí {placeholder}y.
-   * @param {string} path e.g. 'pagination.of'
-   * @param {object} [vars]
-   */
-  t(path, vars) {
-    let s = lookup(this.dict, path);
-    if (s === void 0) s = lookup(DEFAULT, path);
-    if (s === void 0) return path;
-    if (vars) {
-      s = String(s).replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m);
-    }
-    return s;
-  }
-};
-function lookup(obj, path) {
-  let cur = obj;
-  for (const key of path.split(".")) {
-    if (cur == null || typeof cur !== "object") return void 0;
-    cur = cur[key];
-  }
-  return typeof cur === "string" ? cur : void 0;
-}
-
-// src/features/lightbox.js
-function openLightbox(src, alt) {
-  const img = el("img.lattice-lightbox-img", { src, alt: alt || "" });
-  img.addEventListener("click", (e) => e.stopPropagation());
-  const closeBtn = el("button.lattice-lightbox-close", { type: "button", text: "\xD7", title: "Zav\u0159\xEDt" });
-  const overlay = el("div.lattice-lightbox", {}, [img, closeBtn]);
-  const close = () => {
-    overlay.remove();
-    document.removeEventListener("keydown", onKey);
-  };
-  const onKey = (e) => {
-    if (e.key === "Escape") close();
-  };
-  overlay.addEventListener("click", close);
-  closeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    close();
-  });
-  document.body.appendChild(overlay);
-  document.addEventListener("keydown", onKey);
-  return close;
-}
+var SUMMARY_SYMBOL = { sum: "\u03A3", avg: "\u2300", min: "min", max: "max", count: "#" };
 
 // src/core/format.js
 var DEFAULT_FORMATS = {
@@ -3917,626 +2199,6 @@ function formatDate(d, pattern, i18n) {
     return v == null ? tok : String(v);
   });
 }
-
-// src/types/columnTypes.js
-function effFmt(col, kind) {
-  if (col._fmt) return col._fmt;
-  return { ...DEFAULT_FORMATS[kind], ...col.formatterParams || {} };
-}
-function negText(r) {
-  if (!r.red) return r.text;
-  const span = document.createElement("span");
-  span.className = "lattice-num-neg";
-  span.textContent = r.text;
-  return span;
-}
-var registry2 = /* @__PURE__ */ new Map();
-function registerType(name, formatter) {
-  registry2.set(name, formatter);
-}
-function getFormatter(column) {
-  if (typeof column.formatter === "function") return column.formatter;
-  return registry2.get(column.type) || registry2.get("text");
-}
-function toNumber2(v) {
-  if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function toDate3(v) {
-  if (v == null || v === "") return null;
-  const d = v instanceof Date ? v : new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-registerType("text", (v) => v == null ? "" : String(v));
-registerType("id", (v) => v == null ? "" : String(v));
-registerType("number", (v, col) => {
-  const n = toNumber2(v);
-  if (n == null) return "";
-  return negText(formatNumber(n, effFmt(col, "number")));
-});
-registerType("money", (v, col) => {
-  const n = toNumber2(v);
-  if (n == null) return "";
-  return negText(formatMoney(n, effFmt(col, "money")));
-});
-registerType("date", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
-});
-registerType("datetime", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
-});
-registerType("time", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
-});
-function boolDisplay(col) {
-  const p = col && col.format || col && col.formatterParams || {};
-  return {
-    trueText: p.trueText != null ? p.trueText : "\u2713",
-    falseText: p.falseText != null ? p.falseText : "\u2715",
-    plain: !!p.plain
-  };
-}
-function isTruthy(v) {
-  if (v === true || v === 1) return true;
-  if (typeof v === "string") {
-    const s = v.trim().toLowerCase();
-    return s === "1" || s === "true" || s === "ano" || s === "yes";
-  }
-  return false;
-}
-registerType("boolean", (v, col) => {
-  const truthy = isTruthy(v);
-  const d = boolDisplay(col);
-  const span = document.createElement("span");
-  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false") + (d.plain ? " is-plain" : "");
-  span.textContent = truthy ? d.trueText : d.falseText;
-  return span;
-});
-registerType("progress", (v, col) => {
-  const p = col.formatterParams || {};
-  const max = p.max != null ? p.max : 100;
-  const n = toNumber2(v) ?? 0;
-  const pct = Math.max(0, Math.min(100, n / max * 100));
-  const wrap = document.createElement("div");
-  wrap.className = "lattice-progress";
-  wrap.title = max === 100 ? `${Math.round(pct)} %` : `${Math.round(n)} / ${max}`;
-  const bar = document.createElement("div");
-  bar.className = "lattice-progress-bar";
-  bar.style.width = pct + "%";
-  if (p.color) bar.style.background = p.color;
-  wrap.appendChild(bar);
-  if (p.showValue) {
-    const label = document.createElement("span");
-    label.className = "lattice-progress-label";
-    label.textContent = Math.round(pct) + " %";
-    wrap.appendChild(label);
-  }
-  return wrap;
-});
-registerType("sparkline", (v, col) => {
-  const p = col.formatterParams || {};
-  let nums = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;\s]+/) : [];
-  nums = nums.map(toNumber2).filter((x) => x != null);
-  if (!nums.length) return "";
-  const NS = "http://www.w3.org/2000/svg";
-  const w = p.width || 80, h = p.height || 22, pad4 = 2;
-  const iw = w - pad4 * 2, ih = h - pad4 * 2;
-  const min = p.min != null ? p.min : Math.min(...nums);
-  const max = p.max != null ? p.max : Math.max(...nums);
-  const span = max - min || 1;
-  const X = (i) => pad4 + (nums.length === 1 ? iw / 2 : i / (nums.length - 1) * iw);
-  const Y = (val) => pad4 + ih - (val - min) / span * ih;
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "lattice-sparkline");
-  svg.setAttribute("width", w);
-  svg.setAttribute("height", h);
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-  if (p.color) svg.style.color = p.color;
-  const mk = (tag, attrs) => {
-    const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]);
-    return e;
-  };
-  if (p.type === "bar") {
-    const bw = iw / nums.length;
-    nums.forEach((val, i) => {
-      const bh = Math.max(0.5, (val - min) / span * ih);
-      svg.appendChild(mk("rect", { x: (pad4 + i * bw + bw * 0.1).toFixed(1), y: (pad4 + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: "currentColor" }));
-    });
-  } else {
-    const d = nums.map((val, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(val).toFixed(1)).join(" ");
-    if (p.fill) svg.appendChild(mk("path", { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad4 + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad4 + ih).toFixed(1)} Z`, fill: "currentColor", opacity: "0.15" }));
-    svg.appendChild(mk("path", { d, fill: "none", stroke: "currentColor", "stroke-width": p.strokeWidth || 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
-    if (p.dot !== false) svg.appendChild(mk("circle", { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: "1.6", fill: "currentColor" }));
-  }
-  const wrap = document.createElement("span");
-  wrap.className = "lattice-sparkline-wrap";
-  wrap.title = nums.join(", ");
-  wrap.appendChild(svg);
-  return wrap;
-});
-registerType("link", (v, col, row) => {
-  if (v == null || v === "") return "";
-  const p = col.formatterParams || {};
-  const a = document.createElement("a");
-  a.className = "lattice-link";
-  if (typeof p.url === "function") {
-    a.href = String(p.url(v, row, col) ?? "");
-  } else {
-    const base = p.urlField != null && row ? row[p.urlField] : v;
-    a.href = (p.urlPrefix || "") + String(base ?? "") + (p.urlSuffix || "");
-  }
-  a.textContent = p.label != null ? p.label : String(v);
-  let target = p.target;
-  if (target == null) target = col._linkNewTab ? "_blank" : "_self";
-  if (target === "_blank") {
-    a.target = "_blank";
-    a.rel = p.rel || "noopener noreferrer";
-    a.appendChild(extLinkIcon());
-  } else if (target && target !== "_self") {
-    a.target = target;
-  }
-  return a;
-});
-function extLinkIcon() {
-  const s = document.createElement("span");
-  s.className = "lattice-link-ext";
-  s.setAttribute("aria-hidden", "true");
-  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
-  return s;
-}
-registerType("image", (v, col) => {
-  if (v == null || v === "") return "";
-  const p = col.formatterParams || {};
-  const img = document.createElement("img");
-  img.className = "lattice-img";
-  img.src = String(v);
-  img.loading = "lazy";
-  img.alt = p.alt || "";
-  const dim = (x) => typeof x === "number" ? x + "px" : x;
-  if (p.height) img.style.height = dim(p.height);
-  if (p.width) img.style.width = dim(p.width);
-  if (p.lightbox !== false) {
-    img.classList.add("is-zoomable");
-    img.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openLightbox(String(v), p.alt);
-    });
-  }
-  return img;
-});
-registerType("icon", (v, col) => {
-  const p = col.formatterParams || {};
-  let g = v;
-  if (p.icons && v != null && Object.prototype.hasOwnProperty.call(p.icons, v)) g = p.icons[v];
-  if (g == null || g === "") return "";
-  g = String(g);
-  const span = document.createElement("span");
-  span.className = "lattice-icon";
-  if (/^(https?:|data:)/.test(g)) {
-    const img = document.createElement("img");
-    img.className = "lattice-icon-img";
-    img.src = g;
-    img.alt = p.alt || "";
-    span.appendChild(img);
-  } else {
-    span.textContent = g;
-  }
-  if (p.size) span.style.fontSize = typeof p.size === "number" ? p.size + "px" : p.size;
-  if (p.title != null) span.title = String(p.title);
-  return span;
-});
-registerType("color", (v) => {
-  const div = document.createElement("div");
-  div.className = "lattice-color-fill";
-  if (v != null && v !== "") div.style.background = String(v);
-  div.title = v != null ? String(v) : "";
-  return div;
-});
-registerType("tick", (v, col) => {
-  if (!isTruthy(v)) return "";
-  const d = boolDisplay(col);
-  const span = document.createElement("span");
-  span.className = "lattice-bool is-true" + (d.plain ? " is-plain" : "");
-  span.textContent = d.trueText;
-  return span;
-});
-registerType("html", (v) => {
-  const span = document.createElement("span");
-  span.innerHTML = v == null ? "" : String(v);
-  return span;
-});
-registerType("rating", (v, col) => {
-  const p = col.formatterParams || {};
-  const max = p.max != null ? p.max : 5;
-  const n = Math.round(toNumber2(v) ?? 0);
-  const wrap = document.createElement("span");
-  wrap.className = "lattice-rating";
-  wrap.title = `${n} / ${max}`;
-  for (let i = 1; i <= max; i++) {
-    const star = document.createElement("span");
-    star.className = "lattice-star " + (i <= n ? "is-on" : "is-off");
-    star.textContent = "\u2605";
-    wrap.appendChild(star);
-  }
-  return wrap;
-});
-
-// src/features/resize.js
-function attachResize(handle, col, grid) {
-  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
-  const onMove = (e) => {
-    if (!dragging) return;
-    const w = Math.max(col.minWidth, Math.round(startWidth + (e.clientX - startX)));
-    pending = w;
-    if (guide) {
-      moveGuide(guide, startX + (w - startWidth) - tableLeft);
-    } else {
-      col.width = w;
-      grid.renderer.applyLayout();
-    }
-  };
-  const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    document.removeEventListener("mousemove", onMove);
-    document.removeEventListener("mouseup", onUp);
-    document.body.classList.remove("lattice-resizing");
-    if (guide) {
-      col.width = pending;
-      grid.renderer.applyLayout();
-      removeGuide(guide);
-      guide = null;
-    }
-    grid.saveState();
-  };
-  handle.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startX = e.clientX;
-    startWidth = grid.renderer.layout?.widths.get(col.field) ?? col.width;
-    pending = startWidth;
-    dragging = true;
-    document.body.classList.add("lattice-resizing");
-    if (grid.instance.resizeGuide) {
-      tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left;
-      guide = createGuide(grid, startX - tableLeft);
-    }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  });
-  handle.addEventListener("dblclick", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const w = measureColumnWidth(col, grid);
-    if (w) {
-      col.width = w;
-      grid.renderer.applyLayout();
-      grid.saveState();
-    }
-  });
-}
-function attachRowNumberResize(handle, grid) {
-  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
-  const onMove = (e) => {
-    if (!dragging) return;
-    const w = Math.max(36, Math.round(startWidth + (e.clientX - startX)));
-    pending = w;
-    if (guide) moveGuide(guide, startX + (w - startWidth) - tableLeft);
-    else {
-      grid.instance.rowNumberWidth = w;
-      grid.renderer.applyLayout();
-    }
-  };
-  const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
-    document.removeEventListener("mousemove", onMove);
-    document.removeEventListener("mouseup", onUp);
-    document.body.classList.remove("lattice-resizing");
-    if (guide) {
-      grid.instance.rowNumberWidth = pending;
-      grid.renderer.applyLayout();
-      removeGuide(guide);
-      guide = null;
-    }
-    grid.saveState();
-  };
-  handle.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startX = e.clientX;
-    startWidth = grid.renderer.layout?.widths.get("__rownum__") ?? 50;
-    pending = startWidth;
-    dragging = true;
-    document.body.classList.add("lattice-resizing");
-    if (grid.instance.resizeGuide) {
-      tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left;
-      guide = createGuide(grid, startX - tableLeft);
-    }
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  });
-  handle.addEventListener("dblclick", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    grid.instance.rowNumberWidth = null;
-    grid.saveState();
-    grid.renderer.applyLayout();
-  });
-}
-function createGuide(grid, x) {
-  const table = grid.renderer.nodes.table;
-  const g = document.createElement("div");
-  g.className = "lattice-resize-guide";
-  g.style.height = table.offsetHeight + "px";
-  g.style.left = x + "px";
-  table.appendChild(g);
-  return g;
-}
-function moveGuide(guide, x) {
-  guide.style.left = x + "px";
-}
-function removeGuide(guide) {
-  guide.remove();
-}
-function measureColumnWidth(col, grid) {
-  const table = grid.renderer.nodes.table;
-  const hcell = table.querySelector(`.lattice-hcell[data-field="${cssEscape(col.field)}"]`);
-  const cells = table.querySelectorAll(`.lattice-cell[data-field="${cssEscape(col.field)}"]`);
-  const host = grid.renderer.nodes.root || table;
-  const meas = document.createElement("div");
-  meas.setAttribute("aria-hidden", "true");
-  meas.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;";
-  host.appendChild(meas);
-  const cellH = cells[0]?.clientHeight || 0;
-  const rot = col.headerRotate != null ? col.headerRotate : grid.instance.headerRotate;
-  const rotated = rot === "90" || rot === "270";
-  const wrapHeader = grid.instance.wrapHeader === true && !rotated;
-  let max = 0;
-  try {
-    if (hcell) {
-      const one = measureRendered(meas, hcell, cellH);
-      max = Math.max(max, wrapHeader ? measureWrappedHeaderWidth(meas, hcell, one) : one);
-    }
-    for (const cell of cells) max = Math.max(max, measureRendered(meas, cell, cellH));
-  } finally {
-    meas.remove();
-  }
-  const RESERVE = 4;
-  let w = Math.ceil(max) + RESERVE;
-  if (col.minWidth) w = Math.max(w, col.minWidth);
-  if (col.maxWidth) w = Math.min(w, col.maxWidth);
-  return w;
-}
-function measureRendered(meas, srcNode, cellH) {
-  const clone2 = srcNode.cloneNode(true);
-  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
-  const s = clone2.style;
-  s.width = "auto";
-  s.maxWidth = "none";
-  s.minWidth = "0";
-  s.flex = "0 0 auto";
-  s.display = "inline-flex";
-  s.alignItems = "center";
-  s.whiteSpace = "nowrap";
-  s.overflow = "visible";
-  s.textOverflow = "clip";
-  if (cellH) s.height = cellH + "px";
-  clone2.querySelectorAll?.(".lattice-link").forEach((a) => {
-    a.style.width = "auto";
-    a.style.display = "inline-flex";
-  });
-  meas.appendChild(clone2);
-  const w = clone2.getBoundingClientRect().width;
-  meas.removeChild(clone2);
-  return w;
-}
-function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
-  const clone2 = hcell.cloneNode(true);
-  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
-  const title = clone2.querySelector(".lattice-hcell-title");
-  const s = clone2.style;
-  s.maxWidth = "none";
-  s.minWidth = "0";
-  s.flex = "0 0 auto";
-  s.display = "flex";
-  s.alignItems = "center";
-  s.overflow = "visible";
-  s.height = "auto";
-  if (title) {
-    title.style.whiteSpace = "normal";
-    title.style.overflowWrap = "break-word";
-    title.style.overflow = "visible";
-  }
-  meas.appendChild(clone2);
-  try {
-    clone2.style.width = Math.ceil(oneLineWidth) + "px";
-    const oneLineH = clone2.getBoundingClientRect().height;
-    if (!oneLineH) return Math.ceil(oneLineWidth);
-    const limit = oneLineH * 2 - 1;
-    let lo = 24;
-    if (title) {
-      const saved = title.style.overflowWrap;
-      title.style.overflowWrap = "normal";
-      clone2.style.width = "min-content";
-      lo = Math.ceil(clone2.getBoundingClientRect().width);
-      title.style.overflowWrap = saved;
-    }
-    let hi = Math.ceil(oneLineWidth);
-    if (lo >= hi) return hi;
-    for (let i = 0; i < 14 && lo < hi; i++) {
-      const mid = lo + hi >> 1;
-      clone2.style.width = mid + "px";
-      if (clone2.getBoundingClientRect().height <= limit) hi = mid;
-      else lo = mid + 1;
-    }
-    return hi;
-  } finally {
-    meas.removeChild(clone2);
-  }
-}
-
-// src/features/columnDrag.js
-function attachHeaderDrag(cell, col, grid) {
-  cell.draggable = true;
-  cell.addEventListener("dragstart", (e) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", col.field);
-    grid._dragField = col.field;
-    cell.classList.add("is-dragging");
-  });
-  cell.addEventListener("dragend", () => {
-    cell.classList.remove("is-dragging");
-    grid._dragField = null;
-    clearIndicators(grid);
-  });
-  cell.addEventListener("dragover", (e) => {
-    if (!grid._dragField || grid._dragField === col.field) return;
-    if (!dropAllowed(grid, col)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    const before = isBefore(e, cell);
-    clearIndicators(grid);
-    cell.classList.add(before ? "drop-before" : "drop-after");
-  });
-  cell.addEventListener("drop", (e) => {
-    e.preventDefault();
-    const from = grid._dragField || e.dataTransfer.getData("text/plain");
-    if (!from || from === col.field || !dropAllowed(grid, col)) return;
-    grid.moveColumn(from, col.field, isBefore(e, cell) ? "before" : "after");
-    clearIndicators(grid);
-  });
-}
-function dropAllowed(grid, targetCol) {
-  const dragged = grid.columns.find((c) => c.field === grid._dragField);
-  if (!dragged) return false;
-  const dg = dragged.group || null;
-  return dg === null || dg === (targetCol.group || null);
-}
-function attachGroupDrag(cell, groupTitle, grid) {
-  const fields = () => (cell.dataset.fields || "").split(",").filter(Boolean);
-  if (groupTitle) cell.draggable = true;
-  cell.addEventListener("dragstart", (e) => {
-    if (!groupTitle) {
-      e.preventDefault();
-      return;
-    }
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = "move";
-    grid._dragGroup = groupTitle;
-    cell.classList.add("is-dragging");
-  });
-  cell.addEventListener("dragend", () => {
-    cell.classList.remove("is-dragging");
-    grid._dragGroup = null;
-    clearGroupIndicators(grid);
-  });
-  cell.addEventListener("dragover", (e) => {
-    if (!grid._dragGroup || grid._dragGroup === groupTitle) return;
-    const f = fields();
-    if (!f.length) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    const before = isBefore(e, cell);
-    clearGroupIndicators(grid);
-    cell.classList.add(before ? "drop-before" : "drop-after");
-  });
-  cell.addEventListener("drop", (e) => {
-    if (!grid._dragGroup || grid._dragGroup === groupTitle) return;
-    e.preventDefault();
-    const f = fields();
-    clearGroupIndicators(grid);
-    if (!f.length) return;
-    const before = isBefore(e, cell);
-    const targetField = before ? f[0] : f[f.length - 1];
-    grid.moveGroup(grid._dragGroup, targetField, before ? "before" : "after");
-  });
-}
-function isBefore(e, cell) {
-  const r = cell.getBoundingClientRect();
-  return e.clientX < r.left + r.width / 2;
-}
-function clearIndicators(grid) {
-  const root = grid.renderer?.nodes?.headerRow;
-  if (!root) return;
-  for (const c of root.querySelectorAll(".drop-before, .drop-after")) {
-    c.classList.remove("drop-before", "drop-after");
-  }
-}
-function clearGroupIndicators(grid) {
-  const root = grid.renderer?.nodes?.groupRow;
-  if (!root) return;
-  for (const c of root.querySelectorAll(".drop-before, .drop-after")) {
-    c.classList.remove("drop-before", "drop-after");
-  }
-}
-
-// src/features/summary.js
-var NUMERIC_TYPES = ["number", "money", "progress", "rating"];
-function isNumericType(type) {
-  return NUMERIC_TYPES.includes(type);
-}
-var SUMMARY_ORDER = ["sum", "avg", "min", "max", "count"];
-function availableSummaries(col) {
-  return isNumericType(col.type) ? SUMMARY_ORDER.slice() : ["count"];
-}
-function toNum(v) {
-  if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function nonNull(v) {
-  return v != null && v !== "";
-}
-function computeSummary(fn, col, rows) {
-  if (fn === "count") return rows.reduce((a, r) => a + (nonNull(cellValue(r, col)) ? 1 : 0), 0);
-  const nums = [];
-  for (const r of rows) {
-    const n = toNum(cellValue(r, col));
-    if (n != null) nums.push(n);
-  }
-  if (!nums.length) return null;
-  switch (fn) {
-    case "min":
-      return Math.min(...nums);
-    case "max":
-      return Math.max(...nums);
-    case "sum":
-      return nums.reduce((a, b) => a + b, 0);
-    case "avg":
-      return nums.reduce((a, b) => a + b, 0) / nums.length;
-    default:
-      return null;
-  }
-}
-function computeRowSummary(fn, cols, row) {
-  if (fn === "count") return cols.reduce((a, c) => a + (nonNull(cellValue(row, c)) ? 1 : 0), 0);
-  const nums = [];
-  for (const c of cols) {
-    const n = toNum(cellValue(row, c));
-    if (n != null) nums.push(n);
-  }
-  if (!nums.length) return null;
-  switch (fn) {
-    case "min":
-      return Math.min(...nums);
-    case "max":
-      return Math.max(...nums);
-    case "sum":
-      return nums.reduce((a, b) => a + b, 0);
-    case "avg":
-      return nums.reduce((a, b) => a + b, 0) / nums.length;
-    default:
-      return null;
-  }
-}
-var SUMMARY_SYMBOL = { sum: "\u03A3", avg: "\u2300", min: "min", max: "max", count: "#" };
 
 // src/core/colorScale.js
 var DEFAULT_SCALE_COLORS = ["#e5534b", "#f2c037", "#42a05a"];
@@ -6437,68 +4099,2562 @@ var AL_CENTER_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden
 var AL_RIGHT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM6 7h8v2H6zM2 11h12v2H2z"/></svg>';
 var FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';
 
-// src/features/menu.js
-function openMenu(anchor, items, onPick, opts = {}) {
-  document.querySelectorAll(".lattice-menu").forEach((m) => m.remove());
-  const menu = buildMenu(items, () => close(), onPick, opts);
-  document.body.appendChild(menu);
-  positionUnder(menu, anchor);
-  const off = onOutside(menu, (e) => {
-    if (opts.multi || !anchor.contains(e.target)) close();
-  });
-  function close() {
-    off();
-    menu.remove();
-  }
-  return close;
+// src/filters/index.js
+var registry = /* @__PURE__ */ new Map();
+function registerFilter(name, def) {
+  registry.set(name, def);
 }
-function openMenuAt(x, y, items, onPick) {
-  document.querySelectorAll(".lattice-menu").forEach((m) => m.remove());
-  const menu = buildMenu(items, () => close(), onPick);
-  menu.style.visibility = "hidden";
-  document.body.appendChild(menu);
-  const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
-  const left = Math.min(x, window.scrollX + vw - menu.offsetWidth - 8);
-  const top = Math.min(y, window.scrollY + vh - menu.offsetHeight - 8);
-  menu.style.position = "absolute";
-  menu.style.left = Math.max(8, left) + "px";
-  menu.style.top = Math.max(8, top) + "px";
-  menu.style.visibility = "";
-  const off = onOutside(menu, () => close());
-  function close() {
-    off();
-    menu.remove();
-  }
-  return close;
+function getFilter(name) {
+  return registry.get(name) || null;
 }
-function buildMenu(items, close, onPick, opts = {}) {
-  const multi = !!opts.multi;
-  const menu = el("div.lattice-menu" + (multi ? ".lattice-menu-multi" : ""));
-  for (const it of items) {
-    if (it.separator) {
-      menu.appendChild(el("div.lattice-menu-sep"));
-      continue;
+function toNumber(v) {
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function toTime(v) {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  const t = d.getTime();
+  return Number.isNaN(t) ? null : t;
+}
+function dayTime(v) {
+  const t = toTime(v);
+  if (t == null) return null;
+  const d = new Date(t);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+function norm2(s) {
+  return String(s ?? "").toLowerCase();
+}
+function normOption(o) {
+  if (o != null && typeof o === "object") return { value: String(o.value), label: String(o.label != null ? o.label : o.value) };
+  return { value: String(o), label: String(o) };
+}
+function sortOptions(opts, column, ctx) {
+  if (column.filterSort === false) return opts;
+  const locale = ctx.i18n && ctx.i18n.locale;
+  return opts.slice().sort((a, b) => a.label.localeCompare(b.label, locale, { numeric: true }));
+}
+function fetchOptions(column, ctx) {
+  if (Array.isArray(column.filterValues)) return Promise.resolve(sortOptions(column.filterValues.map(normOption), column, ctx));
+  if (column.filterUrl && ctx.fetchJson) {
+    return ctx.fetchJson(column.filterUrl).then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx)).catch(() => []);
+  }
+  if (typeof ctx.distinctValues === "function") return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
+  return Promise.resolve([]);
+}
+registerFilter("text", {
+  build(column, ctx) {
+    const input = el("input.lattice-filter-input", {
+      type: "text",
+      placeholder: ctx.i18n.t("filters.search"),
+      title: ctx.i18n.t("filters.negateHint"),
+      value: ctx.value ?? ""
+    });
+    const clear2 = el("button.lattice-filter-clear", { type: "button", tabindex: "-1", title: ctx.i18n.t("filters.clearOne"), text: "\xD7" });
+    const sync = () => {
+      clear2.style.display = input.value ? "" : "none";
+    };
+    sync();
+    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
+    input.addEventListener("input", () => {
+      sync();
+      fire(input.value);
+    });
+    clear2.addEventListener("mousedown", (e) => e.preventDefault());
+    clear2.addEventListener("click", () => {
+      input.value = "";
+      sync();
+      ctx.onChange("");
+      input.focus();
+    });
+    return el("div.lattice-filter-clearable", {}, [input, clear2]);
+  },
+  isEmpty: (v) => !v || String(v).trim() === "",
+  match(value, cell) {
+    const raw = String(value).trim();
+    const negate = raw.startsWith("!");
+    const needle = norm2(negate ? raw.slice(1) : raw);
+    if (needle === "") return true;
+    const has = norm2(cell).includes(needle);
+    return negate ? !has : has;
+  },
+  toServer: (field2, value) => [{ field: field2, type: "like", value }]
+});
+registerFilter("number", {
+  build(column, ctx) {
+    const input = el("input.lattice-filter-input", {
+      type: "text",
+      placeholder: "=, >, <\u2026",
+      value: ctx.value ?? ""
+    });
+    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
+    input.addEventListener("input", () => fire(input.value));
+    return input;
+  },
+  isEmpty: (v) => !v || String(v).trim() === "",
+  match(value, cell) {
+    const m = String(value).trim().match(/^(>=|<=|>|<|=)?\s*(.+)$/);
+    if (!m) return true;
+    const op = m[1] || "=";
+    const target = toNumber(m[2]);
+    const n = toNumber(cell);
+    if (target == null || n == null) return false;
+    switch (op) {
+      case ">":
+        return n > target;
+      case "<":
+        return n < target;
+      case ">=":
+        return n >= target;
+      case "<=":
+        return n <= target;
+      default:
+        return n === target;
     }
-    const cls = [it.active ? "is-active" : "", it.disabled ? "is-disabled" : "", it.danger ? "is-danger" : ""].filter(Boolean).join(" ");
-    const row = el("div.lattice-menu-item" + (multi ? ".is-checkable" : ""), { class: cls });
-    if (multi) row.appendChild(el("span.lattice-menu-check", { "aria-hidden": "true" }));
-    row.appendChild(el("span.lattice-menu-label", { text: it.label }));
-    if (!it.disabled) {
-      row.addEventListener("click", (e) => {
-        if (multi) {
-          e.stopPropagation();
-          onPick(it.value, it);
-          const now = opts.isActive ? opts.isActive(it.value) : !row.classList.contains("is-active");
-          row.classList.toggle("is-active", now);
-        } else {
-          close();
-          onPick(it.value, it);
+  },
+  toServer(field2, value) {
+    const m = String(value).trim().match(/^(>=|<=|>|<|=)?\s*(.+)$/);
+    const op = m && m[1] || "=";
+    const val = m ? m[2] : value;
+    return [{ field: field2, type: op, value: val }];
+  }
+});
+registerFilter("number-range", {
+  build(column, ctx) {
+    const v = ctx.value || {};
+    const min = el("input.lattice-filter-input", { type: "number", placeholder: ctx.i18n.t("filters.from"), value: v.min ?? "" });
+    const max = el("input.lattice-filter-input", { type: "number", placeholder: ctx.i18n.t("filters.to"), value: v.max ?? "" });
+    const fire = debounce(() => ctx.onChange({ min: min.value || null, max: max.value || null }), ctx.debounceMs);
+    min.addEventListener("input", fire);
+    max.addEventListener("input", fire);
+    return stackedPair(ctx, min, max);
+  },
+  isEmpty: (v) => !v || v.min == null && v.max == null,
+  match(value, cell) {
+    const n = toNumber(cell);
+    if (n == null) return false;
+    const lo = toNumber(value.min);
+    const hi = toNumber(value.max);
+    if (lo != null && n < lo) return false;
+    if (hi != null && n > hi) return false;
+    return true;
+  },
+  toServer(field2, value) {
+    const out = [];
+    if (value.min != null && value.min !== "") out.push({ field: field2, type: ">=", value: value.min });
+    if (value.max != null && value.max !== "") out.push({ field: field2, type: "<=", value: value.max });
+    return out;
+  }
+});
+function stackedPair(ctx, fromInput, toInput) {
+  const row = (label, input) => el("label.lattice-stacked-row", {}, [el("span.lattice-stacked-lbl", { text: label }), input]);
+  return el("div.lattice-filter-stacked", {}, [row(ctx.i18n.t("filters.from"), fromInput), row(ctx.i18n.t("filters.to"), toInput)]);
+}
+function buildDatePair(ctx) {
+  const v = ctx.value || {};
+  const from = el("input.lattice-filter-input", { type: "date", value: v.from ?? "" });
+  const to = el("input.lattice-filter-input", { type: "date", value: v.to ?? "" });
+  return { from, to, wrap: stackedPair(ctx, from, to) };
+}
+registerFilter("date-range", {
+  build(column, ctx) {
+    return buildDateRangePicker(column, ctx);
+  },
+  isEmpty: (v) => !v || !v.from && !v.to,
+  match(value, cell) {
+    const t = dayTime(cell);
+    if (t == null) return false;
+    const lo = dayTime(resolveToken(value.from));
+    const hi = dayTime(resolveToken(value.to));
+    if (lo != null && t < lo) return false;
+    if (hi != null && t > hi) return false;
+    return true;
+  },
+  // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to" (tokeny rozvinuté na konkrétní datum)
+  toServer: (field2, value) => [{ field: field2, type: "dateRange", value: `${resolveToken(value.from) || ""}|${resolveToken(value.to) || ""}` }]
+});
+registerFilter("date-two", {
+  build(column, ctx) {
+    const { from, to, wrap } = buildDatePair(ctx);
+    const fire = () => ctx.onChange({ from: from.value || null, to: to.value || null });
+    from.addEventListener("change", fire);
+    to.addEventListener("change", fire);
+    return wrap;
+  },
+  isEmpty: (v) => !v || !v.from && !v.to,
+  match(value, cell) {
+    const t = dayTime(cell);
+    if (t == null) return false;
+    const lo = dayTime(value.from);
+    const hi = dayTime(value.to);
+    if (lo != null && t < lo) return false;
+    if (hi != null && t > hi) return false;
+    return true;
+  },
+  // DVĚ samostatná pole → dva parametry (jedno může chybět)
+  toServer(field2, value) {
+    const out = [];
+    if (value.from) out.push({ field: field2, type: ">=", value: value.from });
+    if (value.to) out.push({ field: field2, type: "<=", value: value.to });
+    return out;
+  }
+});
+var DYN_CLAUSE_RE = /^\s*(>=|<=|>|<|=)?\s*(.+)$/;
+function dynClause(str3) {
+  const m = String(str3).match(DYN_CLAUSE_RE);
+  if (!m) return null;
+  const target = dayTime(resolveToken(m[2].trim()));
+  if (target == null) return null;
+  return { op: m[1] || "=", target };
+}
+function dynParse(value) {
+  const groups = [];
+  for (const g of String(value).split(/\bOR\b|\|\|/i)) {
+    const clauses = g.split(/\bAND\b|&&/i).map(dynClause).filter(Boolean);
+    if (clauses.length) groups.push(clauses);
+  }
+  return groups;
+}
+function dynTest(t, c) {
+  switch (c.op) {
+    case ">":
+      return t > c.target;
+    case "<":
+      return t < c.target;
+    case ">=":
+      return t >= c.target;
+    case "<=":
+      return t <= c.target;
+    default:
+      return t === c.target;
+  }
+}
+var DYN_RECIPES = [
+  ["today", "=today"],
+  ["d7", ">=today-7 AND <=today"],
+  ["thisWeek", ">=sow AND <=eow"],
+  ["lastWeek", ">=sow-1w AND <=eow-1w"],
+  ["thisMonth", ">=som AND <=eom"],
+  ["lastMonth", ">=som-1m AND <=eom-1m"],
+  ["thisYear", ">=soy AND <=eoy"]
+];
+function openDynamicHelp(anchor, input, ctx) {
+  document.querySelectorAll(".lattice-dyn-pop").forEach((p) => p.remove());
+  const t = (k) => ctx.i18n.t(k);
+  const pop = el("div.lattice-panel.lattice-dyn-pop");
+  let off = null;
+  const close = () => {
+    off?.();
+    pop.remove();
+  };
+  pop.appendChild(el("div.lattice-dyn-pop-h", { text: t("filters.dynamicHelp.periods") }));
+  const chips = el("div.lattice-dyn-recipes");
+  for (const [key, expr] of DYN_RECIPES) {
+    const b = el("button.lattice-dyn-recipe", { type: "button", text: t("filters.dynamicHelp.r." + key), title: expr });
+    b.addEventListener("click", () => {
+      input.value = expr;
+      ctx.onChange(expr);
+      close();
+    });
+    chips.appendChild(b);
+  }
+  pop.appendChild(chips);
+  pop.appendChild(el("div.lattice-dyn-pop-h", { text: t("filters.dynamicHelp.syntax") }));
+  pop.appendChild(el("div.lattice-dyn-tokens", { text: t("filters.dynamicHelp.tokens") }));
+  document.body.appendChild(pop);
+  positionUnder(pop, anchor);
+  off = onOutside(pop, (e) => {
+    if (!anchor.contains(e.target)) close();
+  });
+}
+registerFilter("dynamic", {
+  build(column, ctx) {
+    const input = el("input.lattice-filter-input.lattice-dyn-input", {
+      type: "text",
+      placeholder: ctx.i18n.t("filters.dynamicPlaceholder"),
+      title: ctx.i18n.t("filters.dynamicHint"),
+      value: ctx.value ?? ""
+    });
+    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
+    input.addEventListener("input", () => fire(input.value));
+    const help = el("button.lattice-dyn-help", { type: "button", title: ctx.i18n.t("filters.dynamicHelp.title"), text: "?" });
+    help.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openDynamicHelp(help, input, ctx);
+    });
+    return el("div.lattice-dyn-wrap", {}, [input, help]);
+  },
+  isEmpty: (v) => !v || String(v).trim() === "",
+  match(value, cell) {
+    const t = dayTime(cell);
+    if (t == null) return false;
+    const groups = dynParse(value);
+    if (!groups.length) return true;
+    return groups.some((clauses) => clauses.every((c) => dynTest(t, c)));
+  },
+  toServer(field2, value) {
+    const orGroups = String(value).split(/\bOR\b|\|\|/i);
+    const multiOr = orGroups.length > 1;
+    const out = [];
+    orGroups.forEach((g, gi) => {
+      for (const s of g.split(/\bAND\b|&&/i)) {
+        const m = String(s).match(DYN_CLAUSE_RE);
+        if (!m) continue;
+        const operand = resolveToken(m[2].trim());
+        if (dayTime(operand) == null) continue;
+        const param = { field: field2, type: m[1] || "=", value: operand };
+        if (multiOr) {
+          param.combinator = "OR";
+          param.group = gi;
+        }
+        out.push(param);
+      }
+    });
+    return out;
+  }
+});
+registerFilter("select", {
+  build(column, ctx) {
+    return buildSelect(column, ctx);
+  },
+  isEmpty: (v) => v == null || v === "",
+  match: (value, cell) => norm2(cell) === norm2(value),
+  toServer: (field2, value) => [{ field: field2, type: "=", value }]
+});
+function buildSelect(column, ctx) {
+  let value = ctx.value != null && ctx.value !== "" ? String(ctx.value) : null;
+  let options = [];
+  let panel = null;
+  let closePanel = null;
+  const control = el("div.lattice-ms.lattice-ms-single", { tabindex: "0" });
+  const text = el("span.lattice-ms-text");
+  const caret = el("span.lattice-ms-caret", { html: CARET_SVG });
+  control.append(text, caret);
+  const labelFor = (v) => {
+    const o = options.find((o2) => o2.value === v);
+    return o ? o.label : v;
+  };
+  function renderText() {
+    clear(text);
+    if (value == null) {
+      text.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t("filters.all") }));
+    } else {
+      text.appendChild(el("span.lattice-ms-single-label", { text: labelFor(value) }));
+    }
+  }
+  function pick2(v) {
+    value = v;
+    renderText();
+    close();
+    ctx.onChange(value != null ? value : null);
+  }
+  function open() {
+    if (panel) return;
+    panel = el("div.lattice-ms-panel");
+    const search = el("input.lattice-ms-search", { type: "text", placeholder: ctx.i18n.t("filters.search") });
+    const list = el("div.lattice-ms-list");
+    panel._search = search;
+    panel._list = list;
+    search.addEventListener("input", () => renderPanelList(list, search.value));
+    panel.append(search, list);
+    document.body.appendChild(panel);
+    positionPanel(panel, control);
+    renderPanelList(list, "");
+    control.classList.add("is-open");
+    closePanel = onOutside(panel, (e) => {
+      if (!control.contains(e.target)) close();
+    });
+    search.focus();
+  }
+  function close() {
+    closePanel?.();
+    panel?.remove();
+    panel = null;
+    closePanel = null;
+    control.classList.remove("is-open");
+  }
+  function renderPanelList(list, q) {
+    clear(list);
+    const needle = (q || "").trim().toLowerCase();
+    const allRow = el("div.lattice-ms-option", { class: value == null ? "is-selected" : "" }, [
+      el("span.lattice-ms-check", { text: value == null ? "\u2713" : "" }),
+      el("span.lattice-ms-muted", { text: ctx.i18n.t("filters.all") })
+    ]);
+    allRow.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      pick2(null);
+    });
+    list.appendChild(allRow);
+    const shown = options.filter((o) => !needle || o.label.toLowerCase().includes(needle));
+    for (const o of shown) {
+      const on = value === o.value;
+      const row = el("div.lattice-ms-option", { class: on ? "is-selected" : "" }, [
+        el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
+        el("span", { text: o.label })
+      ]);
+      row.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        pick2(o.value);
+      });
+      list.appendChild(row);
+    }
+  }
+  control.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    panel ? close() : open();
+  });
+  control.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      panel ? close() : open();
+    }
+    if (e.key === "Escape") close();
+  });
+  fetchOptions(column, ctx).then((opts) => {
+    options = opts;
+    renderText();
+    if (panel) renderPanelList(panel._list, panel._search.value);
+  });
+  renderText();
+  return control;
+}
+registerFilter("multiselect", {
+  build(column, ctx) {
+    return buildMultiselect(column, ctx);
+  },
+  isEmpty: (v) => !Array.isArray(v) || v.length === 0,
+  match(value, cell) {
+    const set = value.map(norm2);
+    return set.includes(norm2(cell));
+  },
+  toServer: (field2, value) => [{ field: field2, type: "in", value }]
+});
+function buildMultiselect(column, ctx) {
+  let selected = Array.isArray(ctx.value) ? ctx.value.map(String) : [];
+  let options = [];
+  let panel = null;
+  let closePanel = null;
+  const control = el("div.lattice-ms", { tabindex: "0" });
+  const chips = el("div.lattice-ms-chips");
+  const caret = el("span.lattice-ms-caret", { html: CARET_SVG });
+  control.append(chips, caret);
+  const labelFor = (v) => {
+    const o = options.find((o2) => o2.value === v);
+    return o ? o.label : v;
+  };
+  function fire() {
+    ctx.onChange(selected.length ? selected.slice() : null);
+  }
+  function renderChips() {
+    clear(chips);
+    if (selected.length === 0) {
+      chips.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t("filters.all") }));
+      return;
+    }
+    for (const v of selected) {
+      const chip = el("span.lattice-ms-chip", {}, [
+        el("span.lattice-ms-chip-label", { text: labelFor(v) }),
+        el("span.lattice-ms-chip-x", {
+          text: "\xD7",
+          on: { mousedown: (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle(v);
+          } }
+        })
+      ]);
+      chips.appendChild(chip);
+    }
+    scheduleFit();
+  }
+  let fitScheduled = false;
+  function scheduleFit() {
+    if (fitScheduled) return;
+    fitScheduled = true;
+    requestAnimationFrame(() => {
+      fitScheduled = false;
+      if (chips.isConnected) fitChipsToTwoRows();
+    });
+  }
+  function fitChipsToTwoRows() {
+    const old = chips.querySelector(".lattice-ms-more");
+    if (old) old.remove();
+    const chipEls = [...chips.querySelectorAll(".lattice-ms-chip")];
+    for (const c of chipEls) c.style.display = "";
+    if (chipEls.length === 0) return;
+    const rowH = chipEls[0].offsetHeight || 18;
+    const twoRowsBottom = chipEls[0].offsetTop + rowH + rowH * 0.5;
+    const hiddenLabels = [];
+    for (const c of chipEls) {
+      if (c.offsetTop > twoRowsBottom) {
+        c.style.display = "none";
+        hiddenLabels.push(c.textContent.replace(/×$/, ""));
+      }
+    }
+    if (hiddenLabels.length === 0) return;
+    const more = el("span.lattice-ms-chip.lattice-ms-more");
+    chips.appendChild(more);
+    const setMore = () => {
+      more.textContent = "+" + hiddenLabels.length;
+      more.title = hiddenLabels.join(", ");
+    };
+    setMore();
+    let guard = 0;
+    while (more.offsetTop > twoRowsBottom && guard < chipEls.length) {
+      const visible = chipEls.filter((c) => c.style.display !== "none");
+      if (!visible.length) break;
+      const last = visible[visible.length - 1];
+      last.style.display = "none";
+      hiddenLabels.push(last.textContent.replace(/×$/, ""));
+      setMore();
+      guard++;
+    }
+  }
+  function toggle(v) {
+    v = String(v);
+    if (selected.includes(v)) selected = selected.filter((x) => x !== v);
+    else selected = [...selected, v];
+    renderChips();
+    if (panel) renderPanelList(panel._list, panel._search.value);
+    fire();
+  }
+  function open() {
+    if (panel) return;
+    panel = el("div.lattice-ms-panel");
+    const search = el("input.lattice-ms-search", { type: "text", placeholder: ctx.i18n.t("filters.search") });
+    const list = el("div.lattice-ms-list");
+    panel._search = search;
+    panel._list = list;
+    search.addEventListener("input", () => renderPanelList(list, search.value));
+    panel.append(search, list);
+    document.body.appendChild(panel);
+    positionPanel(panel, control);
+    renderPanelList(list, "");
+    control.classList.add("is-open");
+    closePanel = onOutside(panel, (e) => {
+      if (!control.contains(e.target)) close();
+    });
+    search.focus();
+  }
+  function close() {
+    closePanel?.();
+    panel?.remove();
+    panel = null;
+    closePanel = null;
+    control.classList.remove("is-open");
+  }
+  function renderPanelList(list, q) {
+    clear(list);
+    const needle = (q || "").trim().toLowerCase();
+    const shown = options.filter((o) => !needle || o.label.toLowerCase().includes(needle));
+    if (shown.length === 0) {
+      list.appendChild(el("div.lattice-ms-empty", { text: ctx.i18n.t("empty") }));
+      return;
+    }
+    for (const o of shown) {
+      const on = selected.includes(o.value);
+      const row = el("div.lattice-ms-option", { class: on ? "is-selected" : "" }, [
+        el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
+        el("span", { text: o.label })
+      ]);
+      row.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        toggle(o.value);
+      });
+      list.appendChild(row);
+    }
+  }
+  control.addEventListener("mousedown", (e) => {
+    if (e.target.closest(".lattice-ms-chip-x")) return;
+    e.preventDefault();
+    panel ? close() : open();
+  });
+  control.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      panel ? close() : open();
+    }
+    if (e.key === "Escape") close();
+  });
+  fetchOptions(column, ctx).then((opts) => {
+    options = opts;
+    renderChips();
+    if (panel) renderPanelList(panel._list, panel._search.value);
+  });
+  renderChips();
+  return control;
+}
+function positionPanel(panel, control) {
+  const r = control.getBoundingClientRect();
+  panel.style.position = "absolute";
+  panel.style.top = window.scrollY + r.bottom + 2 + "px";
+  panel.style.left = window.scrollX + r.left + "px";
+  panel.style.minWidth = r.width + "px";
+}
+var CARET_SVG = '<svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path fill="currentColor" d="M0 0l5 6 5-6z"/></svg>';
+registerFilter("boolean", {
+  build(column, ctx) {
+    const select = el("select.lattice-filter-input", {}, [
+      el("option", { value: "", text: ctx.i18n.t("filters.all") }),
+      el("option", { value: "true", text: ctx.i18n.t("filters.yes") }),
+      el("option", { value: "false", text: ctx.i18n.t("filters.no") })
+    ]);
+    if (ctx.value != null) select.value = ctx.value;
+    select.addEventListener("change", () => ctx.onChange(select.value || null));
+    return select;
+  },
+  isEmpty: (v) => v == null || v === "",
+  match(value, cell) {
+    const truthy = cell === true || cell === 1 || cell === "1" || cell === "true";
+    return value === "true" ? truthy : !truthy;
+  },
+  toServer: (field2, value) => [{ field: field2, type: "=", value: value === "true" }]
+});
+
+// src/core/DataSource.js
+var COLLATOR = new Intl.Collator(void 0, { numeric: true, sensitivity: "base" });
+var ClientData = class {
+  constructor(data = []) {
+    this.data = Array.isArray(data) ? data.slice() : [];
+    this._searchCache = /* @__PURE__ */ new WeakMap();
+    this._searchSig = "";
+  }
+  setData(data) {
+    this.data = Array.isArray(data) ? data.slice() : [];
+    this._filtered = null;
+    this._searchCache = /* @__PURE__ */ new WeakMap();
+  }
+  /** Celá filtrovaná+seřazená sada (pro souhrn nad všemi řádky). */
+  allRows() {
+    return this._filtered || this.data;
+  }
+  /* ---- granulární mutace (pro grid.addRow/updateRow/deleteRow/updateData) ---- */
+  addRow(row, atStart = false) {
+    if (atStart) this.data.unshift(row);
+    else this.data.push(row);
+    this._filtered = null;
+    return row;
+  }
+  /** Vloží řádek na konkrétní index (clamp do rozsahu). Pro undo smazání. */
+  insertRow(row, index) {
+    const i = index == null ? this.data.length : Math.max(0, Math.min(index, this.data.length));
+    this.data.splice(i, 0, row);
+    this._filtered = null;
+    return row;
+  }
+  /** Najde řádek dle keyField (porovnání odolné na number vs string) a sloučí patch. */
+  updateRow(keyField, key, patch) {
+    const k = String(key);
+    const r = this.data.find((x) => x && String(x[keyField]) === k);
+    if (r) {
+      Object.assign(r, patch);
+      this._filtered = null;
+      this._searchCache.delete(r);
+    }
+    return r || null;
+  }
+  deleteRow(keyField, key) {
+    const k = String(key);
+    const i = this.data.findIndex((x) => x && String(x[keyField]) === k);
+    if (i >= 0) {
+      this.data.splice(i, 1);
+      this._filtered = null;
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Přeuspořádá plochá data: přesune řádek dragKey před/za targetKey. Když je
+   * daný orderField, přečísluje ho (1..n) a vrátí změněné řádky; jinak vrací
+   * jen přesunutý řádek. Vrací null, když přesun není platný.
+   */
+  moveRow(keyField, dragKey, targetKey, zone, orderField) {
+    const from = this.data.findIndex((r) => r && String(r[keyField]) === String(dragKey));
+    if (from < 0) return null;
+    const [moved] = this.data.splice(from, 1);
+    let to = this.data.findIndex((r) => r && String(r[keyField]) === String(targetKey));
+    if (to < 0) {
+      this.data.splice(from, 0, moved);
+      return null;
+    }
+    this.data.splice(zone === "after" ? to + 1 : to, 0, moved);
+    this._filtered = null;
+    if (orderField) {
+      const changed = [];
+      this.data.forEach((r, i) => {
+        if (r[orderField] !== i + 1) {
+          r[orderField] = i + 1;
+          changed.push(r);
         }
       });
+      return changed;
     }
-    menu.appendChild(row);
+    return [moved];
   }
-  return menu;
+  /** Hromadný upsert dle keyField: existující sloučí, nové přidá. Vrací dotčené řádky. */
+  upsertMany(keyField, rows) {
+    const index = /* @__PURE__ */ new Map();
+    this.data.forEach((r, i) => {
+      if (r) index.set(String(r[keyField]), i);
+    });
+    const affected = [];
+    for (const row of rows) {
+      const k = row != null ? String(row[keyField]) : null;
+      if (k != null && index.has(k)) {
+        const t = this.data[index.get(k)];
+        Object.assign(t, row);
+        affected.push(t);
+      } else if (row != null) {
+        index.set(k, this.data.push(row) - 1);
+        affected.push(row);
+      }
+    }
+    this._filtered = null;
+    for (const r of affected) this._searchCache.delete(r);
+    return affected;
+  }
+  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
+    const colByField = indexColumns(columns);
+    let rows = this.data;
+    rows = applyFilters(rows, filters, colByField);
+    if (universal && universal.field) rows = rows.filter((r) => evalCondition(universal, r));
+    if (advanced && !isEmptyTree(advanced)) rows = rows.filter((r) => evalGroup(advanced, r));
+    if (search && String(search).trim()) rows = this._quickSearch(rows, search, columns);
+    rows = applySort(rows, sort, colByField);
+    this._filtered = rows;
+    const total = rows.length;
+    const lastPage = paginate ? Math.max(1, Math.ceil(total / pageSize)) : 1;
+    if (paginate) {
+      const start = (page - 1) * pageSize;
+      rows = rows.slice(start, start + pageSize);
+    }
+    return { rows, total, lastPage, lastRow: total };
+  }
+  /**
+   * Rychlé hledání s cache: pro každý řádek se normalizovaný text (přes všechny
+   * prohledávané sloupce) spočítá jen jednou a uloží. Při psaní do vyhledávání
+   * se pak jen volá `.includes` — čtvrtý úhoz do klávesnice už netahá NFD/regex
+   * přes celý dataset. Cache se invaliduje při změně dat i množiny sloupců.
+   */
+  buildSearchIndex(columns) {
+    const cols = (columns || []).filter(searchableCol);
+    this._searchSig = cols.map((c) => c.field).join(",");
+    this._searchCache = /* @__PURE__ */ new WeakMap();
+    for (const row of this.data) {
+      this._searchCache.set(row, cols.map((c) => norm3(cellValue(row, c))).join(""));
+    }
+  }
+  _quickSearch(rows, search, columns) {
+    const needle = norm3(search).trim();
+    if (!needle) return rows;
+    const cols = (columns || []).filter(searchableCol);
+    const sig = cols.map((c) => c.field).join(",");
+    if (sig !== this._searchSig) {
+      this._searchCache = /* @__PURE__ */ new WeakMap();
+      this._searchSig = sig;
+    }
+    const cache = this._searchCache;
+    return rows.filter((row) => {
+      let text = cache.get(row);
+      if (text === void 0) {
+        text = cols.map((c) => norm3(cellValue(row, c))).join("");
+        cache.set(row, text);
+      }
+      return text.includes(needle);
+    });
+  }
+};
+function searchableCol(c) {
+  return c && c.field && c.visible !== false && !c._rownum && !c._select && !c._move && !c._actions && !c._actionsMenu && !c._rowsum;
+}
+function rowMatches(row, { filters, search, columns, universal, advanced } = {}) {
+  const colByField = indexColumns(columns);
+  for (const [field2, value] of Object.entries(filters || {})) {
+    const col = colByField.get(field2);
+    if (!col || !col.filter) continue;
+    const def = getFilter(col.filter);
+    if (!def || def.isEmpty(value)) continue;
+    if (!def.match(value, cellValue(row, col), row, col)) return false;
+  }
+  if (universal && universal.field && !evalCondition(universal, row)) return false;
+  if (advanced && !isEmptyTree(advanced) && !evalGroup(advanced, row)) return false;
+  if (search && String(search).trim()) {
+    const needle = norm3(search).trim();
+    const text = (columns || []).filter(searchableCol).map((c) => norm3(cellValue(row, c))).join("");
+    if (!text.includes(needle)) return false;
+  }
+  return true;
+}
+function indexColumns(columns) {
+  const m = /* @__PURE__ */ new Map();
+  for (const c of columns || []) m.set(c.field, c);
+  return m;
+}
+function norm3(s) {
+  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+function applyFilters(rows, filters, colByField) {
+  const active = [];
+  for (const [field2, value] of Object.entries(filters || {})) {
+    const col = colByField.get(field2);
+    if (!col || !col.filter) continue;
+    const def = getFilter(col.filter);
+    if (!def || def.isEmpty(value)) continue;
+    active.push({ field: field2, value, def, col });
+  }
+  if (!active.length) return rows;
+  return rows.filter(
+    (row) => active.every(({ value, def, col }) => def.match(value, cellValue(row, col), row, col))
+  );
+}
+function sortKind(type) {
+  if (type === "number" || type === "money" || type === "progress" || type === "rating") return "num";
+  if (type === "date" || type === "datetime" || type === "time") return "date";
+  if (type === "boolean") return "bool";
+  return "text";
+}
+function applySort(rows, sort, colByField) {
+  if (!sort || !sort.length) return rows;
+  const specs = sort.map(({ field: field2, dir }) => {
+    const col = colByField.get(field2) || { field: field2 };
+    return { col, sign: dir === "desc" ? -1 : 1, kind: sortKind(col.type) };
+  });
+  const decorated = rows.map((row, i) => {
+    const keys = specs.map((s) => {
+      const v = cellValue(row, s.col);
+      if (v == null || v === "") return null;
+      if (s.kind === "num") return num3(v);
+      if (s.kind === "date") return time(v);
+      if (s.kind === "bool") return bool2(v) ? 1 : 0;
+      return String(v);
+    });
+    return { row, keys, i };
+  });
+  decorated.sort((A, B) => {
+    for (let s = 0; s < specs.length; s++) {
+      const a = A.keys[s], b = B.keys[s];
+      let cmp3;
+      if (a == null && b == null) cmp3 = 0;
+      else if (a == null) cmp3 = -1;
+      else if (b == null) cmp3 = 1;
+      else if (typeof a === "number") cmp3 = a - b;
+      else cmp3 = COLLATOR.compare(a, b);
+      if (cmp3 !== 0) return specs[s].sign * cmp3;
+    }
+    return A.i - B.i;
+  });
+  return decorated.map((d) => d.row);
+}
+var num3 = (v) => Number(String(v).replace(/\s/g, "").replace(",", ".")) || 0;
+var time = (v) => {
+  const d = new Date(v);
+  const t = d.getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+var bool2 = (v) => v === true || v === 1 || v === "1" || v === "true";
+var ServerData = class {
+  /**
+   * @param {object} ajax
+   *   url: string (povinné)
+   *   method: 'GET'|'POST'  (default GET)
+   *   headers: object
+   *   params: object                 statické extra parametry
+   *   paramNames: { page,size,sort,filter,search,advanced }  přejmenování klíčů (default dle kontraktu)
+   *   resolveTokens: bool (default true)     rozvinout relativní datové tokeny v `advanced` před odesláním
+   *   requestBuilder(state) -> object        plný override skladby parametrů
+   *   responseParser(json) -> { rows,total,lastPage,lastRow }  plný override parsování
+   */
+  constructor(ajax = {}) {
+    if (!ajax.url) throw new Error("Lattice ServerData: chyb\xED `ajax.url`.");
+    this.ajax = ajax;
+    this.names = Object.assign({ page: "page", size: "size", sort: "sort", filter: "filter", search: "search", advanced: "advanced" }, ajax.paramNames);
+  }
+  async query({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
+    const state = { page, pageSize, paginate, sort, filters, advanced, universal, search, columns };
+    const params = this.ajax.requestBuilder ? this.ajax.requestBuilder(state) : this.buildParams(state);
+    const method = (this.ajax.method || "GET").toUpperCase();
+    let url = this.ajax.url;
+    const init = { method, headers: Object.assign({}, this.ajax.headers) };
+    if (method === "GET") {
+      const qs = encodeParams(params).toString();
+      url += (url.includes("?") ? "&" : "?") + qs;
+    } else {
+      init.headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(params);
+    }
+    const res = await fetch(url, init);
+    if (!res.ok) throw new Error(`Lattice: server vr\xE1til ${res.status}`);
+    const json = await res.json();
+    if (this.ajax.responseParser) return this.ajax.responseParser(json);
+    return this.parseResponse(json, pageSize);
+  }
+  buildParams({ page, pageSize, paginate, sort, filters, advanced, universal, search, columns }) {
+    const n = this.names;
+    const params = Object.assign({}, this.ajax.params);
+    if (search && String(search).trim()) params[n.search || "search"] = String(search).trim();
+    if (paginate) {
+      params[n.page] = page;
+      params[n.size] = pageSize;
+    }
+    if (sort && sort.length) {
+      params[n.sort] = sort.map((s) => ({ field: s.field, dir: s.dir }));
+    }
+    const flat = flattenFilters(filters, columns);
+    if (universal && universal.field && String(universal.value ?? "") !== "") {
+      flat.push({ field: universal.field, type: UNIVERSAL_SERVER_TYPE[universal.op] || universal.op, value: universal.value });
+    }
+    if (flat.length) params[n.filter] = flat;
+    if (advanced && !isEmptyTree(advanced)) {
+      const tree = this.ajax.resolveTokens === false ? advanced : resolveTreeTokens(advanced);
+      const method = (this.ajax.method || "GET").toUpperCase();
+      params[n.advanced || "advanced"] = method === "GET" ? JSON.stringify(tree) : tree;
+    }
+    return params;
+  }
+  parseResponse(json, pageSize) {
+    const data = Array.isArray(json) ? json : json.data || [];
+    const total = json.total != null ? json.total : json.last_row != null ? json.last_row : data.length;
+    const lastPage = json.last_page != null ? json.last_page : Math.max(1, Math.ceil(total / pageSize));
+    return { rows: data, total, lastPage, lastRow: json.last_row != null ? json.last_row : total };
+  }
+};
+var UNIVERSAL_SERVER_TYPE = { eq: "=", neq: "!=", lt: "<", lte: "<=", gt: ">", gte: ">=", contains: "like", ncontains: "!like" };
+function flattenFilters(filters, columns) {
+  const colByField = indexColumns(columns);
+  const out = [];
+  for (const [field2, value] of Object.entries(filters || {})) {
+    const col = colByField.get(field2);
+    if (!col || !col.filter) continue;
+    const def = getFilter(col.filter);
+    if (!def || def.isEmpty(value)) continue;
+    out.push(...def.toServer(field2, value, col));
+  }
+  return out;
+}
+function encodeParams(obj) {
+  const sp = new URLSearchParams();
+  const add = (key, val) => {
+    if (val == null) return;
+    if (Array.isArray(val)) {
+      val.forEach((v, i) => add(`${key}[${i}]`, v));
+    } else if (typeof val === "object") {
+      for (const [k, v] of Object.entries(val)) add(`${key}[${k}]`, v);
+    } else {
+      sp.append(key, val);
+    }
+  };
+  for (const [k, v] of Object.entries(obj)) add(k, v);
+  return sp;
+}
+
+// src/i18n/cs.js
+var cs_default = {
+  help: {
+    title: "N\xE1pov\u011Bda \u2014 otev\u0159\xEDt u\u017Eivatelskou p\u0159\xEDru\u010Dku"
+  },
+  cellFormat: {
+    title: "Form\xE1t bu\u0148ky",
+    align: "Zarovn\xE1n\xED",
+    style: "\u0158ez p\xEDsma",
+    bold: "Tu\u010Dn\xE9",
+    italic: "Kurz\xEDva",
+    underline: "Podtr\u017Een\xE9",
+    strike: "P\u0159e\u0161krtnut\xE9",
+    textColor: "Barva p\xEDsma",
+    bgColor: "Barva pozad\xED",
+    clear: "Zru\u0161it form\xE1t"
+  },
+  bool: {
+    title: "Zobrazen\xED Ano/Ne",
+    yes: "Ano",
+    no: "Ne",
+    customTrue: 'Vlastn\xED \u201Eano"',
+    customFalse: 'Vlastn\xED \u201Ene"',
+    colored: "Barevn\u011B (zelen\xE1/\u010Derven\xE1)",
+    reset: "V\xFDchoz\xED (\u2713/\u2715)"
+  },
+  headerColor: {
+    title: "Barva z\xE1hlav\xED",
+    tabWheel: "Kolo",
+    tabPalette: "Palety",
+    brightness: "Jas",
+    alpha: "Pr\u016Fhlednost",
+    recent: "Naposledy pou\u017Eit\xE9",
+    none: "Bez barvy",
+    custom: "Vlastn\xED:",
+    bg: "Pozad\xED",
+    text: "P\xEDsmo",
+    apply: "Pou\u017E\xEDt"
+  },
+  calc: {
+    add: "P\u0159idat po\u010D\xEDtan\xFD sloupec",
+    newTitle: "Nov\xFD po\u010D\xEDtan\xFD sloupec",
+    editTitle: "Upravit po\u010D\xEDtan\xFD sloupec",
+    edit: "Upravit vzorec",
+    name: "N\xE1zev",
+    namePlaceholder: "Nap\u0159. Celkem",
+    type: "Typ",
+    typeNumber: "\u010C\xEDslo",
+    typeText: "Text",
+    typeDate: "Datum",
+    formula: "Vzorec",
+    formulaPlaceholder: "Nap\u0159. cena * mnozstvi   nebo   if(stav == 'hotovo', '\u2713', '\u2014')",
+    insertField: "Vlo\u017Eit sloupec:",
+    previewLabel: "N\xE1hled:",
+    textHint: 'v\xFDsledek je text, zvol typ \u201EText"',
+    fnTitle: "Funkce",
+    fnSearch: "Hledat funkci\u2026",
+    sumFormulaOption: "Vzorec (v\xE1\u017Een\xFD souhrn)",
+    sumFormulaTitle: "V\xE1\u017Een\xFD souhrn (vzorec)",
+    sumFormulaLabel: "N\xE1zev \u0159\xE1dku",
+    sumFormulaLabelPlaceholder: 'nepovinn\xE9 (jinak \u201EVzorec")',
+    sumFormulaHint: "Souhrn dopo\u010D\xEDtan\xFD z agregac\xED jin\xFDch sloupc\u016F \u2014 poolovan\u011B. Nap\u0159. sum(spojeno) / sum(vytoceno) * 100.",
+    sumFormulaPlaceholder: "Nap\u0159. sum(spojeno) / sum(vytoceno) * 100",
+    sumFormulaClear: "Zru\u0161it vzorec",
+    fnCat: { num: "\u010C\xEDsla", text: "Text", logic: "Logika", date: "Datum", agg: "Agregace" },
+    agg: {
+      sum: { sig: "sum(v\xFDraz)", desc: "Sou\u010Det v\xFDrazu p\u0159es \u0159\xE1dky" },
+      avg: { sig: "avg(v\xFDraz)", desc: "Pr\u016Fm\u011Br v\xFDrazu p\u0159es \u0159\xE1dky" },
+      count: { sig: "count(v\xFDraz)", desc: "Po\u010Det nepr\xE1zdn\xFDch" },
+      min: { sig: "min(v\xFDraz)", desc: "Nejmen\u0161\xED hodnota" },
+      max: { sig: "max(v\xFDraz)", desc: "Nejv\u011Bt\u0161\xED hodnota" },
+      median: { sig: "median(v\xFDraz)", desc: "Medi\xE1n (prost\u0159edn\xED hodnota)" }
+    },
+    fn: {
+      round: { sig: "round(\u010D\xEDslo, des?)", desc: "Zaokrouhl\xED (des = po\u010Det desetinn\xFDch m\xEDst)" },
+      floor: { sig: "floor(\u010D\xEDslo)", desc: "Zaokrouhl\xED dol\u016F" },
+      ceil: { sig: "ceil(\u010D\xEDslo)", desc: "Zaokrouhl\xED nahoru" },
+      abs: { sig: "abs(\u010D\xEDslo)", desc: "Absolutn\xED hodnota" },
+      sqrt: { sig: "sqrt(\u010D\xEDslo)", desc: "Druh\xE1 odmocnina" },
+      pow: { sig: "pow(z\xE1klad, exponent)", desc: "Mocnina" },
+      mod: { sig: "mod(a, b)", desc: "Zbytek po d\u011Blen\xED" },
+      min: { sig: "min(a, b, \u2026)", desc: "Nejmen\u0161\xED z hodnot" },
+      max: { sig: "max(a, b, \u2026)", desc: "Nejv\u011Bt\u0161\xED z hodnot" },
+      number: { sig: "number(x)", desc: "P\u0159evede na \u010D\xEDslo" },
+      concat: { sig: "concat(a, b, \u2026)", desc: "Spoj\xED hodnoty do textu" },
+      upper: { sig: "upper(text)", desc: "Velk\xE1 p\xEDsmena" },
+      lower: { sig: "lower(text)", desc: "Mal\xE1 p\xEDsmena" },
+      trim: { sig: "trim(text)", desc: "O\u0159\xEDzne mezery na okraj\xEDch" },
+      len: { sig: "len(text)", desc: "Po\u010Det znak\u016F" },
+      left: { sig: "left(text, n)", desc: "Prvn\xEDch n znak\u016F" },
+      right: { sig: "right(text, n)", desc: "Posledn\xEDch n znak\u016F" },
+      substr: { sig: "substr(text, od, d\xE9lka?)", desc: "\u010C\xE1st textu od pozice (od 0)" },
+      replace: { sig: "replace(text, co, \u010D\xEDm)", desc: "Nahrad\xED v\u0161echny v\xFDskyty" },
+      contains: { sig: "contains(text, co)", desc: "Obsahuje text? (ano/ne)" },
+      text: { sig: "text(x)", desc: "P\u0159evede na text" },
+      if: { sig: "if(podm\xEDnka, ano, ne)", desc: 'Podle podm\xEDnky vr\xE1t\xED \u201Eano", nebo \u201Ene"' },
+      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "Prvn\xED nepr\xE1zdn\xE1 hodnota" },
+      isblank: { sig: "isblank(x)", desc: "Je pr\xE1zdn\xE9? (ano/ne)" },
+      not: { sig: "not(x)", desc: "Logick\xE1 negace" },
+      today: { sig: "today()", desc: "Dne\u0161n\xED datum" },
+      now: { sig: "now()", desc: "Datum a \u010Das te\u010F" },
+      date: { sig: "date(x)", desc: "P\u0159evede na datum" },
+      year: { sig: "year(datum)", desc: "Rok z data" },
+      month: { sig: "month(datum)", desc: "M\u011Bs\xEDc z data (1\u201312)" },
+      day: { sig: "day(datum)", desc: "Den v m\u011Bs\xEDci" },
+      weekday: { sig: "weekday(datum)", desc: "Den v t\xFDdnu (1=Po \u2026 7=Ne)" },
+      days: { sig: "days(od, do)", desc: "Po\u010Det dn\xED mezi daty" },
+      age: { sig: "age(datum)", desc: "V\u011Bk v letech k dne\u0161ku" }
+    },
+    defaultTitle: "V\xFDpo\u010Det",
+    save: "Ulo\u017Eit",
+    cancel: "Zru\u0161it",
+    delete: "Smazat"
+  },
+  columns: {
+    manage: "Sloupce",
+    reset: "Obnovit v\xFDchoz\xED",
+    filterToggle: "Zobrazit / skr\xFDt filtr",
+    groupSet: "Skupina sloupce",
+    collapseGroup: "Sbalit skupinu sloupc\u016F",
+    expandGroup: "Rozbalit skupinu sloupc\u016F",
+    headerColor: "Barva z\xE1hlav\xED sloupce",
+    groupHeaderColor: "Barva z\xE1hlav\xED skupiny",
+    cellFormat: "Form\xE1t bu\u0148ky",
+    renameHint: "dvojklik p\u0159ejmenuje",
+    noGroup: "Bez skupiny",
+    newGroup: "Nov\xE1 skupina\u2026",
+    ungroup: "Zru\u0161it skupinu",
+    fitWidth: "P\u0159izp\u016Fsobit \u0161\xED\u0159ku sloupc\u016F obsahu",
+    clearFilters: "Zru\u0161it v\u0161echny filtry",
+    headerRotate: "Oto\u010Den\xED hlavi\u010Dky",
+    rotateInherit: "Podle nastaven\xED tabulky",
+    rotateNone: "Vodorovn\u011B",
+    rotate90: "90\xB0",
+    rotate270: "270\xB0",
+    rowGroupToggle: "Seskupovat \u0159\xE1dky podle tohoto sloupce",
+    summary: "Souhrn sloupce",
+    summaryForColumns: "Pro sloupce (\u0159\xE1dek dole)",
+    summaryForRows: "Pro \u0159\xE1dky (sloupec vpravo)",
+    summaryMin: "Minimum",
+    summaryMax: "Maximum",
+    summarySum: "Sou\u010Det",
+    summaryAvg: "Pr\u016Fm\u011Br",
+    summaryCount: "Po\u010Det (nepr\xE1zdn\xFDch)"
+  },
+  summary: {
+    scopePage: "Str\xE1nka",
+    scopeAll: "V\u0161e",
+    scopePageLong: "Zobrazen\xE1 str\xE1nka",
+    scopeAllLong: "V\u0161echny z\xE1znamy",
+    scopeToggle: "P\u0159epnout rozsah souhrnu (zobrazen\xE1 str\xE1nka / v\u0161echny z\xE1znamy)",
+    barLabel: "Souhrn po\u010D\xEDt\xE1 z:",
+    formulaLabel: "Vzorec",
+    name: { sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Minimum", max: "Maximum", count: "Po\u010Det" }
+  },
+  presets: {
+    none: "(\u017E\xE1dn\xE9 ulo\u017Een\xE9 presety)",
+    namePlaceholder: "N\xE1zev presetu\u2026",
+    saveLocal: "Ulo\u017Eit preset (jen pro m\u011B)",
+    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B (pro v\u0161echny)",
+    searchColumn: "Hledat sloupec\u2026",
+    global: "Glob\xE1ln\xED preset"
+  },
+  instance: {
+    title: "Nastaven\xED tabulky",
+    done: "Hotovo",
+    saveGlobalDefaults: "Ulo\u017Eit jako v\xFDchoz\xED pro v\u0161echny",
+    saveGlobalHint: "Ode\u0161le aktu\xE1ln\xED nastaven\xED tabulky aplikaci jako v\xFDchoz\xED pro v\u0161echny u\u017Eivatele (p\u0159ep\xED\u0161e i jejich ulo\u017Een\xE9 nastaven\xED).",
+    saveGlobalDone: "Ulo\u017Eeno \u2713",
+    gdAvailable: "Spr\xE1vce nastavil nov\xE9 v\xFDchoz\xED nastaven\xED tabulky.",
+    gdReset: "P\u0159epsat moje \xFApravy v\xFDchoz\xEDm nastaven\xEDm od spr\xE1vce.",
+    gdApply: "Pou\u017E\xEDt",
+    gdKeepMine: "Ponechat moje",
+    groupAppearance: "Vzhled",
+    groupLayout: "Rozvr\u017Een\xED",
+    groupPagination: "Str\xE1nkov\xE1n\xED a filtry",
+    groupColumns: "Sloupce a \u0159\xE1dky",
+    groupFormat: "Form\xE1t hodnot",
+    groupCustom: "Vlastn\xED \xFApravy",
+    cssHint: "P\u0159ep\xED\u0161\xED zvolen\xFD motiv jen pro tuto tabulku. Pr\xE1zdn\xE9 = dle motivu.",
+    cssFontTable: "P\xEDsmo tabulky",
+    cssFontHeader: "P\xEDsmo z\xE1hlav\xED",
+    cssAccent: "Barva akcentu",
+    cssLink: "Barva odkaz\u016F",
+    cssText: "Barva textu",
+    cssBorder: "Barva okraj\u016F",
+    cssHeaderBg: "Pozad\xED z\xE1hlav\xED",
+    cssRowEven: "Barva sud\xFDch \u0159\xE1dk\u016F",
+    cssRowOdd: "Barva lich\xFDch \u0159\xE1dk\u016F",
+    cssRowHover: "\u0158\xE1dek p\u0159i najet\xED",
+    cssRowHighlight: "Zv\xFDrazn\u011Bn\xED \u0159\xE1dku",
+    cssRowHighlightHover: "Zv\xFDrazn\u011Bn\xED p\u0159i najet\xED",
+    cssHeaderWeight: "Tu\u010Dnost z\xE1hlav\xED",
+    cssRadius: "Zaoblen\xED (px)",
+    cssCellPadY: "Padding bu\u0148ky \u2013 svisle (px)",
+    cssCellPadX: "Padding bu\u0148ky \u2013 vodorovn\u011B (px)",
+    cssReset: "Obnovit vlastn\xED \xFApravy",
+    fontFamily: "P\xEDsmo",
+    fontDefault: "Dle motivu",
+    zebra: "Pruhovan\xE9 \u0159\xE1dky",
+    scaleColors: "Barvy \u0161k\xE1ly (semafor)",
+    wrapText: "Zalamovat text",
+    wrapHeader: "Zalamovat n\xE1zvy sloupc\u016F",
+    linkNewTab: "Odkazy otev\xEDrat v nov\xE9 kart\u011B",
+    emptyText: "N\xE1hrada pr\xE1zdn\xE9 bu\u0148ky",
+    emptyTextPlaceholder: "nap\u0159. \u2014",
+    pageSizeDefault: "V\xFDchoz\xED velikost str\xE1nky",
+    fmtNumber: "\u010C\xEDsla",
+    fmtMoney: "M\u011Bna",
+    fmtDate: "Datum",
+    fmtDatetime: "Datum a \u010Das",
+    fmtTime: "\u010Cas",
+    fmtDecimals: "Desetinn\xE1 m\xEDsta",
+    fmtDecimalsAuto: "Automaticky",
+    fmtThousands: "Odd\u011Blova\u010D tis\xEDc\u016F",
+    fmtCurrency: "M\u011Bna (symbol)",
+    fmtNegative: "Z\xE1porn\xE1 \u010D\xEDsla",
+    fmtPattern: "Form\xE1t",
+    fmtCustom: "Vlastn\xED vzor",
+    locale: "Jazyk form\xE1tu (locale)",
+    localeDefault: "Dle prohl\xED\u017Ee\u010De",
+    defaultSort: "V\xFDchoz\xED \u0159azen\xED",
+    sortNone: "Bez \u0159azen\xED",
+    sortAscSuffix: "\u2191",
+    sortDescSuffix: "\u2193",
+    negMinus: "Se znam\xE9nkem \u2212",
+    negRed: "\u010Cerven\u011B",
+    negParen: "V z\xE1vork\xE1ch",
+    negRedParen: "\u010Cerven\u011B v z\xE1vork\xE1ch",
+    colFormatTitle: "Form\xE1t sloupce",
+    colFormatGlobal: "Podle tabulky (glob\xE1ln\xED)",
+    colFormatCustom: "Vlastn\xED form\xE1t",
+    condScale: "Barevn\xE1 \u0161k\xE1la (semafor)",
+    condScaleOn: "Zapnout",
+    condLevels: "Po\u010Det hladin",
+    condReverse: "Obr\xE1cen\u011B (n\xEDzk\xE9 = zelen\xE9)",
+    condApply: "Obarvit",
+    condApplyBg: "Pozad\xED (semafor)",
+    condApplyText: "Text (\u010D\xEDsla)",
+    condThresholds: "Prahy",
+    theme: "Vzhled",
+    themeDefault: "V\xFDchoz\xED",
+    themeAuto: "Automaticky (dle syst\xE9mu)",
+    themeMinimal: "Minimalistick\xFD",
+    themeCompact: "Kompaktn\xED",
+    themeSlate: "Tmav\xFD",
+    themeOcean: "Oce\xE1n",
+    themeWarm: "Tepl\xFD",
+    themeContrast: "Vysok\xFD kontrast",
+    themeBootstrap5: "Bootstrap 5",
+    themeTailwind: "Tailwind",
+    themeMaterial: "Material",
+    pagination: "Str\xE1nkov\xE1n\xED",
+    paginationHeader: "V z\xE1hlav\xED",
+    paginationFooter: "V z\xE1pat\xED",
+    paginationBoth: "Na obou m\xEDstech",
+    paginationNone: "Bez str\xE1nkov\xE1n\xED",
+    density: "Hustota \u0159\xE1dk\u016F",
+    comfortable: "Pohodln\xE1",
+    compact: "Kompaktn\xED",
+    layout: "Rozlo\u017Een\xED",
+    fit: "Rozt\xE1hnout do \u0161\xED\u0159ky",
+    fitData: "Dle obsahu",
+    fitDataFill: "Dle obsahu (vyplnit \u0161\xED\u0159ku)",
+    fitDataStretch: "Dle obsahu (posledn\xED rozt\xE1hnout)",
+    fitColumns: "Rozt\xE1hnout do \u0161\xED\u0159ky (propor\u010Dn\u011B)",
+    resizeMode: "Zm\u011Bna \u0161\xED\u0159ky sloupc\u016F",
+    resizeNative: "\u017Div\u011B (nativn\u011B)",
+    resizeGuide: "S vodic\xED \u010D\xE1rou",
+    fontSize: "Velikost p\xEDsma",
+    filterLayout: "Um\xEDst\u011Bn\xED filtr\u016F",
+    filterInHeader: "V z\xE1hlav\xED sloupc\u016F",
+    filterExternal: "Nad tabulkou",
+    filterUniversal: "Univerz\xE1ln\xED (jeden filtr)",
+    filterOff: "Vypnut\xE9",
+    rowNumbers: "\u010C\xEDslov\xE1n\xED \u0159\xE1dk\u016F",
+    rowNumbersNone: "Vypnut\xE9",
+    rowNumbersContinuous: "Pr\u016Fb\u011B\u017En\xE9 (p\u0159es str\xE1nky)",
+    rowNumbersPerPage: "Od 1 na ka\u017Ed\xE9 str\xE1nce",
+    headerRotate: "Oto\u010Den\xED hlavi\u010Dek",
+    headerRotateNone: "Vodorovn\u011B",
+    headerRotate90: "90\xB0",
+    headerRotate270: "270\xB0",
+    summaryRow: "Souhrnn\xFD \u0159\xE1dek",
+    summaryNone: "Vypnut\xFD",
+    summaryPage: "Zobrazen\xE1 str\xE1nka",
+    summaryAll: "V\u0161echny z\xE1znamy",
+    groupSubtotals: "Mezisou\u010Dty skupin",
+    rowGroup: "Seskupen\xED \u0159\xE1dk\u016F",
+    rowGroupNone: "Bez seskupen\xED",
+    selectColumn: "Sloupec s v\xFDb\u011Brem",
+    selectTrigger: "Vyb\xEDrat",
+    selectByCheckbox: "Kliknut\xEDm na checkbox",
+    selectByRow: "Kliknut\xEDm na \u0159\xE1dek",
+    rowHighlight: "Zv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem",
+    actionsLayout: "Sloupec akc\xED",
+    actionsAsColumn: "Posledn\xED sloupec (ikony)",
+    actionsAsMenu: "Menu \u22EE v \u010D\xEDslov\xE1n\xED"
+  },
+  filterTypes: {
+    change: "Zm\u011Bnit typ filtru",
+    text: "Text",
+    number: "\u010C\xEDslo (=, >, <)",
+    "number-range": "Rozsah (Od\u2013Do)",
+    "date-range": "Datum (rozsah)",
+    "date-two": "Datum (Od / Do)",
+    dynamic: "Dynamick\xE9",
+    select: "V\xFDb\u011Br",
+    multiselect: "V\xEDce hodnot",
+    boolean: "Ano / Ne"
+  },
+  filters: {
+    all: "V\u0161e",
+    yes: "Ano",
+    no: "Ne",
+    from: "Od",
+    to: "Do",
+    dynamicPlaceholder: ">today-14 AND <today+14",
+    dynamicHint: 'Oper\xE1tory >, <, >=, <=, =. Datum absolutn\u011B (2024-01-31) nebo relativn\u011B: today, today\xB1N (d/w/m/y), now; hranice obdob\xED sow/eow (t\xFDden Po\u2013Ne), som/eom (m\u011Bs\xEDc), soy/eoy (rok) \u2014 i s offsetem (sow-1w). Spojky AND / OR. Klikni na \u201E?" pro rychl\xE1 obdob\xED.',
+    dynamicHelp: {
+      title: "N\xE1pov\u011Bda a rychl\xE1 obdob\xED",
+      periods: "Rychl\xE1 obdob\xED",
+      syntax: "Z\xE1pis",
+      tokens: "today, today\xB1N (d/w/m/y), now \xB7 sow/eow = za\u010D\xE1tek/konec t\xFDdne (Po\u2013Ne) \xB7 som/eom = m\u011Bs\xEDc \xB7 soy/eoy = rok \xB7 offset: sow-1w, eom-1m \xB7 oper\xE1tory > < >= <= = \xB7 spojky AND / OR",
+      r: {
+        today: "Dnes",
+        d7: "Posledn\xEDch 7 dn\xED",
+        thisWeek: "Tento t\xFDden",
+        lastWeek: "Minul\xFD t\xFDden",
+        thisMonth: "Tento m\u011Bs\xEDc",
+        lastMonth: "Minul\xFD m\u011Bs\xEDc",
+        thisYear: "Letos"
+      }
+    },
+    search: "Hledat\u2026",
+    quickSearch: "Hledat ve v\u0161em\u2026",
+    clear: "Zru\u0161it filtry",
+    clearOne: "Vy\u010Distit filtr",
+    negateHint: "Prefix ! = neobsahuje",
+    panelTitle: "Filtry",
+    hidePanel: "Skr\xFDt filtry",
+    showPanel: "Zobrazit filtry",
+    activeCount: "{n} aktivn\xEDch"
+  },
+  dateRange: {
+    placeholder: "Obdob\xED\u2026",
+    apply: "Pou\u017E\xEDt",
+    cancel: "Zru\u0161it",
+    clear: "Zru\u0161it filtr",
+    custom: "Vlastn\xED obdob\xED",
+    dynamic: "dynamick\xE9 obdob\xED",
+    dynamicHint: 'Zapnuto: preset se ulo\u017E\xED relativn\u011B (nap\u0159. \u201Eminul\xFD t\xFDden") a p\u0159epo\u010D\xEDt\xE1v\xE1 se \u2014 ulo\u017Een\xFD filtr z\u016Fstane platn\xFD i p\u0159\xED\u0161t\u011B. Vypnuto: preset nastav\xED pevn\xE1 data.',
+    presets: {
+      today: "Dnes",
+      yesterday: "V\u010Dera",
+      weekToDate: "Tento t\xFDden do dne\u0161ka",
+      thisWeek: "Tento t\xFDden",
+      lastWeek: "Minul\xFD t\xFDden",
+      last7: "Posledn\xEDch 7 dn\xED",
+      last30: "Posledn\xEDch 30 dn\xED",
+      monthToDate: "Tento m\u011Bs\xEDc do dne\u0161ka",
+      thisMonth: "Tento m\u011Bs\xEDc",
+      lastMonth: "Minul\xFD m\u011Bs\xEDc",
+      thisQuarter: "Tento kvart\xE1l",
+      nextMonth: "P\u0159\xED\u0161t\xED m\u011Bs\xEDc",
+      next3Months: "P\u0159\xED\u0161t\xED 3 m\u011Bs\xEDce"
+    },
+    months: ["Leden", "\xDAnor", "B\u0159ezen", "Duben", "Kv\u011Bten", "\u010Cerven", "\u010Cervenec", "Srpen", "Z\xE1\u0159\xED", "\u0158\xEDjen", "Listopad", "Prosinec"],
+    monthsShort: ["led", "\xFAno", "b\u0159e", "dub", "kv\u011B", "\u010Dvn", "\u010Dvc", "srp", "z\xE1\u0159", "\u0159\xEDj", "lis", "pro"],
+    weekdays: ["Po", "\xDAt", "St", "\u010Ct", "P\xE1", "So", "Ne"],
+    weekdaysLong: ["pond\u011Bl\xED", "\xFAter\xFD", "st\u0159eda", "\u010Dtvrtek", "p\xE1tek", "sobota", "ned\u011Ble"]
+  },
+  pagination: {
+    first: "\xAB",
+    prev: "\u2039",
+    next: "\u203A",
+    last: "\xBB",
+    firstTitle: "Prvn\xED",
+    prevTitle: "P\u0159edchoz\xED",
+    nextTitle: "Dal\u0161\xED",
+    lastTitle: "Posledn\xED",
+    pageSize: "Velikost str\xE1nky",
+    all: "V\u0161e",
+    showing: "Zobrazeno {from}-{to} z {total} \u0159\xE1dk\u016F",
+    empty: "\u017D\xE1dn\xE9 z\xE1znamy",
+    pageLabel: "Strana",
+    gotoTitle: "P\u0159ej\xEDt na str\xE1nku"
+  },
+  advanced: {
+    title: "Roz\u0161\xED\u0159en\xFD filtr",
+    savedPlaceholder: "\u2014 ulo\u017Een\xE9 filtry \u2014",
+    namePlaceholder: "N\xE1zev filtru\u2026",
+    valuePlaceholder: "hodnota",
+    valueHint: "Relativn\xED datum: today, today+14, today-7, today+2w, +1m, -1y, now (jednotky d/w/m/y)",
+    addCondition: "Podm\xEDnka",
+    addGroup: "Skupina",
+    and: "A z\xE1rove\u0148 (v\u0161e)",
+    or: "Nebo (aspo\u0148 jedno)",
+    apply: "Pou\u017E\xEDt",
+    clear: "Vymazat filtr",
+    save: "Ulo\u017Eit",
+    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
+    asButton: "jako tla\u010D\xEDtko",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    remove: "Odebrat",
+    delete: "Smazat ulo\u017Een\xFD filtr",
+    ops: {
+      eq: "rovn\xE1 se",
+      neq: "nerovn\xE1 se",
+      contains: "obsahuje",
+      ncontains: "neobsahuje",
+      starts: "za\u010D\xEDn\xE1 na",
+      ends: "kon\u010D\xED na",
+      gt: "> v\u011Bt\u0161\xED ne\u017E",
+      gte: "\u2265 v\u011Bt\u0161\xED nebo rovno",
+      lt: "< men\u0161\xED ne\u017E",
+      lte: "\u2264 men\u0161\xED nebo rovno",
+      in: "je jeden z (a, b, c)",
+      nin: "nen\xED \u017E\xE1dn\xFD z (a, b, c)",
+      empty: "je pr\xE1zdn\xE9",
+      nempty: "nen\xED pr\xE1zdn\xE9"
+    }
+  },
+  saveFilters: {
+    title: "Ulo\u017Eit sloupcov\xE9 filtry",
+    namePlaceholder: "N\xE1zev filtru\u2026",
+    asButton: "jako tla\u010D\xEDtko",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    save: "Ulo\u017Eit",
+    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
+    none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
+    apply: "Pou\u017E\xEDt filtr",
+    delete: "Smazat ulo\u017Een\xFD filtr"
+  },
+  universal: { field: "Pole", type: "Typ", valueLabel: "Hodnota", value: "hodnota k filtrov\xE1n\xED\u2026", clear: "Zru\u0161it filtr" },
+  group: {
+    empty: "(pr\xE1zdn\xE9)",
+    weekLabel: "T\xFDden",
+    sort: "Se\u0159adit skupiny (vzestupn\u011B/sestupn\u011B)",
+    by: "Seskupit podle",
+    display: "\xDArovn\u011B seskupen\xED",
+    displayHeaders: "Vno\u0159en\xE9 hlavi\u010Dky",
+    displayColumns: "Vedouc\xED sloupce",
+    repeat: "Opakovat hodnoty skupin v \u0159\xE1dc\xEDch",
+    parts: { year: "Rok", quarter: "Kvart\xE1l", month: "M\u011Bs\xEDc", week: "T\xFDden", weekday: "Den v t\xFDdnu", day: "Den v m\u011Bs\xEDci", hour: "Hodina", minute: "Minuta" }
+  },
+  select: { scopePage: "Str\xE1nka", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
+  move: { drag: "P\u0159et\xE1hnout \u0159\xE1dek" },
+  actions: { title: "Akce", view: "Zobrazit", edit: "Upravit", delete: "Smazat" },
+  tree: { collapseAll: "Sbalit v\u0161e", expandAll: "Rozbalit v\u0161e", level: "\xDArove\u0148", levelUp: "Rozbalit dal\u0161\xED \xFArove\u0148", levelDown: "Sbalit o \xFArove\u0148" },
+  popup: { info: "Zobrazit info" },
+  history: { undo: "Zp\u011Bt", redo: "Znovu", clear: "Vymazat historii" },
+  menu: {
+    column: "Menu sloupce",
+    sortAsc: "Se\u0159adit vzestupn\u011B",
+    sortDesc: "Se\u0159adit sestupn\u011B",
+    sortClear: "Zru\u0161it \u0159azen\xED",
+    hide: "Skr\xFDt sloupec",
+    pinLeft: "Ukotvit vlevo",
+    pinRight: "Ukotvit vpravo",
+    unpin: "Zru\u0161it ukotven\xED",
+    groupBy: "Seskupit podle tohoto",
+    ungroup: "Zru\u0161it seskupen\xED",
+    fitWidth: "P\u0159izp\u016Fsobit \u0161\xED\u0159ku",
+    row: "Menu \u0159\xE1dku",
+    sortMulti: "Klik = \u0159adit \xB7 Shift+klik = v\xEDce\xFArov\u0148ov\xE9"
+  },
+  progressive: { loaded: "Na\u010Dteno {loaded} z {total}", loadMore: "Na\u010D\xEDst dal\u0161\xED ({n})", loading: "Na\u010D\xEDt\xE1m\u2026", allLoaded: "V\u0161e na\u010Dteno" },
+  edit: { hint: "Dvojklik pro \xFApravu" },
+  detail: { toggle: "Zobrazit / skr\xFDt detail" },
+  selection: { count: "Vybr\xE1no: {n}", clear: "Zru\u0161it v\xFDb\u011Br" },
+  range: { cells: "{n} bun\u011Bk", sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Min", max: "Max", fill: "T\xE1hni pro vypln\u011Bn\xED" },
+  validate: { required: "Povinn\xE9 pole", invalid: "Neplatn\xE1 hodnota", pattern: "Nespr\xE1vn\xFD form\xE1t", min: "Mus\xED b\xFDt \u2265 {n}", max: "Mus\xED b\xFDt \u2264 {n}", minLen: "Nejm\xE9n\u011B {n} znak\u016F", maxLen: "Nejv\xEDce {n} znak\u016F" },
+  empty: "\u017D\xE1dn\xE1 data",
+  loading: "Na\u010D\xEDt\xE1n\xED\u2026",
+  error: "Chyba na\u010Dten\xED dat"
+};
+
+// src/i18n/en.js
+var en_default = {
+  help: {
+    title: "Help \u2014 open the user guide"
+  },
+  cellFormat: {
+    title: "Cell format",
+    align: "Alignment",
+    style: "Font style",
+    bold: "Bold",
+    italic: "Italic",
+    underline: "Underline",
+    strike: "Strikethrough",
+    textColor: "Text color",
+    bgColor: "Background color",
+    clear: "Clear format"
+  },
+  bool: {
+    title: "Yes/No display",
+    yes: "Yes",
+    no: "No",
+    customTrue: "Custom \u201Cyes\u201D",
+    customFalse: "Custom \u201Cno\u201D",
+    colored: "Colored (green/red)",
+    reset: "Default (\u2713/\u2715)"
+  },
+  headerColor: {
+    title: "Header color",
+    tabWheel: "Wheel",
+    tabPalette: "Palettes",
+    brightness: "Brightness",
+    alpha: "Opacity",
+    recent: "Recently used",
+    none: "No color",
+    custom: "Custom:",
+    bg: "Background",
+    text: "Text",
+    apply: "Apply"
+  },
+  calc: {
+    add: "Add computed column",
+    newTitle: "New computed column",
+    editTitle: "Edit computed column",
+    edit: "Edit formula",
+    name: "Name",
+    namePlaceholder: "e.g. Total",
+    type: "Type",
+    typeNumber: "Number",
+    typeText: "Text",
+    typeDate: "Date",
+    formula: "Formula",
+    formulaPlaceholder: "e.g. price * qty   or   if(status == 'done', '\u2713', '\u2014')",
+    insertField: "Insert column:",
+    previewLabel: "Preview:",
+    textHint: "result is text, pick type \u201CText\u201D",
+    fnTitle: "Functions",
+    fnSearch: "Search function\u2026",
+    sumFormulaOption: "Formula (weighted total)",
+    sumFormulaTitle: "Weighted total (formula)",
+    sumFormulaLabel: "Row label",
+    sumFormulaLabelPlaceholder: "optional (defaults to \u201CFormula\u201D)",
+    sumFormulaHint: "Total computed from aggregates of other columns \u2014 pooled. E.g. sum(connected) / sum(dialed) * 100.",
+    sumFormulaPlaceholder: "e.g. sum(connected) / sum(dialed) * 100",
+    sumFormulaClear: "Clear formula",
+    fnCat: { num: "Numbers", text: "Text", logic: "Logic", date: "Date", agg: "Aggregate" },
+    agg: {
+      sum: { sig: "sum(expr)", desc: "Sum of expression across rows" },
+      avg: { sig: "avg(expr)", desc: "Average of expression across rows" },
+      count: { sig: "count(expr)", desc: "Count of non-empty" },
+      min: { sig: "min(expr)", desc: "Smallest value" },
+      max: { sig: "max(expr)", desc: "Largest value" },
+      median: { sig: "median(expr)", desc: "Median (middle value)" }
+    },
+    fn: {
+      round: { sig: "round(num, dec?)", desc: "Round (dec = number of decimals)" },
+      floor: { sig: "floor(num)", desc: "Round down" },
+      ceil: { sig: "ceil(num)", desc: "Round up" },
+      abs: { sig: "abs(num)", desc: "Absolute value" },
+      sqrt: { sig: "sqrt(num)", desc: "Square root" },
+      pow: { sig: "pow(base, exp)", desc: "Power" },
+      mod: { sig: "mod(a, b)", desc: "Remainder after division" },
+      min: { sig: "min(a, b, \u2026)", desc: "Smallest value" },
+      max: { sig: "max(a, b, \u2026)", desc: "Largest value" },
+      number: { sig: "number(x)", desc: "Convert to number" },
+      concat: { sig: "concat(a, b, \u2026)", desc: "Join values into text" },
+      upper: { sig: "upper(text)", desc: "Uppercase" },
+      lower: { sig: "lower(text)", desc: "Lowercase" },
+      trim: { sig: "trim(text)", desc: "Trim surrounding spaces" },
+      len: { sig: "len(text)", desc: "Character count" },
+      left: { sig: "left(text, n)", desc: "First n characters" },
+      right: { sig: "right(text, n)", desc: "Last n characters" },
+      substr: { sig: "substr(text, start, len?)", desc: "Part of text from position (0-based)" },
+      replace: { sig: "replace(text, from, to)", desc: "Replace all occurrences" },
+      contains: { sig: "contains(text, sub)", desc: "Contains text? (yes/no)" },
+      text: { sig: "text(x)", desc: "Convert to text" },
+      if: { sig: "if(cond, yes, no)", desc: "Return yes or no by condition" },
+      coalesce: { sig: "coalesce(a, b, \u2026)", desc: "First non-empty value" },
+      isblank: { sig: "isblank(x)", desc: "Is empty? (yes/no)" },
+      not: { sig: "not(x)", desc: "Logical negation" },
+      today: { sig: "today()", desc: "Today's date" },
+      now: { sig: "now()", desc: "Date and time now" },
+      date: { sig: "date(x)", desc: "Convert to date" },
+      year: { sig: "year(date)", desc: "Year from date" },
+      month: { sig: "month(date)", desc: "Month from date (1\u201312)" },
+      day: { sig: "day(date)", desc: "Day of month" },
+      weekday: { sig: "weekday(date)", desc: "Weekday (1=Mon \u2026 7=Sun)" },
+      days: { sig: "days(from, to)", desc: "Days between dates" },
+      age: { sig: "age(date)", desc: "Age in years to today" }
+    },
+    defaultTitle: "Computed",
+    save: "Save",
+    cancel: "Cancel",
+    delete: "Delete"
+  },
+  columns: {
+    manage: "Columns",
+    reset: "Reset to default",
+    filterToggle: "Show / hide filter",
+    groupSet: "Column group",
+    collapseGroup: "Collapse column group",
+    expandGroup: "Expand column group",
+    headerColor: "Column header color",
+    groupHeaderColor: "Group header color",
+    cellFormat: "Cell format",
+    renameHint: "double-click to rename",
+    noGroup: "No group",
+    newGroup: "New group\u2026",
+    ungroup: "Dissolve group",
+    fitWidth: "Fit column widths to content",
+    clearFilters: "Clear all filters",
+    headerRotate: "Header rotation",
+    rotateInherit: "Follow table setting",
+    rotateNone: "Horizontal",
+    rotate90: "90\xB0",
+    rotate270: "270\xB0",
+    rowGroupToggle: "Group rows by this column",
+    summary: "Column summary",
+    summaryForColumns: "For columns (bottom row)",
+    summaryForRows: "For rows (right column)",
+    summaryMin: "Minimum",
+    summaryMax: "Maximum",
+    summarySum: "Sum",
+    summaryAvg: "Average",
+    summaryCount: "Count (non-empty)"
+  },
+  summary: {
+    scopePage: "Page",
+    scopeAll: "All",
+    scopePageLong: "Displayed page",
+    scopeAllLong: "All records",
+    scopeToggle: "Toggle summary scope (displayed page / all records)",
+    barLabel: "Summary from:",
+    formulaLabel: "Formula",
+    name: { sum: "Sum", avg: "Average", min: "Minimum", max: "Maximum", count: "Count" }
+  },
+  presets: {
+    none: "(no saved presets)",
+    namePlaceholder: "Preset name\u2026",
+    saveLocal: "Save preset (only me)",
+    saveGlobal: "Save globally (everyone)",
+    searchColumn: "Search column\u2026",
+    global: "Global preset"
+  },
+  instance: {
+    title: "Table settings",
+    done: "Done",
+    saveGlobalDefaults: "Set as default for everyone",
+    saveGlobalHint: "Sends the current table settings to the app as the default for all users (overrides their saved settings too).",
+    saveGlobalDone: "Saved \u2713",
+    gdAvailable: "Your admin set new default table settings.",
+    gdReset: "Reset your changes to the admin default settings.",
+    gdApply: "Apply",
+    gdKeepMine: "Keep mine",
+    groupAppearance: "Appearance",
+    groupLayout: "Layout",
+    groupPagination: "Pagination & filters",
+    groupColumns: "Columns & rows",
+    groupFormat: "Value format",
+    groupCustom: "Custom tweaks",
+    cssHint: "Override the chosen theme for this table only. Empty = follow theme.",
+    cssFontTable: "Table font",
+    cssFontHeader: "Header font",
+    cssAccent: "Accent color",
+    cssLink: "Link color",
+    cssText: "Text color",
+    cssBorder: "Border color",
+    cssHeaderBg: "Header background",
+    cssRowEven: "Even row color",
+    cssRowOdd: "Odd row color",
+    cssRowHover: "Row hover",
+    cssRowHighlight: "Row highlight",
+    cssRowHighlightHover: "Row highlight hover",
+    cssHeaderWeight: "Header weight",
+    cssRadius: "Corner radius (px)",
+    cssCellPadY: "Cell padding \u2013 vertical (px)",
+    cssCellPadX: "Cell padding \u2013 horizontal (px)",
+    cssReset: "Reset custom tweaks",
+    fontFamily: "Font",
+    fontDefault: "Theme default",
+    zebra: "Zebra rows",
+    scaleColors: "Scale colors (traffic light)",
+    wrapText: "Wrap text",
+    wrapHeader: "Wrap column titles",
+    linkNewTab: "Open links in new tab",
+    emptyText: "Empty cell placeholder",
+    emptyTextPlaceholder: "e.g. \u2014",
+    pageSizeDefault: "Default page size",
+    fmtNumber: "Numbers",
+    fmtMoney: "Currency",
+    fmtDate: "Date",
+    fmtDatetime: "Date & time",
+    fmtTime: "Time",
+    fmtDecimals: "Decimal places",
+    fmtDecimalsAuto: "Automatic",
+    fmtThousands: "Thousands separator",
+    fmtCurrency: "Currency (symbol)",
+    fmtNegative: "Negative numbers",
+    fmtPattern: "Format",
+    fmtCustom: "Custom pattern",
+    locale: "Format language (locale)",
+    localeDefault: "Browser default",
+    defaultSort: "Default sort",
+    sortNone: "No sorting",
+    sortAscSuffix: "\u2191",
+    sortDescSuffix: "\u2193",
+    negMinus: "With \u2212 sign",
+    negRed: "Red",
+    negParen: "In parentheses",
+    negRedParen: "Red in parentheses",
+    colFormatTitle: "Column format",
+    colFormatGlobal: "Follow table (global)",
+    colFormatCustom: "Custom format",
+    condScale: "Color scale (traffic light)",
+    condScaleOn: "Enable",
+    condLevels: "Levels",
+    condReverse: "Reversed (low = green)",
+    condApply: "Apply to",
+    condApplyBg: "Background (traffic light)",
+    condApplyText: "Text (numbers)",
+    condThresholds: "Thresholds",
+    theme: "Theme",
+    themeDefault: "Default",
+    themeAuto: "Automatic (system)",
+    themeMinimal: "Minimal",
+    themeCompact: "Compact",
+    themeSlate: "Dark",
+    themeOcean: "Ocean",
+    themeWarm: "Warm",
+    themeContrast: "High contrast",
+    themeBootstrap5: "Bootstrap 5",
+    themeTailwind: "Tailwind",
+    themeMaterial: "Material",
+    pagination: "Pagination",
+    paginationHeader: "In header",
+    paginationFooter: "In footer",
+    paginationBoth: "Both places",
+    paginationNone: "No pagination",
+    density: "Row density",
+    comfortable: "Comfortable",
+    compact: "Compact",
+    layout: "Layout",
+    fit: "Stretch to width",
+    fitData: "Fit to data",
+    fitDataFill: "Fit to data (fill width)",
+    fitDataStretch: "Fit to data (stretch last)",
+    fitColumns: "Fit columns (stretch proportionally)",
+    resizeMode: "Column resize",
+    resizeNative: "Live (native)",
+    resizeGuide: "With guide line",
+    fontSize: "Font size",
+    filterLayout: "Filters position",
+    filterInHeader: "In column headers",
+    filterExternal: "Above the table",
+    filterUniversal: "Universal (single filter)",
+    filterOff: "Off",
+    rowNumbers: "Row numbers",
+    rowNumbersNone: "Off",
+    rowNumbersContinuous: "Continuous (across pages)",
+    rowNumbersPerPage: "From 1 on each page",
+    headerRotate: "Header rotation",
+    headerRotateNone: "Horizontal",
+    headerRotate90: "90\xB0",
+    headerRotate270: "270\xB0",
+    summaryRow: "Summary row",
+    summaryNone: "Off",
+    summaryPage: "Displayed page",
+    summaryAll: "All records",
+    groupSubtotals: "Group subtotals",
+    rowGroup: "Row grouping",
+    rowGroupNone: "No grouping",
+    selectColumn: "Selection column",
+    selectTrigger: "Select by",
+    selectByCheckbox: "Clicking the checkbox",
+    selectByRow: "Clicking the row",
+    rowHighlight: "Highlight row on click",
+    actionsLayout: "Actions column",
+    actionsAsColumn: "Last column (icons)",
+    actionsAsMenu: "Menu \u22EE in row numbers"
+  },
+  filterTypes: {
+    change: "Change filter type",
+    text: "Text",
+    number: "Number (=, >, <)",
+    "number-range": "Range (from\u2013to)",
+    "date-range": "Date (range)",
+    "date-two": "Date (from / to)",
+    dynamic: "Dynamic",
+    select: "Select",
+    multiselect: "Multi-select",
+    boolean: "Yes / No"
+  },
+  filters: {
+    all: "All",
+    yes: "Yes",
+    no: "No",
+    from: "From",
+    to: "To",
+    dynamicPlaceholder: ">today-14 AND <today+14",
+    dynamicHint: 'Operators >, <, >=, <=, =. Absolute date (2024-01-31) or relative: today, today\xB1N (d/w/m/y), now; period bounds sow/eow (week Mon\u2013Sun), som/eom (month), soy/eoy (year) \u2014 also with offset (sow-1w). Joiners AND / OR. Click "?" for quick periods.',
+    dynamicHelp: {
+      title: "Help and quick periods",
+      periods: "Quick periods",
+      syntax: "Syntax",
+      tokens: "today, today\xB1N (d/w/m/y), now \xB7 sow/eow = start/end of week (Mon\u2013Sun) \xB7 som/eom = month \xB7 soy/eoy = year \xB7 offset: sow-1w, eom-1m \xB7 operators > < >= <= = \xB7 joiners AND / OR",
+      r: {
+        today: "Today",
+        d7: "Last 7 days",
+        thisWeek: "This week",
+        lastWeek: "Last week",
+        thisMonth: "This month",
+        lastMonth: "Last month",
+        thisYear: "This year"
+      }
+    },
+    search: "Search\u2026",
+    quickSearch: "Search all\u2026",
+    clear: "Clear filters",
+    clearOne: "Clear filter",
+    negateHint: "Prefix ! = does not contain",
+    panelTitle: "Filters",
+    hidePanel: "Hide filters",
+    showPanel: "Show filters",
+    activeCount: "{n} active"
+  },
+  dateRange: {
+    placeholder: "Period\u2026",
+    apply: "Apply",
+    cancel: "Cancel",
+    clear: "Clear filter",
+    custom: "Custom range",
+    dynamic: "dynamic period",
+    dynamicHint: "On: the preset is stored relatively (e.g. \u201Clast week\u201D) and recomputed \u2014 a saved filter stays valid over time. Off: the preset sets fixed dates.",
+    presets: {
+      today: "Today",
+      yesterday: "Yesterday",
+      weekToDate: "Week to date",
+      thisWeek: "This week",
+      lastWeek: "Last week",
+      last7: "Last 7 days",
+      last30: "Last 30 days",
+      monthToDate: "Month to date",
+      thisMonth: "This month",
+      lastMonth: "Last month",
+      thisQuarter: "This quarter",
+      nextMonth: "Next month",
+      next3Months: "Next 3 months"
+    },
+    months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    monthsShort: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+    weekdaysLong: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+  },
+  pagination: {
+    first: "\xAB",
+    prev: "\u2039",
+    next: "\u203A",
+    last: "\xBB",
+    firstTitle: "First",
+    prevTitle: "Previous",
+    nextTitle: "Next",
+    lastTitle: "Last",
+    pageSize: "Page size",
+    all: "All",
+    showing: "Showing {from}-{to} of {total} rows",
+    empty: "No rows",
+    pageLabel: "Page",
+    gotoTitle: "Go to page"
+  },
+  advanced: {
+    title: "Advanced filter",
+    savedPlaceholder: "\u2014 saved filters \u2014",
+    namePlaceholder: "Filter name\u2026",
+    valuePlaceholder: "value",
+    valueHint: "Relative date: today, today+14, today-7, today+2w, +1m, -1y, now (units d/w/m/y)",
+    addCondition: "Condition",
+    addGroup: "Group",
+    and: "And (all)",
+    or: "Or (any)",
+    apply: "Apply",
+    clear: "Clear filter",
+    save: "Save",
+    saveGlobal: "Save globally",
+    asButton: "as button",
+    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    remove: "Remove",
+    delete: "Delete saved filter",
+    ops: {
+      eq: "equals",
+      neq: "not equals",
+      contains: "contains",
+      ncontains: "does not contain",
+      starts: "starts with",
+      ends: "ends with",
+      gt: "> greater than",
+      gte: "\u2265 greater or equal",
+      lt: "< less than",
+      lte: "\u2264 less or equal",
+      in: "is one of (a, b, c)",
+      nin: "is none of (a, b, c)",
+      empty: "is empty",
+      nempty: "is not empty"
+    }
+  },
+  saveFilters: {
+    title: "Save column filters",
+    namePlaceholder: "Filter name\u2026",
+    asButton: "as button",
+    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    save: "Save",
+    saveGlobal: "Save globally",
+    none: "Nothing saved yet",
+    apply: "Apply filter",
+    delete: "Delete saved filter"
+  },
+  universal: { field: "Field", type: "Type", valueLabel: "Value", value: "value to filter\u2026", clear: "Clear filter" },
+  group: {
+    empty: "(empty)",
+    weekLabel: "Week",
+    sort: "Sort groups (ascending/descending)",
+    by: "Group by",
+    display: "Grouping levels",
+    displayHeaders: "Nested headers",
+    displayColumns: "Leading columns",
+    repeat: "Repeat group values in rows",
+    parts: { year: "Year", quarter: "Quarter", month: "Month", week: "Week", weekday: "Weekday", day: "Day of month", hour: "Hour", minute: "Minute" }
+  },
+  select: { scopePage: "Page", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
+  move: { drag: "Drag to reorder" },
+  actions: { title: "Actions", view: "View", edit: "Edit", delete: "Delete" },
+  tree: { collapseAll: "Collapse all", expandAll: "Expand all", level: "Level", levelUp: "Expand one more level", levelDown: "Collapse one level" },
+  popup: { info: "Show info" },
+  history: { undo: "Undo", redo: "Redo", clear: "Clear history" },
+  menu: {
+    column: "Column menu",
+    sortAsc: "Sort ascending",
+    sortDesc: "Sort descending",
+    sortClear: "Clear sort",
+    hide: "Hide column",
+    pinLeft: "Pin left",
+    pinRight: "Pin right",
+    unpin: "Unpin",
+    groupBy: "Group by this",
+    ungroup: "Ungroup",
+    fitWidth: "Fit width",
+    row: "Row menu",
+    sortMulti: "Click = sort \xB7 Shift+click = multi-level"
+  },
+  progressive: { loaded: "Loaded {loaded} of {total}", loadMore: "Load more ({n})", loading: "Loading\u2026", allLoaded: "All loaded" },
+  edit: { hint: "Double-click to edit" },
+  detail: { toggle: "Show / hide detail" },
+  selection: { count: "Selected: {n}", clear: "Clear selection" },
+  range: { cells: "{n} cells", sum: "Sum", avg: "Avg", min: "Min", max: "Max", fill: "Drag to fill" },
+  validate: { required: "Required", invalid: "Invalid value", pattern: "Wrong format", min: "Must be \u2265 {n}", max: "Must be \u2264 {n}", minLen: "At least {n} characters", maxLen: "At most {n} characters" },
+  empty: "No data",
+  loading: "Loading\u2026",
+  error: "Failed to load data"
+};
+
+// src/i18n/index.js
+var BUILTIN = { cs: cs_default, en: en_default };
+var DEFAULT = en_default;
+function registerLanguage(code, dict) {
+  if (code && dict && typeof dict === "object") BUILTIN[code] = dict;
+  return BUILTIN;
+}
+function availableLanguages() {
+  return Object.keys(BUILTIN);
+}
+var I18n = class {
+  /**
+   * @param {string|object} lang  Kód vestavěného jazyka nebo vlastní slovník.
+   */
+  constructor(lang) {
+    this.setLang(lang);
+  }
+  setLang(lang) {
+    if (typeof lang === "string") {
+      this.lang = lang;
+      this.dict = BUILTIN[lang] || DEFAULT;
+    } else if (lang && typeof lang === "object") {
+      this.lang = lang.locale || lang.lang || void 0;
+      this.dict = lang;
+    } else {
+      this.lang = void 0;
+      this.dict = DEFAULT;
+    }
+  }
+  /** BCP-47 kód pro locale-aware řazení (localeCompare). Může být undefined. */
+  get locale() {
+    return this.lang || void 0;
+  }
+  /** Vrátí pole ze slovníku (měsíce, dny…) — t() vrací jen stringy. Fallback na default. */
+  list(path) {
+    const walk = (obj) => {
+      let cur = obj;
+      for (const key of path.split(".")) {
+        if (cur == null) return void 0;
+        cur = cur[key];
+      }
+      return Array.isArray(cur) ? cur : void 0;
+    };
+    return walk(this.dict) || walk(DEFAULT) || [];
+  }
+  /**
+   * Přeloží tečkovou cestu. Volitelné `vars` nahradí {placeholder}y.
+   * @param {string} path e.g. 'pagination.of'
+   * @param {object} [vars]
+   */
+  t(path, vars) {
+    let s = lookup(this.dict, path);
+    if (s === void 0) s = lookup(DEFAULT, path);
+    if (s === void 0) return path;
+    if (vars) {
+      s = String(s).replace(/\{(\w+)\}/g, (m, k) => k in vars ? vars[k] : m);
+    }
+    return s;
+  }
+};
+function lookup(obj, path) {
+  let cur = obj;
+  for (const key of path.split(".")) {
+    if (cur == null || typeof cur !== "object") return void 0;
+    cur = cur[key];
+  }
+  return typeof cur === "string" ? cur : void 0;
+}
+
+// src/features/lightbox.js
+function openLightbox(src, alt) {
+  const img = el("img.lattice-lightbox-img", { src, alt: alt || "" });
+  img.addEventListener("click", (e) => e.stopPropagation());
+  const closeBtn = el("button.lattice-lightbox-close", { type: "button", text: "\xD7", title: "Zav\u0159\xEDt" });
+  const overlay = el("div.lattice-lightbox", {}, [img, closeBtn]);
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+  overlay.addEventListener("click", close);
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    close();
+  });
+  document.body.appendChild(overlay);
+  document.addEventListener("keydown", onKey);
+  return close;
+}
+
+// src/types/columnTypes.js
+function effFmt(col, kind) {
+  if (col._fmt) return col._fmt;
+  return { ...DEFAULT_FORMATS[kind], ...col.formatterParams || {} };
+}
+function negText(r) {
+  if (!r.red) return r.text;
+  const span = document.createElement("span");
+  span.className = "lattice-num-neg";
+  span.textContent = r.text;
+  return span;
+}
+var registry2 = /* @__PURE__ */ new Map();
+function registerType(name, formatter) {
+  registry2.set(name, formatter);
+}
+function getFormatter(column) {
+  if (typeof column.formatter === "function") return column.formatter;
+  return registry2.get(column.type) || registry2.get("text");
+}
+function toNumber2(v) {
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function toDate3(v) {
+  if (v == null || v === "") return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+registerType("text", (v) => v == null ? "" : String(v));
+registerType("id", (v) => v == null ? "" : String(v));
+registerType("number", (v, col) => {
+  const n = toNumber2(v);
+  if (n == null) return "";
+  return negText(formatNumber(n, effFmt(col, "number")));
+});
+registerType("money", (v, col) => {
+  const n = toNumber2(v);
+  if (n == null) return "";
+  return negText(formatMoney(n, effFmt(col, "money")));
+});
+registerType("date", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
+});
+registerType("datetime", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
+});
+registerType("time", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
+});
+function boolDisplay(col) {
+  const p = col && col.format || col && col.formatterParams || {};
+  return {
+    trueText: p.trueText != null ? p.trueText : "\u2713",
+    falseText: p.falseText != null ? p.falseText : "\u2715",
+    plain: !!p.plain
+  };
+}
+function isTruthy(v) {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "1" || s === "true" || s === "ano" || s === "yes";
+  }
+  return false;
+}
+registerType("boolean", (v, col) => {
+  const truthy = isTruthy(v);
+  const d = boolDisplay(col);
+  const span = document.createElement("span");
+  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false") + (d.plain ? " is-plain" : "");
+  span.textContent = truthy ? d.trueText : d.falseText;
+  return span;
+});
+registerType("progress", (v, col) => {
+  const p = col.formatterParams || {};
+  const max = p.max != null ? p.max : 100;
+  const n = toNumber2(v) ?? 0;
+  const pct = Math.max(0, Math.min(100, n / max * 100));
+  const wrap = document.createElement("div");
+  wrap.className = "lattice-progress";
+  wrap.title = max === 100 ? `${Math.round(pct)} %` : `${Math.round(n)} / ${max}`;
+  const bar = document.createElement("div");
+  bar.className = "lattice-progress-bar";
+  bar.style.width = pct + "%";
+  if (p.color) bar.style.background = p.color;
+  wrap.appendChild(bar);
+  if (p.showValue) {
+    const label = document.createElement("span");
+    label.className = "lattice-progress-label";
+    label.textContent = Math.round(pct) + " %";
+    wrap.appendChild(label);
+  }
+  return wrap;
+});
+registerType("sparkline", (v, col) => {
+  const p = col.formatterParams || {};
+  let nums = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;\s]+/) : [];
+  nums = nums.map(toNumber2).filter((x) => x != null);
+  if (!nums.length) return "";
+  const NS = "http://www.w3.org/2000/svg";
+  const w = p.width || 80, h = p.height || 22, pad4 = 2;
+  const iw = w - pad4 * 2, ih = h - pad4 * 2;
+  const min = p.min != null ? p.min : Math.min(...nums);
+  const max = p.max != null ? p.max : Math.max(...nums);
+  const span = max - min || 1;
+  const X = (i) => pad4 + (nums.length === 1 ? iw / 2 : i / (nums.length - 1) * iw);
+  const Y = (val) => pad4 + ih - (val - min) / span * ih;
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "lattice-sparkline");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  if (p.color) svg.style.color = p.color;
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  if (p.type === "bar") {
+    const bw = iw / nums.length;
+    nums.forEach((val, i) => {
+      const bh = Math.max(0.5, (val - min) / span * ih);
+      svg.appendChild(mk("rect", { x: (pad4 + i * bw + bw * 0.1).toFixed(1), y: (pad4 + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: "currentColor" }));
+    });
+  } else {
+    const d = nums.map((val, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(val).toFixed(1)).join(" ");
+    if (p.fill) svg.appendChild(mk("path", { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad4 + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad4 + ih).toFixed(1)} Z`, fill: "currentColor", opacity: "0.15" }));
+    svg.appendChild(mk("path", { d, fill: "none", stroke: "currentColor", "stroke-width": p.strokeWidth || 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    if (p.dot !== false) svg.appendChild(mk("circle", { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: "1.6", fill: "currentColor" }));
+  }
+  const wrap = document.createElement("span");
+  wrap.className = "lattice-sparkline-wrap";
+  wrap.title = nums.join(", ");
+  wrap.appendChild(svg);
+  return wrap;
+});
+registerType("link", (v, col, row) => {
+  if (v == null || v === "") return "";
+  const p = col.formatterParams || {};
+  const a = document.createElement("a");
+  a.className = "lattice-link";
+  if (typeof p.url === "function") {
+    a.href = String(p.url(v, row, col) ?? "");
+  } else {
+    const base = p.urlField != null && row ? row[p.urlField] : v;
+    a.href = (p.urlPrefix || "") + String(base ?? "") + (p.urlSuffix || "");
+  }
+  a.textContent = p.label != null ? p.label : String(v);
+  let target = p.target;
+  if (target == null) target = col._linkNewTab ? "_blank" : "_self";
+  if (target === "_blank") {
+    a.target = "_blank";
+    a.rel = p.rel || "noopener noreferrer";
+    a.appendChild(extLinkIcon());
+  } else if (target && target !== "_self") {
+    a.target = target;
+  }
+  return a;
+});
+function extLinkIcon() {
+  const s = document.createElement("span");
+  s.className = "lattice-link-ext";
+  s.setAttribute("aria-hidden", "true");
+  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
+  return s;
+}
+registerType("image", (v, col) => {
+  if (v == null || v === "") return "";
+  const p = col.formatterParams || {};
+  const img = document.createElement("img");
+  img.className = "lattice-img";
+  img.src = String(v);
+  img.loading = "lazy";
+  img.alt = p.alt || "";
+  const dim = (x) => typeof x === "number" ? x + "px" : x;
+  if (p.height) img.style.height = dim(p.height);
+  if (p.width) img.style.width = dim(p.width);
+  if (p.lightbox !== false) {
+    img.classList.add("is-zoomable");
+    img.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openLightbox(String(v), p.alt);
+    });
+  }
+  return img;
+});
+registerType("icon", (v, col) => {
+  const p = col.formatterParams || {};
+  let g = v;
+  if (p.icons && v != null && Object.prototype.hasOwnProperty.call(p.icons, v)) g = p.icons[v];
+  if (g == null || g === "") return "";
+  g = String(g);
+  const span = document.createElement("span");
+  span.className = "lattice-icon";
+  if (/^(https?:|data:)/.test(g)) {
+    const img = document.createElement("img");
+    img.className = "lattice-icon-img";
+    img.src = g;
+    img.alt = p.alt || "";
+    span.appendChild(img);
+  } else {
+    span.textContent = g;
+  }
+  if (p.size) span.style.fontSize = typeof p.size === "number" ? p.size + "px" : p.size;
+  if (p.title != null) span.title = String(p.title);
+  return span;
+});
+registerType("color", (v) => {
+  const div = document.createElement("div");
+  div.className = "lattice-color-fill";
+  if (v != null && v !== "") div.style.background = String(v);
+  div.title = v != null ? String(v) : "";
+  return div;
+});
+registerType("tick", (v, col) => {
+  if (!isTruthy(v)) return "";
+  const d = boolDisplay(col);
+  const span = document.createElement("span");
+  span.className = "lattice-bool is-true" + (d.plain ? " is-plain" : "");
+  span.textContent = d.trueText;
+  return span;
+});
+registerType("html", (v) => {
+  const span = document.createElement("span");
+  span.innerHTML = v == null ? "" : String(v);
+  return span;
+});
+registerType("rating", (v, col) => {
+  const p = col.formatterParams || {};
+  const max = p.max != null ? p.max : 5;
+  const n = Math.round(toNumber2(v) ?? 0);
+  const wrap = document.createElement("span");
+  wrap.className = "lattice-rating";
+  wrap.title = `${n} / ${max}`;
+  for (let i = 1; i <= max; i++) {
+    const star = document.createElement("span");
+    star.className = "lattice-star " + (i <= n ? "is-on" : "is-off");
+    star.textContent = "\u2605";
+    wrap.appendChild(star);
+  }
+  return wrap;
+});
+
+// src/features/resize.js
+function attachResize(handle, col, grid) {
+  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
+  const onMove = (e) => {
+    if (!dragging) return;
+    const w = Math.max(col.minWidth, Math.round(startWidth + (e.clientX - startX)));
+    pending = w;
+    if (guide) {
+      moveGuide(guide, startX + (w - startWidth) - tableLeft);
+    } else {
+      col.width = w;
+      grid.renderer.applyLayout();
+    }
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+    document.body.classList.remove("lattice-resizing");
+    if (guide) {
+      col.width = pending;
+      grid.renderer.applyLayout();
+      removeGuide(guide);
+      guide = null;
+    }
+    grid.saveState();
+  };
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX = e.clientX;
+    startWidth = grid.renderer.layout?.widths.get(col.field) ?? col.width;
+    pending = startWidth;
+    dragging = true;
+    document.body.classList.add("lattice-resizing");
+    if (grid.instance.resizeGuide) {
+      tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left;
+      guide = createGuide(grid, startX - tableLeft);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+  handle.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const w = measureColumnWidth(col, grid);
+    if (w) {
+      col.width = w;
+      grid.renderer.applyLayout();
+      grid.saveState();
+    }
+  });
+}
+function attachRowNumberResize(handle, grid) {
+  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
+  const onMove = (e) => {
+    if (!dragging) return;
+    const w = Math.max(36, Math.round(startWidth + (e.clientX - startX)));
+    pending = w;
+    if (guide) moveGuide(guide, startX + (w - startWidth) - tableLeft);
+    else {
+      grid.instance.rowNumberWidth = w;
+      grid.renderer.applyLayout();
+    }
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+    document.body.classList.remove("lattice-resizing");
+    if (guide) {
+      grid.instance.rowNumberWidth = pending;
+      grid.renderer.applyLayout();
+      removeGuide(guide);
+      guide = null;
+    }
+    grid.saveState();
+  };
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX = e.clientX;
+    startWidth = grid.renderer.layout?.widths.get("__rownum__") ?? 50;
+    pending = startWidth;
+    dragging = true;
+    document.body.classList.add("lattice-resizing");
+    if (grid.instance.resizeGuide) {
+      tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left;
+      guide = createGuide(grid, startX - tableLeft);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+  handle.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    grid.instance.rowNumberWidth = null;
+    grid.saveState();
+    grid.renderer.applyLayout();
+  });
+}
+function createGuide(grid, x) {
+  const table = grid.renderer.nodes.table;
+  const g = document.createElement("div");
+  g.className = "lattice-resize-guide";
+  g.style.height = table.offsetHeight + "px";
+  g.style.left = x + "px";
+  table.appendChild(g);
+  return g;
+}
+function moveGuide(guide, x) {
+  guide.style.left = x + "px";
+}
+function removeGuide(guide) {
+  guide.remove();
+}
+function measureColumnWidth(col, grid) {
+  const table = grid.renderer.nodes.table;
+  const hcell = table.querySelector(`.lattice-hcell[data-field="${cssEscape(col.field)}"]`);
+  const cells = table.querySelectorAll(`.lattice-cell[data-field="${cssEscape(col.field)}"]`);
+  const host = grid.renderer.nodes.root || table;
+  const meas = document.createElement("div");
+  meas.setAttribute("aria-hidden", "true");
+  meas.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;";
+  host.appendChild(meas);
+  const cellH = cells[0]?.clientHeight || 0;
+  const rot = col.headerRotate != null ? col.headerRotate : grid.instance.headerRotate;
+  const rotated = rot === "90" || rot === "270";
+  const wrapHeader = grid.instance.wrapHeader === true && !rotated;
+  let max = 0;
+  try {
+    if (hcell) {
+      const one = measureRendered(meas, hcell, cellH);
+      max = Math.max(max, wrapHeader ? measureWrappedHeaderWidth(meas, hcell, one) : one);
+    }
+    for (const cell of cells) max = Math.max(max, measureRendered(meas, cell, cellH));
+  } finally {
+    meas.remove();
+  }
+  const RESERVE = 4;
+  let w = Math.ceil(max) + RESERVE;
+  if (col.minWidth) w = Math.max(w, col.minWidth);
+  if (col.maxWidth) w = Math.min(w, col.maxWidth);
+  return w;
+}
+function measureRendered(meas, srcNode, cellH) {
+  const clone2 = srcNode.cloneNode(true);
+  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
+  const s = clone2.style;
+  s.width = "auto";
+  s.maxWidth = "none";
+  s.minWidth = "0";
+  s.flex = "0 0 auto";
+  s.display = "inline-flex";
+  s.alignItems = "center";
+  s.whiteSpace = "nowrap";
+  s.overflow = "visible";
+  s.textOverflow = "clip";
+  if (cellH) s.height = cellH + "px";
+  clone2.querySelectorAll?.(".lattice-link").forEach((a) => {
+    a.style.width = "auto";
+    a.style.display = "inline-flex";
+  });
+  meas.appendChild(clone2);
+  const w = clone2.getBoundingClientRect().width;
+  meas.removeChild(clone2);
+  return w;
+}
+function measureWrappedHeaderWidth(meas, hcell, oneLineWidth) {
+  const clone2 = hcell.cloneNode(true);
+  clone2.querySelectorAll?.(".lattice-resize-handle").forEach((h) => h.remove());
+  const title = clone2.querySelector(".lattice-hcell-title");
+  const s = clone2.style;
+  s.maxWidth = "none";
+  s.minWidth = "0";
+  s.flex = "0 0 auto";
+  s.display = "flex";
+  s.alignItems = "center";
+  s.overflow = "visible";
+  s.height = "auto";
+  if (title) {
+    title.style.whiteSpace = "normal";
+    title.style.overflowWrap = "break-word";
+    title.style.overflow = "visible";
+  }
+  meas.appendChild(clone2);
+  try {
+    clone2.style.width = Math.ceil(oneLineWidth) + "px";
+    const oneLineH = clone2.getBoundingClientRect().height;
+    if (!oneLineH) return Math.ceil(oneLineWidth);
+    const limit = oneLineH * 2 - 1;
+    let lo = 24;
+    if (title) {
+      const saved = title.style.overflowWrap;
+      title.style.overflowWrap = "normal";
+      clone2.style.width = "min-content";
+      lo = Math.ceil(clone2.getBoundingClientRect().width);
+      title.style.overflowWrap = saved;
+    }
+    let hi = Math.ceil(oneLineWidth);
+    if (lo >= hi) return hi;
+    for (let i = 0; i < 14 && lo < hi; i++) {
+      const mid = lo + hi >> 1;
+      clone2.style.width = mid + "px";
+      if (clone2.getBoundingClientRect().height <= limit) hi = mid;
+      else lo = mid + 1;
+    }
+    return hi;
+  } finally {
+    meas.removeChild(clone2);
+  }
+}
+
+// src/features/columnDrag.js
+function attachHeaderDrag(cell, col, grid) {
+  cell.draggable = true;
+  cell.addEventListener("dragstart", (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", col.field);
+    grid._dragField = col.field;
+    cell.classList.add("is-dragging");
+  });
+  cell.addEventListener("dragend", () => {
+    cell.classList.remove("is-dragging");
+    grid._dragField = null;
+    clearIndicators(grid);
+  });
+  cell.addEventListener("dragover", (e) => {
+    if (!grid._dragField || grid._dragField === col.field) return;
+    if (!dropAllowed(grid, col)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const before = isBefore(e, cell);
+    clearIndicators(grid);
+    cell.classList.add(before ? "drop-before" : "drop-after");
+  });
+  cell.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const from = grid._dragField || e.dataTransfer.getData("text/plain");
+    if (!from || from === col.field || !dropAllowed(grid, col)) return;
+    grid.moveColumn(from, col.field, isBefore(e, cell) ? "before" : "after");
+    clearIndicators(grid);
+  });
+}
+function dropAllowed(grid, targetCol) {
+  const dragged = grid.columns.find((c) => c.field === grid._dragField);
+  if (!dragged) return false;
+  const dg = dragged.group || null;
+  return dg === null || dg === (targetCol.group || null);
+}
+function attachGroupDrag(cell, groupTitle, grid) {
+  const fields = () => (cell.dataset.fields || "").split(",").filter(Boolean);
+  if (groupTitle) cell.draggable = true;
+  cell.addEventListener("dragstart", (e) => {
+    if (!groupTitle) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    grid._dragGroup = groupTitle;
+    cell.classList.add("is-dragging");
+  });
+  cell.addEventListener("dragend", () => {
+    cell.classList.remove("is-dragging");
+    grid._dragGroup = null;
+    clearGroupIndicators(grid);
+  });
+  cell.addEventListener("dragover", (e) => {
+    if (!grid._dragGroup || grid._dragGroup === groupTitle) return;
+    const f = fields();
+    if (!f.length) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const before = isBefore(e, cell);
+    clearGroupIndicators(grid);
+    cell.classList.add(before ? "drop-before" : "drop-after");
+  });
+  cell.addEventListener("drop", (e) => {
+    if (!grid._dragGroup || grid._dragGroup === groupTitle) return;
+    e.preventDefault();
+    const f = fields();
+    clearGroupIndicators(grid);
+    if (!f.length) return;
+    const before = isBefore(e, cell);
+    const targetField = before ? f[0] : f[f.length - 1];
+    grid.moveGroup(grid._dragGroup, targetField, before ? "before" : "after");
+  });
+}
+function isBefore(e, cell) {
+  const r = cell.getBoundingClientRect();
+  return e.clientX < r.left + r.width / 2;
+}
+function clearIndicators(grid) {
+  const root = grid.renderer?.nodes?.headerRow;
+  if (!root) return;
+  for (const c of root.querySelectorAll(".drop-before, .drop-after")) {
+    c.classList.remove("drop-before", "drop-after");
+  }
+}
+function clearGroupIndicators(grid) {
+  const root = grid.renderer?.nodes?.groupRow;
+  if (!root) return;
+  for (const c of root.querySelectorAll(".drop-before, .drop-after")) {
+    c.classList.remove("drop-before", "drop-after");
+  }
 }
 
 // src/features/popup.js

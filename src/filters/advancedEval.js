@@ -103,7 +103,9 @@ function splitList(v) {
 
 /* ---- relativní datové tokeny ---- */
 
-const TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+// today/now = dnešek; sow/eow = začátek(Po)/konec(Ne) týdne; som/eom = měsíc; soq/eoq =
+// kvartál; soy/eoy = rok. Vše s volitelným offsetem ±N[d|w|m|y].
+const TOKEN_RE = /^\s*(today|now|sow|eow|som|eom|soq|eoq|soy|eoy)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
 
 /**
  * Přičte `n` měsíců s ošetřením přetečení: 31.1. + 1m → 28./29.2. (ne 3.3.).
@@ -117,15 +119,27 @@ function addMonths(d, n) {
   d.setDate(Math.min(day, lastDay));
 }
 
+/** Posune datum na pondělí jeho týdne (začátek týdne = pondělí). */
+function startOfWeekMonday(d) {
+  const off = (d.getDay() + 6) % 7; // Po=0 … Ne=6
+  d.setDate(d.getDate() - off);
+}
+
 /**
- * Rozvine token typu `today`, `today±N[d|w|m|y]`, `now` na konkrétní datum.
+ * Rozvine relativní token na konkrétní datum. Podporuje `today`/`now`, hranice období
+ * `sow|eow|som|eom|soy|eoy` a offset `±N[d|w|m|y]`. Offset se aplikuje NEJDŘÍV (posune
+ * referenční den), pak se teprve zarovná na hranici — tak `eom-1m` = poslední den minulého
+ * měsíce sedí i u kratších měsíců (např. z února na leden dá 31.1., ne 28.1.).
  * Cokoli jiného (běžnou hodnotu) vrátí beze změny.
  */
 export function resolveToken(v) {
   if (typeof v !== 'string') return v;
   const m = TOKEN_RE.exec(v);
   if (!m) return v;
+  const base = m[1].toLowerCase();
   const d = new Date();
+  if (base !== 'now') d.setHours(0, 0, 0, 0);
+  // 1) offset posune referenční den
   if (m[2]) {
     const n = (m[2] === '-' ? -1 : 1) * parseInt(m[3], 10);
     switch ((m[4] || 'd').toLowerCase()) {
@@ -135,7 +149,19 @@ export function resolveToken(v) {
       default: d.setDate(d.getDate() + n);
     }
   }
-  return m[1].toLowerCase() === 'now' ? fmtDateTime(d) : fmtDate(d);
+  // 2) zarovnání na hranici období (today/now bez zarovnání)
+  switch (base) {
+    case 'sow': startOfWeekMonday(d); break;
+    case 'eow': startOfWeekMonday(d); d.setDate(d.getDate() + 6); break;
+    case 'som': d.setDate(1); break;
+    case 'eom': d.setMonth(d.getMonth() + 1, 0); break;
+    case 'soq': d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1); break;
+    case 'eoq': d.setMonth(Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+    case 'soy': d.setMonth(0, 1); break;
+    case 'eoy': d.setMonth(11, 31); break;
+    default: break;
+  }
+  return base === 'now' ? fmtDateTime(d) : fmtDate(d);
 }
 
 /**

@@ -85,6 +85,45 @@ test('měsíční/roční posun tokenu', () => {
   void d;
 });
 
+const parseDay = (s) => { const [y, mo, da] = s.split('-').map(Number); return new Date(y, mo - 1, da); };
+const daysBetween = (a, b) => Math.round((a - b) / 86400000);
+
+test('hraniční tokeny — sow/eow (pondělí–neděle) + minulý týden', () => {
+  const sow = parseDay(resolveToken('sow'));
+  const eow = parseDay(resolveToken('eow'));
+  assert.equal(sow.getDay(), 1, 'sow = pondělí');
+  assert.equal(eow.getDay(), 0, 'eow = neděle');
+  assert.equal(daysBetween(eow, sow), 6);
+  const sowPrev = parseDay(resolveToken('sow-1w'));
+  const eowPrev = parseDay(resolveToken('eow-1w'));
+  assert.equal(daysBetween(sow, sowPrev), 7, 'sow-1w je o týden dřív');
+  assert.equal(sowPrev.getDay(), 1);
+  assert.equal(eowPrev.getDay(), 0);
+  assert.equal(daysBetween(eowPrev, sowPrev), 6);
+});
+
+test('hraniční tokeny — som/eom/soy/eoy', () => {
+  const som = parseDay(resolveToken('som'));
+  const eom = parseDay(resolveToken('eom'));
+  assert.equal(som.getDate(), 1);
+  assert.equal(eom.getMonth(), som.getMonth());
+  const afterEom = new Date(eom); afterEom.setDate(eom.getDate() + 1);
+  assert.equal(afterEom.getDate(), 1, 'eom = poslední den měsíce');
+  const soy = parseDay(resolveToken('soy'));
+  const eoy = parseDay(resolveToken('eoy'));
+  assert.equal(soy.getMonth(), 0); assert.equal(soy.getDate(), 1);
+  assert.equal(eoy.getMonth(), 11); assert.equal(eoy.getDate(), 31);
+});
+
+test('hraniční tokeny — eom-1m = poslední den minulého měsíce (offset-first)', () => {
+  const eomPrev = parseDay(resolveToken('eom-1m'));
+  const after = new Date(eomPrev); after.setDate(eomPrev.getDate() + 1);
+  assert.equal(after.getDate(), 1, 'je to poslední den měsíce');
+  const som = parseDay(resolveToken('som'));
+  const prevMonth = new Date(som); prevMonth.setMonth(som.getMonth() - 1);
+  assert.equal(eomPrev.getMonth(), prevMonth.getMonth(), 'je to minulý měsíc');
+});
+
 test('token ve vyhodnocení podmínky — „končí za 14 dní"', () => {
   // Zkušební doba končí přesně za 14 dní → lte today+14 = true, gt today = true
   const endsIn14 = { probation_end: dayStr(14) };

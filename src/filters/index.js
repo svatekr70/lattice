@@ -16,6 +16,7 @@
 import { el, clear, debounce, onOutside } from '../util/dom.js';
 import { buildDateRangePicker } from './dateRangePicker.js';
 import { resolveToken } from './advancedEval.js';
+import { positionUnder } from '../features/gear.js';
 
 const registry = new Map();
 
@@ -202,14 +203,15 @@ registerFilter('date-range', {
   match(value, cell) {
     const t = dayTime(cell);
     if (t == null) return false;
-    const lo = dayTime(value.from);
-    const hi = dayTime(value.to);
+    // from/to mohou být relativní tokeny (dynamický preset) → rozvinout; pevná data projdou beze změny
+    const lo = dayTime(resolveToken(value.from));
+    const hi = dayTime(resolveToken(value.to));
     if (lo != null && t < lo) return false;
     if (hi != null && t > hi) return false;
     return true;
   },
-  // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to"
-  toServer: (field, value) => [{ field, type: 'dateRange', value: `${value.from || ''}|${value.to || ''}` }],
+  // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to" (tokeny rozvinuté na konkrétní datum)
+  toServer: (field, value) => [{ field, type: 'dateRange', value: `${resolveToken(value.from) || ''}|${resolveToken(value.to) || ''}` }],
 });
 
 /* ---- DATE-TWO (dvě samostatná pole → 2 server params, jedno nepovinné) -- */
@@ -279,9 +281,42 @@ function dynTest(t, c) {
   }
 }
 
+// Našeptávač: pojmenovaná období → hotový výraz (klik ho vyplní a rovnou aplikuje).
+const DYN_RECIPES = [
+  ['today', '=today'],
+  ['d7', '>=today-7 AND <=today'],
+  ['thisWeek', '>=sow AND <=eow'],
+  ['lastWeek', '>=sow-1w AND <=eow-1w'],
+  ['thisMonth', '>=som AND <=eom'],
+  ['lastMonth', '>=som-1m AND <=eom-1m'],
+  ['thisYear', '>=soy AND <=eoy'],
+];
+
+/** Popover s rychlými obdobími a zápisem — otevře „?" u dynamického filtru. */
+function openDynamicHelp(anchor, input, ctx) {
+  document.querySelectorAll('.lattice-dyn-pop').forEach((p) => p.remove()); // jen jeden
+  const t = (k) => ctx.i18n.t(k);
+  const pop = el('div.lattice-panel.lattice-dyn-pop');
+  let off = null;
+  const close = () => { off?.(); pop.remove(); };
+  pop.appendChild(el('div.lattice-dyn-pop-h', { text: t('filters.dynamicHelp.periods') }));
+  const chips = el('div.lattice-dyn-recipes');
+  for (const [key, expr] of DYN_RECIPES) {
+    const b = el('button.lattice-dyn-recipe', { type: 'button', text: t('filters.dynamicHelp.r.' + key), title: expr });
+    b.addEventListener('click', () => { input.value = expr; ctx.onChange(expr); close(); });
+    chips.appendChild(b);
+  }
+  pop.appendChild(chips);
+  pop.appendChild(el('div.lattice-dyn-pop-h', { text: t('filters.dynamicHelp.syntax') }));
+  pop.appendChild(el('div.lattice-dyn-tokens', { text: t('filters.dynamicHelp.tokens') }));
+  document.body.appendChild(pop);
+  positionUnder(pop, anchor);
+  off = onOutside(pop, (e) => { if (!anchor.contains(e.target)) close(); });
+}
+
 registerFilter('dynamic', {
   build(column, ctx) {
-    const input = el('input.lattice-filter-input', {
+    const input = el('input.lattice-filter-input.lattice-dyn-input', {
       type: 'text',
       placeholder: ctx.i18n.t('filters.dynamicPlaceholder'),
       title: ctx.i18n.t('filters.dynamicHint'),
@@ -289,7 +324,10 @@ registerFilter('dynamic', {
     });
     const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
     input.addEventListener('input', () => fire(input.value));
-    return input;
+    // Našeptávač „?" — rychlá období + zápis (uživatel nemusí syntaxi znát).
+    const help = el('button.lattice-dyn-help', { type: 'button', title: ctx.i18n.t('filters.dynamicHelp.title'), text: '?' });
+    help.addEventListener('click', (e) => { e.stopPropagation(); openDynamicHelp(help, input, ctx); });
+    return el('div.lattice-dyn-wrap', {}, [input, help]);
   },
   isEmpty: (v) => !v || String(v).trim() === '',
   match(value, cell) {

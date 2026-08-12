@@ -233,6 +233,15 @@ až při každém vyhodnocení filtru — díky tomu uložený filtr „posouvá
 | `today+14` / `today-7` | ± N dní (jednotka `d` je výchozí) |
 | `today+2w` / `-1m` / `+1y` | jednotky: `d` (den), `w` (týden), `m` (měsíc), `y` (rok) |
 | `now` | aktuální okamžik včetně času (`YYYY-MM-DDThh:mm:ss`) |
+| `sow` / `eow` | začátek (pondělí) / konec (neděle) týdne `@v1.12.0` |
+| `som` / `eom` | první / poslední den měsíce `@v1.12.0` |
+| `soy` / `eoy` | první / poslední den roku `@v1.12.0` |
+
+Hranice období berou i offset (`sow-1w`, `eom-1m`, …) — offset se aplikuje **nejdřív**, pak se
+zarovná na hranici, takže `eom-1m` = poslední den minulého měsíce i u kratších měsíců. Příklady:
+**minulý týden** `>=sow-1w AND <=eow-1w`, **tento měsíc** `>=som AND <=eom`, **minulý měsíc**
+`>=som-1m AND <=eom-1m`, **letos** `>=soy AND <=eoy`. V dynamickém filtru sloupce je u pole tlačítko
+**„?"** s hotovými obdobími (klik je vyplní a rovnou aplikuje).
 
 ```js
 // „Zkušební doba končí v příštích 14 dnech" — bez pevného data:
