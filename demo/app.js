@@ -42,7 +42,7 @@ const advancedHandlers = {
   onSaveGlobalAdvancedFilter: (filter) => {
     globalAdvancedData = globalAdvancedData.filter((f) => f.name !== filter.name).concat(filter);
     fetch(ADV_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filter }) }).catch(() => {});
-    window.alert('Aplikace → uložit globální rozšířený filtr:\n\n' + JSON.stringify({ name: filter.name }, null, 2));
+    window.alert('Aplikace → uložit globální ' + (filter.kind === 'columns' ? 'sloupcový filtr (snímek)' : 'rozšířený filtr') + ':\n\n' + JSON.stringify({ name: filter.name }, null, 2));
   },
   onDeleteGlobalAdvancedFilter: (filter) => {
     globalAdvancedData = globalAdvancedData.filter((f) => f.id !== filter.id);

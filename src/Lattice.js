@@ -940,7 +940,9 @@ export class Lattice {
 
   /** Odpovídá uložená položka aktuálně aplikovanému stavu filtrů? */
   _isSavedActive(item) {
-    if (this._isSnapshot(item)) return this._sameFilters(this.filters, item.filters);
+    // porovnáváme jen NEPRÁZDNÉ sloupcové filtry — this.filters může držet prázdné objekty
+    // (např. date-two pošle {from:null,to:null}), které by jinak shodu rozbily
+    if (this._isSnapshot(item)) return this._sameFilters(this._activeColumnFilters(), item.filters);
     return !!(this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree));
   }
 

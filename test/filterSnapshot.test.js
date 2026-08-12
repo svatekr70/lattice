@@ -108,6 +108,15 @@ test('activeSavedId — snímek se pozná podle shody filtrů (nezávisle na po�
   assert.equal(g.activeSavedId(), '');
 });
 
+test('activeSavedId — prázdný objekt ve filtrech nerozbije shodu snímku', () => {
+  const g = makeGrid();
+  g.filters = { name: 'abc' };
+  const item = g.saveFilterSnapshot('Moje', 'local', false);
+  // 'due' zůstane jako prázdný date-range objekt (jako by ho uživatel vyprázdnil)
+  g.filters = { name: 'abc', due: { from: null, to: null } };
+  assert.equal(g.activeSavedId(), item.id, 'prázdné pole se ignoruje');
+});
+
 test('toggleSavedAdvanced — snímek: aplikuj, pak zruš sloupcové filtry', () => {
   const g = makeGrid();
   g.filters = { name: 'abc' };

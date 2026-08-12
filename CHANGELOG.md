@@ -4,6 +4,31 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.11.0] – 2026-08-12
+
+Dynamický datumový filtr a ukládání „naklikaných" sloupcových filtrů. Bez breaking changes.
+
+### Přidáno
+- **Filtr sloupce – „Dynamické" (u datumových sloupců).** Třetí typ vedle „Datum (rozsah)" a
+  „Datum (Od / Do)": do jednoho pole se napíše vlastní výraz s operátory `>` `<` `>=` `<=` `=`,
+  spojkami `AND`/`OR` (AND váže těsněji) a pevnými i relativními datumy (`today±N[dwmy]`, `now`).
+  Např. `>today-14 AND <today+14`. Relativní datum se přepočítává podle dneška; chybný výraz se
+  tiše ignoruje (nápověda syntaxe v tooltipu). Server-side: AND klauzule se posílají jako běžné
+  `>=`/`<=` parametry s konkrétními datumy.
+- **Uložení „naklikaných" sloupcových filtrů (snímek).** Nová ikona v toolbaru (trychtýř + disketa,
+  viditelná jen když nějaký sloupcový filtr platí) uloží aktuální filtry z hlavičky pod názvem —
+  **lokálně nebo globálně**, volitelně **jako tlačítko**. Snímky žijí ve stejném seznamu (select +
+  řada tlačítek) i callbacku jako uložené rozšířené filtry; načtení je vrátí zpět do políček hlavičky.
+  Nové API: `saveFilterSnapshot(name, scope?, asButton?)`, `applyFiltersSnapshot(snap)`,
+  `clearColumnFilters()`, `hasColumnFilters()`. Globální callback `onSaveGlobalAdvancedFilter`
+  dostane u snímku payload `{ id, name, kind:'columns', filters, filterTypes, asButton }`.
+
+### Změněno
+- **Sjednocení velikosti filtr ikon.** Trychtýře „uložit filtry" a „rozšířený filtr" měly menší
+  tvar; srovnány na stejný jako „zrušit filtry".
+- **Demo + příručka + API dokumentace** doplněny o obě novinky (dynamický filtr, snímky) a o
+  uživatelské globální presety.
+
 ## [1.10.0] – 2026-08-12
 
 Uložené rozšířené filtry lze zobrazit jako tlačítka. Bez breaking changes.
@@ -367,6 +392,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.11.0]: https://github.com/svatekr70/lattice/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/svatekr70/lattice/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/svatekr70/lattice/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/svatekr70/lattice/compare/v1.8.0...v1.8.1

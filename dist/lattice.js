@@ -11531,7 +11531,7 @@ var Lattice = class {
   }
   /** Odpovídá uložená položka aktuálně aplikovanému stavu filtrů? */
   _isSavedActive(item) {
-    if (this._isSnapshot(item)) return this._sameFilters(this.filters, item.filters);
+    if (this._isSnapshot(item)) return this._sameFilters(this._activeColumnFilters(), item.filters);
     return !!(this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree));
   }
   /** Id uloženého filtru odpovídajícího aktuálnímu stavu (nebo ''). */
@@ -12778,7 +12778,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.10.0";
+var VERSION = "1.11.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

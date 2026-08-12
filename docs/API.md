@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.10.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.11.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.10.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.11.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.10.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.11.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -189,6 +189,7 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 | `number` | number/money/… | Porovnání `=, >, <`. |
 | `number-range` | number/money/… | Rozsah Od–Do. |
 | `date-range` / `date-two` | date/datetime | Kalendářní rozsah / dvě pole Od / Do. |
+| `dynamic` | date/datetime | Vlastní výraz: operátory `>` `<` `>=` `<=` `=`, spojky `AND`/`OR` (AND váže těsněji), pevné datum i relativní tokeny (`today±N[dwmy]`, `now` — viz tabulka u rozšířeného filtru). Např. `>today-14 AND <today+14`; chybný výraz se tiše ignoruje. `@v1.11.0` |
 | `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (potřebuje `filterValues` nebo `filterUrl`). |
 | `boolean` | boolean | Ano / Ne / Vše. |
 
@@ -331,8 +332,11 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
-| `saveAdvanced(name, tree, scope?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). |
+| `saveAdvanced(name, tree, scope?, asButton?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `asButton` (`@v1.10.0`) = zobrazit jako přepínací tlačítko nad ikonami. |
 | `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
+| `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
+| `saveFilterSnapshot(name, scope?, asButton?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`asButton` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` |
+| `applyFiltersSnapshot(snap)` / `clearColumnFilters()` / `hasColumnFilters()` | Obnoví snímek zpět do políček hlavičky (a přefiltruje) / zruší jen sloupcové filtry / je aktivní aspoň jeden sloupcový filtr? `@v1.11.0` |
 | `setPage(n)` / `setPageSize(n)` | Stránkování. |
 | `setInstance(patch)` | Nastavení tabulky (theme, layout, …). |
 | `setFormat(kind, patch)` / `setColumnFormat(field, patch)` | Formát globálně / per-sloupec. |
@@ -568,17 +572,22 @@ presety: **lokální** (per-uživatel, localStorage) a **globální** (sdílené
 aplikace). Položka filtru je `{ id, name, tree }`, kde `tree` je strom podmínek
 (`{ combinator: 'AND'|'OR', rules: [...] }`).
 
+Stejným mechanismem (`@v1.11.0`) se ukládají i **snímky sloupcových filtrů** ze `saveFilterSnapshot`
+— jen místo `tree` nesou `kind: 'columns'`, `filters` (mapa `field → hodnota`) a `filterTypes`
+(nestandardní typy filtru u dotčených sloupců). Žijí ve **stejném seznamu** i callbacku; aplikace
+je odliší podle přítomnosti `kind: 'columns'` (jinak stačí uložit celý objekt tak, jak přijde).
+
 **Vstup** (aplikace → knihovna) při vytvoření instance:
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalAdvancedFilters` | `Array<{id,name,tree}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`). V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
+| `globalAdvancedFilters` | `Array<{id,name,tree}>` \| `Array<{id,name,kind:'columns',filters,filterTypes}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
 | Callback | Kdy se volá | Argument |
 |---|---|---|
-| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (tlačítko **globus** v panelu) | `{ id, name, tree }` |
+| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (**globus** v panelu rozšířeného filtru nebo v panelu „uložit sloupcové filtry") | strom: `{ id, name, tree, asButton }` · snímek: `{ id, name, kind:'columns', filters, filterTypes, asButton }` |
 | `onDeleteGlobalAdvancedFilter(filter)` | uživatel smazal globální filtr (**×**) | `{ id, name }` |
 
 Bez `onSaveGlobalAdvancedFilter` se globus v panelu rozšířeného filtru neukáže (globální
@@ -587,7 +596,9 @@ ukládání je vypnuté; `canSaveGlobalAdvanced()` vrací `false`). Globální f
 
 Programově: `grid.saveAdvanced(name, tree, 'global')` uloží globálně (spustí callback a vrátí
 `{ id, name, tree, scope:'global' }`), bez třetího argumentu (nebo `'local'`) uloží lokálně.
-`grid.listAdvanced()` vrací obojí sjednoceně, každou položku se `scope: 'local' | 'global'`.
+Snímek sloupcových filtrů uloží obdobně `grid.saveFilterSnapshot(name, 'global')` (payload s
+`kind:'columns'`). `grid.listAdvanced()` vrací obojí (stromy i snímky) sjednoceně, každou položku
+se `scope: 'local' | 'global'`.
 
 > **Server-side (`@v1.7.0+`):** výběr uloženého (i globálního) rozšířeného filtru jen nastaví
 > `grid.advanced` a spustí refetch — a ten teď nese parametr `advanced` (viz *Server-side režim →
