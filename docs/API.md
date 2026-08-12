@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.11.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.12.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.11.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.12.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.11.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.12.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -235,6 +235,7 @@ až při každém vyhodnocení filtru — díky tomu uložený filtr „posouvá
 | `now` | aktuální okamžik včetně času (`YYYY-MM-DDThh:mm:ss`) |
 | `sow` / `eow` | začátek (pondělí) / konec (neděle) týdne `@v1.12.0` |
 | `som` / `eom` | první / poslední den měsíce `@v1.12.0` |
+| `soq` / `eoq` | první / poslední den kvartálu `@v1.12.0` |
 | `soy` / `eoy` | první / poslední den roku `@v1.12.0` |
 
 Hranice období berou i offset (`sow-1w`, `eom-1m`, …) — offset se aplikuje **nejdřív**, pak se
@@ -242,6 +243,11 @@ zarovná na hranici, takže `eom-1m` = poslední den minulého měsíce i u krat
 **minulý týden** `>=sow-1w AND <=eow-1w`, **tento měsíc** `>=som AND <=eom`, **minulý měsíc**
 `>=som-1m AND <=eom-1m`, **letos** `>=soy AND <=eoy`. V dynamickém filtru sloupce je u pole tlačítko
 **„?"** s hotovými obdobími (klik je vyplní a rovnou aplikuje).
+
+Stejné tokeny pohánějí i **dynamické presety v `date-range` pickeru** (`@v1.12.0`): přepínač
+**„dynamické období"** v dialogu uloží u presetu token (`{from:'sow-1w', to:'eow-1w'}`) místo pevných
+dat, takže uložený filtr/preset/snímek zůstane živý. `match`/`toServer` date-range filtru tokeny
+rozvíjejí (pevná data projdou beze změny).
 
 ```js
 // „Zkušební doba končí v příštích 14 dnech" — bez pevného data:

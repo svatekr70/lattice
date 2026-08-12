@@ -4,6 +4,27 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.12.0] – 2026-08-12
+
+Dynamické období napříč filtry — hranice týdne/měsíce/kvartálu/roku, našeptávač a živé presety
+v kalendáři. Bez breaking changes.
+
+### Přidáno
+- **Tokeny pro hranice období.** K `today`/`now` přibyly `sow`/`eow` (začátek/konec týdne, Po–Ne),
+  `som`/`eom` (měsíc), `soq`/`eoq` (kvartál), `soy`/`eoy` (rok) — s volitelným offsetem
+  (`sow-1w`, `eom-1m`, …). Offset se aplikuje nejdřív, pak zarovnání na hranici, takže `eom-1m` =
+  poslední den minulého měsíce i u kratších měsíců. Funguje v dynamickém i rozšířeném filtru.
+- **Našeptávač u dynamického filtru.** U pole je tlačítko **„?"** s hotovými obdobími (Dnes,
+  Minulý týden, Tento měsíc…) — klik výraz vyplní a rovnou aplikuje; plus stručná reference zápisu.
+- **Dynamická období v `date-range` pickeru.** Přepínač **„dynamické období"** v dialogu: zapnutý →
+  klik na preset uloží token (`{from:'sow-1w', to:'eow-1w'}`) místo pevných dat, takže uložený
+  filtr/preset/snímek **zůstane živý** (za týden „Minulý týden" = zase minulý týden). V poli to
+  značí `↻` + název období; ruční výběr v kalendáři zůstává pevný. `match`/`toServer` date-range
+  filtru tokeny rozvíjejí (pevná data beze změny).
+
+### Změněno
+- **Demo, příručka a API dokumentace** doplněny o hranice období, našeptávač a dynamické date-range presety.
+
 ## [1.11.0] – 2026-08-12
 
 Dynamický datumový filtr a ukládání „naklikaných" sloupcových filtrů. Bez breaking changes.
@@ -392,6 +413,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.12.0]: https://github.com/svatekr70/lattice/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/svatekr70/lattice/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/svatekr70/lattice/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/svatekr70/lattice/compare/v1.8.1...v1.9.0
