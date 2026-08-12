@@ -1973,6 +1973,18 @@ export class Renderer {
     });
     clearBtn.addEventListener('click', () => this.grid.clearAllFilters());
     toolbar.appendChild(clearBtn);
+    // Ukládací ikona (trychtýř + disketa): uloží aktuální sloupcové filtry pod názvem.
+    // Vždy v DOM, viditelná (.is-visible) jen když nějaký sloupcový filtr platí — viditelnost
+    // se přepíná i mimo renderToolbar přes updateFilterClearBtn (při psaní do filtru sloupce).
+    if (f.advancedFilter !== false) {
+      const saveFbtn = el('button.lattice-tool-btn.lattice-save-filters' + (this.grid.hasColumnFilters() ? '.is-visible' : ''), {
+        type: 'button', title: this.grid.i18n.t('saveFilters.title'), html: SAVE_FILTER_SVG,
+      });
+      saveFbtn.addEventListener('click', () => this.grid.saveFiltersPanel.toggle(saveFbtn));
+      // Když je panel otevřený, přesměruj kotvu na živé tlačítko (viz advBtn níže).
+      if (this.grid.saveFiltersPanel && this.grid.saveFiltersPanel.panel) this.grid.saveFiltersPanel.anchor = saveFbtn;
+      toolbar.appendChild(saveFbtn);
+    }
     if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
@@ -1996,9 +2008,17 @@ export class Renderer {
         for (const s of saved) sel.appendChild(el('option', { value: s.id, text: (s.scope === 'global' ? '🌐 ' : '') + s.name }));
         sel.value = grid.activeSavedId();
         sel.addEventListener('change', () => {
-          if (!sel.value) { grid.clearAdvanced(); return; }
+          if (!sel.value) {
+            // vyprázdnění → zruš to, co je právě aktivní (snímek sloupců vs. rozšířený strom)
+            const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
+            if (cur && cur.kind === 'columns') grid.clearColumnFilters();
+            else grid.clearAdvanced();
+            return;
+          }
           const item = saved.find((x) => x.id === sel.value);
-          if (item) grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+          if (!item) return;
+          if (item.kind === 'columns') grid.applyFiltersSnapshot(item);
+          else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
         });
         toolbar.appendChild(sel);
       }
@@ -2028,8 +2048,12 @@ export class Renderer {
 
   /** Ukáže/skryje mazací ikonu filtrů v záhlaví podle toho, zda je nějaký aplikován. */
   updateFilterClearBtn() {
-    const btn = this.nodes.toolbar && this.nodes.toolbar.querySelector('.lattice-clear-filters');
+    const tb = this.nodes.toolbar;
+    if (!tb) return;
+    const btn = tb.querySelector('.lattice-clear-filters');
     if (btn) btn.classList.toggle('is-visible', this.grid.hasActiveFilters());
+    const save = tb.querySelector('.lattice-save-filters');
+    if (save) save.classList.toggle('is-visible', this.grid.hasColumnFilters());
   }
 
   /* -------- overlay stavy -------- */
@@ -2168,10 +2192,12 @@ const FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden=
 // nálevka s ozubením/hvězdičkou = rozšířený filtr
 // Rozšířený filtr: trychtýř s výraznější hvězdičkou (větší, čitelnější).
 // Rozšířený filtr: trychtýř s výrazným „+" (přidání podmínek) — zlatý, čitelný i v aktivním stavu.
-const ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h14l-5 6.5v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
+const ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
 const GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
 // Trychtýř s výrazným ČERVENÝM křížkem — zrušení všech filtrů (danger barva).
 const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
+// Trychtýř s disketou — uložení „naklikaných" sloupcových filtrů jako pojmenovaný snímek.
+const SAVE_FILTER_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="var(--lattice-accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"/><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"/><path fill="#fff" d="M15.5 18h4v2.4h-4z"/></svg>';
 // Undo/redo — zakřivené šipky; ✕ pro vymazání historie.
 const UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
 const REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';

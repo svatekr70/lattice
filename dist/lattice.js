@@ -3201,6 +3201,17 @@ var cs_default = {
       nempty: "nen\xED pr\xE1zdn\xE9"
     }
   },
+  saveFilters: {
+    title: "Ulo\u017Eit sloupcov\xE9 filtry",
+    namePlaceholder: "N\xE1zev filtru\u2026",
+    asButton: "jako tla\u010D\xEDtko",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    save: "Ulo\u017Eit",
+    saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
+    none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
+    apply: "Pou\u017E\xEDt filtr",
+    delete: "Smazat ulo\u017Een\xFD filtr"
+  },
   universal: { field: "Pole", type: "Typ", valueLabel: "Hodnota", value: "hodnota k filtrov\xE1n\xED\u2026", clear: "Zru\u0161it filtr" },
   group: {
     empty: "(pr\xE1zdn\xE9)",
@@ -3650,6 +3661,17 @@ var en_default = {
       empty: "is empty",
       nempty: "is not empty"
     }
+  },
+  saveFilters: {
+    title: "Save column filters",
+    namePlaceholder: "Filter name\u2026",
+    asButton: "as button",
+    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    save: "Save",
+    saveGlobal: "Save globally",
+    none: "Nothing saved yet",
+    apply: "Apply filter",
+    delete: "Delete saved filter"
   },
   universal: { field: "Field", type: "Type", valueLabel: "Value", value: "value to filter\u2026", clear: "Clear filter" },
   group: {
@@ -8550,6 +8572,16 @@ var Renderer = class {
     clearBtn.addEventListener("click", () => this.grid.clearAllFilters());
     toolbar.appendChild(clearBtn);
     if (f.advancedFilter !== false) {
+      const saveFbtn = el("button.lattice-tool-btn.lattice-save-filters" + (this.grid.hasColumnFilters() ? ".is-visible" : ""), {
+        type: "button",
+        title: this.grid.i18n.t("saveFilters.title"),
+        html: SAVE_FILTER_SVG
+      });
+      saveFbtn.addEventListener("click", () => this.grid.saveFiltersPanel.toggle(saveFbtn));
+      if (this.grid.saveFiltersPanel && this.grid.saveFiltersPanel.panel) this.grid.saveFiltersPanel.anchor = saveFbtn;
+      toolbar.appendChild(saveFbtn);
+    }
+    if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
       const advBtn = el("button.lattice-tool-btn", {
@@ -8569,11 +8601,15 @@ var Renderer = class {
         sel.value = grid.activeSavedId();
         sel.addEventListener("change", () => {
           if (!sel.value) {
-            grid.clearAdvanced();
+            const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
+            if (cur && cur.kind === "columns") grid.clearColumnFilters();
+            else grid.clearAdvanced();
             return;
           }
           const item = saved.find((x) => x.id === sel.value);
-          if (item) grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+          if (!item) return;
+          if (item.kind === "columns") grid.applyFiltersSnapshot(item);
+          else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
         });
         toolbar.appendChild(sel);
       }
@@ -8602,8 +8638,12 @@ var Renderer = class {
   }
   /** Ukáže/skryje mazací ikonu filtrů v záhlaví podle toho, zda je nějaký aplikován. */
   updateFilterClearBtn() {
-    const btn = this.nodes.toolbar && this.nodes.toolbar.querySelector(".lattice-clear-filters");
+    const tb = this.nodes.toolbar;
+    if (!tb) return;
+    const btn = tb.querySelector(".lattice-clear-filters");
     if (btn) btn.classList.toggle("is-visible", this.grid.hasActiveFilters());
+    const save = tb.querySelector(".lattice-save-filters");
+    if (save) save.classList.toggle("is-visible", this.grid.hasColumnFilters());
   }
   /* -------- overlay stavy -------- */
   setLoading(on) {
@@ -8716,9 +8756,10 @@ var UNIVERSAL_OPS = [
   { op: "ncontains", label: "!like" }
 ];
 var FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
-var ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h14l-5 6.5v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
+var ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
 var GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
 var CLEAR_FILTER_SVG2 = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
+var SAVE_FILTER_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="var(--lattice-accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"/><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"/><path fill="#fff" d="M15.5 18h4v2.4h-4z"/></svg>';
 var UNDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-2"/></svg>';
 var REDO_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h2"/></svg>';
 var CLEAR_HIST_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -9008,7 +9049,7 @@ var AdvancedFilter = class {
   buildSavedRow() {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
-    const saved = grid.listAdvanced();
+    const saved = grid.listAdvanced().filter((f) => f.kind !== "columns");
     const sel = el("select.lattice-adv-saved");
     sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
     for (const f of saved) sel.appendChild(el("option", { value: f.id, text: (f.scope === "global" ? "\u{1F310} " : "") + f.name }));
@@ -9134,6 +9175,108 @@ function newCondition(grid) {
 function freshGroup(grid) {
   return { combinator: "AND", rules: [newCondition(grid)] };
 }
+
+// src/features/saveFilters.js
+var SaveFiltersPanel = class {
+  constructor(grid) {
+    this.grid = grid;
+    this.panel = null;
+    this.off = null;
+    this.anchor = null;
+  }
+  toggle(anchor) {
+    if (this.panel) return this.close();
+    this.open(anchor);
+  }
+  open(anchor) {
+    if (this.panel) this.close();
+    this.anchor = anchor;
+    const panel = el("div.lattice-panel.lattice-savefilters-panel");
+    this.panel = panel;
+    this.render();
+    document.body.appendChild(panel);
+    positionUnder(panel, anchor);
+    this.off = onOutside(panel, (e) => {
+      if (!this.anchor?.contains(e.target)) this.close();
+    });
+  }
+  close() {
+    this.off?.();
+    this.panel?.remove();
+    this.panel = null;
+    this.off = null;
+  }
+  render() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const panel = this.panel;
+    panel.textContent = "";
+    panel.appendChild(el("div.lattice-panel-head", {}, [
+      el("span.lattice-panel-title", { text: t("saveFilters.title") })
+    ]));
+    const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("saveFilters.namePlaceholder") });
+    const asBtnInput = el("input", { type: "checkbox" });
+    const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("saveFilters.asButtonHint") }, [
+      asBtnInput,
+      el("span", { text: t("saveFilters.asButton") })
+    ]);
+    const saveWithScope = (scope) => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+      const item = grid.saveFilterSnapshot(name, scope, asBtnInput.checked);
+      if (!item) return;
+      nameInput.value = "";
+      asBtnInput.checked = false;
+      this.renderList();
+    };
+    const saveBtn = el("button.lattice-dr-btn.is-primary", { type: "button", text: t("saveFilters.save") });
+    saveBtn.addEventListener("click", () => saveWithScope("local"));
+    const rowEls = [nameInput, asBtnLabel, saveBtn];
+    if (grid.canSaveGlobalAdvanced()) {
+      const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("saveFilters.saveGlobal") });
+      globeBtn.addEventListener("click", () => saveWithScope("global"));
+      rowEls.push(globeBtn);
+    }
+    panel.appendChild(el("div.lattice-adv-saverow", {}, rowEls));
+    this.listEl = el("div.lattice-savefilters-list");
+    panel.appendChild(this.listEl);
+    this.renderList();
+  }
+  renderList() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const list = this.listEl;
+    list.textContent = "";
+    const snaps = grid.listAdvanced().filter((f) => f.kind === "columns");
+    if (!snaps.length) {
+      list.appendChild(el("div.lattice-savefilters-empty", { text: t("saveFilters.none") }));
+      if (this.panel) positionUnder(this.panel, this.anchor);
+      return;
+    }
+    const activeId = grid.activeSavedId();
+    for (const s of snaps) {
+      const apply = el("button.lattice-savefilters-name" + (s.id === activeId ? ".is-active" : ""), {
+        type: "button",
+        text: (s.scope === "global" ? "\u{1F310} " : "") + s.name,
+        title: t("saveFilters.apply")
+      });
+      apply.addEventListener("click", () => {
+        grid.applyFiltersSnapshot(s);
+        this.renderList();
+      });
+      const del = el("button.lattice-icon-btn.is-danger", { type: "button", title: t("saveFilters.delete"), text: "\xD7" });
+      del.addEventListener("click", () => {
+        grid.deleteAdvanced(s.id);
+        this.renderList();
+      });
+      list.appendChild(el("div.lattice-savefilters-row", {}, [apply, del]));
+    }
+    if (this.panel) positionUnder(this.panel, this.anchor);
+  }
+};
 
 // src/features/editing.js
 var EditManager = class {
@@ -10698,6 +10841,7 @@ var Lattice = class {
     this.gear = new Gear(this);
     this.instanceSettings = new InstanceSettings(this);
     this.advancedFilter = new AdvancedFilter(this);
+    this.saveFiltersPanel = new SaveFiltersPanel(this);
     this.pagination = new Pagination(this);
     this.renderer = new Renderer(this);
     this.renderer.mount();
@@ -11329,26 +11473,35 @@ var Lattice = class {
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
    */
   saveAdvanced(name, tree, scope = "local", asButton = false) {
+    return this._saveNamedFilter(name, scope, asButton, { tree: JSON.parse(JSON.stringify(tree)) });
+  }
+  /**
+   * Společná perzistence pojmenovaného uloženého filtru (rozšířený strom NEBO snímek
+   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes }).
+   * Stejný název ve stejném scope přepíše (zachová id → downstream INSERT … ON DUPLICATE KEY).
+   *  - local  → do localStorage blobu (state.advancedFilters), kompletně v knihovně.
+   *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
+   *    ta zajistí perzistenci a sdílení (DB). Payload nese i `fields` (u snímku tedy kind+filters).
+   */
+  _saveNamedFilter(name, scope, asButton, fields) {
     name = String(name || "").trim();
     if (!name) return null;
-    const treeCopy = JSON.parse(JSON.stringify(tree));
-    const asBtn = !!asButton;
+    const core = { name, asButton: !!asButton, ...fields };
     if (scope === "global") {
       const existing2 = this.globalAdvanced.find((f) => f.name === name);
       const id = existing2 ? existing2.id : uid2();
       this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
-      const norm5 = { id, name, tree: treeCopy, scope: "global", asButton: asBtn };
+      const norm5 = { id, ...core, scope: "global" };
       this.globalAdvanced.push(norm5);
       const cb = this.options.onSaveGlobalAdvancedFilter;
-      if (typeof cb === "function") cb({ id, name, tree: treeCopy, asButton: asBtn });
+      if (typeof cb === "function") cb({ id, ...core });
       this.renderer.renderToolbar();
       return norm5;
     }
     const existing = (this.state.advancedFilters || []).find((f) => f.name === name);
-    const item = { id: existing ? existing.id : uid2(), name, tree: treeCopy, asButton: asBtn };
-    const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
-    list.push(item);
-    this.state.advancedFilters = list;
+    const item = { id: existing ? existing.id : uid2(), ...core };
+    this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.name !== name);
+    this.state.advancedFilters.push(item);
     this.store.save(this.state);
     this.renderer.renderToolbar();
     return item;
@@ -11372,11 +11525,18 @@ var Lattice = class {
     const loc = (this.state.advancedFilters || []).map((f) => ({ ...f, scope: "local" }));
     return [...loc, ...this.globalAdvanced];
   }
-  /** Id uloženého filtru odpovídajícího aktivnímu (nebo ''). */
+  /** Je uložená položka snímkem sloupcových filtrů (vs. rozšířený strom)? */
+  _isSnapshot(item) {
+    return !!(item && item.kind === "columns");
+  }
+  /** Odpovídá uložená položka aktuálně aplikovanému stavu filtrů? */
+  _isSavedActive(item) {
+    if (this._isSnapshot(item)) return this._sameFilters(this.filters, item.filters);
+    return !!(this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree));
+  }
+  /** Id uloženého filtru odpovídajícího aktuálnímu stavu (nebo ''). */
   activeSavedId() {
-    if (!this.advanced) return "";
-    const s = JSON.stringify(this.advanced);
-    const f = this.listAdvanced().find((x) => JSON.stringify(x.tree) === s);
+    const f = this.listAdvanced().find((x) => this._isSavedActive(x));
     return f ? f.id : "";
   }
   /** Uložené filtry označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
@@ -11387,9 +11547,91 @@ var Lattice = class {
   toggleSavedAdvanced(id) {
     const item = this.listAdvanced().find((f) => f.id === id);
     if (!item) return;
-    const active = this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree);
-    if (active) this.clearAdvanced();
+    const active = this._isSavedActive(item);
+    if (this._isSnapshot(item)) {
+      if (active) this.clearColumnFilters();
+      else this.applyFiltersSnapshot(item);
+    } else if (active) this.clearAdvanced();
     else this.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+  }
+  /* ------- snímky sloupcových filtrů (uživatel „naklikal" filtry a uloží je) ------- */
+  /** Porovná dvě mapy filtrů field→value nezávisle na pořadí klíčů. */
+  _sameFilters(a, b) {
+    const ka = Object.keys(a || {}).sort();
+    const kb = Object.keys(b || {}).sort();
+    if (ka.length !== kb.length || ka.some((k, i) => k !== kb[i])) return false;
+    return ka.every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+  }
+  /** Aktivní sloupcové filtry (jen ty s neprázdnou hodnotou dle typu filtru). */
+  _activeColumnFilters() {
+    const out = {};
+    for (const [field2, value] of Object.entries(this.filters || {})) {
+      const col = this.columns.find((c) => c.field === field2);
+      if (!col || !col.filter) continue;
+      const def = getFilter(col.filter);
+      if (def && !def.isEmpty(value)) out[field2] = value;
+    }
+    return out;
+  }
+  /** Je aplikovaný aspoň jeden sloupcový filtr (má hodnotu)? Pro viditelnost ukládací ikony. */
+  hasColumnFilters() {
+    return Object.keys(this._activeColumnFilters()).length > 0;
+  }
+  /**
+   * Sejme aktuální sloupcové filtry do přenosného snímku: hodnoty + nestandardní
+   * typy filtru u dotčených sloupců (aby po načtení fungoval např. přepnutý „Dynamické").
+   * Vrací null, když žádný sloupcový filtr není aktivní.
+   */
+  _captureColumnFilters() {
+    const filters = this._activeColumnFilters();
+    if (!Object.keys(filters).length) return null;
+    const filterTypes = {};
+    for (const c of this.columns) {
+      if (c.field in filters && c.filter !== c.defaultFilter) filterTypes[c.field] = c.filter;
+    }
+    return { filters: JSON.parse(JSON.stringify(filters)), filterTypes };
+  }
+  /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
+  saveFilterSnapshot(name, scope = "local", asButton = false) {
+    const snap = this._captureColumnFilters();
+    if (!snap) return null;
+    return this._saveNamedFilter(name, scope, asButton, {
+      kind: "columns",
+      filters: snap.filters,
+      filterTypes: snap.filterTypes
+    });
+  }
+  /** Obnoví uložený snímek sloupcových filtrů zpět do políček hlavičky a přefiltruje. */
+  applyFiltersSnapshot(snap) {
+    if (!snap || !snap.filters) return;
+    this._clearActivePreset();
+    const types = snap.filterTypes || {};
+    for (const c of this.columns) {
+      if (!(c.field in snap.filters)) continue;
+      const t = types[c.field];
+      c.filter = t && c.availableFilters && c.availableFilters.includes(t) ? t : c.defaultFilter;
+    }
+    this.filters = JSON.parse(JSON.stringify(snap.filters));
+    this.page = 1;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.renderer.renderToolbar();
+    this.refresh();
+    this._emitFilter();
+  }
+  /** Zruší jen sloupcové filtry (univerzální/rozšířený/quickSearch nechá být). */
+  clearColumnFilters() {
+    if (!Object.keys(this.filters).length) return;
+    this._clearActivePreset();
+    this.filters = {};
+    this.page = 1;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.renderer.renderToolbar();
+    this.refresh();
+    this._emitFilter();
   }
   /* =================== stránkování =================== */
   setPage(page) {

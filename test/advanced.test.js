@@ -127,6 +127,10 @@ function mockGridCtx({ global = false } = {}) {
     renderer: { renderToolbar() {} },
     options: global ? { onSaveGlobalAdvancedFilter() {} } : {},
     listAdvanced: Lattice.prototype.listAdvanced,
+    _saveNamedFilter: Lattice.prototype._saveNamedFilter,
+    _isSnapshot: Lattice.prototype._isSnapshot,
+    _isSavedActive: Lattice.prototype._isSavedActive,
+    _sameFilters: Lattice.prototype._sameFilters,
   };
 }
 const save = Lattice.prototype.saveAdvanced;

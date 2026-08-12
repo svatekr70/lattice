@@ -396,6 +396,17 @@ export default {
       empty: 'is empty', nempty: 'is not empty',
     },
   },
+  saveFilters: {
+    title: 'Save column filters',
+    namePlaceholder: 'Filter name…',
+    asButton: 'as button',
+    asButtonHint: 'Show this saved filter as a button in the row above the icons (click to toggle on/off).',
+    save: 'Save',
+    saveGlobal: 'Save globally',
+    none: 'Nothing saved yet',
+    apply: 'Apply filter',
+    delete: 'Delete saved filter',
+  },
   universal: { field: 'Field', type: 'Type', valueLabel: 'Value', value: 'value to filter…', clear: 'Clear filter' },
   group: {
     empty: '(empty)',

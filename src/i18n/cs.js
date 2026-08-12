@@ -396,6 +396,17 @@ export default {
       empty: 'je prázdné', nempty: 'není prázdné',
     },
   },
+  saveFilters: {
+    title: 'Uložit sloupcové filtry',
+    namePlaceholder: 'Název filtru…',
+    asButton: 'jako tlačítko',
+    asButtonHint: 'Zobrazit tento uložený filtr jako tlačítko v řadě nad ikonami (klik = zapnout/vypnout).',
+    save: 'Uložit',
+    saveGlobal: 'Uložit globálně',
+    none: 'Zatím žádné uložené',
+    apply: 'Použít filtr',
+    delete: 'Smazat uložený filtr',
+  },
   universal: { field: 'Pole', type: 'Typ', valueLabel: 'Hodnota', value: 'hodnota k filtrování…', clear: 'Zrušit filtr' },
   group: {
     empty: '(prázdné)',

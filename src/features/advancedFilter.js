@@ -124,7 +124,8 @@ export class AdvancedFilter {
   buildSavedRow() {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
-    const saved = grid.listAdvanced();
+    // snímky sloupcových filtrů (kind:'columns') sem nepatří — nejsou to editovatelné stromy
+    const saved = grid.listAdvanced().filter((f) => f.kind !== 'columns');
 
     const sel = el('select.lattice-adv-saved');
     sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));

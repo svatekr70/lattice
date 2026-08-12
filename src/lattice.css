@@ -282,6 +282,19 @@
 }
 .lattice-adv-fbtn:hover { background: var(--lattice-header-bg); }
 .lattice-adv-fbtn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
+/* ---------- panel „uložit sloupcové filtry" ---------- */
+.lattice-savefilters-panel { width: 340px; max-width: 92vw; }
+.lattice-savefilters-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
+.lattice-savefilters-empty { color: var(--lattice-muted); font-size: 0.85em; padding: 4px 2px; }
+.lattice-savefilters-row { display: flex; align-items: center; gap: 6px; }
+.lattice-savefilters-name {
+  flex: 1 1 auto; text-align: left; padding: 5px 8px;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lattice-savefilters-name:hover { background: var(--lattice-header-bg); }
+.lattice-savefilters-name.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
 .lattice-tool-btn {
   display: inline-flex;
   align-items: center;
@@ -299,6 +312,8 @@
 .lattice-tool-btn:hover { background: var(--lattice-header-bg); color: var(--lattice-text); border-color: var(--lattice-border); text-decoration: none; }
 .lattice-clear-filters { display: none; }
 .lattice-clear-filters.is-visible { display: inline-flex; }
+.lattice-save-filters { display: none; }
+.lattice-save-filters.is-visible { display: inline-flex; }
 .lattice-tool-btn.is-active { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
 .lattice-adv-quick {
   max-width: 220px; height: 26px; padding: 0 24px 0 8px;

@@ -17,6 +17,7 @@ import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImp
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
 import { printTable } from './features/print.js';
 import { ClientData, ServerData, rowMatches, encodeParams } from './core/DataSource.js';
+import { getFilter } from './filters/index.js';
 import { I18n } from './i18n/index.js';
 import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
@@ -25,6 +26,7 @@ import { Pagination } from './features/pagination.js';
 import { PresetStore } from './features/presets.js';
 import { measureColumnWidth } from './features/resize.js';
 import { AdvancedFilter } from './features/advancedFilter.js';
+import { SaveFiltersPanel } from './features/saveFilters.js';
 import { EditManager } from './features/editing.js';
 import { TreeManager } from './features/tree.js';
 import { RangeManager } from './features/rangeSelection.js';
@@ -184,6 +186,7 @@ export class Lattice {
     this.gear = new Gear(this);
     this.instanceSettings = new InstanceSettings(this);
     this.advancedFilter = new AdvancedFilter(this);
+    this.saveFiltersPanel = new SaveFiltersPanel(this);
     this.pagination = new Pagination(this);
     this.renderer = new Renderer(this);
     this.renderer.mount();
@@ -874,30 +877,36 @@ export class Lattice {
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
    */
   saveAdvanced(name, tree, scope = 'local', asButton = false) {
+    return this._saveNamedFilter(name, scope, asButton, { tree: JSON.parse(JSON.stringify(tree)) });
+}
+
+  /**
+   * Společná perzistence pojmenovaného uloženého filtru (rozšířený strom NEBO snímek
+   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes }).
+   * Stejný název ve stejném scope přepíše (zachová id → downstream INSERT … ON DUPLICATE KEY).
+   *  - local  → do localStorage blobu (state.advancedFilters), kompletně v knihovně.
+   *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
+   *    ta zajistí perzistenci a sdílení (DB). Payload nese i `fields` (u snímku tedy kind+filters).
+   */
+  _saveNamedFilter(name, scope, asButton, fields) {
     name = String(name || '').trim();
     if (!name) return null;
-    const treeCopy = JSON.parse(JSON.stringify(tree));
-    const asBtn = !!asButton;
+    const core = { name, asButton: !!asButton, ...fields };
     if (scope === 'global') {
-      // přepis pod stejným názvem zachová id existující položky → downstream perzistence
-      // (INSERT … ON DUPLICATE KEY UPDATE dle ext_id) přepíše řádek a nezaloží duplicitu.
       const existing = this.globalAdvanced.find((f) => f.name === name);
       const id = existing ? existing.id : uid();
       this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
-      const norm = { id, name, tree: treeCopy, scope: 'global', asButton: asBtn };
+      const norm = { id, ...core, scope: 'global' };
       this.globalAdvanced.push(norm);
       const cb = this.options.onSaveGlobalAdvancedFilter;
-      // asButton předáme aplikaci k perzistenci; pokud ji neuloží, tlačítko po reloadu zmizí.
-      if (typeof cb === 'function') cb({ id, name, tree: treeCopy, asButton: asBtn });
+      if (typeof cb === 'function') cb({ id, ...core });
       this.renderer.renderToolbar(); // aktualizovat rychlý select + řadu tlačítek v toolbaru
       return norm;
     }
-    // lokální: přepis stejného názvu rovněž zachová id (konzistence s global)
     const existing = (this.state.advancedFilters || []).find((f) => f.name === name);
-    const item = { id: existing ? existing.id : uid(), name, tree: treeCopy, asButton: asBtn };
-    const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
-    list.push(item);
-    this.state.advancedFilters = list;
+    const item = { id: existing ? existing.id : uid(), ...core };
+    this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.name !== name);
+    this.state.advancedFilters.push(item);
     this.store.save(this.state);
     this.renderer.renderToolbar(); // aktualizovat rychlý select + řadu tlačítek v toolbaru
     return item;
@@ -924,11 +933,20 @@ export class Lattice {
     return [...loc, ...this.globalAdvanced];
   }
 
-  /** Id uloženého filtru odpovídajícího aktivnímu (nebo ''). */
+  /** Je uložená položka snímkem sloupcových filtrů (vs. rozšířený strom)? */
+  _isSnapshot(item) {
+    return !!(item && item.kind === 'columns');
+  }
+
+  /** Odpovídá uložená položka aktuálně aplikovanému stavu filtrů? */
+  _isSavedActive(item) {
+    if (this._isSnapshot(item)) return this._sameFilters(this.filters, item.filters);
+    return !!(this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree));
+  }
+
+  /** Id uloženého filtru odpovídajícího aktuálnímu stavu (nebo ''). */
   activeSavedId() {
-    if (!this.advanced) return '';
-    const s = JSON.stringify(this.advanced);
-    const f = this.listAdvanced().find((x) => JSON.stringify(x.tree) === s);
+    const f = this.listAdvanced().find((x) => this._isSavedActive(x));
     return f ? f.id : '';
   }
 
@@ -941,9 +959,98 @@ export class Lattice {
   toggleSavedAdvanced(id) {
     const item = this.listAdvanced().find((f) => f.id === id);
     if (!item) return;
-    const active = this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree);
-    if (active) this.clearAdvanced();
+    const active = this._isSavedActive(item);
+    if (this._isSnapshot(item)) {
+      if (active) this.clearColumnFilters();
+      else this.applyFiltersSnapshot(item);
+    } else if (active) this.clearAdvanced();
     else this.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+  }
+
+  /* ------- snímky sloupcových filtrů (uživatel „naklikal" filtry a uloží je) ------- */
+
+  /** Porovná dvě mapy filtrů field→value nezávisle na pořadí klíčů. */
+  _sameFilters(a, b) {
+    const ka = Object.keys(a || {}).sort();
+    const kb = Object.keys(b || {}).sort();
+    if (ka.length !== kb.length || ka.some((k, i) => k !== kb[i])) return false;
+    return ka.every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
+  }
+
+  /** Aktivní sloupcové filtry (jen ty s neprázdnou hodnotou dle typu filtru). */
+  _activeColumnFilters() {
+    const out = {};
+    for (const [field, value] of Object.entries(this.filters || {})) {
+      const col = this.columns.find((c) => c.field === field);
+      if (!col || !col.filter) continue;
+      const def = getFilter(col.filter);
+      if (def && !def.isEmpty(value)) out[field] = value;
+    }
+    return out;
+  }
+
+  /** Je aplikovaný aspoň jeden sloupcový filtr (má hodnotu)? Pro viditelnost ukládací ikony. */
+  hasColumnFilters() {
+    return Object.keys(this._activeColumnFilters()).length > 0;
+  }
+
+  /**
+   * Sejme aktuální sloupcové filtry do přenosného snímku: hodnoty + nestandardní
+   * typy filtru u dotčených sloupců (aby po načtení fungoval např. přepnutý „Dynamické").
+   * Vrací null, když žádný sloupcový filtr není aktivní.
+   */
+  _captureColumnFilters() {
+    const filters = this._activeColumnFilters();
+    if (!Object.keys(filters).length) return null;
+    const filterTypes = {};
+    for (const c of this.columns) {
+      if (c.field in filters && c.filter !== c.defaultFilter) filterTypes[c.field] = c.filter;
+    }
+    return { filters: JSON.parse(JSON.stringify(filters)), filterTypes };
+  }
+
+  /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
+  saveFilterSnapshot(name, scope = 'local', asButton = false) {
+    const snap = this._captureColumnFilters();
+    if (!snap) return null;
+    return this._saveNamedFilter(name, scope, asButton, {
+      kind: 'columns', filters: snap.filters, filterTypes: snap.filterTypes,
+    });
+  }
+
+  /** Obnoví uložený snímek sloupcových filtrů zpět do políček hlavičky a přefiltruje. */
+  applyFiltersSnapshot(snap) {
+    if (!snap || !snap.filters) return;
+    this._clearActivePreset();
+    const types = snap.filterTypes || {};
+    // u dotčených sloupců obnov typ filtru (odchylka nebo výchozí), ať sedí tvar hodnoty
+    for (const c of this.columns) {
+      if (!(c.field in snap.filters)) continue;
+      const t = types[c.field];
+      c.filter = (t && c.availableFilters && c.availableFilters.includes(t)) ? t : c.defaultFilter;
+    }
+    this.filters = JSON.parse(JSON.stringify(snap.filters));
+    this.page = 1;
+    this.saveState();
+    this.renderer.renderHeader(); // políčka filtrů zobrazí obnovené hodnoty
+    this.renderer.applyLayout();
+    this.renderer.renderToolbar();
+    this.refresh();
+    this._emitFilter();
+  }
+
+  /** Zruší jen sloupcové filtry (univerzální/rozšířený/quickSearch nechá být). */
+  clearColumnFilters() {
+    if (!Object.keys(this.filters).length) return;
+    this._clearActivePreset();
+    this.filters = {};
+    this.page = 1;
+    this.saveState();
+    this.renderer.renderHeader();
+    this.renderer.applyLayout();
+    this.renderer.renderToolbar();
+    this.refresh();
+    this._emitFilter();
   }
 
   /* =================== stránkování =================== */
