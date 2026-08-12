@@ -876,8 +876,8 @@ var FILTERS_BY_TYPE = {
   money: ["number", "number-range"],
   progress: ["number", "number-range"],
   rating: ["number", "number-range"],
-  date: ["date-range", "date-two"],
-  datetime: ["date-range", "date-two"],
+  date: ["date-range", "date-two", "dynamic"],
+  datetime: ["date-range", "date-two", "dynamic"],
   boolean: ["boolean"],
   text: ["text"]
 };
@@ -1751,6 +1751,142 @@ var PRESETS = [
 ];
 var CAL_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 2v2H5a2 2 0 00-2 2v13a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2V2h-2v2H9V2H7zm12 7v10H5V9h14z"/></svg>';
 
+// src/filters/advancedEval.js
+var ADV_OPS = ["eq", "neq", "contains", "ncontains", "starts", "ends", "gt", "gte", "lt", "lte", "in", "nin", "empty", "nempty"];
+function isGroup(r) {
+  return r != null && Array.isArray(r.rules);
+}
+function isEmptyTree(group) {
+  if (!isGroup(group)) return true;
+  return group.rules.every((r) => isGroup(r) ? isEmptyTree(r) : !r || !r.op);
+}
+function evalGroup(group, row) {
+  if (!isGroup(group)) return true;
+  const active = group.rules.filter((r) => isGroup(r) ? !isEmptyTree(r) : r && r.op);
+  if (active.length === 0) return true;
+  const results = active.map((r) => isGroup(r) ? evalGroup(r, row) : evalCondition(r, row));
+  return group.combinator === "OR" ? results.some(Boolean) : results.every(Boolean);
+}
+function evalCondition(c, row) {
+  if (!c || !c.op) return true;
+  const raw = row[c.field];
+  const s = norm(raw);
+  const v = resolveToken(c.value);
+  switch (c.op) {
+    case "empty":
+      return raw == null || raw === "";
+    case "nempty":
+      return !(raw == null || raw === "");
+    case "eq":
+      return s === norm(v);
+    case "neq":
+      return s !== norm(v);
+    case "contains":
+      return s.includes(norm(v));
+    case "ncontains":
+      return !s.includes(norm(v));
+    case "starts":
+      return s.startsWith(norm(v));
+    case "ends":
+      return s.endsWith(norm(v));
+    // Prázdné/chybějící pole není porovnatelné → nesmí splnit ordering (jinak by
+    // se prázdná hodnota chovala jako „menší než cokoli" a splnila lt/lte).
+    case "gt":
+      return raw != null && raw !== "" && cmp2(raw, v) > 0;
+    case "gte":
+      return raw != null && raw !== "" && cmp2(raw, v) >= 0;
+    case "lt":
+      return raw != null && raw !== "" && cmp2(raw, v) < 0;
+    case "lte":
+      return raw != null && raw !== "" && cmp2(raw, v) <= 0;
+    case "in":
+      return splitList(v).map(norm).includes(s);
+    case "nin":
+      return !splitList(v).map(norm).includes(s);
+    default:
+      return true;
+  }
+}
+function norm(v) {
+  return String(v ?? "").toLowerCase().trim();
+}
+function num2(v) {
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function day(v) {
+  if (typeof v !== "string" && !(v instanceof Date)) return null;
+  if (typeof v === "string" && !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
+  const d = new Date(v);
+  const t = d.getTime();
+  return Number.isNaN(t) ? null : t;
+}
+function cmp2(a, b) {
+  const na = num2(a), nb = num2(b);
+  if (na != null && nb != null) return na - nb;
+  const da = day(a), db = day(b);
+  if (da != null && db != null) return da - db;
+  return norm(a).localeCompare(norm(b), void 0, { numeric: true });
+}
+function splitList(v) {
+  if (Array.isArray(v)) return v.map(resolveToken);
+  return String(v ?? "").split(",").map((x) => resolveToken(x.trim())).filter(Boolean);
+}
+var TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
+function addMonths2(d, n) {
+  const day2 = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day2, lastDay));
+}
+function resolveToken(v) {
+  if (typeof v !== "string") return v;
+  const m = TOKEN_RE.exec(v);
+  if (!m) return v;
+  const d = /* @__PURE__ */ new Date();
+  if (m[2]) {
+    const n = (m[2] === "-" ? -1 : 1) * parseInt(m[3], 10);
+    switch ((m[4] || "d").toLowerCase()) {
+      case "w":
+        d.setDate(d.getDate() + n * 7);
+        break;
+      case "m":
+        addMonths2(d, n);
+        break;
+      case "y":
+        addMonths2(d, n * 12);
+        break;
+      default:
+        d.setDate(d.getDate() + n);
+    }
+  }
+  return m[1].toLowerCase() === "now" ? fmtDateTime(d) : fmtDate(d);
+}
+function resolveTreeTokens(group) {
+  if (!isGroup(group)) return group;
+  return { ...group, rules: group.rules.map((r) => isGroup(r) ? resolveTreeTokens(r) : resolveConditionTokens(r)) };
+}
+function resolveConditionTokens(c) {
+  if (!c || !c.op) return { ...c };
+  const v = c.value;
+  if (c.op === "in" || c.op === "nin") {
+    if (Array.isArray(v)) return { ...c, value: v.map(resolveToken) };
+    return { ...c, value: String(v ?? "").split(",").map((x) => resolveToken(x.trim())).join(",") };
+  }
+  return { ...c, value: Array.isArray(v) ? v.map(resolveToken) : resolveToken(v) };
+}
+function pad22(x) {
+  return String(x).padStart(2, "0");
+}
+function fmtDate(d) {
+  return `${d.getFullYear()}-${pad22(d.getMonth() + 1)}-${pad22(d.getDate())}`;
+}
+function fmtDateTime(d) {
+  return `${fmtDate(d)}T${pad22(d.getHours())}:${pad22(d.getMinutes())}:${pad22(d.getSeconds())}`;
+}
+
 // src/filters/index.js
 var registry = /* @__PURE__ */ new Map();
 function registerFilter(name, def) {
@@ -1777,7 +1913,7 @@ function dayTime(v) {
   d.setHours(0, 0, 0, 0);
   return d.getTime();
 }
-function norm(s) {
+function norm2(s) {
   return String(s ?? "").toLowerCase();
 }
 function normOption(o) {
@@ -1828,9 +1964,9 @@ registerFilter("text", {
   match(value, cell) {
     const raw = String(value).trim();
     const negate = raw.startsWith("!");
-    const needle = norm(negate ? raw.slice(1) : raw);
+    const needle = norm2(negate ? raw.slice(1) : raw);
     if (needle === "") return true;
-    const has = norm(cell).includes(needle);
+    const has = norm2(cell).includes(needle);
     return negate ? !has : has;
   },
   toServer: (field2, value) => [{ field: field2, type: "like", value }]
@@ -1954,12 +2090,83 @@ registerFilter("date-two", {
     return out;
   }
 });
+var DYN_CLAUSE_RE = /^\s*(>=|<=|>|<|=)?\s*(.+)$/;
+function dynClause(str3) {
+  const m = String(str3).match(DYN_CLAUSE_RE);
+  if (!m) return null;
+  const target = dayTime(resolveToken(m[2].trim()));
+  if (target == null) return null;
+  return { op: m[1] || "=", target };
+}
+function dynParse(value) {
+  const groups = [];
+  for (const g of String(value).split(/\bOR\b|\|\|/i)) {
+    const clauses = g.split(/\bAND\b|&&/i).map(dynClause).filter(Boolean);
+    if (clauses.length) groups.push(clauses);
+  }
+  return groups;
+}
+function dynTest(t, c) {
+  switch (c.op) {
+    case ">":
+      return t > c.target;
+    case "<":
+      return t < c.target;
+    case ">=":
+      return t >= c.target;
+    case "<=":
+      return t <= c.target;
+    default:
+      return t === c.target;
+  }
+}
+registerFilter("dynamic", {
+  build(column, ctx) {
+    const input = el("input.lattice-filter-input", {
+      type: "text",
+      placeholder: ctx.i18n.t("filters.dynamicPlaceholder"),
+      title: ctx.i18n.t("filters.dynamicHint"),
+      value: ctx.value ?? ""
+    });
+    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
+    input.addEventListener("input", () => fire(input.value));
+    return input;
+  },
+  isEmpty: (v) => !v || String(v).trim() === "",
+  match(value, cell) {
+    const t = dayTime(cell);
+    if (t == null) return false;
+    const groups = dynParse(value);
+    if (!groups.length) return true;
+    return groups.some((clauses) => clauses.every((c) => dynTest(t, c)));
+  },
+  toServer(field2, value) {
+    const orGroups = String(value).split(/\bOR\b|\|\|/i);
+    const multiOr = orGroups.length > 1;
+    const out = [];
+    orGroups.forEach((g, gi) => {
+      for (const s of g.split(/\bAND\b|&&/i)) {
+        const m = String(s).match(DYN_CLAUSE_RE);
+        if (!m) continue;
+        const operand = resolveToken(m[2].trim());
+        if (dayTime(operand) == null) continue;
+        const param = { field: field2, type: m[1] || "=", value: operand };
+        if (multiOr) {
+          param.combinator = "OR";
+          param.group = gi;
+        }
+        out.push(param);
+      }
+    });
+    return out;
+  }
+});
 registerFilter("select", {
   build(column, ctx) {
     return buildSelect(column, ctx);
   },
   isEmpty: (v) => v == null || v === "",
-  match: (value, cell) => norm(cell) === norm(value),
+  match: (value, cell) => norm2(cell) === norm2(value),
   toServer: (field2, value) => [{ field: field2, type: "=", value }]
 });
 function buildSelect(column, ctx) {
@@ -2065,8 +2272,8 @@ registerFilter("multiselect", {
   },
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
   match(value, cell) {
-    const set = value.map(norm);
-    return set.includes(norm(cell));
+    const set = value.map(norm2);
+    return set.includes(norm2(cell));
   },
   toServer: (field2, value) => [{ field: field2, type: "in", value }]
 });
@@ -2251,142 +2458,6 @@ registerFilter("boolean", {
   },
   toServer: (field2, value) => [{ field: field2, type: "=", value: value === "true" }]
 });
-
-// src/filters/advancedEval.js
-var ADV_OPS = ["eq", "neq", "contains", "ncontains", "starts", "ends", "gt", "gte", "lt", "lte", "in", "nin", "empty", "nempty"];
-function isGroup(r) {
-  return r != null && Array.isArray(r.rules);
-}
-function isEmptyTree(group) {
-  if (!isGroup(group)) return true;
-  return group.rules.every((r) => isGroup(r) ? isEmptyTree(r) : !r || !r.op);
-}
-function evalGroup(group, row) {
-  if (!isGroup(group)) return true;
-  const active = group.rules.filter((r) => isGroup(r) ? !isEmptyTree(r) : r && r.op);
-  if (active.length === 0) return true;
-  const results = active.map((r) => isGroup(r) ? evalGroup(r, row) : evalCondition(r, row));
-  return group.combinator === "OR" ? results.some(Boolean) : results.every(Boolean);
-}
-function evalCondition(c, row) {
-  if (!c || !c.op) return true;
-  const raw = row[c.field];
-  const s = norm2(raw);
-  const v = resolveToken(c.value);
-  switch (c.op) {
-    case "empty":
-      return raw == null || raw === "";
-    case "nempty":
-      return !(raw == null || raw === "");
-    case "eq":
-      return s === norm2(v);
-    case "neq":
-      return s !== norm2(v);
-    case "contains":
-      return s.includes(norm2(v));
-    case "ncontains":
-      return !s.includes(norm2(v));
-    case "starts":
-      return s.startsWith(norm2(v));
-    case "ends":
-      return s.endsWith(norm2(v));
-    // Prázdné/chybějící pole není porovnatelné → nesmí splnit ordering (jinak by
-    // se prázdná hodnota chovala jako „menší než cokoli" a splnila lt/lte).
-    case "gt":
-      return raw != null && raw !== "" && cmp2(raw, v) > 0;
-    case "gte":
-      return raw != null && raw !== "" && cmp2(raw, v) >= 0;
-    case "lt":
-      return raw != null && raw !== "" && cmp2(raw, v) < 0;
-    case "lte":
-      return raw != null && raw !== "" && cmp2(raw, v) <= 0;
-    case "in":
-      return splitList(v).map(norm2).includes(s);
-    case "nin":
-      return !splitList(v).map(norm2).includes(s);
-    default:
-      return true;
-  }
-}
-function norm2(v) {
-  return String(v ?? "").toLowerCase().trim();
-}
-function num2(v) {
-  if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function day(v) {
-  if (typeof v !== "string" && !(v instanceof Date)) return null;
-  if (typeof v === "string" && !/^\d{4}-\d{2}-\d{2}/.test(v)) return null;
-  const d = new Date(v);
-  const t = d.getTime();
-  return Number.isNaN(t) ? null : t;
-}
-function cmp2(a, b) {
-  const na = num2(a), nb = num2(b);
-  if (na != null && nb != null) return na - nb;
-  const da = day(a), db = day(b);
-  if (da != null && db != null) return da - db;
-  return norm2(a).localeCompare(norm2(b), void 0, { numeric: true });
-}
-function splitList(v) {
-  if (Array.isArray(v)) return v.map(resolveToken);
-  return String(v ?? "").split(",").map((x) => resolveToken(x.trim())).filter(Boolean);
-}
-var TOKEN_RE = /^\s*(today|now)\s*(?:([+-])\s*(\d+)\s*([dwmy])?)?\s*$/i;
-function addMonths2(d, n) {
-  const day2 = d.getDate();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + n);
-  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  d.setDate(Math.min(day2, lastDay));
-}
-function resolveToken(v) {
-  if (typeof v !== "string") return v;
-  const m = TOKEN_RE.exec(v);
-  if (!m) return v;
-  const d = /* @__PURE__ */ new Date();
-  if (m[2]) {
-    const n = (m[2] === "-" ? -1 : 1) * parseInt(m[3], 10);
-    switch ((m[4] || "d").toLowerCase()) {
-      case "w":
-        d.setDate(d.getDate() + n * 7);
-        break;
-      case "m":
-        addMonths2(d, n);
-        break;
-      case "y":
-        addMonths2(d, n * 12);
-        break;
-      default:
-        d.setDate(d.getDate() + n);
-    }
-  }
-  return m[1].toLowerCase() === "now" ? fmtDateTime(d) : fmtDate(d);
-}
-function resolveTreeTokens(group) {
-  if (!isGroup(group)) return group;
-  return { ...group, rules: group.rules.map((r) => isGroup(r) ? resolveTreeTokens(r) : resolveConditionTokens(r)) };
-}
-function resolveConditionTokens(c) {
-  if (!c || !c.op) return { ...c };
-  const v = c.value;
-  if (c.op === "in" || c.op === "nin") {
-    if (Array.isArray(v)) return { ...c, value: v.map(resolveToken) };
-    return { ...c, value: String(v ?? "").split(",").map((x) => resolveToken(x.trim())).join(",") };
-  }
-  return { ...c, value: Array.isArray(v) ? v.map(resolveToken) : resolveToken(v) };
-}
-function pad22(x) {
-  return String(x).padStart(2, "0");
-}
-function fmtDate(d) {
-  return `${d.getFullYear()}-${pad22(d.getMonth() + 1)}-${pad22(d.getDate())}`;
-}
-function fmtDateTime(d) {
-  return `${fmtDate(d)}T${pad22(d.getHours())}:${pad22(d.getMinutes())}:${pad22(d.getSeconds())}`;
-}
 
 // src/core/DataSource.js
 var COLLATOR = new Intl.Collator(void 0, { numeric: true, sensitivity: "base" });
@@ -3030,6 +3101,7 @@ var cs_default = {
     "number-range": "Rozsah (Od\u2013Do)",
     "date-range": "Datum (rozsah)",
     "date-two": "Datum (Od / Do)",
+    dynamic: "Dynamick\xE9",
     select: "V\xFDb\u011Br",
     multiselect: "V\xEDce hodnot",
     boolean: "Ano / Ne"
@@ -3040,6 +3112,8 @@ var cs_default = {
     no: "Ne",
     from: "Od",
     to: "Do",
+    dynamicPlaceholder: ">today-14 AND <today+14",
+    dynamicHint: "Oper\xE1tory >, <, >=, <=, =. Datum absolutn\u011B (2024-01-31) nebo relativn\u011B: today, today+14, today-7, +2w, -1m, now (jednotky d/w/m/y). Spojky AND / OR (AND v\xE1\u017Ee t\u011Bsn\u011Bji ne\u017E OR).",
     search: "Hledat\u2026",
     quickSearch: "Hledat ve v\u0161em\u2026",
     clear: "Zru\u0161it filtry",
@@ -3477,6 +3551,7 @@ var en_default = {
     "number-range": "Range (from\u2013to)",
     "date-range": "Date (range)",
     "date-two": "Date (from / to)",
+    dynamic: "Dynamic",
     select: "Select",
     multiselect: "Multi-select",
     boolean: "Yes / No"
@@ -3487,6 +3562,8 @@ var en_default = {
     no: "No",
     from: "From",
     to: "To",
+    dynamicPlaceholder: ">today-14 AND <today+14",
+    dynamicHint: "Operators >, <, >=, <=, =. Absolute date (2024-01-31) or relative: today, today+14, today-7, +2w, -1m, now (units d/w/m/y). Joiners AND / OR (AND binds tighter than OR).",
     search: "Search\u2026",
     quickSearch: "Search all\u2026",
     clear: "Clear filters",

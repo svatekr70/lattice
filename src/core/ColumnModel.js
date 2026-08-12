@@ -210,8 +210,8 @@ const FILTERS_BY_TYPE = {
   money: ['number', 'number-range'],
   progress: ['number', 'number-range'],
   rating: ['number', 'number-range'],
-  date: ['date-range', 'date-two'],
-  datetime: ['date-range', 'date-two'],
+  date: ['date-range', 'date-two', 'dynamic'],
+  datetime: ['date-range', 'date-two', 'dynamic'],
   boolean: ['boolean'],
   text: ['text'],
 };

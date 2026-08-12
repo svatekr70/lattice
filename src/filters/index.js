@@ -15,6 +15,7 @@
  */
 import { el, clear, debounce, onOutside } from '../util/dom.js';
 import { buildDateRangePicker } from './dateRangePicker.js';
+import { resolveToken } from './advancedEval.js';
 
 const registry = new Map();
 
@@ -236,6 +237,86 @@ registerFilter('date-two', {
     const out = [];
     if (value.from) out.push({ field, type: '>=', value: value.from });
     if (value.to) out.push({ field, type: '<=', value: value.to });
+    return out;
+  },
+});
+
+/* ---- DYNAMIC (výraz s operátory + AND/OR, relativní datumy) ------------- */
+/* Např. ">today-14 AND <today+14" nebo ">=2024-01-01 OR <today-1y".
+ * Operátory >, <, >=, <=, = (výchozí =); operand je absolutní datum (YYYY-MM-DD)
+ * nebo relativní token (today, today±N[dwmy], now) rozvinutý přes resolveToken.
+ * AND váže těsněji než OR: "a AND b OR c" = "(a AND b) OR c".
+ * Tichá tolerance chyb: neplatná klauzule se zahodí; když nezbude žádná, nefiltruje se. */
+
+const DYN_CLAUSE_RE = /^\s*(>=|<=|>|<|=)?\s*(.+)$/;
+
+/** Rozparsuje jednu klauzuli "op operand" → { op, target } nebo null (neplatná). */
+function dynClause(str) {
+  const m = String(str).match(DYN_CLAUSE_RE);
+  if (!m) return null;
+  const target = dayTime(resolveToken(m[2].trim())); // operand: absolutní datum nebo token
+  if (target == null) return null;
+  return { op: m[1] || '=', target };
+}
+
+/** Rozdělí výraz na OR-skupiny AND-klauzulí; neplatné klauzule tiše zahodí. */
+function dynParse(value) {
+  const groups = [];
+  for (const g of String(value).split(/\bOR\b|\|\|/i)) {
+    const clauses = g.split(/\bAND\b|&&/i).map(dynClause).filter(Boolean);
+    if (clauses.length) groups.push(clauses);
+  }
+  return groups; // [] = nic platného → tichá tolerance (nefiltruje)
+}
+
+function dynTest(t, c) {
+  switch (c.op) {
+    case '>': return t > c.target;
+    case '<': return t < c.target;
+    case '>=': return t >= c.target;
+    case '<=': return t <= c.target;
+    default: return t === c.target;
+  }
+}
+
+registerFilter('dynamic', {
+  build(column, ctx) {
+    const input = el('input.lattice-filter-input', {
+      type: 'text',
+      placeholder: ctx.i18n.t('filters.dynamicPlaceholder'),
+      title: ctx.i18n.t('filters.dynamicHint'),
+      value: ctx.value ?? '',
+    });
+    const fire = debounce((v) => ctx.onChange(v), ctx.debounceMs);
+    input.addEventListener('input', () => fire(input.value));
+    return input;
+  },
+  isEmpty: (v) => !v || String(v).trim() === '',
+  match(value, cell) {
+    const t = dayTime(cell);
+    if (t == null) return false;
+    const groups = dynParse(value);
+    if (!groups.length) return true; // žádná platná klauzule → tiše nefiltruj
+    // OR mezi skupinami, AND uvnitř skupiny
+    return groups.some((clauses) => clauses.every((c) => dynTest(t, c)));
+  },
+  toServer(field, value) {
+    // Tokeny rozvineme na konkrétní datumy, ať je backend nemusí umět parsovat.
+    // Kombinátor předáme přes `combinator`/`group` (u čistého AND je to jako date-two).
+    const orGroups = String(value).split(/\bOR\b|\|\|/i);
+    const multiOr = orGroups.length > 1;
+    const out = [];
+    orGroups.forEach((g, gi) => {
+      for (const s of g.split(/\bAND\b|&&/i)) {
+        const m = String(s).match(DYN_CLAUSE_RE);
+        if (!m) continue;
+        const operand = resolveToken(m[2].trim());
+        if (dayTime(operand) == null) continue; // neplatné tiše přeskoč
+        const param = { field, type: m[1] || '=', value: operand };
+        if (multiOr) { param.combinator = 'OR'; param.group = gi; }
+        out.push(param);
+      }
+    });
     return out;
   },
 });

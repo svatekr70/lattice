@@ -110,7 +110,7 @@ test('skupina: uživatelský override se persistuje jen když se liší od confi
 
 test('deriveAvailableFilters dle datového typu', () => {
   assert.deepEqual(deriveAvailableFilters({ field: 'n', type: 'number', filter: 'number' }), ['number', 'number-range']);
-  assert.deepEqual(deriveAvailableFilters({ field: 'd', type: 'date', filter: 'date-range' }), ['date-range', 'date-two']);
+  assert.deepEqual(deriveAvailableFilters({ field: 'd', type: 'date', filter: 'date-range' }), ['date-range', 'date-two', 'dynamic']);
   assert.deepEqual(deriveAvailableFilters({ field: 'b', type: 'boolean', filter: 'boolean' }), ['boolean']);
 });
 
