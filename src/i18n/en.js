@@ -379,6 +379,8 @@ export default {
     clear: 'Clear filter',
     save: 'Save',
     saveGlobal: 'Save globally',
+    asButton: 'as button',
+    asButtonHint: 'Show this saved filter as a button in the row above the icons (click to toggle on/off).',
     remove: 'Remove',
     delete: 'Delete saved filter',
     ops: {

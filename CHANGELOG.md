@@ -4,6 +4,19 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.10.0] – 2026-08-12
+
+Uložené rozšířené filtry lze zobrazit jako tlačítka. Bez breaking changes.
+
+### Přidáno
+- **Rozšířený filtr – „jako tlačítko".** U uloženého filtru (lokálního i globálního) lze
+  zaškrtnout, že se má vykreslit jako **tlačítko v řadě nad ikonami** v pravém záhlaví tabulky,
+  místo položky v rozbalovacím selectu. Klik na tlačítko funguje jako **přepínač** (zapnout/
+  vypnout); aktivní filtr je zvýrazněný. Filtry označené jako tlačítko se ze selectu vynechají
+  (nezdvojují se). Nové API: `saveAdvanced(name, tree, scope, asButton)`, `buttonAdvanced()`,
+  `toggleSavedAdvanced(id)`. U globálních filtrů dostane `asButton` i callback
+  `onSaveGlobalAdvancedFilter` k perzistenci na straně aplikace.
+
 ## [1.9.0] – 2026-08-08
 
 Opravný release z hloubkového auditu — správnost napříč vzorci, filtry, výběrem,
@@ -354,6 +367,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.10.0]: https://github.com/svatekr70/lattice/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/svatekr70/lattice/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/svatekr70/lattice/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/svatekr70/lattice/compare/v1.7.0...v1.8.0

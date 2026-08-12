@@ -1934,6 +1934,23 @@ export class Renderer {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
+    // Řada tlačítek uložených rozšířených filtrů (opt-in přepínačem u filtru). Vlastní
+    // řádek s width:100% → díky flex-wrap se položí NAD řadu ikon a zarovná se vpravo.
+    if (f.advancedFilter !== false) {
+      const btnFilters = this.grid.buttonAdvanced();
+      if (btnFilters.length) {
+        const activeId = this.grid.activeSavedId();
+        const btnRow = el('div.lattice-adv-btnrow');
+        for (const bf of btnFilters) {
+          const b = el('button.lattice-adv-fbtn' + (bf.id === activeId ? '.is-active' : ''), {
+            type: 'button', text: (bf.scope === 'global' ? '🌐 ' : '') + bf.name, title: bf.name,
+          });
+          b.addEventListener('click', () => this.grid.toggleSavedAdvanced(bf.id));
+          btnRow.appendChild(b);
+        }
+        toolbar.appendChild(btnRow);
+      }
+    }
     // Levá skupina toolbaru: historie (undo/redo) + ovládání úrovní stromu.
     const leftGroup = el('div.lattice-toolbar-left');
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
@@ -1971,7 +1988,8 @@ export class Renderer {
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
 
       // Rychlý výběr uloženého rozšířeného filtru přímo v toolbaru (když nějaký je).
-      const saved = grid.listAdvanced();
+      // Filtry označené „jako tlačítko" se zobrazují v řadě tlačítek výše, ne v selectu.
+      const saved = grid.listAdvanced().filter((s) => !s.asButton);
       if (saved.length) {
         const sel = el('select.lattice-adv-quick', { title: t('advanced.title') });
         sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));

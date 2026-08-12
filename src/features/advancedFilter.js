@@ -81,17 +81,29 @@ export class AdvancedFilter {
       const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
       if (cur) nameInput.value = cur.name;
     }
+    // Přepínač „zobrazit jako tlačítko" — uloží se u konkrétního filtru; když je zapnutý,
+    // filtr se vykreslí jako tlačítko v řadě nad ikonami toolbaru (místo jen v selectu).
+    const asBtnInput = el('input', { type: 'checkbox' });
+    this.asBtnInput = asBtnInput;
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) asBtnInput.checked = !!cur.asButton;
+    }
+    const asBtnLabel = el('label.lattice-adv-asbtn', { title: t('advanced.asButtonHint') }, [
+      asBtnInput, el('span', { text: t('advanced.asButton') }),
+    ]);
     const saveBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.save') });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) { nameInput.focus(); return; }
-      const item = this.grid.saveAdvanced(name, this.tree, scope);
+      const item = this.grid.saveAdvanced(name, this.tree, scope, asBtnInput.checked);
       nameInput.value = '';
+      asBtnInput.checked = false;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener('click', () => saveWithScope('local'));
-    const saveRowEls = [nameInput, saveBtn];
+    const saveRowEls = [nameInput, asBtnLabel, saveBtn];
     // Globus (globální filtr) — jen když aplikace dodala callback; klik pošle callback.
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el('button.lattice-dr-btn.is-success', { type: 'button', text: t('advanced.saveGlobal') });
@@ -125,6 +137,7 @@ export class AdvancedFilter {
       if (!f) return;
       this.tree = clone(f.tree);
       if (this.nameInput) this.nameInput.value = f.name; // předvyplň název → uložení pod stejným
+      if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton; // odraz stav „jako tlačítko"
       this.renderBuilder();            // překresli JEN strom, select zůstane vybraný
       grid.applyAdvanced(this.tree);   // vybraný filtr rovnou aplikuj
     });

@@ -126,6 +126,7 @@ function mockGridCtx({ global = false } = {}) {
     store: { save() {} },
     renderer: { renderToolbar() {} },
     options: global ? { onSaveGlobalAdvancedFilter() {} } : {},
+    listAdvanced: Lattice.prototype.listAdvanced,
   };
 }
 const save = Lattice.prototype.saveAdvanced;
@@ -149,6 +150,50 @@ test('saveAdvanced (global) — přepis stejného názvu zachová id', () => {
   assert.equal(lastCb.id, a.id);                  // callback dostane totéž id
   assert.equal(ctx.globalAdvanced.length, 1);
   assert.equal(ctx.globalAdvanced[0].tree.combinator, 'OR');
+});
+
+test('saveAdvanced — asButton se uloží u lokálního i globálního filtru', () => {
+  const loc = mockGridCtx();
+  const a = save.call(loc, 'Tlačítko', { combinator: 'AND', rules: [] }, 'local', true);
+  assert.equal(a.asButton, true);
+  assert.equal(loc.state.advancedFilters[0].asButton, true);
+
+  const glob = mockGridCtx({ global: true });
+  let cbArg = null;
+  glob.options.onSaveGlobalAdvancedFilter = (x) => { cbArg = x; };
+  const g = save.call(glob, 'Sdílené tlačítko', { combinator: 'AND', rules: [] }, 'global', true);
+  assert.equal(g.asButton, true);
+  assert.equal(cbArg.asButton, true, 'callback dostane asButton k perzistenci');
+
+  // výchozí (bez parametru) = false
+  const b = save.call(loc, 'Bez tlačítka', { combinator: 'AND', rules: [] }, 'local');
+  assert.equal(b.asButton, false);
+});
+
+test('buttonAdvanced — vrací jen filtry označené asButton (lokální + globální)', () => {
+  const ctx = mockGridCtx({ global: true });
+  ctx.options.onSaveGlobalAdvancedFilter = () => {};
+  save.call(ctx, 'Lok-btn', { combinator: 'AND', rules: [] }, 'local', true);
+  save.call(ctx, 'Lok-select', { combinator: 'AND', rules: [] }, 'local', false);
+  save.call(ctx, 'Glob-btn', { combinator: 'AND', rules: [] }, 'global', true);
+  const btns = Lattice.prototype.buttonAdvanced.call(ctx);
+  assert.equal(btns.length, 2);
+  assert.deepEqual(btns.map((f) => f.name).sort(), ['Glob-btn', 'Lok-btn']);
+});
+
+test('toggleSavedAdvanced — aplikuje neaktivní, zruší aktivní', () => {
+  const ctx = mockGridCtx();
+  const applied = [];
+  ctx.advanced = null;
+  ctx.applyAdvanced = function (tree) { this.advanced = tree; applied.push('apply'); };
+  ctx.clearAdvanced = function () { this.advanced = null; applied.push('clear'); };
+  const item = save.call(ctx, 'Pře', { combinator: 'AND', rules: [{ field: 'x', op: 'eq', value: '1' }] }, 'local', true);
+
+  Lattice.prototype.toggleSavedAdvanced.call(ctx, item.id); // neaktivní → aplikuj
+  assert.equal(ctx.advanced.rules.length, 1);
+  Lattice.prototype.toggleSavedAdvanced.call(ctx, item.id); // aktivní → zruš
+  assert.equal(ctx.advanced, null);
+  assert.deepEqual(applied, ['apply', 'clear']);
 });
 
 test('saveAdvanced — různé názvy = různá id', () => {

@@ -379,6 +379,8 @@ export default {
     clear: 'Vymazat filtr',
     save: 'Uložit',
     saveGlobal: 'Uložit globálně',
+    asButton: 'jako tlačítko',
+    asButtonHint: 'Zobrazit tento uložený filtr jako tlačítko v řadě nad ikonami (klik = zapnout/vypnout).',
     remove: 'Odebrat',
     delete: 'Smazat uložený filtr',
     ops: {

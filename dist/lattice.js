@@ -3106,6 +3106,8 @@ var cs_default = {
     clear: "Vymazat filtr",
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
+    asButton: "jako tla\u010D\xEDtko",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
     remove: "Odebrat",
     delete: "Smazat ulo\u017Een\xFD filtr",
     ops: {
@@ -3551,6 +3553,8 @@ var en_default = {
     clear: "Clear filter",
     save: "Save",
     saveGlobal: "Save globally",
+    asButton: "as button",
+    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
     remove: "Remove",
     delete: "Delete saved filter",
     ops: {
@@ -8427,6 +8431,23 @@ var Renderer = class {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
+    if (f.advancedFilter !== false) {
+      const btnFilters = this.grid.buttonAdvanced();
+      if (btnFilters.length) {
+        const activeId = this.grid.activeSavedId();
+        const btnRow = el("div.lattice-adv-btnrow");
+        for (const bf of btnFilters) {
+          const b = el("button.lattice-adv-fbtn" + (bf.id === activeId ? ".is-active" : ""), {
+            type: "button",
+            text: (bf.scope === "global" ? "\u{1F310} " : "") + bf.name,
+            title: bf.name
+          });
+          b.addEventListener("click", () => this.grid.toggleSavedAdvanced(bf.id));
+          btnRow.appendChild(b);
+        }
+        toolbar.appendChild(btnRow);
+      }
+    }
     const leftGroup = el("div.lattice-toolbar-left");
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
     if (this.grid.tree) leftGroup.appendChild(this.buildTreeControls());
@@ -8463,7 +8484,7 @@ var Renderer = class {
       advBtn.addEventListener("click", () => grid.advancedFilter.toggle(advBtn));
       toolbar.appendChild(advBtn);
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
-      const saved = grid.listAdvanced();
+      const saved = grid.listAdvanced().filter((s) => !s.asButton);
       if (saved.length) {
         const sel = el("select.lattice-adv-quick", { title: t("advanced.title") });
         sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
@@ -8862,6 +8883,16 @@ var AdvancedFilter = class {
       const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
       if (cur) nameInput.value = cur.name;
     }
+    const asBtnInput = el("input", { type: "checkbox" });
+    this.asBtnInput = asBtnInput;
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) asBtnInput.checked = !!cur.asButton;
+    }
+    const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("advanced.asButtonHint") }, [
+      asBtnInput,
+      el("span", { text: t("advanced.asButton") })
+    ]);
     const saveBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.save") });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
@@ -8869,13 +8900,14 @@ var AdvancedFilter = class {
         nameInput.focus();
         return;
       }
-      const item = this.grid.saveAdvanced(name, this.tree, scope);
+      const item = this.grid.saveAdvanced(name, this.tree, scope, asBtnInput.checked);
       nameInput.value = "";
+      asBtnInput.checked = false;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener("click", () => saveWithScope("local"));
-    const saveRowEls = [nameInput, saveBtn];
+    const saveRowEls = [nameInput, asBtnLabel, saveBtn];
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("advanced.saveGlobal") });
       globeBtn.addEventListener("click", () => saveWithScope("global"));
@@ -8910,6 +8942,7 @@ var AdvancedFilter = class {
       if (!f) return;
       this.tree = clone(f.tree);
       if (this.nameInput) this.nameInput.value = f.name;
+      if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton;
       this.renderBuilder();
       grid.applyAdvanced(this.tree);
     });
@@ -11218,23 +11251,24 @@ var Lattice = class {
    *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
    */
-  saveAdvanced(name, tree, scope = "local") {
+  saveAdvanced(name, tree, scope = "local", asButton = false) {
     name = String(name || "").trim();
     if (!name) return null;
     const treeCopy = JSON.parse(JSON.stringify(tree));
+    const asBtn = !!asButton;
     if (scope === "global") {
       const existing2 = this.globalAdvanced.find((f) => f.name === name);
       const id = existing2 ? existing2.id : uid2();
       this.globalAdvanced = this.globalAdvanced.filter((f) => f.name !== name);
-      const norm5 = { id, name, tree: treeCopy, scope: "global" };
+      const norm5 = { id, name, tree: treeCopy, scope: "global", asButton: asBtn };
       this.globalAdvanced.push(norm5);
       const cb = this.options.onSaveGlobalAdvancedFilter;
-      if (typeof cb === "function") cb({ id, name, tree: treeCopy });
+      if (typeof cb === "function") cb({ id, name, tree: treeCopy, asButton: asBtn });
       this.renderer.renderToolbar();
       return norm5;
     }
     const existing = (this.state.advancedFilters || []).find((f) => f.name === name);
-    const item = { id: existing ? existing.id : uid2(), name, tree: treeCopy };
+    const item = { id: existing ? existing.id : uid2(), name, tree: treeCopy, asButton: asBtn };
     const list = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     list.push(item);
     this.state.advancedFilters = list;
@@ -11267,6 +11301,18 @@ var Lattice = class {
     const s = JSON.stringify(this.advanced);
     const f = this.listAdvanced().find((x) => JSON.stringify(x.tree) === s);
     return f ? f.id : "";
+  }
+  /** Uložené filtry označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
+  buttonAdvanced() {
+    return this.listAdvanced().filter((f) => f.asButton);
+  }
+  /** Přepínač uloženého filtru (toggle): aplikuje ho, nebo zruší, když už je aktivní. */
+  toggleSavedAdvanced(id) {
+    const item = this.listAdvanced().find((f) => f.id === id);
+    if (!item) return;
+    const active = this.advanced && JSON.stringify(this.advanced) === JSON.stringify(item.tree);
+    if (active) this.clearAdvanced();
+    else this.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
   }
   /* =================== stránkování =================== */
   setPage(page) {
@@ -12413,7 +12459,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.9.0";
+var VERSION = "1.10.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,
