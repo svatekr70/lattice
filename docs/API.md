@@ -20,24 +20,28 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.13.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.13.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
-**npm:**
+**npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i lattice
+npm i github:svatekr70/lattice#v1.13.1
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
+Bez `#v1.13.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+
+> ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
+> Instaluj vždy přes `github:svatekr70/lattice`.
 
 ---
 

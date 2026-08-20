@@ -1,8 +1,10 @@
 {
   "name": "lattice",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "description": "Moderní, štíhlá a framework-agnostická datová tabulka (grid) ve vanilla JS (ESM). Vlastní implementace s jedním zdrojem pravdy pro persistenci a deterministickým initem.",
   "type": "module",
+  "private": true,
+  "//private": "Na npmjs.com se nepublikuje — jméno `lattice` tam patří cizímu balíčku. Instaluje se z GitHubu: npm i github:svatekr70/lattice#vX.Y.Z",
   "main": "src/index.js",
   "module": "src/index.js",
   "unpkg": "dist/lattice.min.js",

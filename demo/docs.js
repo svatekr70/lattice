@@ -69,9 +69,9 @@ function docZaciname(root, ctx) {
   import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
   new Lattice('#grid', { id: 'kampane', columns, data });
 </script>`),
-    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v0.1.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
-    p('<b>Přes npm</b> (bundler / vlastní build):'),
-    code("npm i lattice"),
+    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.13.1</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
+    p('<b>Přes npm — přímo z GitHubu</b> (bundler / vlastní build). Na npmjs.com knihovna publikovaná <b>není</b>: <code>npm i lattice</code> stáhne cizí balíček stejného jména!'),
+    code("npm i github:svatekr70/lattice#v1.13.1"),
     code("import { Lattice } from 'lattice';\nimport 'lattice/css';"),
     p('<b>Nebo bez CDN i npm</b> — zkopíruj složku <code>src/</code> do projektu a importuj přímo (čisté ESM, jen víc requestů):'),
     code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';"),

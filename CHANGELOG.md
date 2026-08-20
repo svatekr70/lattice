@@ -4,6 +4,22 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.13.1] – 2026-08-20
+
+Oprava instalačních instrukcí. Beze změny kódu knihovny.
+
+### Opraveno
+- **`npm i lattice` instaloval cizí balíček.** Jméno `lattice` na npmjs.com patří jinému projektu
+  (`openlattice/lattice-js`) — kdo se řídil dokumentací, stáhl si něco úplně jiného. Napříč
+  README, API dokumentací, webem i dokumentací v demu je teď správný postup
+  `npm i github:svatekr70/lattice#v1.13.1` (importy `from 'lattice'` zůstávají stejné, `dist/` je
+  v repu, takže se nic nebuilduje) a výslovné varování před `npm i lattice`.
+- **Zastaralý příklad tagu.** README i dokumentace v demu radily připnout `@v0.1.0`.
+
+### Změněno
+- `package.json` má `private: true` — pojistka proti publikaci pod cizím jménem. Na instalaci
+  z GitHubu to nemá vliv.
+
 ## [1.13.0] – 2026-08-20
 
 Presety si pamatují i nastavení tabulky — seskupení řádků, souhrnný řádek a mezisoučty skupin —
@@ -463,6 +479,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.13.1]: https://github.com/svatekr70/lattice/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/svatekr70/lattice/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/svatekr70/lattice/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/svatekr70/lattice/compare/v1.10.0...v1.11.0

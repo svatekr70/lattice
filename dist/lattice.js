@@ -13073,7 +13073,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.13.0";
+var VERSION = "1.13.1";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,
