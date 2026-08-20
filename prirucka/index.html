@@ -483,7 +483,7 @@
         formát, seskupení i presety.</p>
       <figure>
         <img src="img/dialog-sloupce.png" alt="Dialog Sloupce">
-        <figcaption>Dialog „Sloupce": nahoře nástroje a presety, pak seznam sloupců; u každého řada ikon.</figcaption>
+        <figcaption>Dialog „Sloupce": nahoře nástroje a presety (včetně volby <b>„Uložit do presetu:"</b>), pak seznam sloupců; u každého řada ikon.</figcaption>
       </figure>
 
       <h3>Ikony v hlavičce dialogu</h3>
@@ -493,12 +493,15 @@
         <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"></path></svg></span>
           <div><b>Zrušit všechny filtry</b> — smaže všechny aktivní filtry naráz.</div></li>
         <li><span class="ic"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"></path></svg></span>
-          <div><b>Obnovit výchozí</b> — vrátí sloupce (viditelnost, pořadí, šířky…) do výchozího stavu.</div></li>
+          <div><b>Obnovit výchozí</b> — vrátí sloupce (viditelnost, pořadí, šířky…) do výchozího stavu
+            a zároveň <b>zruší seskupení řádků</b> (to se zapíná tady u sloupce a sloupce přeskupuje).
+            Ostatní volby z <b>Nastavení tabulky</b> (motiv, velikost stránky, souhrnný řádek…)
+            zůstávají — ty se resetují jinde.</div></li>
       </ul>
 
       <h3>Presety (uložené pohledy)</h3>
       <p>Preset je <b>pojmenované nastavení</b> tabulky — sloupce, jejich pořadí a šířky, řazení,
-        filtry. Do pole <b>„Název presetu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
+        filtry a (podle zaškrtnutí) i nastavení tabulky včetně seskupení a souhrnů. Do pole <b>„Název presetu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
         (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží lokálně. Uložené presety se pak
         nabízejí k výběru a jedním klikem si tabulku přepneš do uloženého stavu.</p>
       <p><b>Globální preset:</b> vedle záložky může být i <b>globus</b> (jen když to aplikace umožní) —
@@ -686,30 +689,45 @@
       </ul>
       <div class="note"><b>Vše se pamatuje:</b> tvoje nastavení (i sloupce, řazení, filtry) zůstane
         i po zavření a příštím otevření tabulky — je uložené v prohlížeči.</div>
+      <div class="note"><b>Chceš přepínat mezi několika nastaveními?</b> Volby z tohohle dialogu
+        (včetně seskupení, souhrnného řádku a mezisoučtů) se dají uložit do <b>presetu</b> — stačí
+        u ukládání nechat zaškrtnuté <b>„Nastavení tabulky"</b>. Viz <a href="#presety">Presety</a>.</div>
     </section>
 
     <section id="presety">
       <h2><span class="n">13</span>Presety (uložené pohledy)</h2>
       <p>Preset je <b>pojmenovaný pohled</b> na tabulku. Nejdřív si tabulku <b>naklikáš</b> přesně
         tak, jak ji chceš — zvolíš viditelnost a pořadí sloupců, jejich šířky, nastavíš filtry
-        a řazení — a celý tenhle stav uložíš pod názvem. Když pak preset <b>použiješ</b>, tabulka
-        se do toho stavu jedním klikem celá vrátí.</p>
+        a řazení, případně i seskupení řádků a souhrny — a celý tenhle stav uložíš pod názvem.
+        Když pak preset <b>použiješ</b>, tabulka se do toho stavu jedním klikem celá vrátí.</p>
 
       <h3>Co se do presetu uloží</h3>
-      <p>Preset si zapamatuje kompletní <b>uspořádání sloupců i filtrování</b>:</p>
+      <p>Nad polem s názvem si <b>zaškrtneš, co má preset nést</b> — tři volby, klidně jen jednu
+        (aspoň jedna musí zůstat zapnutá):</p>
+      <figure>
+        <img src="img/preset-volby.png" alt="Volba, co se uloží do presetu">
+        <figcaption>Panel presetů v dialogu „Sloupce": nahoře uložené presety, pod nimi volba
+          <b>„Uložit do presetu:"</b> — <b>Sloupce</b>, <b>Filtry a řazení</b>, <b>Nastavení tabulky</b>.
+          Najetím myší na uložený preset se ukáže, které části nese.</figcaption>
+      </figure>
       <ul>
-        <li><b>Pořadí sloupců</b> — v jakém pořadí jsou zleva doprava.</li>
-        <li><b>Viditelnost sloupců</b> — které jsou zapnuté a které skryté.</li>
-        <li><b>Šířky sloupců</b> a jejich <b>ukotvení</b> (vlevo/vpravo).</li>
-        <li><b>Řazení</b> — podle kterých sloupců a jak (i víceúrovňové).</li>
-        <li><b>Filtry</b> — všechny nastavené filtry včetně jejich <b>hodnot</b> (i to, u kterých
-          sloupců je filtrovací pole zapnuté).</li>
-        <li>Dále souhrnné funkce sloupce, formát, podmíněný formát (semafor), otočení hlavičky
-          a skupiny sloupců.</li>
+        <li><b>Sloupce</b> — pořadí zleva doprava, viditelnost (co je zapnuté / skryté), šířky
+          a ukotvení, souhrnné funkce sloupce, formát, podmíněný formát (semafor), otočení
+          hlavičky, barvy záhlaví a skupiny sloupců.</li>
+        <li><b>Filtry a řazení</b> — všechny nastavené filtry včetně jejich <b>hodnot</b> (i to,
+          u kterých sloupců je filtrovací pole zapnuté) a nastavené řazení (i víceúrovňové).</li>
+        <li><b>Nastavení tabulky</b> — <b>seskupení řádků</b> (i víceúrovňové a podle částí data),
+          <b>souhrnný řádek</b>, <b>mezisoučty skupin</b>, velikost stránky, umístění filtrů,
+          vzhled (motiv, hustota, písmo) i formát hodnot.</li>
       </ul>
-      <div class="note"><b>Co se do presetu neukládá:</b> obecné <b>Nastavení tabulky</b> (vzhled,
-        velikost stránky, umístění filtrů…) ani <b>seskupení řádků</b> — ty jsou společné pro
-        tabulku, ne součást pohledu. Také se neukládá číslo stránky.</div>
+      <div class="note"><b>Preset mění jen to, co v sobě má.</b> Preset uložený třeba jen s
+        <b>filtry</b> ti při použití nepřerovná sloupce ani nezruší seskupení — sáhne opravdu jen
+        na filtry. Tak si můžeš vedle sebe držet „pohledy" (sloupce), „výběry" (filtry) a „režimy
+        zobrazení" (seskupení + souhrny) a kombinovat je. Číslo stránky se neukládá nikdy;
+        sbalení filtračního panelu taky ne (to zůstává, jak si ho máš).</div>
+      <div class="note"><b>Starší presety:</b> presety uložené dřív, než přibyla volba
+        „Nastavení tabulky", nastavení tabulky <b>nemění</b> — obnoví jen sloupce, řazení a filtry.
+        Když chceš, aby nesly i seskupení a souhrny, ulož je pod stejným názvem znovu.</div>
 
       <h3>K čemu je to praktické</h3>
       <ul>
@@ -719,10 +737,14 @@
           a příště ji zapneš jedním klikem, aniž bys filtry klikal znovu.</li>
         <li><b>Režimy práce</b> — přepínání mezi pohledy jako <i>Přehled</i>, <i>Jen po termínu</i>,
           <i>Podle kategorie</i>.</li>
+        <li><b>Uložený způsob zobrazení</b> — preset jen s <b>Nastavením tabulky</b> si zapamatuje
+          třeba „seskupit po měsících + zapnout mezisoučty a souhrnný řádek"; použiješ ho na
+          jakýkoli výběr dat, aniž by ti přepsal sloupce nebo filtry.</li>
       </ul>
 
       <h3>Jak preset vytvořit</h3>
-      <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): do pole <b>„Název presetu…"</b>
+      <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): zaškrtni u <b>„Uložit do
+        presetu:"</b>, co má preset nést, do pole <b>„Název presetu…"</b>
         napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží lokálně. Vedle záložky může být
         i <b>globus</b> (jen když to aplikace umožní): tím preset uložíš <b>globálně</b> pro všechny.
         Uložené presety se pak nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>

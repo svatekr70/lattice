@@ -4,6 +4,56 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.13.0] – 2026-08-20
+
+Presety si pamatují i nastavení tabulky — seskupení řádků, souhrnný řádek a mezisoučty skupin —
+a u ukládání se dá zaškrtnout, které části preset ponese. Bez breaking changes.
+
+### Přidáno
+- **Preset nese nastavení tabulky.** `captureState()` nově ukládá i celou `instance`, takže
+  lokální i globální preset obnoví **seskupení řádků** (`groupBy`, `groupDisplay`, `groupRepeat`),
+  **souhrnný řádek** (`summaryRow`), **mezisoučty skupin** (`groupSubtotals`) a zbytek nastavení
+  tabulky (stránkování, vzhled, formát hodnot, vlastní CSS proměnné). Preset tak drží úplně
+  všechno, co si uživatel naklikal v nastavení sloupců i v nastavení tabulky.
+- **Volba, co se do presetu uloží.** V panelu presetů jsou nad polem s názvem tři zaškrtávátka —
+  **Sloupce**, **Filtry a řazení**, **Nastavení tabulky**. Uživatel si tak uloží třeba preset
+  „jen filtry" nebo „jen rozvržení sloupců"; aspoň jedna část musí zůstat zaškrtnutá. Volba drží
+  mezi otevřeními panelu a tooltip u tlačítek i u uloženého presetu říká, co nese.
+- **`captureState(parts)`** — `{columns, filters, instance}` vybírá, co snímek zachytí (bez
+  argumentu vše). Propsáno i do `presets.saveLocal(name, parts)` / `saveGlobal(name, parts)`.
+- **`captureInstance()`** — veřejný snímek nastavení tabulky (používá ho preset i globální
+  výchozí nastavení).
+- **`presetContents(preset)`** — které části preset nese (pro UI a aplikaci).
+
+### Změněno
+- **`applyPreset()` mění jen to, co snímek obsahuje.** Chybějící část zůstane, jak ji uživatel má
+  — díky tomu fungují částečné presety i staré presety bez `instance`.
+- **Snapshot je hluboká kopie.** `instance` v presetu i v globálních výchozích se kopíruje do
+  hloubky — pozdější změna `cssVars` / `format` / `groupBy` už uložený snímek nepřepíše.
+- **Sbalení externího filtračního panelu se nesdílí.** `externalFiltersCollapsed` je přechodný
+  stav UI, ne nastavení: do presetu ani do globálních výchozích nepatří a při jejich použití
+  zůstane uživateli tak, jak si ho nastavil.
+
+### Opraveno
+- **„Obnovit výchozí" v dialogu „Sloupce" ruší i seskupení řádků.** Seskupení se zapíná v tomtéž
+  dialogu u sloupce a sloupce přeskupuje (seskupený sloupec se stěhuje dopředu a ukotví se), takže
+  reset, který ho nechal zapnuté, výchozí stav ve skutečnosti neobnovil. Nově se vrací i
+  `groupBy`/`groupDisplay`/`groupRepeat` (na hodnoty z `options.instance`, ne natvrdo na prázdno)
+  a zahodí se sbalené skupiny řádků i sloupců. Zbytek nastavení tabulky reset nemění.
+- **Dialog „Sloupce" neuteče pod spodní hranu okna.** Panel se otevíral vždycky pod kotvícím
+  tlačítkem bez ohledu na to, kolik místa pod ním zbývá — u dlouhého seznamu sloupců, nízko
+  posazeného toolbaru nebo malého okna mu pak konec visel mimo obrazovku. Nově se v takovém
+  případě posadí výš, tak akorát nad spodní okraj (výšku dál drží `max-height: 70vh`). Platí i pro
+  pod-nabídky (seskupení, souhrn, formát).
+- **Dialog „Sloupce" už neodskakuje.** Preset s nastavením tabulky překreslí toolbar, takže kotvící
+  tlačítko dialogu zmizí — panel se dřív přepočítal z nulového rectu a skončil v levém horním rohu.
+  Teď se v takovém případě prostě zavře. Týkalo se i „Použít globální výchozí nastavení".
+
+### Zpětná kompatibilita
+- **Starý preset (bez `state.instance`) nastavení tabulky nemění.** Použije se z něj jen
+  pořadí/viditelnost sloupců, řazení a filtry — seskupení, souhrny ani motiv uživateli
+  nezmizí. `instance` začne nést po přeuložení presetu.
+
 ## [1.12.0] – 2026-08-12
 
 Dynamické období napříč filtry — hranice týdne/měsíce/kvartálu/roku, našeptávač a živé presety
@@ -413,6 +463,7 @@ callbacky) se od této verze považuje za stabilní a dále se řídí semverem.
 ## [0.1.0] – 2026-07-24
 - První veřejná verze.
 
+[1.13.0]: https://github.com/svatekr70/lattice/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/svatekr70/lattice/compare/v1.11.0...v1.12.0
 [1.11.0]: https://github.com/svatekr70/lattice/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/svatekr70/lattice/compare/v1.9.0...v1.10.0

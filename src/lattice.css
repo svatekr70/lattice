@@ -1815,6 +1815,14 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 }
 .lattice-preset-del:hover { color: var(--lattice-danger); }
 .lattice-preset-save { display: flex; gap: 4px; }
+/* Volba, co se do presetu uloží (sloupce / filtry / nastavení tabulky). */
+.lattice-preset-parts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+  margin-bottom: 4px; font-size: 0.85em; color: var(--lattice-muted, #6b7583);
+}
+.lattice-preset-parts-label { flex: 0 0 100%; }
+.lattice-preset-part { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+.lattice-preset-part input { margin: 0; cursor: pointer; }
 .lattice-preset-input, .lattice-col-search {
   flex: 1 1 auto; min-width: 0;
   padding: 4px 8px;

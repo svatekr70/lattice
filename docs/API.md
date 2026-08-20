@@ -20,14 +20,14 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.12.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.12.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.12.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.13.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm:**
@@ -371,11 +371,14 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `highlightRow(key, on?)` / `toggleRowHighlight(key)` / `clearHighlights()` / `highlightedRows` | Zvýraznění (podbarvení) řádků. Přežije re-render/řazení/filtr, persistuje se do `lattice:<id>`. `highlightedRows` (getter) = pole klíčů. Změna překreslí jen dotčený řádek. Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `getServerParams({ paginate? })` / `getServerQuery({ paginate? })` | **Server-side.** Aktuální serverové parametry (sort/filter/search/advanced dle `ajax.paramNames`, tokeny rozvinuté) jako objekt / hotový urlencoded querystring. `paginate` default `false` (bez page/size = „vše filtrované"). Pro vlastní endpointy (ID všech filtrovaných řádků, export) bez ruční duplikace. Client-side vrací `{}` / `''`. `@v1.8.0`. |
 | `getColumnLayout()` | Snímek layoutu sloupců. |
+| `resetColumns()` | Zahodí uživatelské úpravy sloupců (pořadí, viditelnost, šířky, souhrny, formáty) a vrátí výchozí z definice. Ruší i **seskupení řádků** (`groupBy`/`groupDisplay`/`groupRepeat` zpět na `options.instance`) a sbalené skupiny — zapíná se z téhož dialogu. Ostatní nastavení tabulky nemění. |
 | `undo()` / `redo()` / `clearHistory()` | Historie. |
 | `exportData(fmt, opts)` / `download(fmt, opts)` / `print(opts)` | Export (`csv \| tsv \| json \| xml \| excel`) / tisk. Excel = SpreadsheetML, bez závislosti. |
 | `importFile(file)` / `importFromUrl(url, i, opts)` / `importHTMLTable` / `importXML` | Import. |
 | `setLanguage(lang)` | Změna jazyka. |
-| `applyPreset(preset)` | Aplikace presetu. |
+| `captureState(parts?)` / `captureInstance()` | Snímek stavu pro preset (`{columns, sort, filters, instance}`) / jen nastavení tabulky. `parts` = `{columns, filters, instance}` vybírá, co se zachytí (bez něj vše). `@v1.13.0` |
+| `presetContents(preset)` | Které části preset nese: `{columns, filters, instance}`. `@v1.13.0` |
+| `applyPreset(preset)` | Aplikace presetu — sloupce/řazení/filtry + nastavení tabulky (má-li ho preset uložené). |
 | `refresh()` | Překreslení / znovunačtení. **Client-side** = přepočet v paměti; **server-side** = **nový HTTP dotaz** (použij po mutaci `ajax.params`). |
 | `destroy()` | Zrušení instance. |
 | `hasGlobalDefaults()` / `globalDefaultsAvailable()` | Jsou k dispozici globální výchozí nastavení / je nová verze, kterou uživatel ještě neviděl. |
@@ -555,12 +558,44 @@ Vše se váže na **`options.id` gridu** — je to klíč pro localStorage i pro
 ```js
 { id: 'uuid',            // vygeneruje knihovna
   name: 'PPC ≥ 100k',    // název od uživatele
-  state: {               // = grid.captureState()
+  state: {               // = grid.captureState(parts); klíč CHYBÍ, když uživatel část odškrtl
     columns,             // pořadí/viditelnost/šířky/ukotvení/filtr-typ/souhrny/formát/vzorce
     sort,                // řazení
     filters,             // hodnoty filtrů
+    instance,            // nastavení tabulky (`@v1.13.0`): seskupení řádků (groupBy/groupDisplay/
+                         // groupRepeat), souhrnný řádek (summaryRow), mezisoučty skupin
+                         // (groupSubtotals), stránkování, vzhled, formát hodnot…
   } }
 ```
+
+Preset umí držet **vše, co si uživatel naklikal** v nastavení sloupců i v nastavení tabulky —
+kliknutím na preset se obnoví i seskupení řádků, souhrnný řádek a mezisoučty skupin.
+
+### Co se do presetu uloží (`@v1.13.0`)
+
+Nad polem s názvem jsou v panelu presetů tři zaškrtávátka — uživatel si vybere, co preset ponese
+(aspoň jedno musí zůstat zaškrtnuté):
+
+| Volba | Klíče ve `state` | Obsah |
+|---|---|---|
+| **Sloupce** | `columns` | pořadí, viditelnost, šířky, ukotvení, souhrny, formáty, barvy záhlaví, počítané sloupce |
+| **Filtry a řazení** | `sort`, `filters` | hodnoty filtrů v záhlaví + nastavené řazení |
+| **Nastavení tabulky** | `instance` | seskupení řádků, souhrnný řádek, mezisoučty skupin, stránkování, vzhled, formát hodnot |
+
+Programově totéž: `grid.captureState({ columns: true, filters: false, instance: true })`, resp.
+`grid.presets.saveLocal(name, parts)` / `saveGlobal(name, parts)`. Bez `parts` se uloží vše.
+
+**Klíčové pravidlo:** `applyPreset()` mění jen ty části, které snímek **obsahuje**. Preset
+„jen filtry" tedy nesáhne na sloupce ani na seskupení. Co preset nese, zjistí
+`grid.presetContents(preset)` (UI to ukazuje v tooltipu řádku).
+
+> **Zpětná kompatibilita.** Preset uložený starší verzí `state.instance` nemá — při jeho použití
+> se nastavení tabulky **nemění** (obnoví se jen sloupce/řazení/filtry), aby uživateli nezmizelo
+> seskupení nebo motiv. Po přeuložení presetu už `instance` nese.
+>
+> Sbalení externího filtračního panelu (`externalFiltersCollapsed`) je přechodný stav UI, ne
+> nastavení: do presetu ani do globálních výchozích se neukládá a zůstává uživateli tak, jak si
+> ho nastavil.
 
 ### Globální presety — kontrakt
 

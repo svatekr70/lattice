@@ -1,6 +1,8 @@
 /**
- * Presety — pojmenované snapshoty stavu gridu (pořadí/viditelnost/šířky/ukotvení
- * sloupců + řazení + filtry). Klikem se celý snapshot aplikuje.
+ * Presety — pojmenované snapshoty stavu gridu: všechno, co si uživatel naklikal
+ * v nastavení sloupců (pořadí/viditelnost/šířky/ukotvení/souhrny/formáty/barvy)
+ * i v nastavení tabulky (seskupení řádků, souhrnný řádek, mezisoučty skupin,
+ * stránkování, vzhled) + řazení a filtry. Klikem se celý snapshot aplikuje.
  *
  * Dvě úrovně:
  *  - **lokální** (per-uživatel): uložené v témže localStorage blobu (`state.presets`).
@@ -59,9 +61,12 @@ export class PresetStore {
     return [...loc, ...this.globals];
   }
 
-  /** Uloží aktuální stav jako lokální preset (stejný název přepíše). */
-  saveLocal(name) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState() };
+  /**
+   * Uloží aktuální stav jako lokální preset (stejný název přepíše). `parts`
+   * vybírá, co preset ponese (`{columns, filters, instance}`) — nezadáno = vše.
+   */
+  saveLocal(name, parts) {
+    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
     if (!preset.name) return null;
     const list = this.local().filter((p) => p.name !== preset.name);
     list.push(preset);
@@ -74,9 +79,10 @@ export class PresetStore {
    * Uloží aktuální stav jako globální preset. Knihovna preset jen sestaví, ukáže
    * v seznamu a předá aplikaci přes callback onSaveGlobalPreset(preset) — ta si
    * poradí s perzistencí (DB, sdílení mezi uživateli). Vrací sestavený preset.
+   * `parts` vybírá, co preset ponese (viz `saveLocal`).
    */
-  saveGlobal(name) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState() };
+  saveGlobal(name, parts) {
+    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
     if (!preset.name) return null;
     this.globals = this.globals.filter((p) => p.name !== preset.name);
     const norm = { ...preset, scope: 'global' };

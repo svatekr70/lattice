@@ -67,6 +67,33 @@ const INSTANCE_DEFAULTS = {
   format: {},             // globální formát zobrazení po druzích: { number, money, date, datetime, time }
 };
 
+/**
+ * Přechodný UI stav, který žije v `instance`, ale není „nastavení“ — do presetu
+ * ani do globálních výchozích se nekopíruje (jinak by cizí preset uživateli
+ * zavíral filtrační panel).
+ */
+const TRANSIENT_INSTANCE_KEYS = ['externalFiltersCollapsed'];
+
+/**
+ * Normalizuje výběr částí stavu pro `captureState`. Nezadáno (nebo chybějící
+ * klíč) = zachytit — aby volání bez argumentu dál ukládalo celý stav.
+ */
+function presetParts(parts) {
+  const p = parts || {};
+  return { columns: p.columns !== false, filters: p.filters !== false, instance: p.instance !== false };
+}
+
+/**
+ * Volby z `instance`, které se ovládají z dialogu „Sloupce" a přeskupují sloupce —
+ * „Obnovit výchozí" je vrací spolu se sloupci.
+ */
+const COLUMN_INSTANCE_KEYS = ['groupBy', 'groupDisplay', 'groupRepeat'];
+
+/** Je to obyčejný objekt (ne null, ne pole)? */
+function isPlainObject(v) {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
 export class Lattice {
   constructor(mount, options = {}) {
     this.el = typeof mount === 'string' ? document.querySelector(mount) : mount;
@@ -316,8 +343,7 @@ export class Lattice {
     const gd = this.options.globalDefaults;
     if (!gd || !gd.state) return;
     const s = gd.state;
-    this.instance = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance, s.instance);
-    this.pageSize = this.instance.pageSize;
+    this._applyInstanceSnapshot(s.instance);
     if (Array.isArray(s.columns)) this.columns = buildColumns(this.columnDefs || [], s.columns);
     this.sort = Array.isArray(s.sort) ? s.sort.slice() : [];
     this.filters = Object.assign({}, s.filters);
@@ -360,7 +386,7 @@ export class Lattice {
     const payload = {
       version,
       state: {
-        instance: { ...this.instance },
+        instance: this.captureInstance(),
         columns: serializeColumns(this.columns),
         sort: JSON.parse(JSON.stringify(this.sort)),
         filters: JSON.parse(JSON.stringify(this.filters)),
@@ -1492,11 +1518,22 @@ export class Lattice {
     this.renderer.applyLayout();
   }
 
-  /** Zahodí uživatelské úpravy sloupců a vrátí výchozí (z definice). */
+  /**
+   * Zahodí uživatelské úpravy sloupců a vrátí výchozí (z definice). Vrací i
+   * volby, které se zapínají v tomtéž dialogu a sloupce přeskupují — tedy
+   * **seskupení řádků** (seskupený sloupec se kvůli němu stěhuje dopředu
+   * a ukotvuje, bez resetu by ho „Obnovit výchozí" neumělo srovnat). Zbytek
+   * nastavení tabulky (motiv, stránkování, souhrnný řádek…) patří do „Nastavení
+   * tabulky", na ten tenhle reset nesahá.
+   */
   resetColumns() {
     this._clearActivePreset();
     this.columns = buildColumns(this.columnDefs || [], []);
     this.state.columns = [];
+    const base = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance);
+    for (const k of COLUMN_INSTANCE_KEYS) this.instance[k] = base[k];
+    this.groupsCollapsed.clear();    // sbalené skupiny řádků patřily starému seskupení
+    this.colGroupsCollapsed.clear(); // i sbalené skupiny sloupců jsou stav sloupců
     this.saveState();
     this.rerenderColumns();
   }
@@ -2063,22 +2100,81 @@ export class Lattice {
 
   /* =================== presety =================== */
 
-  /** Snapshot persistovatelného stavu (pro uložení do presetu). */
-  captureState() {
+  /**
+   * Snapshot persistovatelného stavu (pro uložení do presetu / globálních výchozích).
+   * Zachytit se dá VŠE, co si uživatel může naklikat: sloupce (pořadí, šířky,
+   * souhrny, formáty, barvy záhlaví…), řazení + filtry a nastavení tabulky
+   * (`instance`) — včetně seskupení řádků, souhrnného řádku a mezisoučtů skupin.
+   *
+   * `parts` (nepovinné) vybírá, co se do snímku dostane: `{ columns, filters,
+   * instance }`. Nezadáno = všechno. Část, kterou snímek neobsahuje, se při
+   * aplikaci NEMĚNÍ — tak vznikne třeba preset „jen filtry".
+   */
+  captureState(parts) {
+    const p = presetParts(parts);
+    const st = {};
+    if (p.columns) st.columns = serializeColumns(this.columns);
+    if (p.filters) {
+      st.sort = JSON.parse(JSON.stringify(this.sort));
+      st.filters = JSON.parse(JSON.stringify(this.filters));
+    }
+    if (p.instance) st.instance = this.captureInstance();
+    return st;
+  }
+
+  /** Které části preset obsahuje (pro UI: popisek „co preset nese"). */
+  presetContents(preset) {
+    const st = (preset && preset.state) || {};
     return {
-      columns: serializeColumns(this.columns),
-      sort: JSON.parse(JSON.stringify(this.sort)),
-      filters: JSON.parse(JSON.stringify(this.filters)),
+      columns: Array.isArray(st.columns),
+      filters: Array.isArray(st.sort) || isPlainObject(st.filters),
+      instance: isPlainObject(st.instance),
     };
   }
 
-  /** Aplikuje preset — sestaví sloupce/řazení/filtry ze snapshotu a překreslí. */
+  /**
+   * Snapshot nastavení tabulky. Bere celou `instance` (ať se nově přidaná volba
+   * zachytí sama od sebe) kromě přechodného UI stavu, který není „nastavení“ —
+   * ten by se přes preset přenášet neměl. Hloubková kopie: preset musí přežít
+   * další změny živé instance (cssVars, format, scaleColors, groupBy).
+   */
+  captureInstance() {
+    const snap = JSON.parse(JSON.stringify(this.instance));
+    for (const k of TRANSIENT_INSTANCE_KEYS) delete snap[k];
+    return snap;
+  }
+
+  /**
+   * Nasadí snapshot nastavení do živé instance — stejný merge jako při startu
+   * (výchozí ← options.instance ← snapshot), takže volba, kterou snapshot nezná,
+   * spadne na výchozí hodnotu. Přechodný UI stav zůstává uživateli, jaký měl.
+   */
+  _applyInstanceSnapshot(snap) {
+    const prev = this.instance;
+    this.instance = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance,
+      JSON.parse(JSON.stringify(snap || {})));
+    for (const k of TRANSIENT_INSTANCE_KEYS) this.instance[k] = prev[k];
+    // pozor: refresh()/pager čtou this.pageSize (ne this.instance.pageSize).
+    this.pageSize = this.instance.pageSize;
+  }
+
+  /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */
   applyPreset(preset) {
     const st = preset && preset.state ? preset.state : {};
-    // Stejný deterministický init jako při startu → konzistentní výsledek.
-    this.columns = buildColumns(this.columnDefs || [], st.columns || []);
-    this.sort = Array.isArray(st.sort) ? JSON.parse(JSON.stringify(st.sort)) : [];
-    this.filters = st.filters ? JSON.parse(JSON.stringify(st.filters)) : {};
+    // Aplikuje se jen to, co snímek OBSAHUJE. Chybějící část se nemění — ať už
+    // ji uživatel při ukládání odškrtl, nebo je preset ze starší verze (ta
+    // nastavení tabulky neukládala, tak mu seskupení ani motiv nepřepíšeme).
+    if (Array.isArray(st.columns)) {
+      // Stejný deterministický init jako při startu → konzistentní výsledek.
+      this.columns = buildColumns(this.columnDefs || [], st.columns);
+    }
+    if (Array.isArray(st.sort)) this.sort = JSON.parse(JSON.stringify(st.sort));
+    if (isPlainObject(st.filters)) this.filters = JSON.parse(JSON.stringify(st.filters));
+    if (isPlainObject(st.instance)) {
+      this._applyInstanceSnapshot(st.instance);
+      this.renderer.applyInstanceStyles();
+      this.renderer.renderToolbar();
+    }
     this.page = 1;
     this._activePresetId = preset.id;
     this.saveState();

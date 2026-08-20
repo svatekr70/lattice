@@ -404,7 +404,16 @@ grid.setInstance({ theme: 'ocean' });`),
 function docPresety(root) {
   build(root, [
     h2('Presety a globální nastavení'),
-    lead('Uložené pohledy (sloupce/řazení/filtry) a globální výchozí konfigurace, kterou správce prosadí ostatním.'),
+    lead('Uložené pohledy a globální výchozí konfigurace, kterou správce prosadí ostatním.'),
+
+    h3('Co preset nese'),
+    p('Nad polem s názvem si uživatel zaškrtne části, které se uloží — preset pak mění <b>jen ty části, které obsahuje</b> (chybějící nechá, jak je).'),
+    table(['Volba', 'Klíče ve state', 'Obsah'], [
+      ['<b>Sloupce</b>', '<code>columns</code>', 'pořadí, viditelnost, šířky, ukotvení, souhrny, formáty, barvy záhlaví, počítané sloupce'],
+      ['<b>Filtry a řazení</b>', '<code>sort</code>, <code>filters</code>', 'hodnoty filtrů v záhlaví + nastavené řazení'],
+      ['<b>Nastavení tabulky</b>', '<code>instance</code>', 'seskupení řádků, souhrnný řádek, mezisoučty skupin, stránkování, vzhled, formát hodnot'],
+    ]),
+    p('Programově: <code>grid.captureState({ columns: true, filters: false, instance: true })</code>, resp. <code>presets.saveLocal(name, parts)</code> / <code>saveGlobal(name, parts)</code>. Bez <code>parts</code> se uloží vše. Preset uložený starší verzí nemá <code>instance</code> a nastavení tabulky nemění.'),
 
     h3('Lokální presety'),
     p('Per-uživatel, v localStorage. Kompletně v knihovně — v dialogu „Sloupce" pole na název + ikona záložky. Klik na název preset aplikuje.'),
@@ -510,11 +519,14 @@ function docApi(root) {
       ['<code>setColumnSummary / setColumnRowSummary(field, fns)</code>', 'Souhrny sloupce / řádku.'],
       ['<code>getSelectedRows() / getSelectedKeys()</code>', 'Výběr.'],
       ['<code>getColumnLayout()</code>', 'Snímek layoutu sloupců.'],
+      ['<code>resetColumns()</code>', 'Výchozí sloupce z definice; ruší i seskupení řádků a sbalené skupiny (zapíná se z téhož dialogu). Ostatní nastavení tabulky nemění.'],
       ['<code>undo() / redo() / clearHistory()</code>', 'Historie.'],
       ['<code>exportData / download / print</code>', "Export (csv | tsv | json | xml | excel) / tisk. Excel = SpreadsheetML, bez závislosti."],
       ['<code>importFile / importFromUrl / importHTMLTable / importXML</code>', 'Import.'],
       ['<code>setLanguage(lang)</code>', 'Změna jazyka.'],
-      ['<code>applyPreset(preset)</code>', 'Aplikace presetu.'],
+      ['<code>captureState(parts?)</code>', "Snímek stavu pro preset: { columns, sort, filters, instance }. parts = { columns, filters, instance } vybírá, co se zachytí (bez něj vše)."],
+      ['<code>applyPreset(preset)</code>', 'Aplikace presetu — mění jen ty části, které preset obsahuje (sloupce / filtry a řazení / nastavení tabulky).'],
+      ['<code>presetContents(preset)</code>', 'Které části preset nese: { columns, filters, instance }.'],
       ['<code>destroy()</code>', 'Zrušení instance.'],
     ]),
 

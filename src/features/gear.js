@@ -21,6 +21,17 @@ import { DATE_PARTS } from '../core/dateParts.js';
 import { validateFormula, compileFormula, FORMULA_CATALOG, validateAggregate, compileAggregate, AGGREGATE_CATALOG } from '../core/formula.js';
 import { openHeaderColorPicker, openColorPicker } from './headerColor.js';
 
+/** Části stavu, které si uživatel může vybrat do presetu. */
+const PRESET_PARTS = ['columns', 'filters', 'instance'];
+
+const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+
+/** „Sloupce, filtry a řazení" — výčet částí do titulku/tooltipu. */
+function partsSummary(parts, t) {
+  const names = PRESET_PARTS.filter((k) => parts[k]).map((k) => t('presets.part' + cap(k)).toLowerCase());
+  return names.length ? names.join(', ') : t('presets.partsNone');
+}
+
 export class Gear {
   constructor(grid) {
     this.grid = grid;
@@ -58,11 +69,14 @@ export class Gear {
   }
 
   refresh() {
-    if (this.panel) {
-      this.renderList(this.panel);
-      // po překreslení udržet pozici (obsah mohl změnit výšku)
-      if (this.anchor) positionUnder(this.panel, this.anchor);
-    }
+    if (!this.panel) return;
+    // Kotvící tlačítko zmizelo (překreslený toolbar — třeba po aplikaci presetu
+    // nebo globálních výchozích). Pozice by se počítala z nulového rectu a panel
+    // by odskočil do levého horního rohu → radši ho zavřít.
+    if (!this.anchor || !this.anchor.isConnected) return this.close();
+    this.renderList(this.panel);
+    // po překreslení udržet pozici (obsah mohl změnit výšku)
+    positionUnder(this.panel, this.anchor);
   }
 
   renderList(panel) {
@@ -130,6 +144,28 @@ export class Gear {
       wrap.appendChild(list);
     }
 
+    // Co se do presetu uloží (sloupce / filtry a řazení / nastavení tabulky).
+    // Volba drží mezi otevřeními panelu, ať ji uživatel neklikká pořád dokola.
+    const parts = this._presetParts || (this._presetParts = { columns: true, filters: true, instance: true });
+    const partsRow = el('div.lattice-preset-parts');
+    partsRow.appendChild(el('span.lattice-preset-parts-label', { text: t('presets.partsLabel') }));
+    const boxes = [];
+    for (const key of PRESET_PARTS) {
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = parts[key] !== false;
+      cb.addEventListener('change', () => {
+        parts[key] = cb.checked;
+        // Prázdný preset nedává smysl — poslední zaškrtnutou volbu nepustíme dolů.
+        if (!PRESET_PARTS.some((k) => parts[k])) { parts[key] = true; cb.checked = true; }
+        syncSaveBtns();
+      });
+      boxes.push(cb);
+      partsRow.appendChild(el('label.lattice-preset-part', { title: t('presets.part' + cap(key) + 'Hint') }, [
+        cb, el('span', { text: t('presets.part' + cap(key)) }),
+      ]));
+    }
+    wrap.appendChild(partsRow);
+
     // Řádek pro uložení presetu: název → záložka (lokální) → globus (globální).
     const input = el('input.lattice-preset-input', { type: 'text', placeholder: t('presets.namePlaceholder') });
     this._nameInput = input;
@@ -137,7 +173,7 @@ export class Gear {
     const doSaveLocal = () => {
       const name = input.value.trim();
       if (!name) { input.focus(); return; }
-      grid.presets.saveLocal(name);
+      grid.presets.saveLocal(name, parts);
       input.value = '';
       this.refresh();
     };
@@ -146,17 +182,25 @@ export class Gear {
 
     const rowEls = [input, saveBtn];
     // Globus (globální preset) — hned za záložkou; klik pošle callback aplikaci.
+    let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
-      const globeBtn = el('button.lattice-icon-btn.is-success', { type: 'button', title: t('presets.saveGlobal'), html: GLOBE_SVG });
+      globeBtn = el('button.lattice-icon-btn.is-success', { type: 'button', title: t('presets.saveGlobal'), html: GLOBE_SVG });
       globeBtn.addEventListener('click', () => {
         const name = input.value.trim();
         if (!name) { input.focus(); return; }
-        grid.presets.saveGlobal(name);
+        grid.presets.saveGlobal(name, parts);
         input.value = '';
         this.refresh();
       });
       rowEls.push(globeBtn);
     }
+    // Titulek tlačítek říká, co se zrovna uloží (zaškrtnuté části).
+    const syncSaveBtns = () => {
+      const suffix = ' — ' + partsSummary(parts, t);
+      saveBtn.title = t('presets.saveLocal') + suffix;
+      if (globeBtn) globeBtn.title = t('presets.saveGlobal') + suffix;
+    };
+    syncSaveBtns();
     wrap.appendChild(el('div.lattice-preset-save', {}, rowEls));
     return wrap;
   }
@@ -164,7 +208,13 @@ export class Gear {
   buildPresetRow(preset) {
     const grid = this.grid;
     const active = grid._activePresetId === preset.id;
-    const row = el('div.lattice-preset-row', { class: active ? 'is-active' : '', title: preset.name });
+    const t = grid.i18n.t.bind(grid.i18n);
+    const contents = grid.presetContents(preset);
+    const row = el('div.lattice-preset-row', {
+      class: active ? 'is-active' : '',
+      // Tooltip říká, co preset obnoví — u částečného presetu je to podstatné.
+      title: preset.name + ' — ' + partsSummary(contents, t),
+    });
 
     const name = el('span.lattice-preset-name', { text: preset.name });
     name.addEventListener('click', () => grid.applyPreset(preset));
@@ -429,13 +479,21 @@ export class Gear {
   }
 }
 
-/** Umístí panel pod kotvící tlačítko (zarovnáno k pravému okraji). */
+/**
+ * Umístí panel pod kotvící tlačítko (zarovnáno k pravému okraji). Když se pod
+ * kotvu nevejde — dlouhý seznam sloupců, nízko posazený toolbar nebo malé okno —
+ * posadí se výš, tak akorát nad spodní hranu okna, ať neuteče mimo obrazovku.
+ * (Výšku panelu drží `max-height: 70vh` v CSS, takže se vejde vždycky.)
+ */
 export function positionUnder(panel, anchor) {
+  const MARGIN = 8;
   const r = anchor.getBoundingClientRect();
   panel.style.position = 'absolute';
-  panel.style.top = window.scrollY + r.bottom + 4 + 'px';
   const left = window.scrollX + r.right - panel.offsetWidth;
-  panel.style.left = Math.max(8, left) + 'px';
+  panel.style.left = Math.max(MARGIN, left) + 'px';
+  const fits = window.innerHeight - MARGIN - panel.offsetHeight;
+  const top = Math.max(MARGIN, Math.min(r.bottom + 4, fits));
+  panel.style.top = window.scrollY + top + 'px';
 }
 
 /**

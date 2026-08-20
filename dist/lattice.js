@@ -2990,6 +2990,12 @@ function rowScaleColors(labelText, colors, onChange, t) {
 }
 
 // src/features/gear.js
+var PRESET_PARTS = ["columns", "filters", "instance"];
+var cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+function partsSummary(parts, t) {
+  const names = PRESET_PARTS.filter((k) => parts[k]).map((k) => t("presets.part" + cap(k)).toLowerCase());
+  return names.length ? names.join(", ") : t("presets.partsNone");
+}
 var Gear = class {
   constructor(grid) {
     this.grid = grid;
@@ -3021,10 +3027,10 @@ var Gear = class {
     this.off = null;
   }
   refresh() {
-    if (this.panel) {
-      this.renderList(this.panel);
-      if (this.anchor) positionUnder(this.panel, this.anchor);
-    }
+    if (!this.panel) return;
+    if (!this.anchor || !this.anchor.isConnected) return this.close();
+    this.renderList(this.panel);
+    positionUnder(this.panel, this.anchor);
   }
   renderList(panel) {
     clear(panel);
@@ -3078,6 +3084,28 @@ var Gear = class {
       for (const p of presets) list.appendChild(this.buildPresetRow(p));
       wrap.appendChild(list);
     }
+    const parts = this._presetParts || (this._presetParts = { columns: true, filters: true, instance: true });
+    const partsRow = el("div.lattice-preset-parts");
+    partsRow.appendChild(el("span.lattice-preset-parts-label", { text: t("presets.partsLabel") }));
+    const boxes = [];
+    for (const key of PRESET_PARTS) {
+      const cb = el("input", { type: "checkbox" });
+      cb.checked = parts[key] !== false;
+      cb.addEventListener("change", () => {
+        parts[key] = cb.checked;
+        if (!PRESET_PARTS.some((k) => parts[k])) {
+          parts[key] = true;
+          cb.checked = true;
+        }
+        syncSaveBtns();
+      });
+      boxes.push(cb);
+      partsRow.appendChild(el("label.lattice-preset-part", { title: t("presets.part" + cap(key) + "Hint") }, [
+        cb,
+        el("span", { text: t("presets.part" + cap(key)) })
+      ]));
+    }
+    wrap.appendChild(partsRow);
     const input = el("input.lattice-preset-input", { type: "text", placeholder: t("presets.namePlaceholder") });
     this._nameInput = input;
     const saveBtn = el("button.lattice-icon-btn", { type: "button", title: t("presets.saveLocal"), html: BOOKMARK_SVG });
@@ -3087,7 +3115,7 @@ var Gear = class {
         input.focus();
         return;
       }
-      grid.presets.saveLocal(name);
+      grid.presets.saveLocal(name, parts);
       input.value = "";
       this.refresh();
     };
@@ -3096,27 +3124,40 @@ var Gear = class {
       if (e.key === "Enter") doSaveLocal();
     });
     const rowEls = [input, saveBtn];
+    let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
-      const globeBtn = el("button.lattice-icon-btn.is-success", { type: "button", title: t("presets.saveGlobal"), html: GLOBE_SVG });
+      globeBtn = el("button.lattice-icon-btn.is-success", { type: "button", title: t("presets.saveGlobal"), html: GLOBE_SVG });
       globeBtn.addEventListener("click", () => {
         const name = input.value.trim();
         if (!name) {
           input.focus();
           return;
         }
-        grid.presets.saveGlobal(name);
+        grid.presets.saveGlobal(name, parts);
         input.value = "";
         this.refresh();
       });
       rowEls.push(globeBtn);
     }
+    const syncSaveBtns = () => {
+      const suffix = " \u2014 " + partsSummary(parts, t);
+      saveBtn.title = t("presets.saveLocal") + suffix;
+      if (globeBtn) globeBtn.title = t("presets.saveGlobal") + suffix;
+    };
+    syncSaveBtns();
     wrap.appendChild(el("div.lattice-preset-save", {}, rowEls));
     return wrap;
   }
   buildPresetRow(preset) {
     const grid = this.grid;
     const active = grid._activePresetId === preset.id;
-    const row = el("div.lattice-preset-row", { class: active ? "is-active" : "", title: preset.name });
+    const t = grid.i18n.t.bind(grid.i18n);
+    const contents = grid.presetContents(preset);
+    const row = el("div.lattice-preset-row", {
+      class: active ? "is-active" : "",
+      // Tooltip říká, co preset obnoví — u částečného presetu je to podstatné.
+      title: preset.name + " \u2014 " + partsSummary(contents, t)
+    });
     const name = el("span.lattice-preset-name", { text: preset.name });
     name.addEventListener("click", () => grid.applyPreset(preset));
     row.appendChild(name);
@@ -3365,11 +3406,14 @@ var Gear = class {
   }
 };
 function positionUnder(panel, anchor) {
+  const MARGIN = 8;
   const r = anchor.getBoundingClientRect();
   panel.style.position = "absolute";
-  panel.style.top = window.scrollY + r.bottom + 4 + "px";
   const left = window.scrollX + r.right - panel.offsetWidth;
-  panel.style.left = Math.max(8, left) + "px";
+  panel.style.left = Math.max(MARGIN, left) + "px";
+  const fits = window.innerHeight - MARGIN - panel.offsetHeight;
+  const top = Math.max(MARGIN, Math.min(r.bottom + 4, fits));
+  panel.style.top = window.scrollY + top + "px";
 }
 function openGroupPicker(anchor, grid, col, onDone) {
   document.querySelectorAll(".lattice-group-menu").forEach((m) => m.remove());
@@ -5211,7 +5255,15 @@ var cs_default = {
     saveLocal: "Ulo\u017Eit preset (jen pro m\u011B)",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B (pro v\u0161echny)",
     searchColumn: "Hledat sloupec\u2026",
-    global: "Glob\xE1ln\xED preset"
+    global: "Glob\xE1ln\xED preset",
+    partsLabel: "Ulo\u017Eit do presetu:",
+    partColumns: "Sloupce",
+    partColumnsHint: "Po\u0159ad\xED, viditelnost, \u0161\xED\u0159ky, ukotven\xED, souhrny, form\xE1ty a barvy sloupc\u016F.",
+    partFilters: "Filtry a \u0159azen\xED",
+    partFiltersHint: "Hodnoty filtr\u016F v z\xE1hlav\xED a nastaven\xE9 \u0159azen\xED.",
+    partInstance: "Nastaven\xED tabulky",
+    partInstanceHint: "Seskupen\xED \u0159\xE1dk\u016F, souhrnn\xFD \u0159\xE1dek, mezisou\u010Dty skupin, str\xE1nkov\xE1n\xED, vzhled a form\xE1t hodnot.",
+    partsNone: "nic"
   },
   instance: {
     title: "Nastaven\xED tabulky",
@@ -5689,7 +5741,15 @@ var en_default = {
     saveLocal: "Save preset (only me)",
     saveGlobal: "Save globally (everyone)",
     searchColumn: "Search column\u2026",
-    global: "Global preset"
+    global: "Global preset",
+    partsLabel: "Save into preset:",
+    partColumns: "Columns",
+    partColumnsHint: "Order, visibility, widths, freezing, summaries, formats and header colors.",
+    partFilters: "Filters & sorting",
+    partFiltersHint: "Header filter values and the current sorting.",
+    partInstance: "Table settings",
+    partInstanceHint: "Row grouping, summary row, group subtotals, pagination, appearance and value formats.",
+    partsNone: "nothing"
   },
   instance: {
     title: "Table settings",
@@ -9053,9 +9113,12 @@ var PresetStore = class {
     const loc = this.local().map((p) => ({ ...p, scope: "local" }));
     return [...loc, ...this.globals];
   }
-  /** Uloží aktuální stav jako lokální preset (stejný název přepíše). */
-  saveLocal(name) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState() };
+  /**
+   * Uloží aktuální stav jako lokální preset (stejný název přepíše). `parts`
+   * vybírá, co preset ponese (`{columns, filters, instance}`) — nezadáno = vše.
+   */
+  saveLocal(name, parts) {
+    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
     if (!preset.name) return null;
     const list = this.local().filter((p) => p.name !== preset.name);
     list.push(preset);
@@ -9067,9 +9130,10 @@ var PresetStore = class {
    * Uloží aktuální stav jako globální preset. Knihovna preset jen sestaví, ukáže
    * v seznamu a předá aplikaci přes callback onSaveGlobalPreset(preset) — ta si
    * poradí s perzistencí (DB, sdílení mezi uživateli). Vrací sestavený preset.
+   * `parts` vybírá, co preset ponese (viz `saveLocal`).
    */
-  saveGlobal(name) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState() };
+  saveGlobal(name, parts) {
+    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
     if (!preset.name) return null;
     this.globals = this.globals.filter((p) => p.name !== preset.name);
     const norm5 = { ...preset, scope: "global" };
@@ -10927,6 +10991,15 @@ var INSTANCE_DEFAULTS = {
   format: {}
   // globální formát zobrazení po druzích: { number, money, date, datetime, time }
 };
+var TRANSIENT_INSTANCE_KEYS = ["externalFiltersCollapsed"];
+function presetParts(parts) {
+  const p = parts || {};
+  return { columns: p.columns !== false, filters: p.filters !== false, instance: p.instance !== false };
+}
+var COLUMN_INSTANCE_KEYS = ["groupBy", "groupDisplay", "groupRepeat"];
+function isPlainObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
 var Lattice = class {
   constructor(mount, options = {}) {
     this.el = typeof mount === "string" ? document.querySelector(mount) : mount;
@@ -11115,8 +11188,7 @@ var Lattice = class {
     const gd = this.options.globalDefaults;
     if (!gd || !gd.state) return;
     const s = gd.state;
-    this.instance = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance, s.instance);
-    this.pageSize = this.instance.pageSize;
+    this._applyInstanceSnapshot(s.instance);
     if (Array.isArray(s.columns)) this.columns = buildColumns(this.columnDefs || [], s.columns);
     this.sort = Array.isArray(s.sort) ? s.sort.slice() : [];
     this.filters = Object.assign({}, s.filters);
@@ -11156,7 +11228,7 @@ var Lattice = class {
     const payload = {
       version,
       state: {
-        instance: { ...this.instance },
+        instance: this.captureInstance(),
         columns: serializeColumns(this.columns),
         sort: JSON.parse(JSON.stringify(this.sort)),
         filters: JSON.parse(JSON.stringify(this.filters))
@@ -12210,11 +12282,22 @@ var Lattice = class {
     this.saveState();
     this.renderer.applyLayout();
   }
-  /** Zahodí uživatelské úpravy sloupců a vrátí výchozí (z definice). */
+  /**
+   * Zahodí uživatelské úpravy sloupců a vrátí výchozí (z definice). Vrací i
+   * volby, které se zapínají v tomtéž dialogu a sloupce přeskupují — tedy
+   * **seskupení řádků** (seskupený sloupec se kvůli němu stěhuje dopředu
+   * a ukotvuje, bez resetu by ho „Obnovit výchozí" neumělo srovnat). Zbytek
+   * nastavení tabulky (motiv, stránkování, souhrnný řádek…) patří do „Nastavení
+   * tabulky", na ten tenhle reset nesahá.
+   */
   resetColumns() {
     this._clearActivePreset();
     this.columns = buildColumns(this.columnDefs || [], []);
     this.state.columns = [];
+    const base = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance);
+    for (const k of COLUMN_INSTANCE_KEYS) this.instance[k] = base[k];
+    this.groupsCollapsed.clear();
+    this.colGroupsCollapsed.clear();
     this.saveState();
     this.rerenderColumns();
   }
@@ -12775,20 +12858,76 @@ var Lattice = class {
     this._scheduleSearchIndex();
   }
   /* =================== presety =================== */
-  /** Snapshot persistovatelného stavu (pro uložení do presetu). */
-  captureState() {
+  /**
+   * Snapshot persistovatelného stavu (pro uložení do presetu / globálních výchozích).
+   * Zachytit se dá VŠE, co si uživatel může naklikat: sloupce (pořadí, šířky,
+   * souhrny, formáty, barvy záhlaví…), řazení + filtry a nastavení tabulky
+   * (`instance`) — včetně seskupení řádků, souhrnného řádku a mezisoučtů skupin.
+   *
+   * `parts` (nepovinné) vybírá, co se do snímku dostane: `{ columns, filters,
+   * instance }`. Nezadáno = všechno. Část, kterou snímek neobsahuje, se při
+   * aplikaci NEMĚNÍ — tak vznikne třeba preset „jen filtry".
+   */
+  captureState(parts) {
+    const p = presetParts(parts);
+    const st = {};
+    if (p.columns) st.columns = serializeColumns(this.columns);
+    if (p.filters) {
+      st.sort = JSON.parse(JSON.stringify(this.sort));
+      st.filters = JSON.parse(JSON.stringify(this.filters));
+    }
+    if (p.instance) st.instance = this.captureInstance();
+    return st;
+  }
+  /** Které části preset obsahuje (pro UI: popisek „co preset nese"). */
+  presetContents(preset) {
+    const st = preset && preset.state || {};
     return {
-      columns: serializeColumns(this.columns),
-      sort: JSON.parse(JSON.stringify(this.sort)),
-      filters: JSON.parse(JSON.stringify(this.filters))
+      columns: Array.isArray(st.columns),
+      filters: Array.isArray(st.sort) || isPlainObject(st.filters),
+      instance: isPlainObject(st.instance)
     };
   }
-  /** Aplikuje preset — sestaví sloupce/řazení/filtry ze snapshotu a překreslí. */
+  /**
+   * Snapshot nastavení tabulky. Bere celou `instance` (ať se nově přidaná volba
+   * zachytí sama od sebe) kromě přechodného UI stavu, který není „nastavení“ —
+   * ten by se přes preset přenášet neměl. Hloubková kopie: preset musí přežít
+   * další změny živé instance (cssVars, format, scaleColors, groupBy).
+   */
+  captureInstance() {
+    const snap = JSON.parse(JSON.stringify(this.instance));
+    for (const k of TRANSIENT_INSTANCE_KEYS) delete snap[k];
+    return snap;
+  }
+  /**
+   * Nasadí snapshot nastavení do živé instance — stejný merge jako při startu
+   * (výchozí ← options.instance ← snapshot), takže volba, kterou snapshot nezná,
+   * spadne na výchozí hodnotu. Přechodný UI stav zůstává uživateli, jaký měl.
+   */
+  _applyInstanceSnapshot(snap) {
+    const prev = this.instance;
+    this.instance = Object.assign(
+      {},
+      INSTANCE_DEFAULTS,
+      this.options.instance,
+      JSON.parse(JSON.stringify(snap || {}))
+    );
+    for (const k of TRANSIENT_INSTANCE_KEYS) this.instance[k] = prev[k];
+    this.pageSize = this.instance.pageSize;
+  }
+  /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */
   applyPreset(preset) {
     const st = preset && preset.state ? preset.state : {};
-    this.columns = buildColumns(this.columnDefs || [], st.columns || []);
-    this.sort = Array.isArray(st.sort) ? JSON.parse(JSON.stringify(st.sort)) : [];
-    this.filters = st.filters ? JSON.parse(JSON.stringify(st.filters)) : {};
+    if (Array.isArray(st.columns)) {
+      this.columns = buildColumns(this.columnDefs || [], st.columns);
+    }
+    if (Array.isArray(st.sort)) this.sort = JSON.parse(JSON.stringify(st.sort));
+    if (isPlainObject(st.filters)) this.filters = JSON.parse(JSON.stringify(st.filters));
+    if (isPlainObject(st.instance)) {
+      this._applyInstanceSnapshot(st.instance);
+      this.renderer.applyInstanceStyles();
+      this.renderer.renderToolbar();
+    }
     this.page = 1;
     this._activePresetId = preset.id;
     this.saveState();
@@ -12934,7 +13073,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.12.0";
+var VERSION = "1.13.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

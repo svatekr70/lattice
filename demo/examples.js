@@ -654,7 +654,7 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
       {
         id: 'ex-presets',
         title: 'Presety + nastavení',
-        blurb: 'Uložené pohledy (sloupce/řazení/filtry) — lokální (jen pro mě, v prohlížeči) i globální (sdílené). Globální spravuje APLIKACE: pole se předá při startu, uložení posílá callback (klik na globus vedle záložky). Klik na název globálního presetu si tabulku nastaví jako u lokálního.',
+        blurb: 'Uložené pohledy — lokální (jen pro mě, v prohlížeči) i globální (sdílené). Nad polem s názvem si zaškrtneš, <b>co preset ponese</b>: <b>Sloupce</b>, <b>Filtry a řazení</b>, <b>Nastavení tabulky</b> (seskupení řádků, souhrnný řádek, mezisoučty skupin, vzhled). Preset pak mění <b>jen ty části, které obsahuje</b> — „jen filtry\" ti nepřerovná sloupce ani nezruší seskupení. Globální spravuje APLIKACE: pole se předá při startu, uložení posílá callback (klik na globus vedle záložky).',
         code: `new Lattice('#grid', {\n  id: 'ex-presets', columns, data,\n  globalPresets,                              // pole uložené aplikací\n  onSaveGlobalPreset: (preset) => saveToDb(preset),   // globus → callback\n  onDeleteGlobalPreset: (preset) => removeFromDb(preset.id),\n})`,
         mount: (el, ctx) => new Lattice(el, base(ctx, {
           id: 'ex-presets', columns: campaignColumns(), data: ctx.data, pageSize: 25,
