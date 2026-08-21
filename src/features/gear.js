@@ -27,7 +27,7 @@ const PRESET_PARTS = ['columns', 'filters', 'instance'];
 const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
 
 /** „Sloupce, filtry a řazení" — výčet částí do titulku/tooltipu. */
-function partsSummary(parts, t) {
+export function partsSummary(parts, t) {
   const names = PRESET_PARTS.filter((k) => parts[k]).map((k) => t('presets.part' + cap(k)).toLowerCase());
   return names.length ? names.join(', ') : t('presets.partsNone');
 }
@@ -45,9 +45,11 @@ export class Gear {
     this.open(anchor);
   }
 
-  open(anchor) {
+  /** `prefill` = uložený preset k úpravě: předvyplní název, části i volby zobrazení. */
+  open(anchor, prefill = null) {
     const panel = el('div.lattice-panel.lattice-gear-panel');
     this.anchor = anchor;
+    this._prefill = prefill;
     this.renderList(panel);
     document.body.appendChild(panel);
     positionUnder(panel, anchor);
@@ -147,6 +149,10 @@ export class Gear {
     // Co se do presetu uloží (sloupce / filtry a řazení / nastavení tabulky).
     // Volba drží mezi otevřeními panelu, ať ji uživatel neklikká pořád dokola.
     const parts = this._presetParts || (this._presetParts = { columns: true, filters: true, instance: true });
+    // Úprava uloženého presetu (z kontextového menu pilulky) → převezmi jeho části,
+    // ať uložení pod stejným názvem nezmění, co preset nese.
+    const prefill = this._prefill;
+    if (prefill) Object.assign(parts, grid.presetContents(prefill));
     const partsRow = el('div.lattice-preset-parts');
     partsRow.appendChild(el('span.lattice-preset-parts-label', { text: t('presets.partsLabel') }));
     const boxes = [];
@@ -166,21 +172,35 @@ export class Gear {
     }
     wrap.appendChild(partsRow);
 
-    // Řádek pro uložení presetu: název → záložka (lokální) → globus (globální).
-    const input = el('input.lattice-preset-input', { type: 'text', placeholder: t('presets.namePlaceholder') });
+    // Řádek pro uložení presetu: název → „jako tlačítko" → záložka (lokální) → globus (globální).
+    const input = el('input.lattice-preset-input', { type: 'text', placeholder: t('presets.namePlaceholder'), value: prefill ? prefill.name : '' });
     this._nameInput = input;
+    // Kde se preset ukáže v toolbaru: „jako tlačítko" (pilulka v rychlé řadě nad ikonami,
+    // stejně jako uložené filtry — jen s ikonou záložky) a/nebo „jako výběr" (rozbalovací
+    // seznam vedle ikon; hodí se, když je uložených pohledů hodně). Nic = jen tady v panelu.
+    const asBtnInput = el('input', { type: 'checkbox' });
+    asBtnInput.checked = !!(prefill && prefill.asButton);
+    const asBtnLabel = el('label.lattice-adv-asbtn', { title: t('presets.asButtonHint') }, [
+      asBtnInput, el('span', { text: t('presets.asButton') }),
+    ]);
+    const asSelInput = el('input', { type: 'checkbox' });
+    asSelInput.checked = !!(prefill && prefill.asSelect);
+    const asSelLabel = el('label.lattice-adv-asbtn', { title: t('presets.asSelectHint') }, [
+      asSelInput, el('span', { text: t('presets.asSelect') }),
+    ]);
     const saveBtn = el('button.lattice-icon-btn', { type: 'button', title: t('presets.saveLocal'), html: BOOKMARK_SVG });
     const doSaveLocal = () => {
       const name = input.value.trim();
       if (!name) { input.focus(); return; }
-      grid.presets.saveLocal(name, parts);
+      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
       input.value = '';
+      this._prefill = null;
       this.refresh();
     };
     saveBtn.addEventListener('click', doSaveLocal);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSaveLocal(); });
 
-    const rowEls = [input, saveBtn];
+    const rowEls = [input, asBtnLabel, asSelLabel, saveBtn];
     // Globus (globální preset) — hned za záložkou; klik pošle callback aplikaci.
     let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
@@ -188,8 +208,9 @@ export class Gear {
       globeBtn.addEventListener('click', () => {
         const name = input.value.trim();
         if (!name) { input.focus(); return; }
-        grid.presets.saveGlobal(name, parts);
+        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
         input.value = '';
+        this._prefill = null;
         this.refresh();
       });
       rowEls.push(globeBtn);
@@ -222,6 +243,19 @@ export class Gear {
 
     if (preset.scope === 'global') {
       row.appendChild(el('span.lattice-preset-badge', { title: grid.i18n.t('presets.global'), html: GLOBE_SVG }));
+    }
+
+    // Přepínače zobrazení i u už uloženého presetu — ať se kvůli tomu nemusí ukládat znovu.
+    for (const [key, icon, hint] of [['asButton', PIN_SVG, 'presets.asButtonHint'], ['asSelect', SELECT_SVG, 'presets.asSelectHint']]) {
+      const tog = el('button.lattice-preset-pin' + (preset[key] ? '.is-on' : ''), {
+        type: 'button', title: t(hint), html: icon,
+      });
+      tog.addEventListener('click', (e) => {
+        e.stopPropagation();
+        grid.presets.setDisplay(preset, key, !preset[key]);
+        this.refresh();
+      });
+      row.appendChild(tog);
     }
 
     const del = el('button.lattice-preset-del', { type: 'button', title: '×', text: '×' });
@@ -1211,6 +1245,8 @@ const FIT_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="tr
 const CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
 const RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 const GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
+const PIN_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect class="lattice-pin-fill" x="5" y="9.5" width="14" height="5" rx="2.5" fill="currentColor"/></svg>';
+const SELECT_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path class="lattice-pin-fill" fill="currentColor" d="M6 9h8v1.8H6zm0 4h6v1.8H6z"/><path fill="currentColor" d="M16.2 10.2h3.4L17.9 13z"/></svg>';
 const BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
 // zarovnání buňky (vlevo / na střed / vpravo)
 const AL_LEFT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg>';

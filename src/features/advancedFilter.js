@@ -81,29 +81,37 @@ export class AdvancedFilter {
       const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
       if (cur) nameInput.value = cur.name;
     }
-    // Přepínač „zobrazit jako tlačítko" — uloží se u konkrétního filtru; když je zapnutý,
-    // filtr se vykreslí jako tlačítko v řadě nad ikonami toolbaru (místo jen v selectu).
+    // Kde se uložený filtr ukáže v toolbaru: „jako tlačítko" (pilulka v rychlé řadě nad
+    // ikonami) a/nebo „jako výběr" (rozbalovací seznam vedle ikon — výchozí, snese i hodně
+    // uložených filtrů). Volba se ukládá u konkrétního filtru.
     const asBtnInput = el('input', { type: 'checkbox' });
     this.asBtnInput = asBtnInput;
+    const asSelInput = el('input', { type: 'checkbox' });
+    asSelInput.checked = true;
+    this.asSelInput = asSelInput;
     if (this.selectedId) {
       const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
-      if (cur) asBtnInput.checked = !!cur.asButton;
+      if (cur) { asBtnInput.checked = !!cur.asButton; asSelInput.checked = cur.asSelect === undefined ? !cur.asButton : !!cur.asSelect; }
     }
     const asBtnLabel = el('label.lattice-adv-asbtn', { title: t('advanced.asButtonHint') }, [
       asBtnInput, el('span', { text: t('advanced.asButton') }),
+    ]);
+    const asSelLabel = el('label.lattice-adv-asbtn', { title: t('advanced.asSelectHint') }, [
+      asSelInput, el('span', { text: t('advanced.asSelect') }),
     ]);
     const saveBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.save') });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) { nameInput.focus(); return; }
-      const item = this.grid.saveAdvanced(name, this.tree, scope, asBtnInput.checked);
+      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked });
       nameInput.value = '';
       asBtnInput.checked = false;
+      asSelInput.checked = true;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener('click', () => saveWithScope('local'));
-    const saveRowEls = [nameInput, asBtnLabel, saveBtn];
+    const saveRowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
     // Globus (globální filtr) — jen když aplikace dodala callback; klik pošle callback.
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el('button.lattice-dr-btn.is-success', { type: 'button', text: t('advanced.saveGlobal') });
@@ -139,6 +147,7 @@ export class AdvancedFilter {
       this.tree = clone(f.tree);
       if (this.nameInput) this.nameInput.value = f.name; // předvyplň název → uložení pod stejným
       if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton; // odraz stav „jako tlačítko"
+      if (this.asSelInput) this.asSelInput.checked = f.asSelect === undefined ? !f.asButton : !!f.asSelect;
       this.renderBuilder();            // překresli JEN strom, select zůstane vybraný
       grid.applyAdvanced(this.tree);   // vybraný filtr rovnou aplikuj
     });

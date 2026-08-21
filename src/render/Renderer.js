@@ -24,6 +24,7 @@ import { getFilter } from '../filters/index.js';
 import { attachResize, attachRowNumberResize } from '../features/resize.js';
 import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
+import { partsSummary } from '../features/gear.js';
 import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
 import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
@@ -1930,27 +1931,195 @@ export class Renderer {
     return wrap;
   }
 
+  /**
+   * Řada rychlých tlačítek nad ikonami toolbaru. Nese dvě skupiny vedle sebe
+   * (oddělené svislou linkou): vlevo **presety**, vpravo **uložené filtry** —
+   * obojí jen to, co uživatel označil „jako tlačítko".
+   *
+   * Čtyři druhy se rozliší bez popisků, aby řada zůstala úzká:
+   *   ikona = druh (záložka = preset, trychtýř = filtr),
+   *   barva = rozsah (šedá = můj / modrá = globální, u globálního i modrý rámeček).
+   * Aktivní položka je vyplněná akcentem. Slovní popis je v tooltipu.
+   */
+  buildQuickBar(f) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.buttonPresets();
+    const filters = f.advancedFilter === false ? [] : grid.buttonAdvanced();
+    if (!presets.length && !filters.length) return;
+
+    const bar = el('div.lattice-quickbar');
+
+    if (presets.length) {
+      const group = el('div.lattice-qb-group.is-presets', { title: t('quickbar.presets') });
+      for (const p of presets) {
+        const global = p.scope === 'global';
+        const parts = partsSummary(grid.presetContents(p), t);
+        const active = grid._activePresetId === p.id;
+        const b = this.quickBtn({
+          text: p.name, icon: BOOKMARK_MINI_SVG, global, active,
+          title: (global ? t('quickbar.globalPreset') : t('quickbar.myPreset')) + ' — ' + p.name
+            + (parts ? ' (' + parts + ')' : '')
+            + '\n' + (active ? t('quickbar.presetOff') : t('quickbar.presetOn')) + ' · ' + t('quickbar.menuHint'),
+        });
+        // klik na aktivní preset = zpět na výchozí zobrazení (filtry a řazení zůstanou)
+        b.addEventListener('click', () => grid.togglePreset(p));
+        b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, p, 'preset'));
+        group.appendChild(b);
+      }
+      bar.appendChild(group);
+    }
+
+    if (filters.length) {
+      const activeId = grid.activeSavedId();
+      const group = el('div.lattice-qb-group.is-filters', { title: t('quickbar.filters') });
+      for (const bf of filters) {
+        const global = bf.scope === 'global';
+        const b = this.quickBtn({
+          text: bf.name, icon: FUNNEL_MINI_SVG, global, active: bf.id === activeId,
+          title: (global ? t('quickbar.globalFilter') : t('quickbar.myFilter')) + ' — ' + bf.name
+            + '\n' + t('quickbar.filterToggle') + ' · ' + t('quickbar.menuHint'),
+        });
+        b.addEventListener('click', () => grid.toggleSavedAdvanced(bf.id));
+        b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, bf, 'filter'));
+        group.appendChild(b);
+      }
+      bar.appendChild(group);
+    }
+
+    this.nodes.toolbar.appendChild(bar);
+  }
+
+  /**
+   * Kontextové menu pilulky (pravý klik) — správa uložené položky rovnou z místa,
+   * kde ji uživatel vidí: použít/vypnout, kde se má zobrazovat (tlačítko / výběr),
+   * úprava v příslušném panelu a smazání.
+   */
+  quickBarMenu(e, item, kind) {
+    e.preventDefault();
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const preset = kind === 'preset';
+    const active = preset ? grid._activePresetId === item.id : grid.activeSavedId() === item.id;
+    const asSelect = item.asSelect === undefined ? (preset ? false : !item.asButton) : !!item.asSelect;
+    const items = [
+      { value: 'apply', label: preset ? (active ? t('quickbar.resetView') : t('quickbar.applyPreset')) : (active ? t('quickbar.clearFilter') : t('quickbar.applyFilter')) },
+      { value: 'edit', label: preset || item.kind !== 'columns' ? t('quickbar.edit') : t('saveFilters.edit') },
+      { separator: true },
+      { value: 'asButton', label: t('quickbar.showButton'), active: !!item.asButton },
+      { value: 'asSelect', label: t('quickbar.showSelect'), active: asSelect },
+      { separator: true },
+      { value: 'delete', label: t('quickbar.delete'), danger: true },
+    ];
+    openMenuAt(e.pageX, e.pageY, items, async (value) => {
+      if (value === 'apply') return preset ? grid.togglePreset(item) : grid.toggleSavedAdvanced(item.id);
+      if (value === 'edit') return this.editSavedItem(item, kind);
+      if (value === 'asButton' || value === 'asSelect') {
+        const on = value === 'asButton' ? !item.asButton : !asSelect;
+        if (preset) grid.presets.setDisplay(item, value, on);
+        else grid.setAdvancedDisplay(item.id, value, on);
+        return;
+      }
+      if (value === 'delete') {
+        if (preset) await grid.presets.remove(item);
+        else grid.deleteAdvanced(item.id);
+        grid.gear?.refresh();
+      }
+    });
+  }
+
+  /** Otevře panel, ve kterém se dá uložená položka upravit (a znovu uložit pod stejným názvem). */
+  editSavedItem(item, kind) {
+    const grid = this.grid;
+    const tb = this.nodes.toolbar;
+    if (kind === 'preset') return grid.gear?.open(tb.querySelector('.lattice-gear-btn'), item);
+    // snímek sloupcových filtrů → hodnoty zpět do políček v hlavičce a otevřít panel
+    // uložených filtrů: uživatel filtry v hlavičce doladí a disketou u položky je přepíše
+    if (item.kind === 'columns') {
+      grid.applyFiltersSnapshot(item);
+      return grid.saveFiltersPanel.open(this.nodes.toolbar.querySelector('.lattice-save-filters'));
+    }
+    grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    return grid.advancedFilter.open(this.nodes.toolbar.querySelector('.lattice-adv-btn'));
+  }
+
+  /** Jedna pilulka rychlé řady (druh podle ikony, rozsah podle barvy). */
+  quickBtn({ text, icon, global, active, title }) {
+    const cls = '.lattice-qb-btn' + (global ? '.is-global' : '.is-mine') + (active ? '.is-active' : '');
+    return el('button' + cls, { type: 'button', title }, [
+      el('span.lattice-qb-ico', { html: icon }),
+      el('span.lattice-qb-label', { text }),
+    ]);
+  }
+
+  /**
+   * Rozbalovací výběr uložených pohledů v toolbaru — jedno místo pro presety
+   * i uložené filtry označené „jako výběr". Když jsou obojí, rozdělí se do dvou
+   * skupin (`<optgroup>`), aby bylo poznat, co je co; globální položky nesou
+   * prefix globusu (v `<option>` nejde SVG ikona).
+   *
+   * Hodnota je `p:<id>` / `f:<id>`, ať se druhy nepopletou při shodě id.
+   */
+  buildQuickSelect(f) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.selectPresets();
+    const filters = f.advancedFilter === false ? [] : grid.selectAdvanced();
+    if (!presets.length && !filters.length) return;
+
+    const sel = el('select.lattice-adv-quick', { title: t('quickbar.selectTitle') });
+    sel.appendChild(el('option', { value: '', text: presets.length ? t('quickbar.selectPlaceholder') : t('advanced.savedPlaceholder') }));
+    const label = (x) => (x.scope === 'global' ? '🌐 ' : '') + x.name;
+    const both = presets.length && filters.length;
+    const add = (parent, items, prefix) => {
+      for (const x of items) parent.appendChild(el('option', { value: prefix + x.id, text: label(x) }));
+    };
+    if (presets.length) {
+      const box = both ? el('optgroup', { label: t('quickbar.presets') }) : sel;
+      add(box, presets, 'p:');
+      if (both) sel.appendChild(box);
+    }
+    if (filters.length) {
+      const box = both ? el('optgroup', { label: t('quickbar.filters') }) : sel;
+      add(box, filters, 'f:');
+      if (both) sel.appendChild(box);
+    }
+
+    // Vybraná položka = to, co je právě aplikované (filtr podle stavu filtrů, preset podle id).
+    const activeFilter = grid.activeSavedId();
+    if (activeFilter && filters.some((x) => x.id === activeFilter)) sel.value = 'f:' + activeFilter;
+    else if (grid._activePresetId && presets.some((x) => x.id === grid._activePresetId)) sel.value = 'p:' + grid._activePresetId;
+    else sel.value = '';
+
+    sel.addEventListener('change', () => {
+      if (!sel.value) {
+        // vyprázdnění → zruš to, co je právě aktivní (snímek sloupců vs. rozšířený strom)
+        const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
+        if (cur && cur.kind === 'columns') grid.clearColumnFilters();
+        else grid.clearAdvanced();
+        return;
+      }
+      const id = sel.value.slice(2);
+      if (sel.value.startsWith('p:')) {
+        const preset = presets.find((x) => x.id === id);
+        if (preset) grid.applyPreset(preset);
+        return;
+      }
+      const item = filters.find((x) => x.id === id);
+      if (!item) return;
+      if (item.kind === 'columns') grid.applyFiltersSnapshot(item);
+      else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    });
+    this.nodes.toolbar.appendChild(sel);
+  }
+
   renderToolbar() {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
-    // Řada tlačítek uložených rozšířených filtrů (opt-in přepínačem u filtru). Vlastní
-    // řádek s width:100% → díky flex-wrap se položí NAD řadu ikon a zarovná se vpravo.
-    if (f.advancedFilter !== false) {
-      const btnFilters = this.grid.buttonAdvanced();
-      if (btnFilters.length) {
-        const activeId = this.grid.activeSavedId();
-        const btnRow = el('div.lattice-adv-btnrow');
-        for (const bf of btnFilters) {
-          const b = el('button.lattice-adv-fbtn' + (bf.id === activeId ? '.is-active' : ''), {
-            type: 'button', text: (bf.scope === 'global' ? '🌐 ' : '') + bf.name, title: bf.name,
-          });
-          b.addEventListener('click', () => this.grid.toggleSavedAdvanced(bf.id));
-          btnRow.appendChild(b);
-        }
-        toolbar.appendChild(btnRow);
-      }
-    }
+    // Řada rychlých tlačítek (presety + uložené filtry) — vlastní řádek s width:100%,
+    // takže se díky flex-wrap položí NAD řadu ikon a zarovná se vpravo.
+    this.buildQuickBar(f);
     // Levá skupina toolbaru: historie (undo/redo) + ovládání úrovní stromu.
     const leftGroup = el('div.lattice-toolbar-left');
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
@@ -1973,12 +2142,13 @@ export class Renderer {
     });
     clearBtn.addEventListener('click', () => this.grid.clearAllFilters());
     toolbar.appendChild(clearBtn);
-    // Ukládací ikona (trychtýř + disketa): uloží aktuální sloupcové filtry pod názvem.
-    // Vždy v DOM, viditelná (.is-visible) jen když nějaký sloupcový filtr platí — viditelnost
-    // se přepíná i mimo renderToolbar přes updateFilterClearBtn (při psaní do filtru sloupce).
+    // Ikona uložených filtrů (trychtýř + disketa): uloží aktuální sloupcové filtry pod
+    // názvem a spravuje už uložené. Vždy v DOM, viditelná (.is-visible) když je co uložit
+    // (platí nějaký sloupcový filtr) NEBO už něco uloženého je — jinak by se ke správě
+    // uložených filtrů nedalo dostat. Přepíná se i mimo renderToolbar (updateFilterClearBtn).
     if (f.advancedFilter !== false) {
-      const saveFbtn = el('button.lattice-tool-btn.lattice-save-filters' + (this.grid.hasColumnFilters() ? '.is-visible' : ''), {
-        type: 'button', title: this.grid.i18n.t('saveFilters.title'), html: SAVE_FILTER_SVG,
+      const saveFbtn = el('button.lattice-tool-btn.lattice-save-filters' + (this.grid.hasColumnFilters() || this.grid.listAdvanced().length ? '.is-visible' : ''), {
+        type: 'button', title: this.grid.i18n.t('saveFilters.manage'), html: SAVE_FILTER_SVG,
       });
       saveFbtn.addEventListener('click', () => this.grid.saveFiltersPanel.toggle(saveFbtn));
       // Když je panel otevřený, přesměruj kotvu na živé tlačítko (viz advBtn níže).
@@ -1988,7 +2158,7 @@ export class Renderer {
     if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
-      const advBtn = el('button.lattice-tool-btn', {
+      const advBtn = el('button.lattice-tool-btn.lattice-adv-btn', {
         type: 'button', title: t('advanced.title'),
         class: grid.advancedActive() ? 'is-active' : '', html: this.icon('advancedFilter', ADV_SVG),
       });
@@ -1998,33 +2168,11 @@ export class Renderer {
       // toolbaru vyrobí nové tlačítko a staré odpojí z DOM → panel by se přepočítal proti
       // rectu {0,0,0,0} a skočil do rohu. Když je panel otevřený, přesměruj kotvu na živé tlačítko.
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
-
-      // Rychlý výběr uloženého rozšířeného filtru přímo v toolbaru (když nějaký je).
-      // Filtry označené „jako tlačítko" se zobrazují v řadě tlačítek výše, ne v selectu.
-      const saved = grid.listAdvanced().filter((s) => !s.asButton);
-      if (saved.length) {
-        const sel = el('select.lattice-adv-quick', { title: t('advanced.title') });
-        sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
-        for (const s of saved) sel.appendChild(el('option', { value: s.id, text: (s.scope === 'global' ? '🌐 ' : '') + s.name }));
-        sel.value = grid.activeSavedId();
-        sel.addEventListener('change', () => {
-          if (!sel.value) {
-            // vyprázdnění → zruš to, co je právě aktivní (snímek sloupců vs. rozšířený strom)
-            const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
-            if (cur && cur.kind === 'columns') grid.clearColumnFilters();
-            else grid.clearAdvanced();
-            return;
-          }
-          const item = saved.find((x) => x.id === sel.value);
-          if (!item) return;
-          if (item.kind === 'columns') grid.applyFiltersSnapshot(item);
-          else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
-        });
-        toolbar.appendChild(sel);
-      }
     }
+    // Výběr uložených pohledů — i když je rozšířený filtr vypnutý, můžou v něm být presety.
+    this.buildQuickSelect(f);
     if (f.gear !== false) {
-      const gearBtn = el('button.lattice-tool-btn', { type: 'button', title: this.grid.i18n.t('columns.manage'), html: this.icon('columns', GEAR_SVG) });
+      const gearBtn = el('button.lattice-tool-btn.lattice-gear-btn', { type: 'button', title: this.grid.i18n.t('columns.manage'), html: this.icon('columns', GEAR_SVG) });
       gearBtn.addEventListener('click', () => this.grid.gear.toggle(gearBtn));
       toolbar.appendChild(gearBtn);
     }
@@ -2053,7 +2201,9 @@ export class Renderer {
     const btn = tb.querySelector('.lattice-clear-filters');
     if (btn) btn.classList.toggle('is-visible', this.grid.hasActiveFilters());
     const save = tb.querySelector('.lattice-save-filters');
-    if (save) save.classList.toggle('is-visible', this.grid.hasColumnFilters());
+    if (save) save.classList.toggle('is-visible', this.grid.hasColumnFilters() || this.grid.listAdvanced().length > 0);
+    // přepsat uložený filtr aktuálními filtry jde, jen když nějaké jsou
+    for (const b of tb.querySelectorAll('.lattice-savefilters-overwrite')) b.disabled = !this.grid.hasColumnFilters();
   }
 
   /* -------- overlay stavy -------- */
@@ -2188,6 +2338,9 @@ const UNIVERSAL_OPS = [
   { op: 'contains', label: 'like' }, { op: 'ncontains', label: '!like' },
 ];
 
+/* Mini ikony rychlé řady tlačítek: záložka = preset, trychtýř = uložený filtr. */
+const BOOKMARK_MINI_SVG = '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+const FUNNEL_MINI_SVG = '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M2 4h20l-8 9v7l-4 2v-9z"/></svg>';
 const FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 // nálevka s ozubením/hvězdičkou = rozšířený filtr
 // Rozšířený filtr: trychtýř s výraznější hvězdičkou (větší, čitelnější).

@@ -23,7 +23,7 @@ import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
 import { InstanceSettings } from './features/instanceSettings.js';
 import { Pagination } from './features/pagination.js';
-import { PresetStore } from './features/presets.js';
+import { PresetStore, normalizeDisplay } from './features/presets.js';
 import { measureColumnWidth } from './features/resize.js';
 import { AdvancedFilter } from './features/advancedFilter.js';
 import { SaveFiltersPanel } from './features/saveFilters.js';
@@ -902,8 +902,8 @@ export class Lattice {
    *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
    */
-  saveAdvanced(name, tree, scope = 'local', asButton = false) {
-    return this._saveNamedFilter(name, scope, asButton, { tree: JSON.parse(JSON.stringify(tree)) });
+  saveAdvanced(name, tree, scope = 'local', display = false) {
+    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)) });
 }
 
   /**
@@ -914,10 +914,12 @@ export class Lattice {
    *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
    *    ta zajistí perzistenci a sdílení (DB). Payload nese i `fields` (u snímku tedy kind+filters).
    */
-  _saveNamedFilter(name, scope, asButton, fields) {
+  _saveNamedFilter(name, scope, display, fields) {
     name = String(name || '').trim();
     if (!name) return null;
-    const core = { name, asButton: !!asButton, ...fields };
+    // Zobrazení v toolbaru: tlačítko a/nebo výběr. Legacy boolean = jen tlačítko
+    // (a tím pádem ne ve výběru), jak se `asButton` chovalo od v1.10.0.
+    const core = { name, ...normalizeDisplay(display), ...fields };
     if (scope === 'global') {
       const existing = this.globalAdvanced.find((f) => f.name === name);
       const id = existing ? existing.id : uid();
@@ -935,6 +937,32 @@ export class Lattice {
     this.state.advancedFilters.push(item);
     this.store.save(this.state);
     this.renderer.renderToolbar(); // aktualizovat rychlý select + řadu tlačítek v toolbaru
+    return item;
+  }
+
+  /**
+   * Přepne u uloženého filtru jeho zobrazení v toolbaru — `key` je `'asButton'`
+   * (rychlá řada tlačítek) nebo `'asSelect'` (rozbalovací výběr). U globálního filtru
+   * pošle změnu aplikaci stejným callbackem jako uložení. `@v1.14.0`
+   */
+  setAdvancedDisplay(id, key, on) {
+    if (key !== 'asButton' && key !== 'asSelect') return null;
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    if (g) {
+      // starší položka zná jen asButton → dopočítej druhou hodnotu, ať se chování nepřeklopí
+      if (g.asSelect === undefined) g.asSelect = !g.asButton;
+      g[key] = !!on;
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === 'function') { const { scope, ...core } = g; cb({ ...core }); }
+      this.renderer.renderToolbar();
+      return g;
+    }
+    const item = (this.state.advancedFilters || []).find((f) => f.id === id);
+    if (!item) return null;
+    if (item.asSelect === undefined) item.asSelect = !item.asButton;
+    item[key] = !!on;
+    this.store.save(this.state);
+    this.renderer.renderToolbar();
     return item;
   }
 
@@ -981,6 +1009,14 @@ export class Lattice {
   /** Uložené filtry označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
   buttonAdvanced() {
     return this.listAdvanced().filter((f) => f.asButton);
+  }
+
+  /**
+   * Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez volby
+   * (uložená před v1.14.0) se řídí postaru: co není tlačítko, je ve výběru.
+   */
+  selectAdvanced() {
+    return this.listAdvanced().filter((f) => (f.asSelect === undefined ? !f.asButton : !!f.asSelect));
   }
 
   /** Přepínač uloženého filtru (toggle): aplikuje ho, nebo zruší, když už je aktivní. */
@@ -1038,12 +1074,52 @@ export class Lattice {
   }
 
   /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
-  saveFilterSnapshot(name, scope = 'local', asButton = false) {
+  saveFilterSnapshot(name, scope = 'local', display = false) {
     const snap = this._captureColumnFilters();
     if (!snap) return null;
-    return this._saveNamedFilter(name, scope, asButton, {
+    return this._saveNamedFilter(name, scope, display, {
       kind: 'columns', filters: snap.filters, filterTypes: snap.filterTypes,
     });
+  }
+
+  /* ------- úprava uloženého filtru (přepsání hodnot, přejmenování) ------- */
+
+  /**
+   * Přepíše uložený snímek **aktuálními** sloupcovými filtry z hlavičky. Uživatel si
+   * filtry přenastaví v tabulce, otevře panel uložených filtrů a u položky klikne na
+   * disketu. Zůstává `id`, název, rozsah i volby zobrazení. Vrací `null`, když není
+   * co uložit (žádný aktivní sloupcový filtr) nebo položka není snímek. `@v1.14.0`
+   */
+  overwriteSavedFilter(id) {
+    const item = this.listAdvanced().find((f) => f.id === id);
+    if (!item || item.kind !== 'columns' || !this.hasColumnFilters()) return null;
+    return this.saveFilterSnapshot(item.name, item.scope || 'local', {
+      button: !!item.asButton,
+      select: item.asSelect === undefined ? !item.asButton : !!item.asSelect,
+    });
+  }
+
+  /**
+   * Přejmenuje uložený filtr (snímek i strom) — mění jen název, `id` a obsah zůstávají.
+   * Případná jiná položka téhož názvu ustoupí, ať nevznikne dvojice. `@v1.14.0`
+   */
+  renameSavedFilter(id, name) {
+    const nm = String(name || '').trim();
+    if (!nm) return null;
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    const target = g || (this.state.advancedFilters || []).find((f) => f.id === id);
+    if (!target || target.name === nm) return null;
+    if (g) this.globalAdvanced = this.globalAdvanced.filter((f) => f.id === id || f.name !== nm);
+    else this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id === id || f.name !== nm);
+    target.name = nm;
+    if (g) {
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === 'function') { const { scope, ...core } = target; cb({ ...core }); }
+    } else {
+      this.store.save(this.state);
+    }
+    this.renderer.renderToolbar();
+    return target;
   }
 
   /** Obnoví uložený snímek sloupcových filtrů zpět do políček hlavičky a přefiltruje. */
@@ -2158,6 +2234,16 @@ export class Lattice {
     this.pageSize = this.instance.pageSize;
   }
 
+  /** Presety označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). `@v1.14.0` */
+  buttonPresets() {
+    return this.presets ? this.presets.buttons() : [];
+  }
+
+  /** Presety označené k zobrazení v rozbalovacím výběru v toolbaru. `@v1.14.0` */
+  selectPresets() {
+    return this.presets ? this.presets.selects() : [];
+  }
+
   /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */
   applyPreset(preset) {
     const st = preset && preset.state ? preset.state : {};
@@ -2173,11 +2259,11 @@ export class Lattice {
     if (isPlainObject(st.instance)) {
       this._applyInstanceSnapshot(st.instance);
       this.renderer.applyInstanceStyles();
-      this.renderer.renderToolbar();
     }
     this.page = 1;
     this._activePresetId = preset.id;
     this.saveState();
+    this.renderer.renderToolbar(); // zvýraznění tlačítka aktivního presetu
     this.renderer.renderHeader();
     this.renderer.renderBody();
     this.renderer.applyLayout();
@@ -2185,9 +2271,48 @@ export class Lattice {
     this.refresh();
   }
 
+  /**
+   * Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní preset aplikuje,
+   * u aktivního vrátí **výchozí zobrazení** — obdoba „vypnutí" u uložených filtrů.
+   * `@v1.14.0`
+   */
+  togglePreset(preset) {
+    if (!preset) return;
+    if (this._activePresetId === preset.id) this.resetView();
+    else this.applyPreset(preset);
+  }
+
+  /**
+   * Vrátí **výchozí zobrazení**: sloupce a nastavení tabulky jako po startu bez
+   * presetu (výchozí ← `options.instance`). Co si uživatel naklikal *mimo* zobrazení
+   * — **filtry** (sloupcové, univerzální, rozšířený), **řazení** i rychlé hledání —
+   * zůstává v platnosti. `@v1.14.0`
+   */
+  resetView() {
+    this._activePresetId = null;
+    this.columns = buildColumns(this.columnDefs || [], []);
+    this.state.columns = [];
+    const prev = this.instance;
+    this.instance = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance);
+    for (const k of TRANSIENT_INSTANCE_KEYS) this.instance[k] = prev[k]; // sbalený panel filtrů ap. zůstává
+    this.pageSize = this.instance.pageSize;
+    this.groupsCollapsed.clear();    // sbalené skupiny patřily starému seskupení
+    this.colGroupsCollapsed.clear();
+    this.page = 1;
+    this.saveState();
+    this.renderer.applyInstanceStyles();
+    this.renderer.renderToolbar();
+    this.rerenderColumns();
+    this.refresh();
+  }
+
   /** Zruší označení aktivního presetu (uživatel začal měnit ručně). */
   _clearActivePreset() {
+    const had = this._activePresetId;
     this._activePresetId = null;
+    // Zhasnout zvýraznění, jen když preset opravdu svítil jako tlačítko v toolbaru —
+    // jinak by se toolbar překresloval při každé změně filtru/šířky sloupce.
+    if (had && this.renderer && this.buttonPresets().some((p) => p.id === had)) this.renderer.renderToolbar();
   }
 
   /* =================== callbacky stavu (pro aplikaci) =================== */

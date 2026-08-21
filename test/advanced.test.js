@@ -224,6 +224,45 @@ test('buttonAdvanced — vrací jen filtry označené asButton (lokální + glob
   assert.deepEqual(btns.map((f) => f.name).sort(), ['Glob-btn', 'Lok-btn']);
 });
 
+test('selectAdvanced — volba „jako výběr" + zpětná kompatibilita starých položek', () => {
+  const ctx = mockGridCtx();
+  save.call(ctx, 'Jen tlačítko', { combinator: 'AND', rules: [] }, 'local', { button: true, select: false });
+  save.call(ctx, 'Obojí', { combinator: 'AND', rules: [] }, 'local', { button: true, select: true });
+  save.call(ctx, 'Nikde', { combinator: 'AND', rules: [] }, 'local', { button: false, select: false });
+  // položka uložená před v1.14.0 (zná jen asButton) → co není tlačítko, patří do výběru
+  ctx.state.advancedFilters.push({ id: 'legacy', name: 'Starý', tree: { combinator: 'AND', rules: [] } });
+
+  const sel = Lattice.prototype.selectAdvanced.call(ctx).map((f) => f.name).sort();
+  assert.deepEqual(sel, ['Obojí', 'Starý']);
+  const btns = Lattice.prototype.buttonAdvanced.call(ctx).map((f) => f.name).sort();
+  assert.deepEqual(btns, ['Jen tlačítko', 'Obojí']);
+});
+
+test('setAdvancedDisplay — přepne zobrazení u uloženého filtru (i u staré položky)', () => {
+  const ctx = mockGridCtx({ global: true });
+  ctx.options.onSaveGlobalAdvancedFilter = () => {};
+  const saved = [];
+  ctx.options.onSaveGlobalAdvancedFilter = (f) => saved.push(f);
+
+  const loc = save.call(ctx, 'Lokální', { combinator: 'AND', rules: [] }, 'local', { button: false, select: true });
+  Lattice.prototype.setAdvancedDisplay.call(ctx, loc.id, 'asButton', true);
+  assert.equal(ctx.state.advancedFilters[0].asButton, true);
+  assert.equal(ctx.state.advancedFilters[0].asSelect, true, 'druhá volba zůstává');
+
+  // stará položka (jen asButton) → dopočítá se asSelect, ať se chování nepřeklopí
+  ctx.state.advancedFilters.push({ id: 'legacy', name: 'Starý', tree: { combinator: 'AND', rules: [] } });
+  Lattice.prototype.setAdvancedDisplay.call(ctx, 'legacy', 'asButton', true);
+  const legacy = ctx.state.advancedFilters.find((f) => f.id === 'legacy');
+  assert.equal(legacy.asButton, true);
+  assert.equal(legacy.asSelect, true, 'dřív byla ve výběru → ve výběru zůstane');
+
+  const glob = save.call(ctx, 'Globální', { combinator: 'AND', rules: [] }, 'global', { button: true, select: false });
+  Lattice.prototype.setAdvancedDisplay.call(ctx, glob.id, 'asSelect', true);
+  assert.equal(ctx.globalAdvanced.find((f) => f.id === glob.id).asSelect, true);
+  assert.equal(saved.at(-1).asSelect, true, 'změna se pošle aplikaci k uložení');
+  assert.equal('scope' in saved.at(-1), false, 'callback nese jen data položky');
+});
+
 test('toggleSavedAdvanced — aplikuje neaktivní, zruší aktivní', () => {
   const ctx = mockGridCtx();
   const applied = [];

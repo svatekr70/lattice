@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.14.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.13.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.14.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.13.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.14.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.13.1
+npm i github:svatekr70/lattice#v1.14.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.13.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.14.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -351,11 +351,18 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
-| `saveAdvanced(name, tree, scope?, asButton?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `asButton` (`@v1.10.0`) = zobrazit jako přepínací tlačítko nad ikonami. |
+| `saveAdvanced(name, tree, scope?, display?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v rychlé řadě nad ikonami a/nebo položka v rozbalovacím výběru „uložené pohledy". Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. |
 | `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
 | `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
-| `saveFilterSnapshot(name, scope?, asButton?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`asButton` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` |
+| `selectAdvanced()` | Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez `asSelect` (uložená před `v1.14.0`) se řídí postaru — co není tlačítko, je ve výběru. `@v1.14.0` |
+| `setAdvancedDisplay(id, key, on)` | Přepne u uloženého filtru zobrazení bez opětovného ukládání — `key` je `'asButton'` \| `'asSelect'`. U globálního filtru pošle změnu přes `onSaveGlobalAdvancedFilter`. `@v1.14.0` |
+| `overwriteSavedFilter(id)` | Přepíše uložený **snímek** aktuálními sloupcovými filtry z hlavičky (`id`, název, rozsah i volby zobrazení zůstávají). Vrací `null`, když není co uložit. `@v1.14.0` |
+| `renameSavedFilter(id, name)` | Přejmenuje uložený filtr (snímek i strom) — mění jen název. `@v1.14.0` |
+| `saveFilterSnapshot(name, scope?, display?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`display` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` |
 | `applyFiltersSnapshot(snap)` / `clearColumnFilters()` / `hasColumnFilters()` | Obnoví snímek zpět do políček hlavičky (a přefiltruje) / zruší jen sloupcové filtry / je aktivní aspoň jeden sloupcový filtr? `@v1.11.0` |
+| `applyPreset(preset)` / `buttonPresets()` / `selectPresets()` | Aplikuje preset / presety označené jako tlačítko / presety nabízené v rozbalovacím výběru v toolbaru. `@v1.14.0` |
+| `togglePreset(preset)` | Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní aplikuje, u aktivního zavolá `resetView()`. `@v1.14.0` |
+| `resetView()` | **Výchozí zobrazení** — sloupce a nastavení tabulky jako po startu bez presetu (výchozí ← `options.instance`). Filtry (sloupcové, univerzální, rozšířený), řazení i rychlé hledání zůstávají v platnosti. `@v1.14.0` |
 | `setPage(n)` / `setPageSize(n)` | Stránkování. |
 | `setInstance(patch)` | Nastavení tabulky (theme, layout, …). |
 | `setFormat(kind, patch)` / `setColumnFormat(field, patch)` | Formát globálně / per-sloupec. |
@@ -607,13 +614,13 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalPresets` | `Array<{id,name,state}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu. |
+| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do rychlé řady tlačítek, resp. do výběru „uložené pohledy" v toolbaru. |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
 | Callback | Kdy se volá | Argument |
 |---|---|---|
-| `onSaveGlobalPreset(preset)` | uživatel uložil globální preset (tlačítko **globus**) | `{ id, name, state }` |
+| `onSaveGlobalPreset(preset)` | uživatel uložil globální preset (tlačítko **globus**) nebo u něj přepnul zobrazení (tlačítko / výběr) | `{ id, name, state, asButton, asSelect }` (`asButton`/`asSelect` `@v1.14.0`) |
 | `onDeleteGlobalPreset(preset)` | uživatel smazal globální preset (**×**) | `{ id, name }` |
 
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
@@ -635,13 +642,13 @@ je odliší podle přítomnosti `kind: 'columns'` (jinak stačí uložit celý o
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalAdvancedFilters` | `Array<{id,name,tree}>` \| `Array<{id,name,kind:'columns',filters,filterTypes}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
+| `globalAdvancedFilters` | `Array<{id,name,tree,asButton?,asSelect?}>` \| `Array<{id,name,kind:'columns',filters,filterTypes,asButton?,asSelect?}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
 | Callback | Kdy se volá | Argument |
 |---|---|---|
-| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (**globus** v panelu rozšířeného filtru nebo v panelu „uložit sloupcové filtry") | strom: `{ id, name, tree, asButton }` · snímek: `{ id, name, kind:'columns', filters, filterTypes, asButton }` |
+| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (**globus** v panelu rozšířeného filtru nebo v panelu „uložit sloupcové filtry") | strom: `{ id, name, tree, asButton, asSelect }` · snímek: `{ id, name, kind:'columns', filters, filterTypes, asButton, asSelect }` (`asSelect` `@v1.14.0`) |
 | `onDeleteGlobalAdvancedFilter(filter)` | uživatel smazal globální filtr (**×**) | `{ id, name }` |
 
 Bez `onSaveGlobalAdvancedFilter` se globus v panelu rozšířeného filtru neukáže (globální
@@ -698,6 +705,8 @@ CREATE TABLE lattice_presets (
   grid_id    VARCHAR(128) NOT NULL,        -- = options.id gridu
   name       VARCHAR(255) NOT NULL,
   state      JSON         NOT NULL,        -- preset.state (columns/sort/filters)
+  as_button  TINYINT(1)   NOT NULL DEFAULT 0,  -- @v1.14.0: pilulka v rychlé řadě nad ikonami
+  as_select  TINYINT(1)   NOT NULL DEFAULT 0,  -- @v1.14.0: položka ve výběru „uložené pohledy"
   created_by VARCHAR(128),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX (grid_id)

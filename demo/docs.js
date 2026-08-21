@@ -69,9 +69,9 @@ function docZaciname(root, ctx) {
   import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
   new Lattice('#grid', { id: 'kampane', columns, data });
 </script>`),
-    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.13.1</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
+    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.14.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
     p('<b>Přes npm — přímo z GitHubu</b> (bundler / vlastní build). Na npmjs.com knihovna publikovaná <b>není</b>: <code>npm i lattice</code> stáhne cizí balíček stejného jména!'),
-    code("npm i github:svatekr70/lattice#v1.13.1"),
+    code("npm i github:svatekr70/lattice#v1.14.0"),
     code("import { Lattice } from 'lattice';\nimport 'lattice/css';"),
     p('<b>Nebo bez CDN i npm</b> — zkopíruj složku <code>src/</code> do projektu a importuj přímo (čisté ESM, jen víc requestů):'),
     code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';"),
@@ -414,6 +414,17 @@ function docPresety(root) {
       ['<b>Nastavení tabulky</b>', '<code>instance</code>', 'seskupení řádků, souhrnný řádek, mezisoučty skupin, stránkování, vzhled, formát hodnot'],
     ]),
     p('Programově: <code>grid.captureState({ columns: true, filters: false, instance: true })</code>, resp. <code>presets.saveLocal(name, parts)</code> / <code>saveGlobal(name, parts)</code>. Bez <code>parts</code> se uloží vše. Preset uložený starší verzí nemá <code>instance</code> a nastavení tabulky nemění.'),
+
+    h3('Kde se preset ukáže (v1.14.0)'),
+    p('Při ukládání (a kdykoli potom přepínači v řádku presetu) si uživatel volí, kam se preset propíše — stejná dvojice voleb jako u uložených filtrů:'),
+    table(['Volba', 'Klíč', 'Kde se objeví'], [
+      ['<b>tlačítko</b>', '<code>asButton</code>', 'pilulka v rychlé řadě nad ikonami toolbaru (ikona <b>záložky</b>; globální je modrá, lokální šedá)'],
+      ['<b>výběr</b>', '<code>asSelect</code>', 'rozbalovací výběr „uložené pohledy" v toolbaru, ve skupině <i>Presety</i> (uložené filtry mají skupinu <i>Filtry</i>)'],
+      ['<i>nic</i>', '—', 'preset zůstane jen v panelu „Sloupce" (výchozí)'],
+    ]),
+    p('Programově: <code>presets.saveLocal(name, parts, { button: true, select: true })</code>, přepnutí u uloženého <code>presets.setDisplay(preset, \'asButton\', true)</code>. Čtení pro UI: <code>grid.buttonPresets()</code> / <code>grid.selectPresets()</code> (u filtrů <code>buttonAdvanced()</code> / <code>selectAdvanced()</code> a <code>grid.setAdvancedDisplay(id, key, on)</code>).'),
+    p('<b>Úprava uloženého filtru:</b> nastav filtry v hlavičce, otevři panel <i>Uložené filtry</i> a u položky klikni na <b>disketu</b> — <code>grid.overwriteSavedFilter(id)</code> přepíše obsah (id, název i volby zobrazení zůstanou). Přejmenování dvojklikem na název, resp. <code>grid.renameSavedFilter(id, name)</code>.'),
+    p('<b>Klik na tlačítko presetu</b> ho použije, <b>druhý klik vrátí výchozí zobrazení</b> — <code>grid.togglePreset(preset)</code>, resp. <code>grid.resetView()</code>. Reset se týká jen zobrazení (sloupce + nastavení tabulky); <b>filtry, řazení i rychlé hledání zůstávají</b>. <b>Pravý klik</b> na pilulku otevře menu se správou položky (upravit, kde zobrazit, smazat).'),
 
     h3('Lokální presety'),
     p('Per-uživatel, v localStorage. Kompletně v knihovně — v dialogu „Sloupce" pole na název + ikona záložky. Klik na název preset aplikuje.'),

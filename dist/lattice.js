@@ -3007,9 +3007,11 @@ var Gear = class {
     if (this.panel) return this.close();
     this.open(anchor);
   }
-  open(anchor) {
+  /** `prefill` = uložený preset k úpravě: předvyplní název, části i volby zobrazení. */
+  open(anchor, prefill = null) {
     const panel = el("div.lattice-panel.lattice-gear-panel");
     this.anchor = anchor;
+    this._prefill = prefill;
     this.renderList(panel);
     document.body.appendChild(panel);
     positionUnder(panel, anchor);
@@ -3085,6 +3087,8 @@ var Gear = class {
       wrap.appendChild(list);
     }
     const parts = this._presetParts || (this._presetParts = { columns: true, filters: true, instance: true });
+    const prefill = this._prefill;
+    if (prefill) Object.assign(parts, grid.presetContents(prefill));
     const partsRow = el("div.lattice-preset-parts");
     partsRow.appendChild(el("span.lattice-preset-parts-label", { text: t("presets.partsLabel") }));
     const boxes = [];
@@ -3106,8 +3110,20 @@ var Gear = class {
       ]));
     }
     wrap.appendChild(partsRow);
-    const input = el("input.lattice-preset-input", { type: "text", placeholder: t("presets.namePlaceholder") });
+    const input = el("input.lattice-preset-input", { type: "text", placeholder: t("presets.namePlaceholder"), value: prefill ? prefill.name : "" });
     this._nameInput = input;
+    const asBtnInput = el("input", { type: "checkbox" });
+    asBtnInput.checked = !!(prefill && prefill.asButton);
+    const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("presets.asButtonHint") }, [
+      asBtnInput,
+      el("span", { text: t("presets.asButton") })
+    ]);
+    const asSelInput = el("input", { type: "checkbox" });
+    asSelInput.checked = !!(prefill && prefill.asSelect);
+    const asSelLabel = el("label.lattice-adv-asbtn", { title: t("presets.asSelectHint") }, [
+      asSelInput,
+      el("span", { text: t("presets.asSelect") })
+    ]);
     const saveBtn = el("button.lattice-icon-btn", { type: "button", title: t("presets.saveLocal"), html: BOOKMARK_SVG });
     const doSaveLocal = () => {
       const name = input.value.trim();
@@ -3115,15 +3131,16 @@ var Gear = class {
         input.focus();
         return;
       }
-      grid.presets.saveLocal(name, parts);
+      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
       input.value = "";
+      this._prefill = null;
       this.refresh();
     };
     saveBtn.addEventListener("click", doSaveLocal);
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doSaveLocal();
     });
-    const rowEls = [input, saveBtn];
+    const rowEls = [input, asBtnLabel, asSelLabel, saveBtn];
     let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
       globeBtn = el("button.lattice-icon-btn.is-success", { type: "button", title: t("presets.saveGlobal"), html: GLOBE_SVG });
@@ -3133,8 +3150,9 @@ var Gear = class {
           input.focus();
           return;
         }
-        grid.presets.saveGlobal(name, parts);
+        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
         input.value = "";
+        this._prefill = null;
         this.refresh();
       });
       rowEls.push(globeBtn);
@@ -3163,6 +3181,19 @@ var Gear = class {
     row.appendChild(name);
     if (preset.scope === "global") {
       row.appendChild(el("span.lattice-preset-badge", { title: grid.i18n.t("presets.global"), html: GLOBE_SVG }));
+    }
+    for (const [key, icon, hint] of [["asButton", PIN_SVG, "presets.asButtonHint"], ["asSelect", SELECT_SVG, "presets.asSelectHint"]]) {
+      const tog = el("button.lattice-preset-pin" + (preset[key] ? ".is-on" : ""), {
+        type: "button",
+        title: t(hint),
+        html: icon
+      });
+      tog.addEventListener("click", (e) => {
+        e.stopPropagation();
+        grid.presets.setDisplay(preset, key, !preset[key]);
+        this.refresh();
+      });
+      row.appendChild(tog);
     }
     const del = el("button.lattice-preset-del", { type: "button", title: "\xD7", text: "\xD7" });
     del.addEventListener("click", async (e) => {
@@ -4137,6 +4168,8 @@ var FIT_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true
 var CLEAR_FILTER_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-danger)" stroke-width="2.8" stroke-linecap="round" d="M15 14l6 6m0-6l-6 6"/></svg>';
 var RESET_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 5V2L8 6l4 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>';
 var GLOBE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 6h-2.5a15.7 15.7 0 00-1.3-3.4A8 8 0 0118.9 8zM12 4c.8 1.1 1.4 2.4 1.8 4h-3.6c.4-1.6 1-2.9 1.8-4zM4.3 14a7.8 7.8 0 010-4h2.9a17 17 0 000 4zm.8 2h2.5c.3 1.2.8 2.4 1.3 3.4A8 8 0 015.1 16zm2.5-8H5.1a8 8 0 013.8-3.4C8.4 5.6 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.4-1.8-4h3.6c-.4 1.6-1 2.9-1.8 4zm2.2-6H9.8a15 15 0 010-4h4.4a15 15 0 010 4zm.6 5.4c.5-1 1-2.2 1.3-3.4h2.5a8 8 0 01-3.8 3.4zm2.1-5.4a17 17 0 000-4h2.9a7.8 7.8 0 010 4z"/></svg>';
+var PIN_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect class="lattice-pin-fill" x="5" y="9.5" width="14" height="5" rx="2.5" fill="currentColor"/></svg>';
+var SELECT_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path class="lattice-pin-fill" fill="currentColor" d="M6 9h8v1.8H6zm0 4h6v1.8H6z"/><path fill="currentColor" d="M16.2 10.2h3.4L17.9 13z"/></svg>';
 var BOOKMARK_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
 var AL_LEFT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM2 7h8v2H2zM2 11h12v2H2z"/></svg>';
 var AL_CENTER_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M2 3h12v2H2zM4 7h8v2H4zM2 11h12v2H2z"/></svg>';
@@ -5137,7 +5170,6 @@ var cs_default = {
     add: "P\u0159idat po\u010D\xEDtan\xFD sloupec",
     newTitle: "Nov\xFD po\u010D\xEDtan\xFD sloupec",
     editTitle: "Upravit po\u010D\xEDtan\xFD sloupec",
-    edit: "Upravit vzorec",
     name: "N\xE1zev",
     namePlaceholder: "Nap\u0159. Celkem",
     type: "Typ",
@@ -5263,7 +5295,33 @@ var cs_default = {
     partFiltersHint: "Hodnoty filtr\u016F v z\xE1hlav\xED a nastaven\xE9 \u0159azen\xED.",
     partInstance: "Nastaven\xED tabulky",
     partInstanceHint: "Seskupen\xED \u0159\xE1dk\u016F, souhrnn\xFD \u0159\xE1dek, mezisou\u010Dty skupin, str\xE1nkov\xE1n\xED, vzhled a form\xE1t hodnot.",
-    partsNone: "nic"
+    partsNone: "nic",
+    asButton: "tla\u010D\xEDtko",
+    asButtonHint: "Zobrazit tento preset jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = pou\u017E\xEDt).",
+    asSelect: "v\xFDb\u011Br",
+    asSelectHint: "Nab\xEDdnout tento preset v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky."
+  },
+  quickbar: {
+    presets: "Presety",
+    filters: "Filtry",
+    globalPreset: "Glob\xE1ln\xED preset",
+    myPreset: "M\u016Fj preset",
+    globalFilter: "Glob\xE1ln\xED filtr",
+    myFilter: "M\u016Fj filtr",
+    selectTitle: "Ulo\u017Een\xE9 pohledy (presety a filtry)",
+    selectPlaceholder: "\u2014 ulo\u017Een\xE9 pohledy \u2014",
+    presetOn: "Klik = pou\u017E\xEDt preset",
+    presetOff: "Klik = zp\u011Bt na v\xFDchoz\xED zobrazen\xED (filtry z\u016Fstanou)",
+    filterToggle: "Klik = zapnout/vypnout",
+    applyPreset: "Pou\u017E\xEDt preset",
+    resetView: "Zp\u011Bt na v\xFDchoz\xED zobrazen\xED",
+    applyFilter: "Zapnout filtr",
+    clearFilter: "Vypnout filtr",
+    menuHint: "prav\xFD klik = upravit, smazat, kde zobrazit",
+    edit: "Upravit\u2026",
+    showButton: "Zobrazit jako tla\u010D\xEDtko",
+    showSelect: "Zobrazit ve v\xFDb\u011Bru",
+    delete: "Smazat"
   },
   instance: {
     title: "Nastaven\xED tabulky",
@@ -5504,8 +5562,10 @@ var cs_default = {
     clear: "Vymazat filtr",
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
-    asButton: "jako tla\u010D\xEDtko",
+    asButton: "tla\u010D\xEDtko",
     asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    asSelect: "v\xFDb\u011Br",
+    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky.",
     remove: "Odebrat",
     delete: "Smazat ulo\u017Een\xFD filtr",
     ops: {
@@ -5527,9 +5587,17 @@ var cs_default = {
   },
   saveFilters: {
     title: "Ulo\u017Eit sloupcov\xE9 filtry",
+    manage: "Ulo\u017Een\xE9 filtry",
+    hint: "Nastav filtry v hlavi\u010Dce tabulky a tady je ulo\u017E\xED\u0161 pod n\xE1zvem.",
+    edit: "Na\u010D\xEDst do hlavi\u010Dky a upravit",
+    overwrite: "P\u0159epsat tento filtr aktu\xE1ln\xEDmi filtry z hlavi\u010Dky",
+    overwriteDisabled: "Nejd\u0159\xEDv nastav filtry v hlavi\u010Dce tabulky",
+    rename: "P\u0159ejmenovat (dvojklik na n\xE1zev)",
     namePlaceholder: "N\xE1zev filtru\u2026",
-    asButton: "jako tla\u010D\xEDtko",
+    asButton: "tla\u010D\xEDtko",
     asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    asSelect: "v\xFDb\u011Br",
+    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky.",
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
     none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
@@ -5623,7 +5691,6 @@ var en_default = {
     add: "Add computed column",
     newTitle: "New computed column",
     editTitle: "Edit computed column",
-    edit: "Edit formula",
     name: "Name",
     namePlaceholder: "e.g. Total",
     type: "Type",
@@ -5749,7 +5816,33 @@ var en_default = {
     partFiltersHint: "Header filter values and the current sorting.",
     partInstance: "Table settings",
     partInstanceHint: "Row grouping, summary row, group subtotals, pagination, appearance and value formats.",
-    partsNone: "nothing"
+    partsNone: "nothing",
+    asButton: "button",
+    asButtonHint: "Show this preset as a button in the row above the icons (click to apply).",
+    asSelect: "select",
+    asSelectHint: "Offer this preset in the saved-views dropdown in the table header."
+  },
+  quickbar: {
+    presets: "Presets",
+    filters: "Filters",
+    globalPreset: "Global preset",
+    myPreset: "My preset",
+    globalFilter: "Global filter",
+    myFilter: "My filter",
+    selectTitle: "Saved views (presets and filters)",
+    selectPlaceholder: "\u2014 saved views \u2014",
+    presetOn: "Click to apply the preset",
+    presetOff: "Click to return to the default view (filters stay)",
+    filterToggle: "Click to toggle on/off",
+    applyPreset: "Apply preset",
+    resetView: "Back to the default view",
+    applyFilter: "Turn the filter on",
+    clearFilter: "Turn the filter off",
+    menuHint: "right-click for edit, delete, where to show",
+    edit: "Edit\u2026",
+    showButton: "Show as button",
+    showSelect: "Show in the select",
+    delete: "Delete"
   },
   instance: {
     title: "Table settings",
@@ -5990,8 +6083,10 @@ var en_default = {
     clear: "Clear filter",
     save: "Save",
     saveGlobal: "Save globally",
-    asButton: "as button",
+    asButton: "button",
     asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    asSelect: "select",
+    asSelectHint: "Offer this filter in the saved-views dropdown in the table header.",
     remove: "Remove",
     delete: "Delete saved filter",
     ops: {
@@ -6013,9 +6108,17 @@ var en_default = {
   },
   saveFilters: {
     title: "Save column filters",
+    manage: "Saved filters",
+    hint: "Set filters in the table header and save them here under a name.",
+    edit: "Load into the header and edit",
+    overwrite: "Overwrite this filter with the current header filters",
+    overwriteDisabled: "Set filters in the table header first",
+    rename: "Rename (double-click the name)",
     namePlaceholder: "Filter name\u2026",
-    asButton: "as button",
+    asButton: "button",
     asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    asSelect: "select",
+    asSelectHint: "Offer this filter in the saved-views dropdown in the table header.",
     save: "Save",
     saveGlobal: "Save globally",
     none: "Nothing saved yet",
@@ -8742,27 +8845,179 @@ var Renderer = class {
     );
     return wrap;
   }
+  /**
+   * Řada rychlých tlačítek nad ikonami toolbaru. Nese dvě skupiny vedle sebe
+   * (oddělené svislou linkou): vlevo **presety**, vpravo **uložené filtry** —
+   * obojí jen to, co uživatel označil „jako tlačítko".
+   *
+   * Čtyři druhy se rozliší bez popisků, aby řada zůstala úzká:
+   *   ikona = druh (záložka = preset, trychtýř = filtr),
+   *   barva = rozsah (šedá = můj / modrá = globální, u globálního i modrý rámeček).
+   * Aktivní položka je vyplněná akcentem. Slovní popis je v tooltipu.
+   */
+  buildQuickBar(f) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.buttonPresets();
+    const filters = f.advancedFilter === false ? [] : grid.buttonAdvanced();
+    if (!presets.length && !filters.length) return;
+    const bar = el("div.lattice-quickbar");
+    if (presets.length) {
+      const group = el("div.lattice-qb-group.is-presets", { title: t("quickbar.presets") });
+      for (const p of presets) {
+        const global = p.scope === "global";
+        const parts = partsSummary(grid.presetContents(p), t);
+        const active = grid._activePresetId === p.id;
+        const b = this.quickBtn({
+          text: p.name,
+          icon: BOOKMARK_MINI_SVG,
+          global,
+          active,
+          title: (global ? t("quickbar.globalPreset") : t("quickbar.myPreset")) + " \u2014 " + p.name + (parts ? " (" + parts + ")" : "") + "\n" + (active ? t("quickbar.presetOff") : t("quickbar.presetOn")) + " \xB7 " + t("quickbar.menuHint")
+        });
+        b.addEventListener("click", () => grid.togglePreset(p));
+        b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, p, "preset"));
+        group.appendChild(b);
+      }
+      bar.appendChild(group);
+    }
+    if (filters.length) {
+      const activeId = grid.activeSavedId();
+      const group = el("div.lattice-qb-group.is-filters", { title: t("quickbar.filters") });
+      for (const bf of filters) {
+        const global = bf.scope === "global";
+        const b = this.quickBtn({
+          text: bf.name,
+          icon: FUNNEL_MINI_SVG,
+          global,
+          active: bf.id === activeId,
+          title: (global ? t("quickbar.globalFilter") : t("quickbar.myFilter")) + " \u2014 " + bf.name + "\n" + t("quickbar.filterToggle") + " \xB7 " + t("quickbar.menuHint")
+        });
+        b.addEventListener("click", () => grid.toggleSavedAdvanced(bf.id));
+        b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, bf, "filter"));
+        group.appendChild(b);
+      }
+      bar.appendChild(group);
+    }
+    this.nodes.toolbar.appendChild(bar);
+  }
+  /**
+   * Kontextové menu pilulky (pravý klik) — správa uložené položky rovnou z místa,
+   * kde ji uživatel vidí: použít/vypnout, kde se má zobrazovat (tlačítko / výběr),
+   * úprava v příslušném panelu a smazání.
+   */
+  quickBarMenu(e, item, kind) {
+    e.preventDefault();
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const preset = kind === "preset";
+    const active = preset ? grid._activePresetId === item.id : grid.activeSavedId() === item.id;
+    const asSelect = item.asSelect === void 0 ? preset ? false : !item.asButton : !!item.asSelect;
+    const items = [
+      { value: "apply", label: preset ? active ? t("quickbar.resetView") : t("quickbar.applyPreset") : active ? t("quickbar.clearFilter") : t("quickbar.applyFilter") },
+      { value: "edit", label: preset || item.kind !== "columns" ? t("quickbar.edit") : t("saveFilters.edit") },
+      { separator: true },
+      { value: "asButton", label: t("quickbar.showButton"), active: !!item.asButton },
+      { value: "asSelect", label: t("quickbar.showSelect"), active: asSelect },
+      { separator: true },
+      { value: "delete", label: t("quickbar.delete"), danger: true }
+    ];
+    openMenuAt(e.pageX, e.pageY, items, async (value) => {
+      if (value === "apply") return preset ? grid.togglePreset(item) : grid.toggleSavedAdvanced(item.id);
+      if (value === "edit") return this.editSavedItem(item, kind);
+      if (value === "asButton" || value === "asSelect") {
+        const on = value === "asButton" ? !item.asButton : !asSelect;
+        if (preset) grid.presets.setDisplay(item, value, on);
+        else grid.setAdvancedDisplay(item.id, value, on);
+        return;
+      }
+      if (value === "delete") {
+        if (preset) await grid.presets.remove(item);
+        else grid.deleteAdvanced(item.id);
+        grid.gear?.refresh();
+      }
+    });
+  }
+  /** Otevře panel, ve kterém se dá uložená položka upravit (a znovu uložit pod stejným názvem). */
+  editSavedItem(item, kind) {
+    const grid = this.grid;
+    const tb = this.nodes.toolbar;
+    if (kind === "preset") return grid.gear?.open(tb.querySelector(".lattice-gear-btn"), item);
+    if (item.kind === "columns") {
+      grid.applyFiltersSnapshot(item);
+      return grid.saveFiltersPanel.open(this.nodes.toolbar.querySelector(".lattice-save-filters"));
+    }
+    grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    return grid.advancedFilter.open(this.nodes.toolbar.querySelector(".lattice-adv-btn"));
+  }
+  /** Jedna pilulka rychlé řady (druh podle ikony, rozsah podle barvy). */
+  quickBtn({ text, icon, global, active, title }) {
+    const cls = ".lattice-qb-btn" + (global ? ".is-global" : ".is-mine") + (active ? ".is-active" : "");
+    return el("button" + cls, { type: "button", title }, [
+      el("span.lattice-qb-ico", { html: icon }),
+      el("span.lattice-qb-label", { text })
+    ]);
+  }
+  /**
+   * Rozbalovací výběr uložených pohledů v toolbaru — jedno místo pro presety
+   * i uložené filtry označené „jako výběr". Když jsou obojí, rozdělí se do dvou
+   * skupin (`<optgroup>`), aby bylo poznat, co je co; globální položky nesou
+   * prefix globusu (v `<option>` nejde SVG ikona).
+   *
+   * Hodnota je `p:<id>` / `f:<id>`, ať se druhy nepopletou při shodě id.
+   */
+  buildQuickSelect(f) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.selectPresets();
+    const filters = f.advancedFilter === false ? [] : grid.selectAdvanced();
+    if (!presets.length && !filters.length) return;
+    const sel = el("select.lattice-adv-quick", { title: t("quickbar.selectTitle") });
+    sel.appendChild(el("option", { value: "", text: presets.length ? t("quickbar.selectPlaceholder") : t("advanced.savedPlaceholder") }));
+    const label = (x) => (x.scope === "global" ? "\u{1F310} " : "") + x.name;
+    const both = presets.length && filters.length;
+    const add = (parent, items, prefix) => {
+      for (const x of items) parent.appendChild(el("option", { value: prefix + x.id, text: label(x) }));
+    };
+    if (presets.length) {
+      const box = both ? el("optgroup", { label: t("quickbar.presets") }) : sel;
+      add(box, presets, "p:");
+      if (both) sel.appendChild(box);
+    }
+    if (filters.length) {
+      const box = both ? el("optgroup", { label: t("quickbar.filters") }) : sel;
+      add(box, filters, "f:");
+      if (both) sel.appendChild(box);
+    }
+    const activeFilter = grid.activeSavedId();
+    if (activeFilter && filters.some((x) => x.id === activeFilter)) sel.value = "f:" + activeFilter;
+    else if (grid._activePresetId && presets.some((x) => x.id === grid._activePresetId)) sel.value = "p:" + grid._activePresetId;
+    else sel.value = "";
+    sel.addEventListener("change", () => {
+      if (!sel.value) {
+        const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
+        if (cur && cur.kind === "columns") grid.clearColumnFilters();
+        else grid.clearAdvanced();
+        return;
+      }
+      const id = sel.value.slice(2);
+      if (sel.value.startsWith("p:")) {
+        const preset = presets.find((x) => x.id === id);
+        if (preset) grid.applyPreset(preset);
+        return;
+      }
+      const item = filters.find((x) => x.id === id);
+      if (!item) return;
+      if (item.kind === "columns") grid.applyFiltersSnapshot(item);
+      else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    });
+    this.nodes.toolbar.appendChild(sel);
+  }
   renderToolbar() {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
-    if (f.advancedFilter !== false) {
-      const btnFilters = this.grid.buttonAdvanced();
-      if (btnFilters.length) {
-        const activeId = this.grid.activeSavedId();
-        const btnRow = el("div.lattice-adv-btnrow");
-        for (const bf of btnFilters) {
-          const b = el("button.lattice-adv-fbtn" + (bf.id === activeId ? ".is-active" : ""), {
-            type: "button",
-            text: (bf.scope === "global" ? "\u{1F310} " : "") + bf.name,
-            title: bf.name
-          });
-          b.addEventListener("click", () => this.grid.toggleSavedAdvanced(bf.id));
-          btnRow.appendChild(b);
-        }
-        toolbar.appendChild(btnRow);
-      }
-    }
+    this.buildQuickBar(f);
     const leftGroup = el("div.lattice-toolbar-left");
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
     if (this.grid.tree) leftGroup.appendChild(this.buildTreeControls());
@@ -8788,9 +9043,9 @@ var Renderer = class {
     clearBtn.addEventListener("click", () => this.grid.clearAllFilters());
     toolbar.appendChild(clearBtn);
     if (f.advancedFilter !== false) {
-      const saveFbtn = el("button.lattice-tool-btn.lattice-save-filters" + (this.grid.hasColumnFilters() ? ".is-visible" : ""), {
+      const saveFbtn = el("button.lattice-tool-btn.lattice-save-filters" + (this.grid.hasColumnFilters() || this.grid.listAdvanced().length ? ".is-visible" : ""), {
         type: "button",
-        title: this.grid.i18n.t("saveFilters.title"),
+        title: this.grid.i18n.t("saveFilters.manage"),
         html: SAVE_FILTER_SVG
       });
       saveFbtn.addEventListener("click", () => this.grid.saveFiltersPanel.toggle(saveFbtn));
@@ -8800,7 +9055,7 @@ var Renderer = class {
     if (f.advancedFilter !== false) {
       const grid = this.grid;
       const t = grid.i18n.t.bind(grid.i18n);
-      const advBtn = el("button.lattice-tool-btn", {
+      const advBtn = el("button.lattice-tool-btn.lattice-adv-btn", {
         type: "button",
         title: t("advanced.title"),
         class: grid.advancedActive() ? "is-active" : "",
@@ -8809,29 +9064,10 @@ var Renderer = class {
       advBtn.addEventListener("click", () => grid.advancedFilter.toggle(advBtn));
       toolbar.appendChild(advBtn);
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
-      const saved = grid.listAdvanced().filter((s) => !s.asButton);
-      if (saved.length) {
-        const sel = el("select.lattice-adv-quick", { title: t("advanced.title") });
-        sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
-        for (const s of saved) sel.appendChild(el("option", { value: s.id, text: (s.scope === "global" ? "\u{1F310} " : "") + s.name }));
-        sel.value = grid.activeSavedId();
-        sel.addEventListener("change", () => {
-          if (!sel.value) {
-            const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
-            if (cur && cur.kind === "columns") grid.clearColumnFilters();
-            else grid.clearAdvanced();
-            return;
-          }
-          const item = saved.find((x) => x.id === sel.value);
-          if (!item) return;
-          if (item.kind === "columns") grid.applyFiltersSnapshot(item);
-          else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
-        });
-        toolbar.appendChild(sel);
-      }
     }
+    this.buildQuickSelect(f);
     if (f.gear !== false) {
-      const gearBtn = el("button.lattice-tool-btn", { type: "button", title: this.grid.i18n.t("columns.manage"), html: this.icon("columns", GEAR_SVG) });
+      const gearBtn = el("button.lattice-tool-btn.lattice-gear-btn", { type: "button", title: this.grid.i18n.t("columns.manage"), html: this.icon("columns", GEAR_SVG) });
       gearBtn.addEventListener("click", () => this.grid.gear.toggle(gearBtn));
       toolbar.appendChild(gearBtn);
     }
@@ -8859,7 +9095,8 @@ var Renderer = class {
     const btn = tb.querySelector(".lattice-clear-filters");
     if (btn) btn.classList.toggle("is-visible", this.grid.hasActiveFilters());
     const save = tb.querySelector(".lattice-save-filters");
-    if (save) save.classList.toggle("is-visible", this.grid.hasColumnFilters());
+    if (save) save.classList.toggle("is-visible", this.grid.hasColumnFilters() || this.grid.listAdvanced().length > 0);
+    for (const b of tb.querySelectorAll(".lattice-savefilters-overwrite")) b.disabled = !this.grid.hasColumnFilters();
   }
   /* -------- overlay stavy -------- */
   setLoading(on) {
@@ -8971,6 +9208,8 @@ var UNIVERSAL_OPS = [
   { op: "contains", label: "like" },
   { op: "ncontains", label: "!like" }
 ];
+var BOOKMARK_MINI_SVG = '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"/></svg>';
+var FUNNEL_MINI_SVG = '<svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M2 4h20l-8 9v7l-4 2v-9z"/></svg>';
 var FILTER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 var ADV_SVG = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="var(--lattice-star-on, #f5b301)" stroke-width="3" stroke-linecap="round" d="M18 11.5v7m-3.5-3.5h7"/></svg>';
 var GEAR_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M2 4h12v1.5H2zM2 7.25h12v1.5H2zM2 10.5h12V12H2z"/></svg>';
@@ -9076,6 +9315,14 @@ var Pagination = class {
 };
 
 // src/features/presets.js
+function normalizeDisplay(display, dflt = { asButton: false, asSelect: true }) {
+  if (display && typeof display === "object") {
+    return { asButton: !!(display.button ?? display.asButton), asSelect: !!(display.select ?? display.asSelect) };
+  }
+  if (typeof display === "boolean") return { asButton: display, asSelect: !display };
+  return { ...dflt };
+}
+var PRESET_DISPLAY_DEFAULT = { asButton: false, asSelect: false };
 var PresetStore = class {
   constructor(grid) {
     this.grid = grid;
@@ -9113,36 +9360,82 @@ var PresetStore = class {
     const loc = this.local().map((p) => ({ ...p, scope: "local" }));
     return [...loc, ...this.globals];
   }
+  /** Presety označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
+  buttons() {
+    return this.all().filter((p) => p.asButton);
+  }
+  /** Presety označené k zobrazení ve výběru (rozbalovací seznam v toolbaru). */
+  selects() {
+    return this.all().filter((p) => p.asSelect);
+  }
   /**
    * Uloží aktuální stav jako lokální preset (stejný název přepíše). `parts`
    * vybírá, co preset ponese (`{columns, filters, instance}`) — nezadáno = vše.
+   * `display` = kde se preset ukáže v toolbaru: `{ button, select }` (nebo legacy
+   * boolean = jen tlačítko). Nezadáno → nikde, preset žije jen v panelu „Sloupce".
    */
-  saveLocal(name, parts) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
-    if (!preset.name) return null;
+  saveLocal(name, parts, display) {
+    const nm = String(name).trim();
+    if (!nm) return null;
+    const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
+    const prev = this.local().find((p) => p.name === nm);
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
     const list = this.local().filter((p) => p.name !== preset.name);
     list.push(preset);
     this.grid.state.presets = list;
     this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
     return preset;
   }
   /**
    * Uloží aktuální stav jako globální preset. Knihovna preset jen sestaví, ukáže
    * v seznamu a předá aplikaci přes callback onSaveGlobalPreset(preset) — ta si
    * poradí s perzistencí (DB, sdílení mezi uživateli). Vrací sestavený preset.
-   * `parts` vybírá, co preset ponese (viz `saveLocal`).
+   * `parts` vybírá, co preset ponese (viz `saveLocal`), `display` určuje jeho
+   * zobrazení v toolbaru (tlačítko / výběr).
    */
-  saveGlobal(name, parts) {
-    const preset = { id: uid(), name: String(name).trim(), state: this.grid.captureState(parts) };
-    if (!preset.name) return null;
+  saveGlobal(name, parts, display) {
+    const nm = String(name).trim();
+    if (!nm) return null;
+    const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
+    const prev = this.globals.find((p) => p.name === nm);
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
     this.globals = this.globals.filter((p) => p.name !== preset.name);
     const norm5 = { ...preset, scope: "global" };
     this.globals.push(norm5);
     const cb = this.grid.options.onSaveGlobalPreset;
-    if (typeof cb === "function") cb({ id: preset.id, name: preset.name, state: preset.state });
+    if (typeof cb === "function") cb({ id: preset.id, name: preset.name, asButton: preset.asButton, asSelect: preset.asSelect, state: preset.state });
     else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(preset)).catch(() => {
     });
+    this.grid.renderer?.renderToolbar();
     return norm5;
+  }
+  /**
+   * Přepne u už uloženého presetu jeho zobrazení v toolbaru — `key` je `'asButton'`
+   * (rychlá řada tlačítek) nebo `'asSelect'` (rozbalovací výběr). U globálního presetu
+   * pošle změnu aplikaci stejným callbackem jako uložení.
+   */
+  setDisplay(preset, key, on) {
+    if (key !== "asButton" && key !== "asSelect") return null;
+    if (preset.scope === "global") {
+      const p2 = this.globals.find((x) => x.id === preset.id);
+      if (!p2) return null;
+      p2[key] = !!on;
+      const cb = this.grid.options.onSaveGlobalPreset;
+      if (typeof cb === "function") cb({ id: p2.id, name: p2.name, asButton: !!p2.asButton, asSelect: !!p2.asSelect, state: p2.state });
+      else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(p2)).catch(() => {
+      });
+      this.grid.renderer?.renderToolbar();
+      return p2;
+    }
+    const list = this.local();
+    const p = list.find((x) => x.id === preset.id);
+    if (!p) return null;
+    p[key] = !!on;
+    this.grid.state.presets = list;
+    this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
+    return p;
   }
   /** Smaže preset (lokální z blobu; globální z UI + callback / adaptér aplikace). */
   async remove(preset) {
@@ -9155,6 +9448,7 @@ var PresetStore = class {
       this.grid.state.presets = this.local().filter((p) => p.id !== preset.id);
       this.grid.saveState();
     }
+    this.grid.renderer?.renderToolbar();
   }
 };
 function uid() {
@@ -9223,13 +9517,23 @@ var AdvancedFilter = class {
     }
     const asBtnInput = el("input", { type: "checkbox" });
     this.asBtnInput = asBtnInput;
+    const asSelInput = el("input", { type: "checkbox" });
+    asSelInput.checked = true;
+    this.asSelInput = asSelInput;
     if (this.selectedId) {
       const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
-      if (cur) asBtnInput.checked = !!cur.asButton;
+      if (cur) {
+        asBtnInput.checked = !!cur.asButton;
+        asSelInput.checked = cur.asSelect === void 0 ? !cur.asButton : !!cur.asSelect;
+      }
     }
     const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("advanced.asButtonHint") }, [
       asBtnInput,
       el("span", { text: t("advanced.asButton") })
+    ]);
+    const asSelLabel = el("label.lattice-adv-asbtn", { title: t("advanced.asSelectHint") }, [
+      asSelInput,
+      el("span", { text: t("advanced.asSelect") })
     ]);
     const saveBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.save") });
     const saveWithScope = (scope) => {
@@ -9238,14 +9542,15 @@ var AdvancedFilter = class {
         nameInput.focus();
         return;
       }
-      const item = this.grid.saveAdvanced(name, this.tree, scope, asBtnInput.checked);
+      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked });
       nameInput.value = "";
       asBtnInput.checked = false;
+      asSelInput.checked = true;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener("click", () => saveWithScope("local"));
-    const saveRowEls = [nameInput, asBtnLabel, saveBtn];
+    const saveRowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("advanced.saveGlobal") });
       globeBtn.addEventListener("click", () => saveWithScope("global"));
@@ -9281,6 +9586,7 @@ var AdvancedFilter = class {
       this.tree = clone(f.tree);
       if (this.nameInput) this.nameInput.value = f.name;
       if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton;
+      if (this.asSelInput) this.asSelInput.checked = f.asSelect === void 0 ? !f.asButton : !!f.asSelect;
       this.renderBuilder();
       grid.applyAdvanced(this.tree);
     });
@@ -9408,16 +9714,20 @@ var SaveFiltersPanel = class {
     if (this.panel) return this.close();
     this.open(anchor);
   }
-  open(anchor) {
+  /** `prefillName` předvyplní název (úprava uloženého snímku → uložení pod stejným jménem). */
+  open(anchor, prefillName = "") {
     if (this.panel) this.close();
+    if (!anchor) return;
     this.anchor = anchor;
     const panel = el("div.lattice-panel.lattice-savefilters-panel");
     this.panel = panel;
-    this.render();
+    this.render(prefillName);
     document.body.appendChild(panel);
     positionUnder(panel, anchor);
     this.off = onOutside(panel, (e) => {
-      if (!this.anchor?.contains(e.target)) this.close();
+      if (this.anchor?.contains(e.target)) return;
+      if (e.target.closest && e.target.closest(".lattice-menu")) return;
+      this.close();
     });
   }
   close() {
@@ -9426,77 +9736,159 @@ var SaveFiltersPanel = class {
     this.panel = null;
     this.off = null;
   }
-  render() {
+  render(prefillName = "") {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const panel = this.panel;
     panel.textContent = "";
     panel.appendChild(el("div.lattice-panel-head", {}, [
-      el("span.lattice-panel-title", { text: t("saveFilters.title") })
+      el("span.lattice-panel-title", { text: t("saveFilters.manage") })
     ]));
-    const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("saveFilters.namePlaceholder") });
+    if (grid.hasColumnFilters()) panel.appendChild(this.buildSaveRow(prefillName));
+    else panel.appendChild(el("div.lattice-savefilters-empty", { text: t("saveFilters.hint") }));
+    this.listEl = el("div.lattice-savefilters-list");
+    panel.appendChild(this.listEl);
+    this.renderList();
+  }
+  buildSaveRow(prefillName) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("saveFilters.namePlaceholder"), value: prefillName });
     const asBtnInput = el("input", { type: "checkbox" });
     const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("saveFilters.asButtonHint") }, [
       asBtnInput,
       el("span", { text: t("saveFilters.asButton") })
     ]);
+    const asSelInput = el("input", { type: "checkbox" });
+    asSelInput.checked = true;
+    const asSelLabel = el("label.lattice-adv-asbtn", { title: t("saveFilters.asSelectHint") }, [
+      asSelInput,
+      el("span", { text: t("saveFilters.asSelect") })
+    ]);
+    if (prefillName) {
+      const cur = grid.listAdvanced().find((f) => f.name === prefillName);
+      if (cur) {
+        asBtnInput.checked = !!cur.asButton;
+        asSelInput.checked = cur.asSelect === void 0 ? !cur.asButton : !!cur.asSelect;
+      }
+    }
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) {
         nameInput.focus();
         return;
       }
-      const item = grid.saveFilterSnapshot(name, scope, asBtnInput.checked);
+      const item = grid.saveFilterSnapshot(name, scope, { button: asBtnInput.checked, select: asSelInput.checked });
       if (!item) return;
       nameInput.value = "";
       asBtnInput.checked = false;
+      asSelInput.checked = true;
       this.renderList();
     };
     const saveBtn = el("button.lattice-dr-btn.is-primary", { type: "button", text: t("saveFilters.save") });
     saveBtn.addEventListener("click", () => saveWithScope("local"));
-    const rowEls = [nameInput, asBtnLabel, saveBtn];
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveWithScope("local");
+    });
+    const rowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
     if (grid.canSaveGlobalAdvanced()) {
       const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("saveFilters.saveGlobal") });
       globeBtn.addEventListener("click", () => saveWithScope("global"));
       rowEls.push(globeBtn);
     }
-    panel.appendChild(el("div.lattice-adv-saverow", {}, rowEls));
-    this.listEl = el("div.lattice-savefilters-list");
-    panel.appendChild(this.listEl);
-    this.renderList();
+    return el("div.lattice-adv-saverow", {}, rowEls);
   }
   renderList() {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const list = this.listEl;
     list.textContent = "";
-    const snaps = grid.listAdvanced().filter((f) => f.kind === "columns");
-    if (!snaps.length) {
+    const saved = grid.listAdvanced();
+    if (!saved.length) {
       list.appendChild(el("div.lattice-savefilters-empty", { text: t("saveFilters.none") }));
       if (this.panel) positionUnder(this.panel, this.anchor);
       return;
     }
     const activeId = grid.activeSavedId();
-    for (const s of snaps) {
-      const apply = el("button.lattice-savefilters-name" + (s.id === activeId ? ".is-active" : ""), {
+    for (const item of saved) {
+      const row = el("div.lattice-savefilters-row");
+      const apply = el("button.lattice-savefilters-name" + (item.id === activeId ? ".is-active" : ""), {
         type: "button",
-        text: (s.scope === "global" ? "\u{1F310} " : "") + s.name,
-        title: t("saveFilters.apply")
+        text: (item.scope === "global" ? "\u{1F310} " : "") + item.name,
+        title: (item.id === activeId ? t("quickbar.clearFilter") : t("quickbar.applyFilter")) + " \xB7 " + t("saveFilters.rename")
       });
       apply.addEventListener("click", () => {
-        grid.applyFiltersSnapshot(s);
+        grid.toggleSavedAdvanced(item.id);
         this.renderList();
       });
+      apply.addEventListener("dblclick", () => this.renameInline(row, apply, item));
+      row.appendChild(apply);
+      if (item.kind === "columns") {
+        const over = el("button.lattice-preset-pin.lattice-savefilters-overwrite", {
+          type: "button",
+          html: DISK_SVG,
+          title: grid.hasColumnFilters() ? t("saveFilters.overwrite") : t("saveFilters.overwriteDisabled")
+        });
+        over.disabled = !grid.hasColumnFilters();
+        over.addEventListener("click", () => {
+          grid.overwriteSavedFilter(item.id);
+          this.renderList();
+        });
+        row.appendChild(over);
+      } else {
+        const edit = el("button.lattice-preset-pin", { type: "button", title: t("saveFilters.edit"), html: PENCIL_SVG2 });
+        edit.addEventListener("click", () => {
+          this.close();
+          grid.renderer.editSavedItem(item, "filter");
+        });
+        row.appendChild(edit);
+      }
+      const asSelect = item.asSelect === void 0 ? !item.asButton : !!item.asSelect;
+      for (const [key, on, icon, hint] of [
+        ["asButton", !!item.asButton, PILL_SVG, "saveFilters.asButtonHint"],
+        ["asSelect", asSelect, SELECT_SVG2, "saveFilters.asSelectHint"]
+      ]) {
+        const tog = el("button.lattice-preset-pin" + (on ? ".is-on" : ""), { type: "button", title: t(hint), html: icon });
+        tog.addEventListener("click", () => {
+          grid.setAdvancedDisplay(item.id, key, !on);
+          this.renderList();
+        });
+        row.appendChild(tog);
+      }
       const del = el("button.lattice-icon-btn.is-danger", { type: "button", title: t("saveFilters.delete"), text: "\xD7" });
       del.addEventListener("click", () => {
-        grid.deleteAdvanced(s.id);
+        grid.deleteAdvanced(item.id);
         this.renderList();
       });
-      list.appendChild(el("div.lattice-savefilters-row", {}, [apply, del]));
+      row.appendChild(del);
+      list.appendChild(row);
     }
     if (this.panel) positionUnder(this.panel, this.anchor);
   }
+  /** Přejmenování na místě: název se změní v políčku, Enter uloží, Escape zruší. */
+  renameInline(row, nameBtn, item) {
+    const input = el("input.lattice-savefilters-rename", { type: "text", value: item.name });
+    row.replaceChild(input, nameBtn);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = (save) => {
+      if (done) return;
+      done = true;
+      if (save) this.grid.renameSavedFilter(item.id, input.value);
+      this.renderList();
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") finish(true);
+      else if (e.key === "Escape") finish(false);
+    });
+    input.addEventListener("blur", () => finish(true));
+  }
 };
+var DISK_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M4 3h13l3 3v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path fill="var(--lattice-bg, #fff)" d="M7 4h8v5H7zM6 14h12v7H6z"/></svg>';
+var PILL_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect class="lattice-pin-fill" x="5" y="9.5" width="14" height="5" rx="2.5" fill="currentColor"/></svg>';
+var SELECT_SVG2 = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path class="lattice-pin-fill" fill="currentColor" d="M6 9h8v1.8H6zm0 4h6v1.8H6z"/><path fill="currentColor" d="M16.2 10.2h3.4L17.9 13z"/></svg>';
+var PENCIL_SVG2 = '<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12.1 1.6a1.4 1.4 0 012 2l-.9.9-2-2 .9-.9zM10 3.2l2 2-6.7 6.7-2.6.6.6-2.6L10 3.2z"/></svg>';
 
 // src/features/editing.js
 var EditManager = class {
@@ -11700,8 +12092,8 @@ var Lattice = class {
    *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
    */
-  saveAdvanced(name, tree, scope = "local", asButton = false) {
-    return this._saveNamedFilter(name, scope, asButton, { tree: JSON.parse(JSON.stringify(tree)) });
+  saveAdvanced(name, tree, scope = "local", display = false) {
+    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)) });
   }
   /**
    * Společná perzistence pojmenovaného uloženého filtru (rozšířený strom NEBO snímek
@@ -11711,10 +12103,10 @@ var Lattice = class {
    *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
    *    ta zajistí perzistenci a sdílení (DB). Payload nese i `fields` (u snímku tedy kind+filters).
    */
-  _saveNamedFilter(name, scope, asButton, fields) {
+  _saveNamedFilter(name, scope, display, fields) {
     name = String(name || "").trim();
     if (!name) return null;
-    const core = { name, asButton: !!asButton, ...fields };
+    const core = { name, ...normalizeDisplay(display), ...fields };
     if (scope === "global") {
       const existing2 = this.globalAdvanced.find((f) => f.name === name);
       const id = existing2 ? existing2.id : uid2();
@@ -11730,6 +12122,33 @@ var Lattice = class {
     const item = { id: existing ? existing.id : uid2(), ...core };
     this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.name !== name);
     this.state.advancedFilters.push(item);
+    this.store.save(this.state);
+    this.renderer.renderToolbar();
+    return item;
+  }
+  /**
+   * Přepne u uloženého filtru jeho zobrazení v toolbaru — `key` je `'asButton'`
+   * (rychlá řada tlačítek) nebo `'asSelect'` (rozbalovací výběr). U globálního filtru
+   * pošle změnu aplikaci stejným callbackem jako uložení. `@v1.14.0`
+   */
+  setAdvancedDisplay(id, key, on) {
+    if (key !== "asButton" && key !== "asSelect") return null;
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    if (g) {
+      if (g.asSelect === void 0) g.asSelect = !g.asButton;
+      g[key] = !!on;
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === "function") {
+        const { scope, ...core } = g;
+        cb({ ...core });
+      }
+      this.renderer.renderToolbar();
+      return g;
+    }
+    const item = (this.state.advancedFilters || []).find((f) => f.id === id);
+    if (!item) return null;
+    if (item.asSelect === void 0) item.asSelect = !item.asButton;
+    item[key] = !!on;
     this.store.save(this.state);
     this.renderer.renderToolbar();
     return item;
@@ -11770,6 +12189,13 @@ var Lattice = class {
   /** Uložené filtry označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
   buttonAdvanced() {
     return this.listAdvanced().filter((f) => f.asButton);
+  }
+  /**
+   * Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez volby
+   * (uložená před v1.14.0) se řídí postaru: co není tlačítko, je ve výběru.
+   */
+  selectAdvanced() {
+    return this.listAdvanced().filter((f) => f.asSelect === void 0 ? !f.asButton : !!f.asSelect);
   }
   /** Přepínač uloženého filtru (toggle): aplikuje ho, nebo zruší, když už je aktivní. */
   toggleSavedAdvanced(id) {
@@ -11820,14 +12246,54 @@ var Lattice = class {
     return { filters: JSON.parse(JSON.stringify(filters)), filterTypes };
   }
   /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
-  saveFilterSnapshot(name, scope = "local", asButton = false) {
+  saveFilterSnapshot(name, scope = "local", display = false) {
     const snap = this._captureColumnFilters();
     if (!snap) return null;
-    return this._saveNamedFilter(name, scope, asButton, {
+    return this._saveNamedFilter(name, scope, display, {
       kind: "columns",
       filters: snap.filters,
       filterTypes: snap.filterTypes
     });
+  }
+  /* ------- úprava uloženého filtru (přepsání hodnot, přejmenování) ------- */
+  /**
+   * Přepíše uložený snímek **aktuálními** sloupcovými filtry z hlavičky. Uživatel si
+   * filtry přenastaví v tabulce, otevře panel uložených filtrů a u položky klikne na
+   * disketu. Zůstává `id`, název, rozsah i volby zobrazení. Vrací `null`, když není
+   * co uložit (žádný aktivní sloupcový filtr) nebo položka není snímek. `@v1.14.0`
+   */
+  overwriteSavedFilter(id) {
+    const item = this.listAdvanced().find((f) => f.id === id);
+    if (!item || item.kind !== "columns" || !this.hasColumnFilters()) return null;
+    return this.saveFilterSnapshot(item.name, item.scope || "local", {
+      button: !!item.asButton,
+      select: item.asSelect === void 0 ? !item.asButton : !!item.asSelect
+    });
+  }
+  /**
+   * Přejmenuje uložený filtr (snímek i strom) — mění jen název, `id` a obsah zůstávají.
+   * Případná jiná položka téhož názvu ustoupí, ať nevznikne dvojice. `@v1.14.0`
+   */
+  renameSavedFilter(id, name) {
+    const nm = String(name || "").trim();
+    if (!nm) return null;
+    const g = this.globalAdvanced.find((f) => f.id === id);
+    const target = g || (this.state.advancedFilters || []).find((f) => f.id === id);
+    if (!target || target.name === nm) return null;
+    if (g) this.globalAdvanced = this.globalAdvanced.filter((f) => f.id === id || f.name !== nm);
+    else this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id === id || f.name !== nm);
+    target.name = nm;
+    if (g) {
+      const cb = this.options.onSaveGlobalAdvancedFilter;
+      if (typeof cb === "function") {
+        const { scope, ...core } = target;
+        cb({ ...core });
+      }
+    } else {
+      this.store.save(this.state);
+    }
+    this.renderer.renderToolbar();
+    return target;
   }
   /** Obnoví uložený snímek sloupcových filtrů zpět do políček hlavičky a přefiltruje. */
   applyFiltersSnapshot(snap) {
@@ -12915,6 +13381,14 @@ var Lattice = class {
     for (const k of TRANSIENT_INSTANCE_KEYS) this.instance[k] = prev[k];
     this.pageSize = this.instance.pageSize;
   }
+  /** Presety označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). `@v1.14.0` */
+  buttonPresets() {
+    return this.presets ? this.presets.buttons() : [];
+  }
+  /** Presety označené k zobrazení v rozbalovacím výběru v toolbaru. `@v1.14.0` */
+  selectPresets() {
+    return this.presets ? this.presets.selects() : [];
+  }
   /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */
   applyPreset(preset) {
     const st = preset && preset.state ? preset.state : {};
@@ -12926,20 +13400,55 @@ var Lattice = class {
     if (isPlainObject(st.instance)) {
       this._applyInstanceSnapshot(st.instance);
       this.renderer.applyInstanceStyles();
-      this.renderer.renderToolbar();
     }
     this.page = 1;
     this._activePresetId = preset.id;
     this.saveState();
+    this.renderer.renderToolbar();
     this.renderer.renderHeader();
     this.renderer.renderBody();
     this.renderer.applyLayout();
     this.gear?.refresh();
     this.refresh();
   }
+  /**
+   * Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní preset aplikuje,
+   * u aktivního vrátí **výchozí zobrazení** — obdoba „vypnutí" u uložených filtrů.
+   * `@v1.14.0`
+   */
+  togglePreset(preset) {
+    if (!preset) return;
+    if (this._activePresetId === preset.id) this.resetView();
+    else this.applyPreset(preset);
+  }
+  /**
+   * Vrátí **výchozí zobrazení**: sloupce a nastavení tabulky jako po startu bez
+   * presetu (výchozí ← `options.instance`). Co si uživatel naklikal *mimo* zobrazení
+   * — **filtry** (sloupcové, univerzální, rozšířený), **řazení** i rychlé hledání —
+   * zůstává v platnosti. `@v1.14.0`
+   */
+  resetView() {
+    this._activePresetId = null;
+    this.columns = buildColumns(this.columnDefs || [], []);
+    this.state.columns = [];
+    const prev = this.instance;
+    this.instance = Object.assign({}, INSTANCE_DEFAULTS, this.options.instance);
+    for (const k of TRANSIENT_INSTANCE_KEYS) this.instance[k] = prev[k];
+    this.pageSize = this.instance.pageSize;
+    this.groupsCollapsed.clear();
+    this.colGroupsCollapsed.clear();
+    this.page = 1;
+    this.saveState();
+    this.renderer.applyInstanceStyles();
+    this.renderer.renderToolbar();
+    this.rerenderColumns();
+    this.refresh();
+  }
   /** Zruší označení aktivního presetu (uživatel začal měnit ručně). */
   _clearActivePreset() {
+    const had = this._activePresetId;
     this._activePresetId = null;
+    if (had && this.renderer && this.buttonPresets().some((p) => p.id === had)) this.renderer.renderToolbar();
   }
   /* =================== callbacky stavu (pro aplikaci) =================== */
   /** Řazení se změnilo → options.onSort([{field,dir}, …]). */
@@ -13073,7 +13582,7 @@ function resolveAjax(options) {
 }
 
 // src/index.js
-var VERSION = "1.13.1";
+var VERSION = "1.14.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

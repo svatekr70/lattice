@@ -30,6 +30,7 @@ function makeGrid({ global = false } = {}) {
     '_saveNamedFilter', 'listAdvanced', 'activeSavedId', 'buttonAdvanced', 'toggleSavedAdvanced',
     '_isSnapshot', '_isSavedActive', '_sameFilters', '_activeColumnFilters', 'hasColumnFilters',
     '_captureColumnFilters', 'saveFilterSnapshot', 'applyFiltersSnapshot', 'clearColumnFilters',
+    'overwriteSavedFilter', 'renameSavedFilter', 'deleteAdvanced', 'setAdvancedDisplay',
   ];
   for (const m of bind) ctx[m] = Lattice.prototype[m];
   return ctx;
@@ -135,4 +136,55 @@ test('clearColumnFilters — vyčistí jen sloupcové (advanced nechá)', () => 
   g.clearColumnFilters();
   assert.deepEqual(g.filters, {});
   assert.ok(g.advanced); // rozšířený filtr zůstal
+});
+
+
+/* ---- úprava uloženého filtru: přepsání aktuálními filtry, přejmenování ---- */
+
+test('overwriteSavedFilter — přepíše snímek tím, co je právě v hlavičce', () => {
+  const g = makeGrid();
+  g.filters = { name: 'abc' };
+  const orig = g.saveFilterSnapshot('Moje', 'local', { button: true, select: false });
+
+  g.filters = { name: 'xyz' };                 // uživatel si naklikal jiné filtry
+  const saved = g.overwriteSavedFilter(orig.id);
+  assert.equal(saved.id, orig.id, 'stejná položka (id se drží)');
+  assert.deepEqual(saved.filters, { name: 'xyz' });
+  assert.equal(saved.name, 'Moje', 'název zůstává');
+  assert.equal(saved.asButton, true, 'volby zobrazení zůstávají');
+  assert.equal(saved.asSelect, false);
+  assert.equal(g.state.advancedFilters.length, 1, 'nevznikla druhá položka');
+});
+
+test('overwriteSavedFilter — bez aktivního filtru neudělá nic', () => {
+  const g = makeGrid();
+  g.filters = { name: 'abc' };
+  const orig = g.saveFilterSnapshot('Moje', 'local');
+  g.filters = {};
+  assert.equal(g.overwriteSavedFilter(orig.id), null);
+  assert.deepEqual(g.state.advancedFilters[0].filters, { name: 'abc' }, 'původní snímek zůstal');
+});
+
+test('renameSavedFilter — změní jen název, obsah a id zůstanou', () => {
+  const g = makeGrid();
+  g.filters = { name: 'abc' };
+  const orig = g.saveFilterSnapshot('Staré', 'local', { button: true });
+  const renamed = g.renameSavedFilter(orig.id, '  Nové  ');
+  assert.equal(renamed.id, orig.id);
+  assert.equal(renamed.name, 'Nové');
+  assert.deepEqual(renamed.filters, { name: 'abc' });
+  assert.equal(renamed.asButton, true);
+  assert.deepEqual(g.state.advancedFilters.map((f) => f.name), ['Nové'], 'stará položka nezůstala');
+  assert.equal(g.renameSavedFilter(orig.id, '   '), null, 'prázdný název se ignoruje');
+});
+
+test('renameSavedFilter — název, který už existuje, tu druhou položku nahradí', () => {
+  const g = makeGrid();
+  g.filters = { name: 'a' };
+  const first = g.saveFilterSnapshot('První', 'local');
+  g.filters = { name: 'b' };
+  g.saveFilterSnapshot('Druhý', 'local');
+  g.renameSavedFilter(first.id, 'Druhý');
+  assert.deepEqual(g.state.advancedFilters.map((f) => f.name), ['Druhý']);
+  assert.deepEqual(g.state.advancedFilters[0].filters, { name: 'a' }, 'zůstal ten přejmenovaný');
 });

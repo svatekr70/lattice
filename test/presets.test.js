@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PresetStore } from '../src/features/presets.js';
+import { PresetStore, normalizeDisplay } from '../src/features/presets.js';
 import { Lattice } from '../src/Lattice.js';
 import { buildColumns } from '../src/core/ColumnModel.js';
 
@@ -100,6 +100,74 @@ test('globální presety přes callback + init pole', async () => {
   assert.equal(removed.length, 1);
 });
 
+test('preset „jako tlačítko" / „jako výběr": uložení, seznamy, přepnutí', () => {
+  const grid = fakeGrid();
+  const ps = new PresetStore(grid);
+
+  const plain = ps.saveLocal('Jen v panelu');
+  assert.equal(plain.asButton, false);
+  assert.equal(plain.asSelect, false, 'bez volby preset v toolbaru není');
+  assert.deepEqual(ps.buttons(), []);
+  assert.deepEqual(ps.selects(), []);
+
+  const pinned = ps.saveLocal('S tlačítkem', null, { button: true });
+  assert.equal(pinned.asButton, true);
+  assert.deepEqual(ps.buttons().map((p) => p.name), ['S tlačítkem']);
+
+  const listed = ps.saveLocal('Ve výběru', null, { select: true });
+  assert.equal(listed.asSelect, true);
+  assert.deepEqual(ps.selects().map((p) => p.name), ['Ve výběru']);
+
+  // přepnutí u už uloženého presetu (bez opětovného ukládání pod jménem)
+  ps.setDisplay({ ...plain, scope: 'local' }, 'asButton', true);
+  assert.deepEqual(ps.buttons().map((p) => p.name).sort(), ['Jen v panelu', 'S tlačítkem']);
+  ps.setDisplay({ ...pinned, scope: 'local' }, 'asButton', false);
+  assert.deepEqual(ps.buttons().map((p) => p.name), ['Jen v panelu']);
+  ps.setDisplay({ ...listed, scope: 'local' }, 'asSelect', false);
+  assert.deepEqual(ps.selects(), []);
+});
+
+test('přepsání lokálního presetu stejným názvem zachová id', () => {
+  const ps = new PresetStore(fakeGrid());
+  const first = ps.saveLocal('X');
+  const second = ps.saveLocal('X', null, { button: true, select: true });
+  assert.equal(second.id, first.id, 'stejný název = tatáž položka (downstream upsert)');
+  assert.equal(ps.local().length, 1);
+  assert.equal(ps.local()[0].asButton, true);
+  assert.equal(ps.local()[0].asSelect, true);
+});
+
+test('globální preset: volba zobrazení projde callbackem a jde přepnout', () => {
+  const saved = [];
+  const grid = {
+    state: { presets: [] }, saved: 0,
+    options: { onSaveGlobalPreset: (p) => saved.push(p) },
+    saveState() { this.saved++; },
+    captureState() { return { columns: [], sort: [], filters: {} }; },
+  };
+  const ps = new PresetStore(grid);
+
+  const g = ps.saveGlobal('Firemní', null, { button: true, select: true });
+  assert.equal(g.asButton, true);
+  assert.equal(saved[0].asButton, true, 'aplikace dostane i volbu zobrazení');
+  assert.equal(saved[0].asSelect, true);
+  assert.deepEqual(ps.buttons().map((p) => p.name), ['Firemní']);
+
+  ps.setDisplay(g, 'asButton', false);
+  assert.deepEqual(ps.buttons(), []);
+  assert.deepEqual(ps.selects().map((p) => p.name), ['Firemní']);
+  assert.equal(saved.length, 2);
+  assert.equal(saved[1].asButton, false, 'změna se pošle aplikaci k uložení');
+});
+
+test('normalizeDisplay: objekt, legacy boolean i výchozí hodnota', () => {
+  assert.deepEqual(normalizeDisplay({ button: true, select: false }), { asButton: true, asSelect: false });
+  assert.deepEqual(normalizeDisplay(true), { asButton: true, asSelect: false }, 'legacy asButton=true → jen tlačítko');
+  assert.deepEqual(normalizeDisplay(false), { asButton: false, asSelect: true }, 'legacy asButton=false → jen výběr');
+  assert.deepEqual(normalizeDisplay(undefined), { asButton: false, asSelect: true });
+  assert.deepEqual(normalizeDisplay(undefined, { asButton: false, asSelect: false }), { asButton: false, asSelect: false });
+});
+
 /* ---- captureState / applyPreset: nastavení tabulky (instance) v presetu ---- */
 
 /**
@@ -160,6 +228,36 @@ test('applyPreset: nastavení z presetu se nasadí, pageSize se synchronizuje', 
   assert.equal(grid.pageSize, 25, 'pager čte this.pageSize');
   assert.equal(grid.instance.groupDisplay, 'headers', 'volba mimo snapshot spadne na výchozí');
   assert.equal(grid.instance.externalFiltersCollapsed, true, 'přechodný UI stav zůstává uživateli');
+});
+
+test('togglePreset: druhý klik vrátí výchozí zobrazení, filtry a řazení zůstanou', () => {
+  const grid = latticeCtx({ groupBy: ['b'], summaryRow: 'all', pageSize: 100 });
+  grid.pageSize = 100;
+  grid.sort = [{ field: 'a', dir: 'asc' }];
+  grid.filters = { a: 'x' };
+  const preset = { id: 'p1', state: { columns: [], instance: { groupBy: ['a'], summaryRow: 'page', pageSize: 25 } } };
+
+  grid.togglePreset(preset);                    // 1. klik = použít
+  assert.equal(grid._activePresetId, 'p1');
+  assert.deepEqual(grid.instance.groupBy, ['a']);
+
+  grid.togglePreset(preset);                    // 2. klik = výchozí zobrazení
+  assert.equal(grid._activePresetId, null);
+  assert.deepEqual(grid.instance.groupBy, null, 'seskupení spadlo na výchozí');
+  assert.equal(grid.instance.summaryRow, 'none');
+  assert.equal(grid.pageSize, grid.instance.pageSize);
+  assert.deepEqual(grid.sort, [{ field: 'a', dir: 'asc' }], 'řazení zůstává');
+  assert.deepEqual(grid.filters, { a: 'x' }, 'filtry zůstávají v platnosti');
+});
+
+test('resetView: respektuje options.instance a nechá přechodný stav UI', () => {
+  const grid = latticeCtx({ groupBy: ['a'], externalFiltersCollapsed: true });
+  grid.options.instance = { summaryRow: 'all', pageSize: 30 };
+  grid.resetView();
+  assert.equal(grid.instance.summaryRow, 'all', 'výchozí = options.instance, ne natvrdo prázdno');
+  assert.equal(grid.pageSize, 30);
+  assert.equal(grid.instance.externalFiltersCollapsed, true, 'sbalený panel filtrů zůstává uživateli');
+  assert.deepEqual(grid.state.columns, []);
 });
 
 test('applyPreset: starý preset (bez instance) nastavení tabulky nemění', () => {

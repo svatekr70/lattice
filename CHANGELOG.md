@@ -4,6 +4,57 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.14.0] – 2026-08-21
+
+Uložené pohledy pod jednou střechou: **preset se dá vystavit jako tlačítko** stejně jako uložený
+filtr a nově si u obojího vybíráš, jestli má být **tlačítko**, **výběr**, nebo obojí. V záhlaví
+je poznat, co je co, bez popisků. Bez breaking changes.
+
+### Přidáno
+- **Preset jako tlačítko / ve výběru.** V panelu presetů („Sloupce") jsou vedle pole s názvem
+  zaškrtávátka **tlačítko** a **výběr**; u každého už uloženého presetu jsou tytéž dva přepínače
+  přímo v jeho řádku, takže se kvůli změně nemusí ukládat znovu. Klik na pilulku preset použije.
+- **Rychlá řada tlačítek rozlišuje čtyři druhy položek** — globální/lokální preset a globální/lokální
+  filtr — a nezabere kvůli tomu víc místa: **ikona = druh** (záložka = preset, trychtýř = filtr),
+  **barva = rozsah** (šedá na bílé = jen moje, modrá na světle modré = globální). Presety a filtry
+  stojí ve **dvou skupinách vedle sebe** oddělených svislou linkou; aktivní položka je vyplněná
+  akcentem. Tooltip říká druh i rozsah slovy, u presetu i to, které části nese.
+- **Volba „jako výběr" u uložených filtrů** (panel rozšířeného filtru i „Uložit sloupcové filtry").
+  Rozbalovací výběr v toolbaru je teď **společný pro presety i filtry** — když jsou v něm obojí,
+  rozdělí se do skupin **Presety** / **Filtry** (`<optgroup>`), globální nesou glóbus 🌐.
+  Filtrů i pohledů tak může být hodně, aniž by zaplavily záhlaví.
+- **Druhý klik na tlačítko presetu vrátí výchozí zobrazení.** Preset se tak přepíná stejně jako
+  uložený filtr. „Výchozí zobrazení" = sloupce a nastavení tabulky jako po startu bez presetu;
+  **filtry, řazení i rychlé hledání zůstávají v platnosti**, protože to není součást zobrazení.
+- **Správa uložených položek rovnou z rychlé řady.** Pravý klik na pilulku otevře menu:
+  použít / vypnout, **Upravit…** (otevře příslušný panel s načteným filtrem, resp. panel
+  „Sloupce" u presetu), **Zobrazit jako tlačítko** / **Zobrazit ve výběru** a **Smazat**.
+- **Panel „Uložené filtry"** (ikona trychtýř + disketa) je teď i správcem: v seznamu jsou
+  **všechny** uložené filtry (snímky sloupcových filtrů i stromy z rozšířeného filtru).
+  U každého: klik na název ho zapne/vypne, **dvojklik ho přejmenuje**, **disketa u položky
+  ho přepíše tím, co je právě naklikané v hlavičce** (tak se mění obsah uloženého filtru —
+  žádné zvláštní „režimy úprav"), dva přepínače řídí zobrazení a **×** maže. U stromového
+  filtru je místo diskety tužka → otevře query-builder. Ikona je dostupná i bez aktivního
+  sloupcového filtru (jakmile je co spravovat); řádek pro uložení se ukáže, jen když je co ukládat.
+- **API:** `grid.overwriteSavedFilter(id)` a `grid.renameSavedFilter(id, name)`.
+- **API:** `grid.togglePreset(preset)`, `grid.resetView()`, `grid.setAdvancedDisplay(id, key, on)`,
+  `grid.buttonPresets()` / `grid.selectPresets()` / `grid.selectAdvanced()`,
+  `presets.saveLocal(name, parts, display)` / `saveGlobal(name, parts, display)` /
+  `setDisplay(preset, key, on)`, kde `display` je `{ button, select }`.
+
+### Změněno
+- **`saveAdvanced(name, tree, scope, display)` a `saveFilterSnapshot(name, scope, display)`**
+  berou místo booleanu `asButton` objekt `{ button, select }`. **Legacy boolean funguje dál**
+  se stejným významem jako dosud (`true` = jen tlačítko, `false` = jen výběr) a uložené položky
+  bez `asSelect` (z verzí do 1.13.1) se chovají postaru — co není tlačítko, je ve výběru.
+- **Uložení preset se stejným názvem zachová `id`** (jako u filtrů), takže downstream upsert
+  v aplikaci přepíše tentýž řádek místo zakládání nového.
+- **Callback `onSaveGlobalPreset` nese i `asButton` / `asSelect`** (a volá se i při přepnutí
+  zobrazení u už uloženého globálního presetu) — aplikace si volbu uloží k presetu. Totéž
+  `onSaveGlobalAdvancedFilter` s `asSelect`. Doporučené sloupce v DB: `as_button`, `as_select`.
+- **Panel „Uložit sloupcové filtry" je o kus širší** (390 px), aby se název, obě volby zobrazení
+  i tlačítka vešly na jeden řádek.
+
 ## [1.13.1] – 2026-08-20
 
 Oprava instalačních instrukcí. Beze změny kódu knihovny.
