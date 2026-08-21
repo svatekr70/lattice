@@ -7,6 +7,8 @@ import { el, clear } from '../util/dom.js';
 import { CURRENCIES, DATE_PRESETS, DATETIME_PRESETS, TIME_PRESETS, formatDate } from '../core/format.js';
 import { DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { openColorPicker } from './headerColor.js';
+import { VERSION, HOMEPAGE, HELP_URL, DEMO_URL, GITHUB_URL, AUTHOR, LICENSE } from '../version.js';
+import { RELEASES } from '../releases.js';
 
 const SAMPLE_DATE = new Date(2026, 2, 5, 9, 7, 3); // 5. březen 2026, 9:07:03 — jednociferné dny/měsíce/hodiny odliší dd↔d, mm↔m, HH↔H
 
@@ -31,7 +33,9 @@ export class InstanceSettings {
     ]);
     const bodyEl = el('div.lattice-modal-body');
     this.render(bodyEl);
-    const footChildren = [];
+    // Verze knihovny v patičce dialogu — natrvalo, i když si ji uživatel v tabulce vypne;
+    // tohle je místo, kde si vždycky ověří, s čím pracuje.
+    const footChildren = [el('span.lattice-modal-version', { text: 'Lattice ' + VERSION, title: t('versionTitle') })];
     if (this.grid.canSaveGlobalDefaults()) {
       const gBtn = el('button.lattice-modal-global', { type: 'button', title: t('instance.saveGlobalHint'), text: t('instance.saveGlobalDefaults') });
       gBtn.addEventListener('click', () => {
@@ -130,6 +134,10 @@ export class InstanceSettings {
       ['none', t('instance.headerRotateNone')], ['90', t('instance.headerRotate90')], ['270', t('instance.headerRotate270')],
     ], (v) => set({ headerRotate: v })));
     gA.appendChild(rowToggle(t('instance.zebra'), inst.zebra !== false, (v) => set({ zebra: v })));
+    // Verze knihovny v patičce — jen když ji aplikace nezakázala natvrdo (features.version).
+    if ((grid.options.features || {}).version !== false) {
+      gA.appendChild(rowToggle(t('instance.showVersion'), inst.showVersion !== false, (v) => set({ showVersion: v })));
+    }
     gA.appendChild(rowScaleColors(t('instance.scaleColors'), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
 
     /* ---------- Rozvržení ---------- */
@@ -245,8 +253,83 @@ export class InstanceSettings {
     resetBtn.addEventListener('click', () => { set({ cssVars: {} }); this.render(body); });
     gX.appendChild(field('', resetBtn));
 
+    /* ---------- O Lattice ---------- */
+    makeTab(t('about.title')).appendChild(this.buildAbout());
+
     activate(Math.min(this._tab || 0, tabs.length - 1)); // zobraz aktivní tab (zapamatovaný)
   }
+
+  /**
+   * Záložka „O Lattice" — co to je, kdo za tím stojí, odkazy (příručka, demo, GitHub)
+   * a přehled vydání. Seznam vydání se generuje z CHANGELOG.md (`npm run releases`),
+   * takže se nemusí udržovat ručně.
+   */
+  buildAbout() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const box = el('div.lattice-about');
+
+    box.appendChild(el('div.lattice-about-head', {}, [
+      el('span.lattice-about-name', { text: 'Lattice' }),
+      el('span.lattice-about-ver', { text: VERSION }),
+    ]));
+    box.appendChild(el('p.lattice-about-lead', { text: t('about.lead') }));
+    box.appendChild(el('p.lattice-about-meta', {
+      text: t('about.author') + ': ' + AUTHOR + ' · ' + t('about.license') + ': ' + LICENSE,
+    }));
+
+    // Odkazy — příručku bere z options.helpUrl, když si ji aplikace přesměrovala.
+    const help = grid.options.helpUrl === undefined ? HELP_URL : grid.options.helpUrl;
+    const links = el('div.lattice-about-links');
+    for (const [url, label] of [[help, t('about.manual')], [DEMO_URL, t('about.demo')], [GITHUB_URL, t('about.github')]]) {
+      if (!url) continue;
+      links.appendChild(el('a.lattice-about-link', { href: url, target: '_blank', rel: 'noopener noreferrer', text: label }));
+    }
+    box.appendChild(links);
+
+    // Přehled vydání — co které přineslo (nejnovější nahoře).
+    box.appendChild(el('div.lattice-about-relhead', {}, [
+      el('span.lattice-about-reltitle', { text: t('about.releases') }),
+      el('span.lattice-about-relhint', { text: t('about.releasesHint') }),
+    ]));
+    const list = el('div.lattice-about-releases');
+    const loc = grid.instance.locale || undefined;
+    for (const r of RELEASES) {
+      const current = r.version === VERSION;
+      const row = el('div.lattice-about-rel' + (current ? '.is-current' : ''));
+      // Rozklikávací detail = odrážky z CHANGELOGu (aktuální vydání je rovnou rozbalené).
+      const items = el('ul.lattice-about-relitems');
+      for (const it of r.items || []) items.appendChild(el('li', { text: it }));
+      const head = el('button.lattice-about-relmeta', { type: 'button', title: t('about.toggleDetails') }, [
+        el('span.lattice-about-relcaret', { text: '▸' }),
+        el('b.lattice-about-relver', { text: r.version }),
+        el('span.lattice-about-reldate', { text: formatRelDate(r.date, loc) }),
+        ...(current ? [el('span.lattice-about-relnow', { text: t('about.current') })] : []),
+      ]);
+      const open = (on) => {
+        row.classList.toggle('is-open', on);
+        head.querySelector('.lattice-about-relcaret').textContent = on ? '▾' : '▸';
+      };
+      head.addEventListener('click', () => open(!row.classList.contains('is-open')));
+      row.append(head, el('div.lattice-about-reltext', { text: r.text }), items);
+      if (current) open(true);
+      list.appendChild(row);
+    }
+    box.appendChild(list);
+    box.appendChild(el('p.lattice-about-meta', {}, [
+      el('a.lattice-about-link', {
+        href: GITHUB_URL + '/blob/main/CHANGELOG.md', target: '_blank', rel: 'noopener noreferrer',
+        text: t('about.fullChangelog'),
+      }),
+    ]));
+    return box;
+  }
+}
+
+/** Datum vydání v lokálním formátu (vstup je ISO z CHANGELOGu). */
+function formatRelDate(iso, locale) {
+  const d = new Date(iso + 'T00:00:00');
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale, { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
 /* ============ formátovací pole (sdílené s per-column dialogem) ============ */

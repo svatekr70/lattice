@@ -151,7 +151,8 @@
     <section id="prehled">
       <h2><span class="n">1</span>Přehled tabulky</h2>
       <p>Tabulka má <b>záhlaví</b> s názvy sloupců, pod ním volitelný <b>řádek filtrů</b>, samotná
-        <b>data</b> a dole <b>stránkování</b>. Vpravo nahoře jsou <b>nástrojové ikony</b>:</p>
+        <b>data</b> a dole <b>patičku</b>: vlevo „Zobrazeno X-Y z N" a pod tím <b>verze Lattice</b>,
+        vpravo <b>stránkování</b>. Vpravo nahoře jsou <b>nástrojové ikony</b>:</p>
       <ul class="iconlegend">
         <li><span class="ic"><img src="img/ic-advfilter.png" alt=""></span>
           <div><b>Rozšířený filtr</b> (trychtýř se žlutým plusem) — složené podmínky A/NEBO.
@@ -796,15 +797,29 @@
         <figcaption>Nastavení tabulky, záložka „Vzhled": motiv, velikost písma, hustota řádků, otočení hlaviček, pruhované řádky, barvy semaforu.</figcaption>
       </figure>
       <ul>
-        <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor).
-          Barvy se vybírají stejným <b>pickerem s kolem</b> jako u záhlaví.</li>
+        <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor)
+          a přepínač <b>„Verze knihovny v patičce"</b>. Barvy se vybírají stejným
+          <b>pickerem s kolem</b> jako u záhlaví.</li>
         <li><b>Rozvržení</b> — způsob šířky sloupců, zalamování textu v buňkách,
           <b>zalamování názvů sloupců</b> (nezávisle na datech — dlouhý název se složí do dvou
           řádků a auto-fit šířky s tím počítá), odkazy v nové kartě…</li>
         <li><b>Stránkování a filtry</b> — umístění stránkování, velikost stránky, umístění filtrů.</li>
         <li><b>Sloupce a řádky</b> — číslování řádků, souhrnný řádek, <b>seskupení</b> (úrovně, opakování hodnot), výběr.</li>
         <li><b>Formát hodnot</b> — jak se zobrazují čísla, měny, data (viz sekce Formáty).</li>
+        <li><b>Vlastní úpravy</b> — písmo a barvy tabulky přes vlastní CSS proměnné.</li>
+        <li><b>O Lattice</b> — co Lattice je, autor a licence, odkazy na <b>uživatelskou příručku</b>,
+          <b>ukázky a dokumentaci</b> a <b>GitHub</b>, a hlavně <b>seznam vydání</b>: u každého
+          shrnutí a po <b>rozkliknutí</b> i body změn. To, které právě používáš, je zvýrazněné
+          a rovnou rozbalené; dole je odkaz na úplný changelog.</li>
       </ul>
+
+      <h3>Jakou verzi Lattice používám?</h3>
+      <p>Verze je <b>v patičce tabulky</b> pod „Zobrazeno X-Y z N" (např. <i>Lattice 1.14.0</i>) —
+        ať víš, s čím pracuješ, a máš to po ruce, když něco hlásíš. Když ji tam mít nechceš,
+        vypni ji v <b>Nastavení tabulky → Vzhled → „Verze knihovny v patičce"</b>.</p>
+      <p><b>I s vypnutou patičkou</b> verzi vždycky najdeš <b>vlevo dole v dialogu „Nastavení
+        tabulky"</b> a nahoře v záložce <b>„O Lattice"</b> — tam je i seznam, co které vydání
+        přineslo, takže si ověříš, jestli máš tu verzi, kterou chceš používat.</p>
       <div class="note"><b>Vše se pamatuje:</b> tvoje nastavení (i sloupce, řazení, filtry) zůstane
         i po zavření a příštím otevření tabulky — je uložené v prohlížeči.</div>
       <div class="note"><b>Chceš přepínat mezi několika nastaveními?</b> Volby z tohohle dialogu

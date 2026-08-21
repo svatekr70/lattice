@@ -32,6 +32,7 @@ import { compileAggregate } from '../core/formula.js';
 import { levelColor, levelIndex, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { dateBucket } from '../core/dateParts.js';
 import { cellValue, isComputed } from '../core/cellValue.js';
+import { VERSION, HELP_URL } from '../version.js';
 
 export class Renderer {
   constructor(grid) {
@@ -1832,11 +1833,34 @@ export class Renderer {
 
   renderFooter() {
     // Progresivní režim: místo paginátoru info „Načteno X z N" (+ tlačítko „Načíst další").
-    if (this.grid.progressive) { this._renderProgressiveFooter(); return; }
+    if (this.grid.progressive) { this._renderProgressiveFooter(); this._renderVersion(); return; }
     // Paginace v záhlaví / zápatí / obojím / nikde (dle instance.paginationPosition).
     const pos = this.grid.instance.paginationPosition;
     this._renderPager(this.nodes.footer, pos === 'footer' || pos === 'both');
     this._renderPager(this.nodes.topPager, pos === 'header' || pos === 'both');
+    this._renderVersion();
+  }
+
+  /**
+   * Verze knihovny vpravo v patičce — ať je hned vidět, s jakou verzí uživatel pracuje
+   * (a v jaké verzi je hlášený problém). Vykresluje se jako poslední prvek patičky
+   * (i když je stránkování vypnuté a patička by jinak zůstala prázdná).
+   *
+   * Vypnout jde dvěma způsoby: uživatel v „Nastavení tabulky" (`instance.showVersion`,
+   * persistuje se a nese se i v presetu), aplikace natvrdo přes `features.version = false`
+   * (pak se volba v nastavení ani nenabídne).
+   */
+  _renderVersion() {
+    if ((this.grid.options.features || {}).version === false) return;
+    if (this.grid.instance.showVersion === false) return;
+    const footer = this.nodes.footer;
+    if (footer.style.display === 'none') footer.style.display = ''; // patička jen s verzí
+    // Verze patří POD „Zobrazeno X-Y z N" — jako třetí prvek patičky by odsunula
+    // stránkování z místa, na které jsou uživatelé zvyklí (footer je space-between).
+    const host = footer.querySelector('.lattice-page-info') || footer;
+    host.appendChild(el('span.lattice-version', {
+      text: 'Lattice ' + VERSION, title: this.grid.i18n.t('versionTitle'),
+    }));
   }
 
   _renderProgressiveFooter() {
@@ -2378,4 +2402,4 @@ const ACTION_DEFAULTS = {
 // Obrysové ozubené kolo (Bootstrap Icons „bi-gear", MIT) — bezzávislostní inline SVG.
 const COG_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg>';
 const HELP_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>';
-const DEFAULT_HELP_URL = 'https://lattice.rudolfsvatek.cz/prirucka/';
+const DEFAULT_HELP_URL = HELP_URL;

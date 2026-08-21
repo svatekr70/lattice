@@ -1456,6 +1456,11 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   flex-wrap: wrap;
 }
 .lattice-page-info { flex: 0 0 auto; }
+/* verze knihovny — řádek pod „Zobrazeno X-Y z N", ať neodsune stránkování;
+   bez stránkování (prázdná patička) se zarovná doprava */
+.lattice-version { color: var(--lattice-muted); font-size: 0.85em; opacity: 0.75; white-space: nowrap; }
+.lattice-page-info .lattice-version { display: block; margin-top: 1px; }
+.lattice-footer > .lattice-version { margin-left: auto; }
 .lattice-page-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lattice-page-size-label { color: var(--lattice-muted); }
 .lattice-page-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -1595,7 +1600,8 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   overflow: auto;
 }
 .lattice-modal {
-  width: 100%; max-width: 640px; margin: auto;
+  /* šířka: ať se řada záložek (Vzhled … O Lattice) vejde na jeden řádek */
+  width: 100%; max-width: 880px; margin: auto;
   background: var(--lattice-bg, #fff); color: var(--lattice-text, #1f2733);
   border: 1px solid var(--lattice-border, #dfe3e8); border-radius: var(--lattice-radius, 10px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -1617,6 +1623,51 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px;
   border-top: 1px solid var(--lattice-border, #dfe3e8);
 }
+/* ---------- záložka „O Lattice" v nastavení tabulky ---------- */
+.lattice-about { display: flex; flex-direction: column; gap: 8px; }
+.lattice-about-head { display: flex; align-items: baseline; gap: 8px; }
+.lattice-about-name { font-size: 1.25em; font-weight: 700; color: var(--lattice-text); }
+.lattice-about-ver {
+  font-size: 0.85em; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+  background: var(--lattice-accent-soft); color: var(--lattice-accent);
+}
+.lattice-about-lead { margin: 0; max-width: 62ch; line-height: 1.5; }
+.lattice-about-meta { margin: 0; font-size: 0.9em; color: var(--lattice-muted); }
+.lattice-about-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.lattice-about-link {
+  padding: 4px 10px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);
+  color: var(--lattice-accent); text-decoration: none; font-size: 0.9em;
+}
+.lattice-about-link:hover { background: var(--lattice-accent-soft); border-color: var(--lattice-accent); }
+.lattice-about-relhead { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+.lattice-about-reltitle { font-weight: 600; }
+.lattice-about-relhint { color: var(--lattice-muted); font-size: 0.85em; }
+.lattice-about-releases {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 240px; overflow: auto;
+  border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius); padding: 6px;
+}
+.lattice-about-rel { padding: 5px 6px; border-radius: var(--lattice-control-radius); }
+.lattice-about-rel + .lattice-about-rel { border-top: 1px solid var(--lattice-border); }
+.lattice-about-rel.is-current { background: var(--lattice-accent-soft); }
+.lattice-about-relmeta {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  border: none; background: none; padding: 0; cursor: pointer; font: inherit; text-align: left; color: inherit;
+}
+.lattice-about-relcaret { color: var(--lattice-muted); font-size: 0.8em; }
+.lattice-about-relitems { display: none; margin: 4px 0 2px; padding-left: 18px; }
+.lattice-about-rel.is-open .lattice-about-relitems { display: block; }
+.lattice-about-relitems li { margin: 2px 0; font-size: 0.9em; line-height: 1.45; }
+.lattice-about-relver { color: var(--lattice-text); }
+.lattice-about-reldate { color: var(--lattice-muted); font-size: 0.85em; }
+.lattice-about-relnow {
+  font-size: 0.75em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+  color: var(--lattice-accent);
+}
+.lattice-about-reltext { color: var(--lattice-muted); font-size: 0.9em; line-height: 1.45; }
+
+/* verze knihovny v patičce dialogu nastavení — vlevo, vždy (i když je v tabulce skrytá) */
+.lattice-modal-version { margin-right: auto; color: var(--lattice-muted); font-size: 0.85em; opacity: 0.8; }
 .lattice-modal-foot > .lattice-modal-done { margin-left: auto; }
 .lattice-modal-global {
   padding: 7px 14px; border: 1px solid var(--lattice-border); border-radius: var(--lattice-control-radius);

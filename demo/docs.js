@@ -69,9 +69,9 @@ function docZaciname(root, ctx) {
   import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
   new Lattice('#grid', { id: 'kampane', columns, data });
 </script>`),
-    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.14.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
+    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.15.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
     p('<b>Přes npm — přímo z GitHubu</b> (bundler / vlastní build). Na npmjs.com knihovna publikovaná <b>není</b>: <code>npm i lattice</code> stáhne cizí balíček stejného jména!'),
-    code("npm i github:svatekr70/lattice#v1.14.0"),
+    code("npm i github:svatekr70/lattice#v1.15.0"),
     code("import { Lattice } from 'lattice';\nimport 'lattice/css';"),
     p('<b>Nebo bez CDN i npm</b> — zkopíruj složku <code>src/</code> do projektu a importuj přímo (čisté ESM, jen víc requestů):'),
     code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';"),
@@ -449,6 +449,10 @@ function docPresety(root) {
   globalDefaults: { version, state },                 // od aplikace
   onSaveGlobalDefaults: ({version, state}) => saveToDb(...),
 });`),
+    h3('Verze knihovny v UI (v1.15.0)'),
+    p('V patičce gridu je pod „Zobrazeno X-Y z N" verze (<code>Lattice x.y.z</code>). Uživatel ji vypne v <i>Nastavení tabulky → Vzhled</i> (<code>instance.showVersion</code>, persistuje se a nese se v presetu), aplikace natvrdo přes <code>features: { version: false }</code>. Záložka <b>„O Lattice"</b> v nastavení ukazuje verzi vždy — plus autora, licenci, odkazy a přehled vydání (generuje se z CHANGELOGu příkazem <code>npm run releases</code>).'),
+    code(`import { VERSION, HELP_URL, GITHUB_URL } from 'lattice';`),
+
     note('Vše přes callbacky — perzistenci (DB, sdílení) řeší aplikace. V EverFLOW napojíš na Nette + Doctrine; ve statickém demu na PHP <code>api.php</code> (viz <i>Nasazení</i>).'),
   ]);
 }

@@ -4,6 +4,32 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.15.0] – 2026-08-21
+
+Verze knihovny na očích: v patičce gridu a v nové záložce „O Lattice" v nastavení, kde je
+i changelog — co které vydání přineslo. Bez breaking changes.
+
+### Přidáno
+- **Verze knihovny v patičce gridu** — `Lattice x.y.z` pod „Zobrazeno X-Y z N" (schválně tam,
+  aby neodsunula stránkování z místa, na které jsou uživatelé zvyklí). Ať je hned vidět, s jakou
+  verzí uživatel pracuje a v jaké verzi je hlášený problém.
+- **Nastavení tabulky → záložka „O Lattice"** — co Lattice je, autor a licence, odkazy
+  (uživatelská příručka podle `options.helpUrl`, ukázky a dokumentace, GitHub) a **changelog
+  přímo v tabulce**: seznam vydání se shrnutím, každé se dá **rozkliknout** na body změn
+  (aktuální vydání je zvýrazněné a rovnou rozbalené), dole odkaz na úplný CHANGELOG.
+  Verze je v patičce dialogu vidět **vždy**, i když si ji uživatel v tabulce vypne.
+- **`instance.showVersion`** (výchozí `true`) — přepínač „Verze knihovny v patičce" v *Nastavení
+  tabulky → Vzhled*; persistuje se a nese se i v presetu. Aplikace může verzi zakázat natvrdo
+  přes `features: { version: false }` — pak se volba v nastavení ani nenabídne.
+- **`npm run releases`** — vygeneruje `src/releases.js` (seznam vydání pro záložku „O Lattice")
+  z `CHANGELOG.md`; test hlídá, že nejnovější položka odpovídá `VERSION`.
+- **Export metadat** — `VERSION`, `HOMEPAGE`, `HELP_URL`, `DEMO_URL`, `GITHUB_URL`, `AUTHOR`,
+  `LICENSE` z `src/version.js` (jediný zdroj pravdy; test hlídá shodu `VERSION` s `package.json`).
+
+### Změněno
+- **Dialog „Nastavení tabulky" je širší** (880 px), ať se řada záložek včetně „O Lattice" vejde
+  na jeden řádek.
+
 ## [1.14.0] – 2026-08-21
 
 Uložené pohledy pod jednou střechou: **preset se dá vystavit jako tlačítko** stejně jako uložený

@@ -57,6 +57,7 @@ const INSTANCE_DEFAULTS = {
   theme: 'default',       // vzhled: 'default' | 'auto' (dle systému) | 'minimal' | 'compact' | 'slate' (tmavý) | 'ocean' | 'warm' | 'contrast' | 'bootstrap5' | 'tailwind' | 'material'
   fontFamily: '',         // '' = dle motivu | jinak CSS font-family override
   zebra: true,            // pruhované řádky
+  showVersion: true,      // verze knihovny vpravo v patičce (kontrola, s jakou verzí uživatel pracuje)
   wrapText: false,        // zalamovat text v buňkách (jinak … ořez)
   wrapHeader: false,      // zalamovat názvy sloupců v záhlaví (nezávisle na wrapText); auto-fit počítá s 2 řádky
   emptyText: '',          // placeholder pro prázdné buňky (např. '—')
@@ -2380,6 +2381,7 @@ export class Lattice {
     if ('selectColumn' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('selectRowClick' in patch || 'rowHighlight' in patch) { this.renderer.renderBody(); } // znovu navázat klik-listenery
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
+    if ('showVersion' in patch) this.renderer.renderFooter(); // ukázat/schovat verzi v patičce
     if ('paginationPosition' in patch || 'pageSize' in patch) {
       // pozor: refresh()/pager čtou this.pageSize (ne this.instance.pageSize) —
       // bez této synchronizace by se změna projevila až po reloadu.

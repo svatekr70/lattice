@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.14.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.15.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.14.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.15.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.14.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.15.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.14.0
+npm i github:svatekr70/lattice#v1.15.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.14.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.15.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -96,6 +96,7 @@ const grid = new Lattice('#grid', {
 | `cellContextMenu` | Kontextové menu buňky (pravý klik): `(ctx) => [{ label, action, disabled? }]`, kde `ctx = { row, value, field, index, col, cell, grid }`; `action(ctx)`. |
 | `rowClass` / `rowStyle` | Podmíněné formátování řádku (třídy / inline styl dle dat). |
 | `i18n` | `'cs'` \| `'en'` \| vlastní slovník / objekt. |
+| `features` | Vypnutí částí UI: `{ gear, instanceSettings, advancedFilter, help, version }` — `false` skryje danou ikonu/prvek (`version` = verze v patičce, `@v1.15.0`). |
 | `helpUrl` | URL nápovědy — ikona **?** v toolbaru (vpravo od ⚙, otevírá se v nové kartě). Default oficiální příručka; `null` ikonu skryje. |
 | `storage` | Vlastní `Storage` (default `localStorage`; lze in-memory shim). |
 | `globalPresets` / `onSaveGlobalPreset` / `onDeleteGlobalPreset` | Sdílené (globální) presety — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
@@ -298,6 +299,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
 | `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Přepínatelné i z UI (*Sloupce a řádky*). Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
+| `showVersion` | `true` (výchozí) = verze knihovny pod „Zobrazeno X-Y z N" v patičce. Uživatel si ji přepne v *Nastavení tabulky → Vzhled*; `features.version: false` ji zakáže natvrdo (volba se pak ani nenabídne). V dialogu nastavení je verze vidět vždy. `@v1.15.0` |
 | `zebra` / `wrapText` / `emptyText` | pruhování / **globální** zalamování dat v buňkách (per-sloupec přebije `col.wrap`) / placeholder prázdné buňky |
 | `wrapHeader` | `true` = zalamovat názvy sloupců v záhlaví (nezávisle na `wrapText`). Auto-fit (dvojklik na oddělovač) pak počítá šířku podle názvu složeného do 2 řádků, ale nikdy ne užší než nejširší nezalomená data na stránce. Netýká se otočených hlaviček. |
 | `linkNewTab` | odkazy (typ `link`) otevírat v nové kartě + ikona externího odkazu. Per-sloupec přebije `formatterParams.target`. |
@@ -625,6 +627,20 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
 Knihovna preset po uložení rovnou přidá do své nabídky — nemusíš překreslovat ani znovu načítat.
+
+### Verze knihovny v UI — `@v1.15.0`
+
+```js
+import { VERSION, HOMEPAGE, HELP_URL, DEMO_URL, GITHUB_URL, AUTHOR, LICENSE } from 'lattice';
+```
+
+- **Patička gridu** ukazuje `Lattice <VERSION>` pod „Zobrazeno X-Y z N" (nešoupe stránkování).
+  Vypne uživatel v *Nastavení tabulky → Vzhled* (`instance.showVersion`, persistuje se a nese
+  se i v presetu), nebo aplikace natvrdo přes `features: { version: false }`.
+- **Nastavení tabulky → záložka „O Lattice"** ukazuje verzi vždy (i s vypnutou patičkou),
+  k tomu autora, licenci, odkazy (příručka podle `options.helpUrl`, demo, GitHub) a **přehled
+  vydání**. Seznam se generuje z `CHANGELOG.md` do `src/releases.js` — před vydáním spusť
+  `npm run releases` (hlídá to test).
 
 ### Globální rozšířené filtry — kontrakt
 

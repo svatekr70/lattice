@@ -2509,6 +2509,260 @@ function normHex(v) {
   return "#" + h.toLowerCase();
 }
 
+// src/version.js
+var VERSION = "1.15.0";
+var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
+var HELP_URL = HOMEPAGE + "prirucka/";
+var DEMO_URL = HOMEPAGE + "demo/";
+var GITHUB_URL = "https://github.com/svatekr70/lattice";
+var AUTHOR = "Rudolf Sv\xE1tek";
+var LICENSE = "MIT";
+
+// src/releases.js
+var RELEASES = [
+  {
+    "version": "1.15.0",
+    "date": "2026-08-21",
+    "text": 'Verze knihovny na o\u010D\xEDch: v pati\u010Dce gridu a v nov\xE9 z\xE1lo\u017Ece \u201EO Lattice" v nastaven\xED, kde je i changelog \u2014 co kter\xE9 vyd\xE1n\xED p\u0159ineslo. Bez breaking changes.',
+    "items": [
+      'Verze knihovny v pati\u010Dce gridu \u2014 Lattice x.y.z pod \u201EZobrazeno X-Y z N" (schv\xE1ln\u011B tam, aby neodsunula str\xE1nkov\xE1n\xED z m\xEDsta, na kter\xE9 jsou u\u017Eivatel\xE9 zvykl\xED). A\u0165 je hned vid\u011Bt, s jakou verz\xED u\u017Eivatel\u2026',
+      'Nastaven\xED tabulky \u2192 z\xE1lo\u017Eka \u201EO Lattice" \u2014 co Lattice je, autor a licence, odkazy (u\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka podle options.helpUrl, uk\xE1zky a dokumentace, GitHub) a changelog p\u0159\xEDmo v tabulce: seznam vyd\xE1n\xED\u2026',
+      'instance.showVersion (v\xFDchoz\xED true) \u2014 p\u0159ep\xEDna\u010D \u201EVerze knihovny v pati\u010Dce" v *Nastaven\xED tabulky \u2192 Vzhled*; persistuje se a nese se i v presetu. Aplikace m\u016F\u017Ee verzi zak\xE1zat natvrdo p\u0159es features: {\u2026',
+      'npm run releases \u2014 vygeneruje src/releases.js (seznam vyd\xE1n\xED pro z\xE1lo\u017Eku \u201EO Lattice") z CHANGELOG.md; test hl\xEDd\xE1, \u017Ee nejnov\u011Bj\u0161\xED polo\u017Eka odpov\xEDd\xE1 VERSION.',
+      "Export metadat \u2014 VERSION, HOMEPAGE, HELP_URL, DEMO_URL, GITHUB_URL, AUTHOR, LICENSE z src/version.js (jedin\xFD zdroj pravdy; test hl\xEDd\xE1 shodu VERSION s package.json).",
+      'Dialog \u201ENastaven\xED tabulky" je \u0161ir\u0161\xED (880 px), a\u0165 se \u0159ada z\xE1lo\u017Eek v\u010Detn\u011B \u201EO Lattice" vejde na jeden \u0159\xE1dek.'
+    ]
+  },
+  {
+    "version": "1.14.0",
+    "date": "2026-08-21",
+    "text": "Ulo\u017Een\xE9 pohledy pod jednou st\u0159echou: preset se d\xE1 vystavit jako tla\u010D\xEDtko stejn\u011B jako ulo\u017Een\xFD filtr a nov\u011B si u oboj\xEDho vyb\xEDr\xE1\u0161, jestli m\xE1 b\xFDt tla\u010D\xEDtko, v\xFDb\u011Br, nebo oboj\xED. V z\xE1hlav\xED je poznat, co je co, bez popisk\u016F. Bez breaking changes.",
+    "items": [
+      'Preset jako tla\u010D\xEDtko / ve v\xFDb\u011Bru. V panelu preset\u016F (\u201ESloupce") jsou vedle pole s n\xE1zvem za\u0161krt\xE1v\xE1tka tla\u010D\xEDtko a v\xFDb\u011Br; u ka\u017Ed\xE9ho u\u017E ulo\u017Een\xE9ho presetu jsou tyt\xE9\u017E dva p\u0159ep\xEDna\u010De p\u0159\xEDmo v jeho \u0159\xE1dku,\u2026',
+      "Tla\u010D\xEDtka rozli\u0161uj\xED \u010Dty\u0159i druhy polo\u017Eek \u2014 glob\xE1ln\xED/lok\xE1ln\xED preset a glob\xE1ln\xED/lok\xE1ln\xED filtr \u2014 a nezaberou kv\u016Fli tomu v\xEDc m\xEDsta: ikona = druh (z\xE1lo\u017Eka = preset, trycht\xFD\u0159 = filtr), barva = rozsah (\u0161ed\xE1\u2026",
+      "Rozm\xEDst\u011Bn\xED v z\xE1hlav\xED: tla\u010D\xEDtka ulo\u017Een\xFDch filtr\u016F jsou v \u0159ad\u011B ikon hned vlevo od filtra\u010Dn\xEDch ikon, tla\u010D\xEDtka preset\u016F o \u0159\xE1dek v\xFD\u0161 \u2014 bez presetu jako tla\u010D\xEDtka se ten \u0159\xE1dek v\u016Fbec nevykresl\xED a z\xE1hlav\xED\u2026",
+      'Volba \u201Ejako v\xFDb\u011Br" u ulo\u017Een\xFDch filtr\u016F (panel roz\u0161\xED\u0159en\xE9ho filtru i \u201EUlo\u017Eit sloupcov\xE9 filtry"). V toolbaru jsou vedle sebe dva v\xFDb\u011Bry: vlevo \u201E\u2014 ulo\u017Een\xE9 filtry \u2014", vpravo \u201E\u2014 pohledy \u2014" (ka\u017Ed\xFD jen kdy\u017E\u2026',
+      'Druh\xFD klik na tla\u010D\xEDtko presetu vr\xE1t\xED v\xFDchoz\xED zobrazen\xED. Preset se tak p\u0159ep\xEDn\xE1 stejn\u011B jako ulo\u017Een\xFD filtr. \u201EV\xFDchoz\xED zobrazen\xED" = sloupce a nastaven\xED tabulky jako po startu bez presetu; filtry, \u0159azen\xED\u2026',
+      'Spr\xE1va ulo\u017Een\xFDch polo\u017Eek rovnou z rychl\xE9 \u0159ady. Prav\xFD klik na pilulku otev\u0159e menu: pou\u017E\xEDt / vypnout, Upravit\u2026 (otev\u0159e p\u0159\xEDslu\u0161n\xFD panel s na\u010Dten\xFDm filtrem, resp. panel \u201ESloupce" u presetu), Zobrazit\u2026',
+      'Panel \u201EUlo\u017Een\xE9 filtry" (ikona trycht\xFD\u0159 + disketa) je te\u010F i spr\xE1vcem: v seznamu jsou v\u0161echny ulo\u017Een\xE9 filtry (sn\xEDmky sloupcov\xFDch filtr\u016F i stromy z roz\u0161\xED\u0159en\xE9ho filtru). U ka\u017Ed\xE9ho: klik na n\xE1zev ho\u2026',
+      "API: grid.overwriteSavedFilter(id) a grid.renameSavedFilter(id, name).",
+      "API: grid.togglePreset(preset), grid.resetView(), grid.setAdvancedDisplay(id, key, on), grid.buttonPresets() / grid.selectPresets() / grid.selectAdvanced(), presets.saveLocal(name, parts, display) /\u2026",
+      'Preset\u016Fm se v UI \u0159\xEDk\xE1 \u201Epohledy". V\u0161echny u\u017Eivatelsk\xE9 texty (panel v dialogu \u201ESloupce", tooltipy, placeholder v\xFDb\u011Bru \u2014 pohledy \u2014) mluv\xED o pohledech; v API a dokumentaci pro v\xFDvoj\xE1\u0159e z\u016Fst\xE1v\xE1 preset\u2026',
+      "saveAdvanced(name, tree, scope, display) a saveFilterSnapshot(name, scope, display) berou m\xEDsto booleanu asButton objekt { button, select }. Legacy boolean funguje d\xE1l se stejn\xFDm v\xFDznamem jako dosud\u2026",
+      "Ulo\u017Een\xED preset se stejn\xFDm n\xE1zvem zachov\xE1 id (jako u filtr\u016F), tak\u017Ee downstream upsert v aplikaci p\u0159ep\xED\u0161e tent\xFD\u017E \u0159\xE1dek m\xEDsto zakl\xE1d\xE1n\xED nov\xE9ho."
+    ]
+  },
+  {
+    "version": "1.13.1",
+    "date": "2026-08-20",
+    "text": "Oprava instala\u010Dn\xEDch instrukc\xED. Beze zm\u011Bny k\xF3du knihovny.",
+    "items": [
+      "npm i lattice instaloval ciz\xED bal\xED\u010Dek. Jm\xE9no lattice na npmjs.com pat\u0159\xED jin\xE9mu projektu (openlattice/lattice-js) \u2014 kdo se \u0159\xEDdil dokumentac\xED, st\xE1hl si n\u011Bco \xFApln\u011B jin\xE9ho. Nap\u0159\xED\u010D README, API\u2026",
+      "Zastaral\xFD p\u0159\xEDklad tagu. README i dokumentace v demu radily p\u0159ipnout @v0.1.0.",
+      "package.json m\xE1 private: true \u2014 pojistka proti publikaci pod ciz\xEDm jm\xE9nem. Na instalaci z GitHubu to nem\xE1 vliv."
+    ]
+  },
+  {
+    "version": "1.13.0",
+    "date": "2026-08-20",
+    "text": "Presety si pamatuj\xED i nastaven\xED tabulky \u2014 seskupen\xED \u0159\xE1dk\u016F, souhrnn\xFD \u0159\xE1dek a mezisou\u010Dty skupin \u2014 a u ukl\xE1d\xE1n\xED se d\xE1 za\u0161krtnout, kter\xE9 \u010D\xE1sti preset ponese. Bez breaking changes.",
+    "items": [
+      "Preset nese nastaven\xED tabulky. captureState() nov\u011B ukl\xE1d\xE1 i celou instance, tak\u017Ee lok\xE1ln\xED i glob\xE1ln\xED preset obnov\xED seskupen\xED \u0159\xE1dk\u016F (groupBy, groupDisplay, groupRepeat), souhrnn\xFD \u0159\xE1dek (summaryRow),\u2026",
+      'Volba, co se do presetu ulo\u017E\xED. V panelu preset\u016F jsou nad polem s n\xE1zvem t\u0159i za\u0161krt\xE1v\xE1tka \u2014 Sloupce, Filtry a \u0159azen\xED, Nastaven\xED tabulky. U\u017Eivatel si tak ulo\u017E\xED t\u0159eba preset \u201Ejen filtry" nebo \u201Ejen\u2026',
+      "captureState(parts) \u2014 {columns, filters, instance} vyb\xEDr\xE1, co sn\xEDmek zachyt\xED (bez argumentu v\u0161e). Props\xE1no i do presets.saveLocal(name, parts) / saveGlobal(name, parts).",
+      "captureInstance() \u2014 ve\u0159ejn\xFD sn\xEDmek nastaven\xED tabulky (pou\u017E\xEDv\xE1 ho preset i glob\xE1ln\xED v\xFDchoz\xED nastaven\xED).",
+      "presetContents(preset) \u2014 kter\xE9 \u010D\xE1sti preset nese (pro UI a aplikaci).",
+      "applyPreset() m\u011Bn\xED jen to, co sn\xEDmek obsahuje. Chyb\u011Bj\xEDc\xED \u010D\xE1st z\u016Fstane, jak ji u\u017Eivatel m\xE1 \u2014 d\xEDky tomu funguj\xED \u010D\xE1ste\u010Dn\xE9 presety i star\xE9 presety bez instance.",
+      "Snapshot je hlubok\xE1 kopie. instance v presetu i v glob\xE1ln\xEDch v\xFDchoz\xEDch se kop\xEDruje do hloubky \u2014 pozd\u011Bj\u0161\xED zm\u011Bna cssVars / format / groupBy u\u017E ulo\u017Een\xFD sn\xEDmek nep\u0159ep\xED\u0161e.",
+      "Sbalen\xED extern\xEDho filtra\u010Dn\xEDho panelu se nesd\xEDl\xED. externalFiltersCollapsed je p\u0159echodn\xFD stav UI, ne nastaven\xED: do presetu ani do glob\xE1ln\xEDch v\xFDchoz\xEDch nepat\u0159\xED a p\u0159i jejich pou\u017Eit\xED z\u016Fstane u\u017Eivateli\u2026",
+      '\u201EObnovit v\xFDchoz\xED" v dialogu \u201ESloupce" ru\u0161\xED i seskupen\xED \u0159\xE1dk\u016F. Seskupen\xED se zap\xEDn\xE1 v tomt\xE9\u017E dialogu u sloupce a sloupce p\u0159eskupuje (seskupen\xFD sloupec se st\u011Bhuje dop\u0159edu a ukotv\xED se), tak\u017Ee reset,\u2026',
+      'Dialog \u201ESloupce" neute\u010De pod spodn\xED hranu okna. Panel se otev\xEDral v\u017Edycky pod kotv\xEDc\xEDm tla\u010D\xEDtkem bez ohledu na to, kolik m\xEDsta pod n\xEDm zb\xFDv\xE1 \u2014 u dlouh\xE9ho seznamu sloupc\u016F, n\xEDzko posazen\xE9ho toolbaru\u2026',
+      'Dialog \u201ESloupce" u\u017E neodskakuje. Preset s nastaven\xEDm tabulky p\u0159ekresl\xED toolbar, tak\u017Ee kotv\xEDc\xED tla\u010D\xEDtko dialogu zmiz\xED \u2014 panel se d\u0159\xEDv p\u0159epo\u010D\xEDtal z nulov\xE9ho rectu a skon\u010Dil v lev\xE9m horn\xEDm rohu. Te\u010F se\u2026',
+      "Star\xFD preset (bez state.instance) nastaven\xED tabulky nem\u011Bn\xED. Pou\u017Eije se z n\u011Bj jen po\u0159ad\xED/viditelnost sloupc\u016F, \u0159azen\xED a filtry \u2014 seskupen\xED, souhrny ani motiv u\u017Eivateli nezmiz\xED. instance za\u010Dne n\xE9st po\u2026"
+    ]
+  },
+  {
+    "version": "1.12.0",
+    "date": "2026-08-12",
+    "text": "Dynamick\xE9 obdob\xED nap\u0159\xED\u010D filtry \u2014 hranice t\xFDdne/m\u011Bs\xEDce/kvart\xE1lu/roku, na\u0161ept\xE1va\u010D a \u017Eiv\xE9 presety v kalend\xE1\u0159i. Bez breaking changes.",
+    "items": [
+      "Tokeny pro hranice obdob\xED. K today/now p\u0159ibyly sow/eow (za\u010D\xE1tek/konec t\xFDdne, Po\u2013Ne), som/eom (m\u011Bs\xEDc), soq/eoq (kvart\xE1l), soy/eoy (rok) \u2014 s voliteln\xFDm offsetem (sow-1w, eom-1m, \u2026). Offset se aplikuje\u2026",
+      'Na\u0161ept\xE1va\u010D u dynamick\xE9ho filtru. U pole je tla\u010D\xEDtko \u201E?" s hotov\xFDmi obdob\xEDmi (Dnes, Minul\xFD t\xFDden, Tento m\u011Bs\xEDc\u2026) \u2014 klik v\xFDraz vypln\xED a rovnou aplikuje; plus stru\u010Dn\xE1 reference z\xE1pisu.',
+      `Dynamick\xE1 obdob\xED v date-range pickeru. P\u0159ep\xEDna\u010D \u201Edynamick\xE9 obdob\xED" v dialogu: zapnut\xFD \u2192 klik na preset ulo\u017E\xED token ({from:'sow-1w', to:'eow-1w'}) m\xEDsto pevn\xFDch dat, tak\u017Ee ulo\u017Een\xFD filtr/preset/sn\xEDmek\u2026`,
+      "Demo, p\u0159\xEDru\u010Dka a API dokumentace dopln\u011Bny o hranice obdob\xED, na\u0161ept\xE1va\u010D a dynamick\xE9 date-range presety."
+    ]
+  },
+  {
+    "version": "1.11.0",
+    "date": "2026-08-12",
+    "text": 'Dynamick\xFD datumov\xFD filtr a ukl\xE1d\xE1n\xED \u201Enaklikan\xFDch" sloupcov\xFDch filtr\u016F. Bez breaking changes.',
+    "items": [
+      'Filtr sloupce \u2013 \u201EDynamick\xE9" (u datumov\xFDch sloupc\u016F). T\u0159et\xED typ vedle \u201EDatum (rozsah)" a \u201EDatum (Od / Do)": do jednoho pole se nap\xED\u0161e vlastn\xED v\xFDraz s oper\xE1tory > < >= <= =, spojkami AND/OR (AND v\xE1\u017Ee\u2026',
+      'Ulo\u017Een\xED \u201Enaklikan\xFDch" sloupcov\xFDch filtr\u016F (sn\xEDmek). Nov\xE1 ikona v toolbaru (trycht\xFD\u0159 + disketa, viditeln\xE1 jen kdy\u017E n\u011Bjak\xFD sloupcov\xFD filtr plat\xED) ulo\u017E\xED aktu\xE1ln\xED filtry z hlavi\u010Dky pod n\xE1zvem \u2014 lok\xE1ln\u011B\u2026',
+      'Sjednocen\xED velikosti filtr ikon. Trycht\xFD\u0159e \u201Eulo\u017Eit filtry" a \u201Eroz\u0161\xED\u0159en\xFD filtr" m\u011Bly men\u0161\xED tvar; srovn\xE1ny na stejn\xFD jako \u201Ezru\u0161it filtry".',
+      "Demo + p\u0159\xEDru\u010Dka + API dokumentace dopln\u011Bny o ob\u011B novinky (dynamick\xFD filtr, sn\xEDmky) a o u\u017Eivatelsk\xE9 glob\xE1ln\xED presety."
+    ]
+  },
+  {
+    "version": "1.10.0",
+    "date": "2026-08-12",
+    "text": "Ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry lze zobrazit jako tla\u010D\xEDtka. Bez breaking changes.",
+    "items": [
+      'Roz\u0161\xED\u0159en\xFD filtr \u2013 \u201Ejako tla\u010D\xEDtko". U ulo\u017Een\xE9ho filtru (lok\xE1ln\xEDho i glob\xE1ln\xEDho) lze za\u0161krtnout, \u017Ee se m\xE1 vykreslit jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami v prav\xE9m z\xE1hlav\xED tabulky, m\xEDsto polo\u017Eky v\u2026'
+    ]
+  },
+  {
+    "version": "1.9.0",
+    "date": "2026-08-08",
+    "text": "Opravn\xFD release z hloubkov\xE9ho auditu \u2014 spr\xE1vnost nap\u0159\xED\u010D vzorci, filtry, v\xFDb\u011Brem, \u0159azen\xEDm a exportem. Bez breaking changes.",
+    "items": [
+      'Vzorce \u2013 porovn\xE1n\xED datum\u016F. num() parsovalo "2024-03-15" p\u0159es parseFloat na 2024 (rok) a today()/now() vrac\xED epoch ms \u2192 [termin] < today() bylo v\u017Edy pravda a [start] < [konec] porovn\xE1valo jen roky.\u2026',
+      "Roz\u0161\xED\u0159en\xFD filtr \u2013 pr\xE1zdn\xE1 podskupina pod OR. Pr\xE1zdn\xE1/nedokon\u010Den\xE1 podskupina vracela true a pod OR rodi\u010Dem propustila v\u0161echny \u0159\xE1dky. Nyn\xED se ne\xFA\u010Dinn\xE9 podskupiny a podm\xEDnky bez oper\xE1toru ignoruj\xED\u2026",
+      'Roz\u0161\xED\u0159en\xFD filtr \u2013 pr\xE1zdn\xE9 pole a lt/lte/gt/gte. Pr\xE1zdn\xE9/chyb\u011Bj\xEDc\xED pole se \u0159adilo jako \u201Emen\u0161\xED ne\u017E cokoli" a splnilo lt/lte. Nov\u011B pr\xE1zdn\xE9 pole \u017E\xE1dn\xE9 ordering nespln\xED.',
+      "Roz\u0161\xED\u0159en\xFD filtr \u2013 relativn\xED tokeny today\xB1Nm/y. P\u0159et\xE9kaly na konci m\u011Bs\xEDce (31.1 + 1m \u2192 3.3. m\xEDsto 28.2.). Nov\u011B se den o\u0159\xEDzne na posledn\xED den c\xEDlov\xE9ho m\u011Bs\xEDce.",
+      "Progresivn\xED na\u010D\xEDt\xE1n\xED \u2013 race. loadMore() nem\u011Bl request-id guard; opo\u017Ed\u011Bn\xE1 odpov\u011B\u010F mohla p\u0159isypat star\xE9 \u0159\xE1dky na akumul\xE1tor resetovan\xFD soub\u011B\u017En\xFDm refresh(). Dopln\u011Bn stejn\xFD token jako v refresh().",
+      "Nastaven\xED \u2013 pageSize p\u0159es setInstance(). setInstance({ pageSize }) nesynchronizoval this.pageSize (\u010Dte ho refresh()/pager) \u2192 zm\u011Bna se projevila a\u017E po reloadu. Nyn\xED synchronizuje.",
+      "V\xFDb\u011Br rozsahu vs. p\u0159ipnut\xE9 \u0159\xE1dky. P\u0159ipnut\xE9 \u0159\xE1dky maj\xED string index ('pt0'); klik na n\u011B ukl\xE1dal do _lastSelIdx string a rozbil n\xE1sledn\xFD shift-v\xFDb\u011Br na norm\xE1ln\xEDch \u0159\xE1dc\xEDch. O\u0161et\u0159eno (mimo v\xFDb\u011Br\u2026",
+      "Fulltext hled\xE1n\xED. Pole se spojovala bez odd\u011Blova\u010De (join('')) \u2192 hledan\xFD v\xFDraz p\u0159es hranici dvou pol\xED fale\u0161n\u011B matchoval. Vlo\u017Eeno odd\u011Blen\xED pol\xED.",
+      "Datumov\xE9 seskupen\xED / date-only. YYYY-MM-DD se parsovalo jako UTC a lok\xE1ln\xED getter posunul den v z\xE1porn\xE9m UTC p\xE1smu; nov\u011B se parsuje lok\xE1ln\u011B.",
+      'Preset marker. Sloupcov\xE9 settery (\u0161\xED\u0159ka, barva, form\xE1t, titulek, souhrn, oto\u010Den\xED, filtr\u2026) i autoFit neru\u0161ily \u201Eaktivn\xED preset" \u2192 marker visel i po odchylce. Dopln\u011Bno ru\u0161en\xED presetu.',
+      "Nastaven\xED sloupc\u016F (\u2699). Klik na n\xE1zev sloupce skryl/zobrazil sloupec, ale checkbox v panelu se neobnovil (setColumnVisible te\u010F vol\xE1 gear.refresh()).",
+      "Responsive. Vypnut\xE9 \u010D\xEDslov\xE1n\xED \u0159\xE1dk\u016F (rowNumbers: 'none', truthy) rezervovalo 44 px nav\xEDc."
+    ]
+  },
+  {
+    "version": "1.8.1",
+    "date": "2026-08-05",
+    "text": 'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem',
+    "items": [
+      'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem. Nov\u011B ho u\u017Eivatel zapne/vypne p\u0159\xEDmo z dialogu\u2026'
+    ]
+  },
+  {
+    "version": "1.8.0",
+    "date": "2026-08-05",
+    "text": "Per-sloupcov\xE9 zalamov\xE1n\xED textu \u2014 column.wrap \xB7 Zv\xFDrazn\u011Bn\xED (podbarven\xED) \u0159\xE1dk\u016F \u2014 nativn\xED feature + API \xB7 Server-side: expozice aktu\xE1ln\xEDch serverov\xFDch parametr\u016F \u2014 grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }) \xB7 docs/API.md \u2014 col.wrap,\u2026",
+    "items": [
+      "Per-sloupcov\xE9 zalamov\xE1n\xED textu \u2014 column.wrap. Dote\u010F \u0161lo zalamovat jen glob\xE1ln\u011B (instance.wrapText). Nov\u011B col.wrap: true zalom\xED jen dan\xFD sloupec (i p\u0159i vypnut\xE9m glob\xE1lu), col.wrap: false naopak\u2026",
+      "Zv\xFDrazn\u011Bn\xED (podbarven\xED) \u0159\xE1dk\u016F \u2014 nativn\xED feature + API. \u017Dlut\xE9 (themeovateln\xE9) podbarven\xED \u0159\xE1dk\u016F nez\xE1visl\xE9 na v\xFDb\u011Bru checkboxy: - API: grid.highlightRow(id, on?), grid.toggleRowHighlight(id),\u2026",
+      "Server-side: expozice aktu\xE1ln\xEDch serverov\xFDch parametr\u016F \u2014 grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }). Vr\xE1t\xED filtr/sort/search/advanced (dle paramNames, tokeny\u2026",
+      'docs/API.md \u2014 col.wrap, sekce *Zv\xFDrazn\u011Bn\xED \u0159\xE1dk\u016F* (API, instance.rowHighlight, CSS prom\u011Bnn\xE9, UI picker), metody getServerParams/getServerQuery + p\u0159\xEDklad \u201Ev\u0161e filtrovan\xE9" / export.'
+    ]
+  },
+  {
+    "version": "1.7.0",
+    "date": "2026-08-05",
+    "text": 'Server-side re\u017Eim pos\xEDl\xE1 roz\u0161\xED\u0159en\xFD filtr (advanced) na backend nativn\u011B \u2014 stejn\u011B jako u\u017E pos\xEDl\xE1 sort/filter/search \xB7 D\u016Fsledek: glob\xE1ln\xED ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry na server-side gridech \u201Eprost\u011B funguj\xED" \u2014 jejich v\xFDb\u011Br jen nastav\xED grid.advanced a spust\xED refetch,\u2026',
+    "items": [
+      "Server-side re\u017Eim pos\xEDl\xE1 roz\u0161\xED\u0159en\xFD filtr (advanced) na backend nativn\u011B \u2014 stejn\u011B jako u\u017E pos\xEDl\xE1 sort/filter/search. Dote\u010F se advanced (strom AND/OR pravidel) v server-side nepos\xEDlal a aplikace to\u2026",
+      'D\u016Fsledek: glob\xE1ln\xED ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry na server-side gridech \u201Eprost\u011B funguj\xED" \u2014 jejich v\xFDb\u011Br jen nastav\xED grid.advanced a spust\xED refetch, kter\xFD te\u010F nese parametr advanced.',
+      "docs/API.md \u2014 sekce *Server-side re\u017Eim* dopln\u011Bna o parametr advanced (form\xE1t JSON, GET/POST, rozvinut\xE9 tokeny, resolveTokens, p\u0159\xEDklad payloadu a doporu\u010Den\xE9 zpracov\xE1n\xED na serveru); opravena d\u0159\xEDv\u011Bj\u0161\xED\u2026"
+    ]
+  },
+  {
+    "version": "1.6.2",
+    "date": "2026-08-05",
+    "text": "Rychl\xFD select ulo\u017Een\xFDch filtr\u016F v toolbaru (.lattice-adv-quick) o\u0159ez\xE1val n\xE1zev a nativn\xED chevron p\u0159ekr\xFDval posledn\xED znaky",
+    "items": [
+      "Rychl\xFD select ulo\u017Een\xFDch filtr\u016F v toolbaru (.lattice-adv-quick) o\u0159ez\xE1val n\xE1zev a nativn\xED chevron p\u0159ekr\xFDval posledn\xED znaky. Prav\xFD padding byl jen 6px, co\u017E je m\xE9n\u011B ne\u017E \u0161\xED\u0159ka chevronu \u2192 text se plazil\u2026"
+    ]
+  },
+  {
+    "version": "1.6.1",
+    "date": "2026-08-05",
+    "text": 'Panel roz\u0161\xED\u0159en\xE9ho filtru odskakoval do lev\xE9ho horn\xEDho rohu \xB7 \xDAnik \u201Eklik mimo" listeneru (onOutside) \xB7 P\u0159epis glob\xE1ln\xEDho filtru pod stejn\xFDm n\xE1zvem generoval nov\xE9 id p\u0159i ka\u017Ed\xE9m ulo\u017Een\xED \u2192 aplikace (perzistence kl\xED\u010Dovan\xE1 na id/ext_id) zakl\xE1dala nov\xFD DB \u0159\xE1dek a po\u2026',
+    "items": [
+      "Panel roz\u0161\xED\u0159en\xE9ho filtru odskakoval do lev\xE9ho horn\xEDho rohu. Po v\xFDb\u011Bru ulo\u017Een\xE9ho filtru (nebo jak\xE9koli akci p\u0159ekresluj\xEDc\xED toolbar) se toggle tla\u010D\xEDtko vytvo\u0159ilo znovu a panel se p\u0159epo\u010D\xEDtal proti\u2026",
+      '\xDAnik \u201Eklik mimo" listeneru (onOutside). Listener se navazuje p\u0159es setTimeout(\u2026,0); kdy\u017E se panel zav\u0159el d\u0159\xEDv, ne\u017E timer stihl nav\xE1zat, disposer odebral je\u0161t\u011B neexistuj\xEDc\xED listener a timer ho pak\u2026',
+      "P\u0159epis glob\xE1ln\xEDho filtru pod stejn\xFDm n\xE1zvem generoval nov\xE9 id p\u0159i ka\u017Ed\xE9m ulo\u017Een\xED \u2192 aplikace (perzistence kl\xED\u010Dovan\xE1 na id/ext_id) zakl\xE1dala nov\xFD DB \u0159\xE1dek a po reloadu vznikla duplicita. saveAdvanced\u2026",
+      'P\u0159edvypln\u011Bn\xED n\xE1zvu v panelu roz\u0161\xED\u0159en\xE9ho filtru. Po v\xFDb\u011Bru ulo\u017Een\xE9ho filtru se jeho n\xE1zev zkop\xEDruje do pole \u201EN\xE1zev filtru"; p\u0159i otev\u0159en\xED panelu s aktivn\xEDm ulo\u017Een\xFDm filtrem se n\xE1zev p\u0159edvypln\xED hned.\u2026'
+    ]
+  },
+  {
+    "version": "1.6.0",
+    "date": "2026-08-05",
+    "text": 'Relativn\xED datov\xE9 tokeny v roz\u0161\xED\u0159en\xE9m filtru \u2014 v hodnot\u011B podm\xEDnky lze m\xEDsto pevn\xE9ho data napsat token, kter\xFD se dopo\u010D\xEDt\xE1 a\u017E p\u0159i ka\u017Ed\xE9m vyhodnocen\xED filtru (ulo\u017Een\xFD filtr tak \u201Eposouv\xE1 okno" s \u010Dasem, ide\xE1ln\xED pro glob\xE1ln\u011B sd\xEDlen\xE9 filtry): - today, today+14,\u2026',
+    "items": [
+      'Relativn\xED datov\xE9 tokeny v roz\u0161\xED\u0159en\xE9m filtru \u2014 v hodnot\u011B podm\xEDnky lze m\xEDsto pevn\xE9ho data napsat token, kter\xFD se dopo\u010D\xEDt\xE1 a\u017E p\u0159i ka\u017Ed\xE9m vyhodnocen\xED filtru (ulo\u017Een\xFD filtr tak \u201Eposouv\xE1 okno" s \u010Dasem,\u2026',
+      'Dokumentace (docs/API.md), u\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka a demo uk\xE1zka \u201ERoz\u0161\xED\u0159en\xFD filtr" dopln\u011Bny o relativn\xED datum.'
+    ]
+  },
+  {
+    "version": "1.5.1",
+    "date": "2026-08-03",
+    "text": "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers, paramNames, requestBuilder, responseParser), skl\xE1d\xE1n\xED ajax.params p\u0159i\u2026",
+    "items": [
+      "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers,\u2026"
+    ]
+  },
+  {
+    "version": "1.5.0",
+    "date": "2026-08-03",
+    "text": "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny",
+    "items": [
+      "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny. Stejn\xFD vzor jako glob\xE1ln\xED\u2026"
+    ]
+  },
+  {
+    "version": "1.4.0",
+    "date": "2026-08-02",
+    "text": "Zalamov\xE1n\xED n\xE1zv\u016F sloupc\u016F (wrapHeader) \u2014 nez\xE1visl\xE9 na zalamov\xE1n\xED dat v bu\u0148k\xE1ch (wrapText)",
+    "items": [
+      "Zalamov\xE1n\xED n\xE1zv\u016F sloupc\u016F (wrapHeader) \u2014 nez\xE1visl\xE9 na zalamov\xE1n\xED dat v bu\u0148k\xE1ch (wrapText). Kdy\u017E je zapnut\xE9, auto-fit (dvojklik na odd\u011Blova\u010D) zm\u011B\u0159\xED \u0161\xED\u0159ku podle n\xE1zvu slo\u017Een\xE9ho do 2 \u0159\xE1dk\u016F (nikdy neu\u017E\u0161\xED\u2026"
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-08-01",
+    "text": "Gener\xE1tor styl\u016F (demo/styler.html) \u2014 naklikateln\xFD vzhled: v\u0161echny theming prom\u011Bnn\xE9 --lattice-* (barvy s alfa kan\xE1lem, p\xEDsmo, tvary, rozestupy, okraje), \u017Eiv\xFD n\xE1hled a export hotov\xE9ho lattice-custom.css (ke sta\u017Een\xED i kop\xEDrov\xE1n\xED) v\u010D \xB7 Alfa kan\xE1l v color pickeru\u2026",
+    "items": [
+      "Gener\xE1tor styl\u016F (demo/styler.html) \u2014 naklikateln\xFD vzhled: v\u0161echny theming prom\u011Bnn\xE9 --lattice-* (barvy s alfa kan\xE1lem, p\xEDsmo, tvary, rozestupy, okraje), \u017Eiv\xFD n\xE1hled a export hotov\xE9ho\u2026",
+      "Alfa kan\xE1l v color pickeru \u2014 openColorPicker m\xE1 nov\u011B voliteln\xFD jezdec pr\u016Fhlednosti (opts.alpha); vrac\xED pak rgba(...).",
+      "Pam\u011B\u0165 naposledy pou\u017Eit\xFDch barev \u2014 picker si pamatuje posledn\xEDch 12 vlastn\xEDch barev (kolo/vlastn\xED vstup) a nab\xEDz\xED je k v\xFDb\u011Bru (persistov\xE1no v localStorage).",
+      "Okraje sloupc\u016F v gener\xE1toru styl\u016F \u2014 barva i \u0161\xED\u0159ka pro oby\u010Dejn\xE9 svisl\xE9 linky (--lattice-cell-vborder-color/-width), hrany skupin (--lattice-group-border-width) a d\u011Bl\xEDc\xED linku ukotven\xFDch sloupc\u016F\u2026",
+      "Spodn\xED okraje z\xE1hlav\xED \u2014 samostatn\xE1 barva i \u0161\xED\u0159ka pod \u0159\xE1dkem skupin (--lattice-group-border-bottom-*), pod \u0159\xE1dkem z\xE1hlav\xED (--lattice-header-border-*) a pod \u0159\xE1dkem filtr\u016F (--lattice-filter-border-*).",
+      "Sidebar gener\xE1toru styl\u016F skl\xE1d\xE1 volby do 2 sloupc\u016F (dle \u0161\xED\u0159ky) \u2014 m\xE9n\u011B rolov\xE1n\xED.",
+      'Palety v color pickeru nab\xEDzej\xED ob\u011B varianty Bootstrapu 5 \u2014 pln\xE9 (syt\xE1 barva + kontrastn\xED p\xEDsmo) i jemn\xE9 \u201Ealert" t\xF3ny (sv\u011Btl\xE9 pozad\xED + tmav\xFD text). 16 kombinac\xED.',
+      'Nastaven\xED tabulky \u2014 \u201EBarvy \u0161k\xE1ly (semafor)" i barvy ve \u201EVlastn\xEDch \xFAprav\xE1ch" otev\xEDraj\xED \u0161esti\xFAheln\xEDkov\xFD picker (kolo + palety) m\xEDsto nativn\xEDho v\xFDb\u011Bru barvy.',
+      "\u0160\xED\u0159ka/barva svisl\xFDch linek bun\u011Bk jde p\u0159epsat na \xFArovni gridu \u2014 --lattice-cell-vborder se u\u017E nedefinuje napevno v :root (vno\u0159en\xFD var() se vyhodnocoval moc brzy a p\u0159epis na potomkovi se neprojevil);\u2026",
+      "Color picker se zobrazuje nad mod\xE1lem Nastaven\xED tabulky (d\u0159\xEDv se schoval pod n\u011Bj).",
+      "Sbalen\xED skupin sloupc\u016F se persistuje i po reloadu \u2014 Store nov\u011B na\u010D\xEDt\xE1 kl\xED\u010D colGroups (dosud se ukl\xE1dal, ale p\u0159i na\u010Dten\xED se zahazoval, tak\u017Ee skupiny byly po obnoven\xED str\xE1nky zase rozbalen\xE9)."
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-08-01",
+    "text": "Sbaliteln\xE9 skupiny sloupc\u016F \u2014 v z\xE1hlav\xED skupiny ikona \u2212/+; sbalen\xE1 skupina se schov\xE1 do \xFAzk\xE9ho prou\u017Eku \xB7 Barvy z\xE1hlav\xED sloupce i skupiny \u2014 color picker s barevn\xFDm kolem (v\xFDchoz\xED tab), jezdcem jasu a Bootstrap presety \xB7 Form\xE1t bu\u0148ky \u2014 vzhled t\u011Bla sloupce v UI:\u2026",
+    "items": [
+      "Sbaliteln\xE9 skupiny sloupc\u016F \u2014 v z\xE1hlav\xED skupiny ikona \u2212/+; sbalen\xE1 skupina se schov\xE1 do \xFAzk\xE9ho prou\u017Eku. Stav se persistuje. API: toggleColGroup, isColGroupCollapsed.",
+      "Barvy z\xE1hlav\xED sloupce i skupiny \u2014 color picker s barevn\xFDm kolem (v\xFDchoz\xED tab), jezdcem jasu a Bootstrap presety. Sloupec bez vlastn\xED barvy zd\u011Bd\xED barvu skupiny; p\xEDsmo se dopo\u010D\xEDt\xE1 kontrastn\u011B. API:\u2026",
+      "Form\xE1t bu\u0148ky \u2014 vzhled t\u011Bla sloupce v UI: zarovn\xE1n\xED, tu\u010Dn\xE9/kurz\xEDva/podtr\u017Een\xE9/p\u0159e\u0161krtnut\xE9, barva p\xEDsma i pozad\xED. API: setColumnCellFormat; option cellFormat.",
+      "P\u0159ejmenov\xE1n\xED sloupce \u2014 dvojklik na n\xE1zev v dialogu Sloupce (persistuje se). API: setColumnTitle.",
+      'V\xE1\u017Een\xFD souhrn se slou\u010D\xED do \u0159\xE1dku standardn\xEDho souhrnu, kdy\u017E ho pojmenuje\u0161 stejn\u011B (nap\u0159. \u201EPr\u016Fm\u011Br") \u2014 ikona \u0192 ho odli\u0161\xED.',
+      "Demo: hled\xE1n\xED uk\xE1zek v postrann\xEDm menu; gener\xE1tor k\xF3du dopln\u011Bn o pozn\xE1mku k runtime vzhledu.",
+      'Barva a zru\u0161en\xED skupiny se nastavuj\xED v nab\xEDdce skupiny (dialog Sloupce), ne p\u0159\xEDmo v gridu (a\u0165 se na zru\u0161en\xED neklikne omylem). \u201ENov\xE1 skupina" se nab\xEDz\xED jen sloupci bez skupiny.',
+      "Dialog Sloupce se roz\u0161\xED\u0159\xED, aby se ve\u0161ly ikony i del\u0161\xED n\xE1zvy.",
+      'Demo: kategorie \u201ENovinky" pro\u010Di\u0161t\u011Bna (Skupiny sloupc\u016F, Po\u010D\xEDtan\xE9 sloupce, Souhrny).',
+      "\u03A3 ikona je aktivn\xED i p\u0159i zapnut\xE9m v\xE1\u017Een\xE9m souhrnu.",
+      "Dialog Sloupce z\u016Fst\xE1v\xE1 otev\u0159en\xFD p\u0159i pr\xE1ci s jeho pod-popovery (souhrn/form\xE1t/skupina/barva/vzorec).",
+      "Editor vzorce/souhrnu se neobjev\xED v rohu, kdy\u017E se p\u0159ekreslen\xEDm utrhne kotva."
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-08-01",
+    "text": "Po\u010D\xEDtan\xE9 sloupce z UI \u2014 nov\xFD sloupec definovan\xFD vzorcem (formula): aritmetika, spojov\xE1n\xED textu, podm\xEDnky (if, tern\xE1r), datumov\xE9 v\xFDpo\u010Dty \xB7 Reference funkc\xED v editoru vzorce \u2014 prohled\xE1vateln\xFD seznam v kategori\xEDch (\u010C\xEDsla / Text / Logika / Datum) se z\xE1pisem a\u2026",
+    "items": [
+      "Po\u010D\xEDtan\xE9 sloupce z UI \u2014 nov\xFD sloupec definovan\xFD vzorcem (formula): aritmetika, spojov\xE1n\xED textu, podm\xEDnky (if, tern\xE1r), datumov\xE9 v\xFDpo\u010Dty. Bezpe\u010Dn\xE9 vyhodnocen\xED vlastn\xEDm parserem (bez eval/new\u2026",
+      "Reference funkc\xED v editoru vzorce \u2014 prohled\xE1vateln\xFD seznam v kategori\xEDch (\u010C\xEDsla / Text / Logika / Datum) se z\xE1pisem a popisem; klik funkci vlo\u017E\xED do vzorce.",
+      "V\xE1\u017Een\xFD / poolovan\xFD souhrn sloupce vzorcem z agregac\xED jin\xFDch sloupc\u016F (summaryFormula) \u2014 funkce sum/avg/count/min/max/median nad v\xFDrazem. Umo\u017En\xED matematicky spr\xE1vn\xE9 pom\u011Bry sou\u010Dt\u016F (\u03A3a/\u03A3b) i v\xE1\u017Een\xE9\u2026",
+      "Presety a glob\xE1ln\xED nastaven\xED \u2014 nov\xE1 vy\u010Derp\xE1vaj\xEDc\xED sekce v docs/API.md: kompletn\xED kontrakt glob\xE1ln\xEDch preset\u016F (globalPresets, onSaveGlobalPreset, onDeleteGlobalPreset) i glob\xE1ln\xEDch v\xFDchoz\xEDch\u2026",
+      'U\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka: sekce \u201EPo\u010D\xEDtan\xFD sloupec (vlastn\xED vzorec)" a \u201EV\xE1\u017Een\xFD souhrn vzorcem" s obr\xE1zky.',
+      'Demo: p\u0159\xEDklad \u201EComputed (odvozen\xE9) sloupce" p\u0159ejmenov\xE1n na \u201EPo\u010D\xEDtan\xE9 sloupce" (sjednocen\xED s p\u0159\xEDru\u010Dkou i aplikac\xED).'
+    ]
+  }
+];
+
 // src/features/instanceSettings.js
 var SAMPLE_DATE = new Date(2026, 2, 5, 9, 7, 3);
 var InstanceSettings = class {
@@ -2530,7 +2784,7 @@ var InstanceSettings = class {
     ]);
     const bodyEl = el("div.lattice-modal-body");
     this.render(bodyEl);
-    const footChildren = [];
+    const footChildren = [el("span.lattice-modal-version", { text: "Lattice " + VERSION, title: t("versionTitle") })];
     if (this.grid.canSaveGlobalDefaults()) {
       const gBtn = el("button.lattice-modal-global", { type: "button", title: t("instance.saveGlobalHint"), text: t("instance.saveGlobalDefaults") });
       gBtn.addEventListener("click", () => {
@@ -2646,6 +2900,9 @@ var InstanceSettings = class {
       ["270", t("instance.headerRotate270")]
     ], (v) => set({ headerRotate: v })));
     gA.appendChild(rowToggle(t("instance.zebra"), inst.zebra !== false, (v) => set({ zebra: v })));
+    if ((grid.options.features || {}).version !== false) {
+      gA.appendChild(rowToggle(t("instance.showVersion"), inst.showVersion !== false, (v) => set({ showVersion: v })));
+    }
     gA.appendChild(rowScaleColors(t("instance.scaleColors"), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
     const gL = makeTab(t("instance.groupLayout"));
     const layoutVal = inst.layout === "fit" ? "fitColumns" : inst.layout || "fitData";
@@ -2785,9 +3042,75 @@ var InstanceSettings = class {
       this.render(body);
     });
     gX.appendChild(field("", resetBtn));
+    makeTab(t("about.title")).appendChild(this.buildAbout());
     activate(Math.min(this._tab || 0, tabs.length - 1));
   }
+  /**
+   * Záložka „O Lattice" — co to je, kdo za tím stojí, odkazy (příručka, demo, GitHub)
+   * a přehled vydání. Seznam vydání se generuje z CHANGELOG.md (`npm run releases`),
+   * takže se nemusí udržovat ručně.
+   */
+  buildAbout() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const box = el("div.lattice-about");
+    box.appendChild(el("div.lattice-about-head", {}, [
+      el("span.lattice-about-name", { text: "Lattice" }),
+      el("span.lattice-about-ver", { text: VERSION })
+    ]));
+    box.appendChild(el("p.lattice-about-lead", { text: t("about.lead") }));
+    box.appendChild(el("p.lattice-about-meta", {
+      text: t("about.author") + ": " + AUTHOR + " \xB7 " + t("about.license") + ": " + LICENSE
+    }));
+    const help = grid.options.helpUrl === void 0 ? HELP_URL : grid.options.helpUrl;
+    const links = el("div.lattice-about-links");
+    for (const [url, label] of [[help, t("about.manual")], [DEMO_URL, t("about.demo")], [GITHUB_URL, t("about.github")]]) {
+      if (!url) continue;
+      links.appendChild(el("a.lattice-about-link", { href: url, target: "_blank", rel: "noopener noreferrer", text: label }));
+    }
+    box.appendChild(links);
+    box.appendChild(el("div.lattice-about-relhead", {}, [
+      el("span.lattice-about-reltitle", { text: t("about.releases") }),
+      el("span.lattice-about-relhint", { text: t("about.releasesHint") })
+    ]));
+    const list = el("div.lattice-about-releases");
+    const loc = grid.instance.locale || void 0;
+    for (const r of RELEASES) {
+      const current = r.version === VERSION;
+      const row = el("div.lattice-about-rel" + (current ? ".is-current" : ""));
+      const items = el("ul.lattice-about-relitems");
+      for (const it of r.items || []) items.appendChild(el("li", { text: it }));
+      const head = el("button.lattice-about-relmeta", { type: "button", title: t("about.toggleDetails") }, [
+        el("span.lattice-about-relcaret", { text: "\u25B8" }),
+        el("b.lattice-about-relver", { text: r.version }),
+        el("span.lattice-about-reldate", { text: formatRelDate(r.date, loc) }),
+        ...current ? [el("span.lattice-about-relnow", { text: t("about.current") })] : []
+      ]);
+      const open = (on) => {
+        row.classList.toggle("is-open", on);
+        head.querySelector(".lattice-about-relcaret").textContent = on ? "\u25BE" : "\u25B8";
+      };
+      head.addEventListener("click", () => open(!row.classList.contains("is-open")));
+      row.append(head, el("div.lattice-about-reltext", { text: r.text }), items);
+      if (current) open(true);
+      list.appendChild(row);
+    }
+    box.appendChild(list);
+    box.appendChild(el("p.lattice-about-meta", {}, [
+      el("a.lattice-about-link", {
+        href: GITHUB_URL + "/blob/main/CHANGELOG.md",
+        target: "_blank",
+        rel: "noopener noreferrer",
+        text: t("about.fullChangelog")
+      })
+    ]));
+    return box;
+  }
 };
+function formatRelDate(iso, locale) {
+  const d = /* @__PURE__ */ new Date(iso + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale, { day: "numeric", month: "numeric", year: "numeric" });
+}
 function formatFields(kind, cur, grid, onChange) {
   const t = grid.i18n.t.bind(grid.i18n);
   const rows = [];
@@ -5281,6 +5604,21 @@ var cs_default = {
     formulaLabel: "Vzorec",
     name: { sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Minimum", max: "Maximum", count: "Po\u010Det" }
   },
+  versionTitle: "Verze knihovny Lattice",
+  about: {
+    title: "O Lattice",
+    lead: "Lattice je modern\xED, \u0161t\xEDhl\xE1 datov\xE1 tabulka ve vanilla JS \u2014 bez framework\u016F a bez z\xE1vislost\xED. \u0158azen\xED, filtry, seskupen\xED, souhrny, editace, export, presety a sd\xEDlen\xE9 pohledy; v\u0161echno, co si naklik\xE1\u0161, se pamatuje.",
+    author: "Autor",
+    license: "Licence",
+    manual: "U\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka",
+    demo: "Uk\xE1zky a dokumentace",
+    github: "GitHub (zdrojov\xFD k\xF3d)",
+    releases: "Vyd\xE1n\xED",
+    releasesHint: "co kter\xE9 p\u0159ineslo",
+    toggleDetails: "Uk\xE1zat/skr\xFDt, co vyd\xE1n\xED p\u0159ineslo",
+    current: "pou\u017E\xEDv\xE1\u0161",
+    fullChangelog: "\xDApln\xFD seznam zm\u011Bn (CHANGELOG)"
+  },
   presets: {
     none: "(\u017E\xE1dn\xE9 ulo\u017Een\xE9 pohledy)",
     namePlaceholder: "N\xE1zev pohledu\u2026",
@@ -5359,6 +5697,7 @@ var cs_default = {
     fontFamily: "P\xEDsmo",
     fontDefault: "Dle motivu",
     zebra: "Pruhovan\xE9 \u0159\xE1dky",
+    showVersion: "Verze knihovny v pati\u010Dce",
     scaleColors: "Barvy \u0161k\xE1ly (semafor)",
     wrapText: "Zalamovat text",
     wrapHeader: "Zalamovat n\xE1zvy sloupc\u016F",
@@ -5801,6 +6140,21 @@ var en_default = {
     formulaLabel: "Formula",
     name: { sum: "Sum", avg: "Average", min: "Minimum", max: "Maximum", count: "Count" }
   },
+  versionTitle: "Lattice library version",
+  about: {
+    title: "About Lattice",
+    lead: "Lattice is a modern, lean data grid in vanilla JS \u2014 no frameworks, no dependencies. Sorting, filters, grouping, summaries, editing, export, presets and shared views; everything you set up is remembered.",
+    author: "Author",
+    license: "License",
+    manual: "User manual",
+    demo: "Examples and documentation",
+    github: "GitHub (source code)",
+    releases: "Releases",
+    releasesHint: "what each one brought",
+    toggleDetails: "Show/hide what the release brought",
+    current: "in use",
+    fullChangelog: "Full changelog"
+  },
   presets: {
     none: "(no saved views)",
     namePlaceholder: "View name\u2026",
@@ -5879,6 +6233,7 @@ var en_default = {
     fontFamily: "Font",
     fontDefault: "Theme default",
     zebra: "Zebra rows",
+    showVersion: "Library version in the footer",
     scaleColors: "Scale colors (traffic light)",
     wrapText: "Wrap text",
     wrapHeader: "Wrap column titles",
@@ -8742,11 +9097,33 @@ var Renderer = class {
   renderFooter() {
     if (this.grid.progressive) {
       this._renderProgressiveFooter();
+      this._renderVersion();
       return;
     }
     const pos = this.grid.instance.paginationPosition;
     this._renderPager(this.nodes.footer, pos === "footer" || pos === "both");
     this._renderPager(this.nodes.topPager, pos === "header" || pos === "both");
+    this._renderVersion();
+  }
+  /**
+   * Verze knihovny vpravo v patičce — ať je hned vidět, s jakou verzí uživatel pracuje
+   * (a v jaké verzi je hlášený problém). Vykresluje se jako poslední prvek patičky
+   * (i když je stránkování vypnuté a patička by jinak zůstala prázdná).
+   *
+   * Vypnout jde dvěma způsoby: uživatel v „Nastavení tabulky" (`instance.showVersion`,
+   * persistuje se a nese se i v presetu), aplikace natvrdo přes `features.version = false`
+   * (pak se volba v nastavení ani nenabídne).
+   */
+  _renderVersion() {
+    if ((this.grid.options.features || {}).version === false) return;
+    if (this.grid.instance.showVersion === false) return;
+    const footer = this.nodes.footer;
+    if (footer.style.display === "none") footer.style.display = "";
+    const host = footer.querySelector(".lattice-page-info") || footer;
+    host.appendChild(el("span.lattice-version", {
+      text: "Lattice " + VERSION,
+      title: this.grid.i18n.t("versionTitle")
+    }));
   }
   _renderProgressiveFooter() {
     const grid = this.grid;
@@ -9232,7 +9609,7 @@ var ACTION_DEFAULTS = {
 };
 var COG_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg>';
 var HELP_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>';
-var DEFAULT_HELP_URL = "https://lattice.rudolfsvatek.cz/prirucka/";
+var DEFAULT_HELP_URL = HELP_URL;
 
 // src/features/pagination.js
 var ALL_PAGE_SIZE = 1e9;
@@ -11380,6 +11757,8 @@ var INSTANCE_DEFAULTS = {
   // '' = dle motivu | jinak CSS font-family override
   zebra: true,
   // pruhované řádky
+  showVersion: true,
+  // verze knihovny vpravo v patičce (kontrola, s jakou verzí uživatel pracuje)
   wrapText: false,
   // zalamovat text v buňkách (jinak … ořez)
   wrapHeader: false,
@@ -13554,6 +13933,7 @@ var Lattice = class {
       this.renderer.renderBody();
       this.renderer.applyLayout();
     }
+    if ("showVersion" in patch) this.renderer.renderFooter();
     if ("paginationPosition" in patch || "pageSize" in patch) {
       if ("pageSize" in patch) this.pageSize = this.instance.pageSize;
       this.page = 1;
@@ -13594,9 +13974,6 @@ function resolveAjax(options) {
   if (options.ajaxUrl) return { url: options.ajaxUrl };
   throw new Error("Lattice: serverSide=true vy\u017Eaduje `ajax` nebo `ajaxUrl`.");
 }
-
-// src/index.js
-var VERSION = "1.14.0";
 export {
   ClientData,
   HEADER_COLOR_PRESETS,

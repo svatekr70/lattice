@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Lattice } from '../src/Lattice.js';
 import { ServerData } from '../src/core/DataSource.js';
+import { readFile } from 'node:fs/promises';
 
 /** YYYY-MM-DD o `n` dní od dneška. */
 function dayStr(n = 0) {
@@ -171,4 +172,24 @@ test('loadMore: opožděná odpověď přebitá refreshem se zahodí', async () 
   await p;
   assert.deepEqual(ctx.loadedRows, [], 'stará odpověď nesmí přisypat řádky');
   assert.equal(ctx.loadedPage, 0, 'cursor se neposune');
+});
+
+/* ---- verze knihovny ---- */
+
+test('VERSION odpovídá package.json (patička i CDN pin ukazují totéž)', async () => {
+  const { VERSION } = await import('../src/version.js');
+  const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(VERSION, pkg.version);
+});
+
+test('RELEASES — seznam vydání pro záložku „O Lattice" je vygenerovaný a úplný', async () => {
+  const { RELEASES } = await import('../src/releases.js');
+  const { VERSION } = await import('../src/version.js');
+  assert.ok(RELEASES.length > 0);
+  assert.equal(RELEASES[0].version, VERSION, 'nejnovější vydání = aktuální verze (spusť `npm run releases`)');
+  for (const r of RELEASES) {
+    assert.match(r.version, /^\d+\.\d+\.\d+$/);
+    assert.match(r.date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(r.text.length > 10 && r.text.length <= 261, 'shrnutí má rozumnou délku');
+  }
 });
