@@ -455,7 +455,7 @@ export default {
     edit: 'Načíst do hlavičky a upravit',
     overwrite: 'Přepsat tento filtr aktuálními filtry z hlavičky',
     overwriteDisabled: 'Nejdřív nastav filtry v hlavičce tabulky',
-    rename: 'Přejmenovat (dvojklik na název)',
+    rename: 'Přejmenovat (jde i dvojklikem na název)',
     namePlaceholder: 'Název filtru…',
     asButton: 'tlačítko',
     asButtonHint: 'Zobrazit tento uložený filtr jako tlačítko v řadě nad ikonami (klik = zapnout/vypnout).',

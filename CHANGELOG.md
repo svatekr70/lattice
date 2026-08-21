@@ -31,10 +31,10 @@ je poznat, co je co, bez popisků. Bez breaking changes.
   „Sloupce" u presetu), **Zobrazit jako tlačítko** / **Zobrazit ve výběru** a **Smazat**.
 - **Panel „Uložené filtry"** (ikona trychtýř + disketa) je teď i správcem: v seznamu jsou
   **všechny** uložené filtry (snímky sloupcových filtrů i stromy z rozšířeného filtru).
-  U každého: klik na název ho zapne/vypne, **dvojklik ho přejmenuje**, **disketa u položky
-  ho přepíše tím, co je právě naklikané v hlavičce** (tak se mění obsah uloženého filtru —
-  žádné zvláštní „režimy úprav"), dva přepínače řídí zobrazení a **×** maže. U stromového
-  filtru je místo diskety tužka → otevře query-builder. Ikona je dostupná i bez aktivního
+  U každého: klik na název ho zapne/vypne, **tužka (nebo dvojklik na název) ho přejmenuje**,
+  **disketa u položky ho přepíše tím, co je právě naklikané v hlavičce** (tak se mění obsah
+  uloženého filtru — žádné zvláštní „režimy úprav"), dva přepínače řídí zobrazení a **×** maže.
+  U stromového filtru je místo diskety ikona query-builderu → otevře ho k úpravě podmínek. Ikona je dostupná i bez aktivního
   sloupcového filtru (jakmile je co spravovat); řádek pro uložení se ukáže, jen když je co ukládat.
 - **API:** `grid.overwriteSavedFilter(id)` a `grid.renameSavedFilter(id, name)`.
 - **API:** `grid.togglePreset(preset)`, `grid.resetView()`, `grid.setAdvancedDisplay(id, key, on)`,

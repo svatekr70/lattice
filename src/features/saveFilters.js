@@ -123,6 +123,7 @@ export class SaveFiltersPanel {
       return;
     }
     const activeId = grid.activeSavedId();
+    this._rows = [];
     for (const item of saved) {
       const row = el('div.lattice-savefilters-row');
 
@@ -130,10 +131,17 @@ export class SaveFiltersPanel {
         type: 'button', text: (item.scope === 'global' ? '🌐 ' : '') + item.name,
         title: (item.id === activeId ? t('quickbar.clearFilter') : t('quickbar.applyFilter')) + ' · ' + t('saveFilters.rename'),
       });
-      apply.addEventListener('click', () => { grid.toggleSavedAdvanced(item.id); this.renderList(); });
-      // dvojklik = přejmenovat na místě (obsah filtru zůstává)
+      // Pozor: po zapnutí/vypnutí seznam NEpřekreslujeme celý (jen zvýraznění), jinak by
+      // se řádky vyměnily mezi dvěma kliky a dvojklik na název by se nikdy nespustil.
+      apply.addEventListener('click', () => { grid.toggleSavedAdvanced(item.id); this.syncActive(); });
       apply.addEventListener('dblclick', () => this.renameInline(row, apply, item));
       row.appendChild(apply);
+      this._rows.push({ item, apply });
+
+      // Tužka: přejmenovat (obsah filtru zůstává). Totéž svede i dvojklik na název.
+      const ren = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.rename'), html: PENCIL_SVG });
+      ren.addEventListener('click', () => this.renameInline(row, apply, item));
+      row.appendChild(ren);
 
       // Disketa: přepiš tenhle uložený filtr TÍM, co je právě naklikané v hlavičce.
       // Tak se mění „vlastnosti" filtru — nastav filtry v tabulce a klikni sem.
@@ -147,7 +155,7 @@ export class SaveFiltersPanel {
         row.appendChild(over);
       } else {
         // strom z rozšířeného filtru se upravuje v query-builderu
-        const edit = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.edit'), html: PENCIL_SVG });
+        const edit = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.edit'), html: BUILDER_SVG });
         edit.addEventListener('click', () => { this.close(); grid.renderer.editSavedItem(item, 'filter'); });
         row.appendChild(edit);
       }
@@ -170,6 +178,17 @@ export class SaveFiltersPanel {
       list.appendChild(row);
     }
     if (this.panel) positionUnder(this.panel, this.anchor);
+  }
+
+  /** Přebarví zvýraznění aktivní položky bez překreslení seznamu (viz klik na název). */
+  syncActive() {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    const activeId = this.grid.activeSavedId();
+    for (const { item, apply } of this._rows || []) {
+      const on = item.id === activeId;
+      apply.classList.toggle('is-active', on);
+      apply.title = (on ? t('quickbar.clearFilter') : t('quickbar.applyFilter')) + ' · ' + t('saveFilters.rename');
+    }
   }
 
   /** Přejmenování na místě: název se změní v políčku, Enter uloží, Escape zruší. */
@@ -197,4 +216,5 @@ export class SaveFiltersPanel {
 const DISK_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M4 3h13l3 3v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path fill="var(--lattice-bg, #fff)" d="M7 4h8v5H7zM6 14h12v7H6z"/></svg>';
 const PILL_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="7" width="19" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><rect class="lattice-pin-fill" x="5" y="9.5" width="14" height="5" rx="2.5" fill="currentColor"/></svg>';
 const SELECT_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path class="lattice-pin-fill" fill="currentColor" d="M6 9h8v1.8H6zm0 4h6v1.8H6z"/><path fill="currentColor" d="M16.2 10.2h3.4L17.9 13z"/></svg>';
+const BUILDER_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"/><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M17 12.5v7m-3.5-3.5h7"/></svg>';
 const PENCIL_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12.1 1.6a1.4 1.4 0 012 2l-.9.9-2-2 .9-.9zM10 3.2l2 2-6.7 6.7-2.6.6.6-2.6L10 3.2z"/></svg>';

@@ -455,7 +455,7 @@ export default {
     edit: 'Load into the header and edit',
     overwrite: 'Overwrite this filter with the current header filters',
     overwriteDisabled: 'Set filters in the table header first',
-    rename: 'Rename (double-click the name)',
+    rename: 'Rename (double-clicking the name works too)',
     namePlaceholder: 'Filter name…',
     asButton: 'button',
     asButtonHint: 'Show this saved filter as a button in the row above the icons (click to toggle on/off).',
