@@ -4,6 +4,18 @@
  */
 export const RELEASES = [
   {
+    "version": "1.16.0",
+    "date": "2026-08-21",
+    "text": "Výběr řádků dělá to, co slibuje: volby v menu rovnou vybírají, „Všechny záznamy\" berou opravdu všechny filtrované záznamy (i nezobrazené stránky) a počty v popiscích sedí. Bez breaking changes.",
+    "items": [
+      "Volby „Stránka\" a „Všechny záznamy\" nic nevybraly. Jen přepínaly rozsah pro hlavičkový checkbox, takže po kliknutí se navenek nestalo nic. Nově rovnou vybírají (selectPage() / selectAllRecords()) a…",
+      "„Všechny záznamy\" vybíraly jen načtenou stránku. Server-side grid nezná klíče nezobrazených stránek, takže volba vybrala 50 řádků a v popisku ukazovala „(50)\", i když filtru odpovídalo 365 záznamů.…",
+      "Popisek „Všechny záznamy (N)\" ukazoval počet načtených řádků. Server-side bere N z total — tedy počet všech filtrovaných záznamů (365), ne velikost stránky.",
+      "Popisek „Stránka (N)\" — kolik řádků je opravdu na aktuální stránce (na poslední jich bývá míň než pageSize). Nové metody pageCount(), selectedCount(), getSelection().",
+      "Šipka „rozsah a možnosti výběru\" u hlavičkového checkboxu je vidět — místo nenápadné tečky je to chevron 12 px s hover stavem (podbarvení + rámeček), takže je poznat, že se tam něco rozbaluje."
+    ]
+  },
+  {
     "version": "1.15.0",
     "date": "2026-08-21",
     "text": "Verze knihovny na očích: v patičce gridu a v nové záložce „O Lattice\" v nastavení, kde je i changelog — co které vydání přineslo. Bez breaking changes.",
@@ -229,19 +241,6 @@ export const RELEASES = [
       "Σ ikona je aktivní i při zapnutém váženém souhrnu.",
       "Dialog Sloupce zůstává otevřený při práci s jeho pod-popovery (souhrn/formát/skupina/barva/vzorec).",
       "Editor vzorce/souhrnu se neobjeví v rohu, když se překreslením utrhne kotva."
-    ]
-  },
-  {
-    "version": "1.1.0",
-    "date": "2026-08-01",
-    "text": "Počítané sloupce z UI — nový sloupec definovaný vzorcem (formula): aritmetika, spojování textu, podmínky (if, ternár), datumové výpočty · Reference funkcí v editoru vzorce — prohledávatelný seznam v kategoriích (Čísla / Text / Logika / Datum) se zápisem a…",
-    "items": [
-      "Počítané sloupce z UI — nový sloupec definovaný vzorcem (formula): aritmetika, spojování textu, podmínky (if, ternár), datumové výpočty. Bezpečné vyhodnocení vlastním parserem (bez eval/new…",
-      "Reference funkcí v editoru vzorce — prohledávatelný seznam v kategoriích (Čísla / Text / Logika / Datum) se zápisem a popisem; klik funkci vloží do vzorce.",
-      "Vážený / poolovaný souhrn sloupce vzorcem z agregací jiných sloupců (summaryFormula) — funkce sum/avg/count/min/max/median nad výrazem. Umožní matematicky správné poměry součtů (Σa/Σb) i vážené…",
-      "Presety a globální nastavení — nová vyčerpávající sekce v docs/API.md: kompletní kontrakt globálních presetů (globalPresets, onSaveGlobalPreset, onDeleteGlobalPreset) i globálních výchozích…",
-      "Uživatelská příručka: sekce „Počítaný sloupec (vlastní vzorec)\" a „Vážený souhrn vzorcem\" s obrázky.",
-      "Demo: příklad „Computed (odvozené) sloupce\" přejmenován na „Počítané sloupce\" (sjednocení s příručkou i aplikací)."
     ]
   }
 ];

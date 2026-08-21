@@ -4,6 +4,34 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.16.0] – 2026-08-21
+
+Výběr řádků dělá to, co slibuje: volby v menu rovnou vybírají, „Všechny záznamy" berou opravdu
+všechny filtrované záznamy (i nezobrazené stránky) a počty v popiscích sedí. Bez breaking changes.
+
+### Opraveno
+- **Volby „Stránka" a „Všechny záznamy" nic nevybraly.** Jen přepínaly rozsah pro hlavičkový
+  checkbox, takže po kliknutí se navenek nestalo nic. Nově **rovnou vybírají**
+  (`selectPage()` / `selectAllRecords()`) a rozsah nastaví jako vedlejší efekt; zvýrazněná
+  je ta volba, jejíž rozsah je právě celý vybraný.
+- **„Všechny záznamy" vybíraly jen načtenou stránku.** Server-side grid nezná klíče
+  nezobrazených stránek, takže volba vybrala 50 řádků a v popisku ukazovala „(50)", i když
+  filtru odpovídalo 365 záznamů. Nově se zapne režim **„vybráno vše"** (příznak + ručně
+  odškrtnuté výjimky): vybrané je všechno, co odpovídá filtru, na dalších stránkách se to
+  projeví, jakmile na ně uživatel vstoupí, a aplikace to pozná z `getSelection()`
+  (`{ all: true, excluded }`) i ze 3. argumentu `onSelectionChange`. Změna filtru režim ruší.
+- **Popisek „Všechny záznamy (N)" ukazoval počet načtených řádků.** Server-side bere `N`
+  z `total` — tedy počet všech filtrovaných záznamů (365), ne velikost stránky.
+
+### Přidáno
+- **Popisek „Stránka (N)"** — kolik řádků je opravdu na aktuální stránce (na poslední jich
+  bývá míň než `pageSize`). Nové metody `pageCount()`, `selectedCount()`, `getSelection()`.
+
+### Změněno
+- **Šipka „rozsah a možnosti výběru" u hlavičkového checkboxu je vidět** — místo nenápadné
+  tečky je to chevron 12 px s hover stavem (podbarvení + rámeček), takže je poznat, že se
+  tam něco rozbaluje.
+
 ## [1.15.0] – 2026-08-21
 
 Verze knihovny na očích: v patičce gridu a v nové záložce „O Lattice" v nastavení, kde je

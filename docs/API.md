@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.15.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.15.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.15.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.16.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.15.0
+npm i github:svatekr70/lattice#v1.16.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.15.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.16.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -380,7 +380,11 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `removeComputedColumn(field)` | Odebere počítaný sloupec (jen sloupce vytvořené vzorcem). |
 | `setPinnedRows({ top?, bottom? })` | Připnuté řádky za běhu. |
 | `getSelectedRows()` / `getSelectedKeys()` / `clearSelection()` | Výběr. **Server-side:** `getSelectedKeys()` vrací klíče **napříč stránkami** (přetrvávají při stránkování), ale `getSelectedRows()` vrátí jen řádky **z aktuálně načtené stránky**. |
-| `selectKeys(keys, on?)` / `setSelectScope(scope)` | Programový výběr dle klíčů (`on=false` odznačí) / rozsah „vybrat vše" (`'page' \| 'all'`, výchozí `'page'`). **Server-side:** „vybrat vše filtrované napříč stránkami" grid neumí (nemá celý dataset) — vytáhni ID ze serveru (viz `getServerParams`) a nastav přes `selectKeys`. |
+| `selectKeys(keys, on?)` / `setSelectScope(scope)` | Programový výběr dle klíčů (`on=false` odznačí) / rozsah horního checkboxu (`'page' \| 'all'`, výchozí `'page'`). |
+| `selectPage()` / `selectAllRecords()` | Vybere celou stránku / všechny filtrované záznamy (a nastaví odpovídající rozsah) — to, co dělají první dvě volby v menu výběru. `@v1.16.0` |
+| `isPageAllSelected()` / `isAllRecordsSelected()` | Je vybraná celá stránka / všechny záznamy (zvýraznění voleb v menu). `@v1.16.0` |
+| `pageCount()` / `filteredCount()` / `selectedCount()` | Počet řádků **na stránce** (na poslední jich bývá míň) / **všech** filtrovaných záznamů (server-side = `total`) / vybraných. Popisky v menu výběru: „Stránka (N)" a „Všechny záznamy (N)". `@v1.16.0` |
+| `getSelection()` | `{ all, count, keys, excluded }` — v režimu „vybráno vše" (server-side napříč stránkami) grid klíče nezobrazených řádků nezná: `all: true`, `keys: []` a `excluded` jsou ručně odškrtnuté. `@v1.16.0` |
 | `highlightRow(key, on?)` / `toggleRowHighlight(key)` / `clearHighlights()` / `highlightedRows` | Zvýraznění (podbarvení) řádků. Přežije re-render/řazení/filtr, persistuje se do `lattice:<id>`. `highlightedRows` (getter) = pole klíčů. Změna překreslí jen dotčený řádek. Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `getServerParams({ paginate? })` / `getServerQuery({ paginate? })` | **Server-side.** Aktuální serverové parametry (sort/filter/search/advanced dle `ajax.paramNames`, tokeny rozvinuté) jako objekt / hotový urlencoded querystring. `paginate` default `false` (bez page/size = „vše filtrované"). Pro vlastní endpointy (ID všech filtrovaných řádků, export) bez ruční duplikace. Client-side vrací `{}` / `''`. `@v1.8.0`. |
 | `getColumnLayout()` | Snímek layoutu sloupců. |
@@ -628,6 +632,26 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
 Knihovna preset po uložení rovnou přidá do své nabídky — nemusíš překreslovat ani znovu načítat.
 
+### Rozsah výběru: „Stránka" vs „Všechny záznamy" — `@v1.16.0`
+
+Šipka u hlavičkového checkboxu otevře menu výběru. **První dvě volby rovnou vybírají**
+(a nastaví rozsah, se kterým pak pracuje hlavičkový checkbox i „Invertovat výběr"); zvýrazněná
+je ta, jejíž rozsah je právě celý vybraný:
+
+| Volba | Co udělá | Počet v popisku |
+|---|---|---|
+| **Stránka (N)** | vybere řádky, které jsou právě vidět (`selectPage()`) | `pageCount()` — skutečný počet řádků na stránce (na poslední jich bývá míň než `pageSize`) |
+| **Všechny záznamy (N)** | vybere všechny filtrované záznamy, **i ty na dalších stránkách** (`selectAllRecords()`) | `filteredCount()` — server-side `total`, client-side celá filtrovaná sada |
+| **Invertovat výběr** | prohodí vybrané/nevybrané v aktuálním rozsahu | — |
+| **Zrušit výběr** | odznačí vše | — |
+
+Client-side grid při „všech záznamech" vyjmenuje klíče (aplikace je dostane v `getSelectedKeys()`).
+**Server-side** klíče nezobrazených stránek nezná, takže se zapne režim **„vybráno vše"**:
+grid si drží příznak + množinu ručně odškrtnutých výjimek, výběr se na dalších stránkách
+projeví, jakmile na ně uživatel vstoupí, a aplikace ho pozná z `getSelection()`
+(`{ all: true, excluded: [...] }`) — konkrétní záznamy si dotáhne stejným filtrem přes
+`getServerParams()`. Změna filtru režim ruší (platil pro předchozí množinu dat).
+
 ### Verze knihovny v UI — `@v1.15.0`
 
 ```js
@@ -864,7 +888,7 @@ Grid nikdy nepersistuje sám — přes callbacky říká aplikaci, co se stalo.
 | `onDataChange(action, rows)` | Po změně dat (add/update/delete/import…). |
 | `onRowMove(payload)` / `onRowReceive(row, meta)` | Přesun / příjem řádku. |
 | `onRangeCopy(data, tsv)` / `onRangePaste(changed)` / `onFill(changed)` | Rozsah buněk: kopie / vložení / fill. |
-| `onSelectionChange(rows, keys)` | Změna výběru řádků. |
+| `onSelectionChange(rows, keys, selection)` | Změna výběru řádků. 3. argument (`@v1.16.0`) = `getSelection()` — pozná se z něj režim „vybráno vše" (`all: true`, `excluded`), kde klíče nezobrazených stránek grid nezná. |
 | `onHighlightChange(keys)` | Změna zvýraznění (podbarvení) řádků — pole klíčů (`@v1.8.0`). |
 | `onSort(sort)` | Řazení — `[{ field, dir }]`. |
 | `onFilter({ filters, universal, advanced })` | Změna filtrů. |

@@ -681,11 +681,13 @@ export class Renderer {
     if (col._select) {
       const cell = el('div.lattice-hcell.lattice-select-cell', { dataset: { field: col.field }, class: 'is-center' });
       if (grid.selectable.mode !== 'single') {
-        const scopeLabel = grid.selectScope === 'all' ? grid.i18n.t('select.scopeAll', { n: grid.filteredCount() }) : grid.i18n.t('select.scopePage');
+        const scopeLabel = grid.selectScope === 'all'
+          ? grid.i18n.t('select.scopeAll', { n: grid.filteredCount() })
+          : grid.i18n.t('select.scopePage', { n: grid.pageCount() });
         const cb = el('input.lattice-select-all', { type: 'checkbox', title: scopeLabel });
         cb.addEventListener('click', (e) => { e.stopPropagation(); grid.toggleScopeSelection(); });
         cell.appendChild(cb);
-        const caret = el('button.lattice-select-menu', { type: 'button', title: grid.i18n.t('select.menu'), text: '▾' });
+        const caret = el('button.lattice-select-menu', { type: 'button', title: grid.i18n.t('select.menu'), html: CHEVRON_SVG });
         caret.addEventListener('click', (e) => { e.stopPropagation(); this.openSelectMenu(caret); });
         cell.appendChild(caret);
       }
@@ -1066,7 +1068,7 @@ export class Renderer {
     if (!bar) return;
     const grid = this.grid;
     const actions = grid.options.selectionActions;
-    const n = grid.selected.size;
+    const n = grid.selectedCount();
     clear(bar);
     if (!grid.isSelectable() || !Array.isArray(actions) || !actions.length || n === 0) {
       bar.classList.remove('is-active');
@@ -1125,29 +1127,40 @@ export class Renderer {
     if (!grid.isSelectable()) return;
     const cb = this.nodes.headerRow.querySelector('.lattice-select-all');
     if (!cb) return;
-    const rows = grid.scopeRows();
-    let sel = 0;
-    for (const r of rows) if (grid.selected.has(grid.rowKey(r))) sel++;
-    cb.checked = rows.length > 0 && sel === rows.length;
-    cb.indeterminate = sel > 0 && sel < rows.length;
-    cb.title = grid.selectScope === 'all' ? grid.i18n.t('select.scopeAll', { n: grid.filteredCount() }) : grid.i18n.t('select.scopePage');
+    // V režimu „vybráno vše" (napříč stránkami) grid klíče nezobrazených řádků nezná —
+    // stav se pak čte z příznaku a výjimek, ne z množiny klíčů.
+    if (grid.selectAllFiltered) {
+      const excluded = grid.selectExcept.size;
+      cb.checked = excluded === 0;
+      cb.indeterminate = excluded > 0 && grid.selectedCount() > 0;
+    } else {
+      const rows = grid.scopeRows();
+      let sel = 0;
+      for (const r of rows) if (grid.isSelected(r)) sel++;
+      cb.checked = rows.length > 0 && sel === rows.length;
+      cb.indeterminate = sel > 0 && sel < rows.length;
+    }
+    cb.title = grid.selectScope === 'all'
+      ? grid.i18n.t('select.scopeAll', { n: grid.filteredCount() })
+      : grid.i18n.t('select.scopePage', { n: grid.pageCount() });
   }
 
   /**
-   * Menu výběru: přepínač rozsahu (Stránka / Všechny záznamy) + invertovat + zrušit.
-   * Rozsah určuje, na co se vztahuje horní checkbox i invertování.
+   * Menu výběru: **vybrat stránku / vybrat všechny záznamy** + invertovat + zrušit.
+   * První dvě volby rovnou vybírají (a nastaví rozsah, se kterým pak pracuje horní
+   * checkbox i invertování); zvýrazněná je ta, jejíž rozsah je právě celý vybraný.
    */
   openSelectMenu(anchor) {
     const g = this.grid;
     const t = g.i18n.t.bind(g.i18n);
     openMenu(anchor, [
-      { value: 'scope-page', label: t('select.scopePage'), active: g.selectScope === 'page' },
-      { value: 'scope-all', label: t('select.scopeAll', { n: g.filteredCount() }), active: g.selectScope === 'all' },
+      { value: 'page', label: t('select.scopePage', { n: g.pageCount() }), active: g.isPageAllSelected() },
+      { value: 'all', label: t('select.scopeAll', { n: g.filteredCount() }), active: g.isAllRecordsSelected() },
       { value: 'invert', label: t('select.invert') },
       { value: 'none', label: t('select.none') },
     ], (v) => {
-      if (v === 'scope-page') g.setSelectScope('page');
-      else if (v === 'scope-all') g.setSelectScope('all');
+      if (v === 'page') g.selectPage();
+      else if (v === 'all') g.selectAllRecords();
       else if (v === 'invert') g.invertSelection();
       else g.clearSelection();
     });

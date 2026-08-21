@@ -1034,8 +1034,23 @@
         <img src="img/hromadne.png" alt="Lišta hromadných akcí nad výběrem řádků">
         <figcaption>Po zaškrtnutí řádků: „Vybráno: 3" a akce (Změnit vlastníka, Exportovat výběr, Smazat), vpravo „Zrušit výběr".</figcaption>
       </figure>
-      <p>Checkboxem v <b>záhlaví</b> označíš/odznačíš celou stránku; jeho nabídka umí i „vybrat vše"
-        napříč stránkami nebo výběr invertovat. Konkrétní akce určuje aplikace.</p>
+      <h3>Vybrat celou stránku, nebo úplně všechno?</h3>
+      <p>Checkbox v <b>záhlaví</b> označí/odznačí celý zvolený rozsah a <b>šipka</b> hned vedle něj
+        otevře nabídku. <b>Klik na volbu rovnou vybírá</b> (a zároveň určí, s čím pak pracuje
+        hlavičkový checkbox); zvýrazněná je ta volba, jejíž rozsah máš právě celý vybraný:</p>
+      <ul>
+        <li><b>Stránka (N)</b> — vybere řádky, které jsou <b>právě vidět</b>. V závorce je jejich
+          skutečný počet, takže na poslední stránce uvidíš třeba <i>Stránka (15)</i>.</li>
+        <li><b>Všechny záznamy (N)</b> — vybere <b>všechno, co odpovídá filtru</b>, i to, co je na
+          dalších stránkách. V závorce je počet všech takových záznamů (např. <i>365</i>, i když jich je
+          na stránce 50). Na dalších stránkách uvidíš řádky zaškrtnuté, jakmile na ně přejdeš;
+          jednotlivé řádky můžeš kdykoli odškrtnout a z výběru vypadnou.</li>
+        <li><b>Invertovat výběr</b> — co bylo zaškrtnuté, se odškrtne a naopak.</li>
+        <li><b>Zrušit výběr</b> — odznačí všechno.</li>
+      </ul>
+      <div class="note"><b>Pozor na filtry:</b> „Všechny záznamy" znamená <b>všechny odpovídající
+        aktuálnímu filtru</b>. Když filtr změníš, výběr „vše" se zruší — jinak by se tiše přenesl
+        na jinou množinu dat. Konkrétní hromadné akce nad výběrem určuje aplikace.</div>
     </section>
     <section id="strom">
       <h2><span class="n">19</span>Stromové zobrazení</h2>

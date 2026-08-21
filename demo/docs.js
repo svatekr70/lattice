@@ -69,9 +69,9 @@ function docZaciname(root, ctx) {
   import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js';
   new Lattice('#grid', { id: 'kampane', columns, data });
 </script>`),
-    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.15.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
+    note('Pro produkci připni verzi místo <code>@main</code> — tag <code>@v1.16.0</code> nebo konkrétní commit (neměnný, nejbezpečnější).'),
     p('<b>Přes npm — přímo z GitHubu</b> (bundler / vlastní build). Na npmjs.com knihovna publikovaná <b>není</b>: <code>npm i lattice</code> stáhne cizí balíček stejného jména!'),
-    code("npm i github:svatekr70/lattice#v1.15.0"),
+    code("npm i github:svatekr70/lattice#v1.16.0"),
     code("import { Lattice } from 'lattice';\nimport 'lattice/css';"),
     p('<b>Nebo bez CDN i npm</b> — zkopíruj složku <code>src/</code> do projektu a importuj přímo (čisté ESM, jen víc requestů):'),
     code("import { Lattice } from './src/index.js';\nimport './src/lattice.css';"),
@@ -299,10 +299,12 @@ function docInterakce(root, ctx) {
     h3('Výběr řádků'),
     code(`new Lattice('#grid', {
   selectable: true,        // | 'single' | 5 (max)
-  onSelectionChange: (rows, keys) => console.log(keys),
+  onSelectionChange: (rows, keys, selection) => console.log(keys, selection),
 });
 // hromadné operace:
-grid.getSelectedKeys(); grid.getSelectedRows();`),
+grid.getSelectedKeys(); grid.getSelectedRows(); grid.getSelection();`),
+    p('Šipka u hlavičkového checkboxu otevře menu: <b>Stránka (N)</b> vybere zobrazené řádky (<code>selectPage()</code>), <b>Všechny záznamy (N)</b> všechny filtrované včetně nezobrazených (<code>selectAllRecords()</code>), plus invertovat a zrušit. <code>N</code> je skutečný počet — <code>pageCount()</code>, resp. <code>filteredCount()</code> (server-side <code>total</code>).'),
+    note('<b>Server-side „vybráno vše":</b> klíče nezobrazených stránek grid nezná, takže si drží příznak + ručně odškrtnuté výjimky. Aplikace to pozná z <code>getSelection()</code> → <code>{ all: true, count, excluded }</code> (i ve 3. argumentu <code>onSelectionChange</code>) a záznamy si dotáhne stejným filtrem přes <code>getServerParams()</code>. Změna filtru režim ruší.'),
 
     h3('Přesouvání řádků'),
     ul([
@@ -347,7 +349,7 @@ function docCallbacky(root) {
       ['<code>onRowMove(payload)</code>', 'Po přesunu řádku (co uložit).'],
       ['<code>onRowReceive(row, meta)</code>', 'Po přijetí řádku z jiné tabulky.'],
       ['<code>onRangeCopy / onRangePaste</code>', 'Kopírování/vkládání rozsahu buněk.'],
-      ['<code>onSelectionChange(rows, keys)</code>', 'Změna výběru řádků.'],
+      ['<code>onSelectionChange(rows, keys, selection)</code>', 'Změna výběru řádků; 3. argument = <code>getSelection()</code> (režim „vybráno vše").'],
     ]),
     h3('Stav a rozvržení'),
     table(['Callback', 'Kdy'], [

@@ -1071,11 +1071,17 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 /* výběrový sloupec (checkboxy) */
 .lattice-select-cell { display: flex; align-items: center; justify-content: center; gap: 1px; padding: 0; }
 .lattice-select-cell input { cursor: pointer; margin: 0; }
+/* šipka „rozsah a možnosti výběru" u hlavičkového checkboxu — musí být vidět na první
+   pohled, že se tam něco rozbaluje (dřív to byla nenápadná tečka) */
 .lattice-select-menu {
-  border: none; background: none; cursor: pointer; padding: 0 1px;
-  color: var(--lattice-muted); font-size: 10px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; padding: 0; margin-left: 1px;
+  border: 1px solid transparent; border-radius: var(--lattice-control-radius);
+  background: none; color: var(--lattice-text); cursor: pointer; line-height: 1;
 }
-.lattice-select-menu:hover { color: var(--lattice-accent); }
+.lattice-select-menu svg { display: block; }
+.lattice-select-menu:hover { color: var(--lattice-accent); background: var(--lattice-accent-soft); border-color: var(--lattice-accent); }
+.lattice-select-menu:focus-visible { outline: 2px solid var(--lattice-accent); outline-offset: 1px; }
 .lattice-row.is-selected .lattice-cell { background: var(--lattice-accent-soft); }
 .lattice-row.is-selected:hover .lattice-cell { background: var(--lattice-accent-soft); }
 

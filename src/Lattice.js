@@ -192,6 +192,10 @@ export class Lattice {
     this.selectable = normSelectable(options.selectable); // výběr řádků (checkboxy)
     this.selected = new Set(); // klíče vybraných řádků (keyField, string)
     this.selectScope = 'page'; // rozsah výběru pro horní checkbox / invert ('page' | 'all')
+    // „Vybráno vše" napříč stránkami (server-side nejde klíče vyjmenovat): místo množiny
+    // klíčů držíme příznak + výjimky, které uživatel ručně odškrtl.
+    this.selectAllFiltered = false;
+    this.selectExcept = new Set();
     this.highlightedKeys = new Set(this.state.highlighted || []); // klíče zvýrazněných (podbarvených) řádků; přežívá re-render, persistuje se
     this.serverSide = !!options.serverSide;
     this.dataSource = this.serverSide
@@ -2001,12 +2005,21 @@ export class Lattice {
 
   /** Je řádek (objekt nebo klíč) vybraný? */
   isSelected(row) {
-    return this.selected.has(typeof row === 'object' && row !== null ? this.rowKey(row) : String(row));
+    const key = typeof row === 'object' && row !== null ? this.rowKey(row) : String(row);
+    // režim „vybráno vše": vybrané je všechno kromě ručních výjimek
+    if (this.selectAllFiltered) return !this.selectExcept.has(key);
+    return this.selected.has(key);
   }
 
   /** Nastaví výběr jednoho řádku (respektuje single/max). */
   setRowSelected(key, on) {
     key = String(key);
+    if (this.selectAllFiltered) {
+      // v režimu „vybráno vše" se odškrtnutí ukládá jako výjimka
+      if (on) this.selectExcept.delete(key); else this.selectExcept.add(key);
+      this._afterSelectionChange();
+      return;
+    }
     if (on) {
       if (this.selectable.mode === 'single') this.selected.clear();
       if (this.selectable.max && !this.selected.has(key) && this.selected.size >= this.selectable.max) {
@@ -2019,11 +2032,16 @@ export class Lattice {
     this._afterSelectionChange();
   }
 
-  toggleRow(key) { this.setRowSelected(key, !this.selected.has(String(key))); }
+  toggleRow(key) { this.setRowSelected(key, !this.isSelected(String(key))); }
 
   /** Hromadně nastaví výběr sady klíčů (pro shift-výběr rozsahu). */
   selectKeys(keys, on) {
-    for (const k of keys) { if (on) this.selected.add(String(k)); else this.selected.delete(String(k)); }
+    for (const k of keys) {
+      const key = String(k);
+      if (this.selectAllFiltered) { if (on) this.selectExcept.delete(key); else this.selectExcept.add(key); }
+      else if (on) this.selected.add(key);
+      else this.selected.delete(key);
+    }
     this._afterSelectionChange();
   }
 
@@ -2036,34 +2054,126 @@ export class Lattice {
     this.renderer.updateSelectAllCheckbox();
   }
 
-  /** Řádky aktuálního rozsahu (stránka nebo všechny filtrované). */
+  /** Řádky aktuálního rozsahu (stránka nebo všechny filtrované, co jich grid má). */
   scopeRows() {
     if (this.selectScope === 'all') return (this.dataSource.allRows && this.dataSource.allRows()) || this.rows;
     return this.rows || [];
   }
 
-  /** Počet řádků odpovídajících filtru (pro popisek „všechny záznamy (N)"). */
+  /**
+   * Počet řádků na **aktuální stránce** — kolik jich je opravdu vidět (na poslední
+   * stránce jich bývá míň než `pageSize`). Popisek „Stránka (N)". `@v1.16.0`
+   */
+  pageCount() {
+    return (this.rows || []).length;
+  }
+
+  /**
+   * Počet **všech** záznamů odpovídajících filtru — i těch nezobrazených na dalších
+   * stránkách. Server-side je to `total` z odpovědi, client-side celá filtrovaná sada.
+   * Popisek „Všechny záznamy (N)".
+   */
   filteredCount() {
-    const rows = (this.dataSource.allRows && this.dataSource.allRows()) || this.rows;
-    return rows.length;
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (Array.isArray(all)) return all.length;
+    return Number.isFinite(this.total) ? this.total : (this.rows || []).length;
+  }
+
+  /** Počet vybraných záznamů (v režimu „vybráno vše" = všechny minus výjimky). */
+  selectedCount() {
+    if (this.selectAllFiltered) return Math.max(0, this.filteredCount() - this.selectExcept.size);
+    return this.selected.size;
   }
 
   /** Jsou vybrané všechny řádky aktuálního rozsahu? */
   isScopeAllSelected() {
+    if (this.selectAllFiltered) return this.selectScope === 'all' ? this.selectExcept.size === 0 : (this.rows || []).every((r) => this.isSelected(r));
     const rows = this.scopeRows();
-    return rows.length > 0 && rows.every((r) => this.selected.has(this.rowKey(r)));
+    return rows.length > 0 && rows.every((r) => this.isSelected(r));
   }
 
-  /** Vybere / odznačí celý aktuální rozsah (dle isScopeAllSelected). */
+  /**
+   * Vybere / odznačí celý aktuální rozsah (dle `isScopeAllSelected`).
+   *  - rozsah **'page'** = řádky, které jsou právě vidět,
+   *  - rozsah **'all'** = všechny filtrované záznamy. Když je grid client-side, vyjmenují
+   *    se klíče; server-side (klíče nezobrazených stránek grid nezná) se zapne režim
+   *    „vybráno vše" a odškrtnuté řádky se drží jako výjimky — na dalších stránkách
+   *    se výběr projeví, jakmile na ně uživatel vstoupí.
+   */
   toggleScopeSelection() {
-    const rows = this.scopeRows();
     const on = !this.isScopeAllSelected();
-    for (const r of rows) { const k = this.rowKey(r); if (on) this.selected.add(k); else this.selected.delete(k); }
+    if (this.selectScope === 'all') {
+      if (!on) return this.clearSelection();
+      const all = this.dataSource.allRows && this.dataSource.allRows();
+      if (Array.isArray(all)) {
+        this.selectAllFiltered = false;
+        this.selectExcept.clear();
+        for (const r of all) this.selected.add(this.rowKey(r));
+      } else {
+        this.selectAllFiltered = true;   // napříč stránkami: příznak + výjimky
+        this.selectExcept.clear();
+        this.selected.clear();
+      }
+      this._afterSelectionChange();
+      return;
+    }
+    // rozsah „stránka" — jen to, co je vidět
+    for (const r of (this.rows || [])) {
+      const k = this.rowKey(r);
+      if (this.selectAllFiltered) { if (on) this.selectExcept.delete(k); else this.selectExcept.add(k); }
+      else if (on) this.selected.add(k);
+      else this.selected.delete(k);
+    }
     this._afterSelectionChange();
+  }
+
+  /**
+   * Vybere **celou aktuální stránku** (a přepne na ni rozsah). Volba „Stránka (N)"
+   * v menu výběru — klik rovnou vybírá, nejen přepíná rozsah. `@v1.16.0`
+   */
+  selectPage() {
+    this.setSelectScope('page');
+    for (const r of (this.rows || [])) {
+      const k = this.rowKey(r);
+      if (this.selectAllFiltered) this.selectExcept.delete(k);
+      else this.selected.add(k);
+    }
+    this._afterSelectionChange();
+  }
+
+  /**
+   * Vybere **všechny filtrované záznamy** včetně nezobrazených (a přepne na ně rozsah).
+   * Volba „Všechny záznamy (N)" v menu výběru. `@v1.16.0`
+   */
+  selectAllRecords() {
+    this.setSelectScope('all');
+    this.selectAll();
+  }
+
+  /** Je vybraná celá aktuální stránka? (zvýraznění volby „Stránka" v menu) */
+  isPageAllSelected() {
+    const rows = this.rows || [];
+    return rows.length > 0 && rows.every((r) => this.isSelected(r));
+  }
+
+  /** Jsou vybrané všechny filtrované záznamy? (zvýraznění volby „Všechny záznamy") */
+  isAllRecordsSelected() {
+    if (this.selectAllFiltered) return this.selectExcept.size === 0;
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (!Array.isArray(all) || !all.length) return false;
+    return all.every((r) => this.isSelected(r));
   }
 
   /** Invertuje výběr v rámci aktuálního rozsahu (stránka nebo vše). */
   invertSelection() {
+    if (this.selectAllFiltered) {
+      // „vše kromě výjimek" → obráceně: vybrané jsou právě ty výjimky
+      this.selected = new Set(this.selectExcept);
+      this.selectAllFiltered = false;
+      this.selectExcept.clear();
+      this._afterSelectionChange();
+      return;
+    }
     for (const r of this.scopeRows()) {
       const k = this.rowKey(r);
       if (this.selected.has(k)) this.selected.delete(k); else this.selected.add(k);
@@ -2071,12 +2181,38 @@ export class Lattice {
     this._afterSelectionChange();
   }
 
-  clearSelection() { this.selected.clear(); this._afterSelectionChange(); }
+  clearSelection() {
+    this.selected.clear();
+    this.selectAllFiltered = false;
+    this.selectExcept.clear();
+    this._afterSelectionChange();
+  }
 
   /** Vybere všechny filtrované záznamy (bez ohledu na rozsah) — convenience API. */
   selectAll() {
-    for (const r of ((this.dataSource.allRows && this.dataSource.allRows()) || this.rows)) this.selected.add(this.rowKey(r));
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (Array.isArray(all)) {
+      for (const r of all) this.selected.add(this.rowKey(r));
+    } else {
+      this.selectAllFiltered = true;
+      this.selectExcept.clear();
+      this.selected.clear();
+    }
     this._afterSelectionChange();
+  }
+
+  /**
+   * Popis výběru pro aplikaci. V režimu „vybráno vše" (server-side napříč stránkami)
+   * nejsou klíče známé — aplikace dostane `all: true` + `excluded` a dotáhne si záznamy
+   * sama (typicky přes `getServerParams()` se stejným filtrem). `@v1.16.0`
+   */
+  getSelection() {
+    return {
+      all: this.selectAllFiltered,
+      count: this.selectedCount(),
+      keys: this.selectAllFiltered ? [] : [...this.selected],
+      excluded: this.selectAllFiltered ? [...this.selectExcept] : [],
+    };
   }
 
   getSelectedKeys() { return [...this.selected]; }
@@ -2084,12 +2220,24 @@ export class Lattice {
   /** Vybrané řádky jako objekty (z client dat, jinak z aktuální stránky). */
   getSelectedRows() {
     const src = this.dataSource.data || this.rows || [];
-    return src.filter((r) => this.selected.has(this.rowKey(r)));
+    return src.filter((r) => this.isSelected(r));
   }
 
   _afterSelectionChange() {
     this.renderer.updateSelectionUI();
-    if (this.options.onSelectionChange) this.options.onSelectionChange(this.getSelectedRows(), this.getSelectedKeys());
+    // 3. argument nese i režim „vybráno vše" (klíče nezobrazených stránek grid nezná).
+    if (this.options.onSelectionChange) this.options.onSelectionChange(this.getSelectedRows(), this.getSelectedKeys(), this.getSelection());
+  }
+
+  /**
+   * Změna filtru mění, co „všechny záznamy" znamená → režim „vybráno vše" se zruší,
+   * aby se výběr tiše nepřenesl na jinou množinu dat.
+   */
+  _resetSelectAllScope() {
+    if (!this.selectAllFiltered) return;
+    this.selectAllFiltered = false;
+    this.selectExcept.clear();
+    this._afterSelectionChange();
   }
 
   /**
@@ -2326,6 +2474,7 @@ export class Lattice {
   /** Filtry se změnily → options.onFilter({filters, universal, advanced}). */
   _emitFilter() {
     this.renderer.updateFilterClearBtn(); // ukázat/skrýt mazací ikonu v záhlaví
+    this._resetSelectAllScope();          // „vybráno vše" platilo pro předchozí filtr
     if (this.options.onFilter) this.options.onFilter({
       filters: JSON.parse(JSON.stringify(this.filters)),
       universal: this.universal ? { ...this.universal } : null,

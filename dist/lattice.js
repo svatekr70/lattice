@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.15.0";
+var VERSION = "1.16.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,18 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.16.0",
+    "date": "2026-08-21",
+    "text": 'V\xFDb\u011Br \u0159\xE1dk\u016F d\u011Bl\xE1 to, co slibuje: volby v menu rovnou vyb\xEDraj\xED, \u201EV\u0161echny z\xE1znamy" berou opravdu v\u0161echny filtrovan\xE9 z\xE1znamy (i nezobrazen\xE9 str\xE1nky) a po\u010Dty v popisc\xEDch sed\xED. Bez breaking changes.',
+    "items": [
+      'Volby \u201EStr\xE1nka" a \u201EV\u0161echny z\xE1znamy" nic nevybraly. Jen p\u0159ep\xEDnaly rozsah pro hlavi\u010Dkov\xFD checkbox, tak\u017Ee po kliknut\xED se navenek nestalo nic. Nov\u011B rovnou vyb\xEDraj\xED (selectPage() / selectAllRecords()) a\u2026',
+      '\u201EV\u0161echny z\xE1znamy" vyb\xEDraly jen na\u010Dtenou str\xE1nku. Server-side grid nezn\xE1 kl\xED\u010De nezobrazen\xFDch str\xE1nek, tak\u017Ee volba vybrala 50 \u0159\xE1dk\u016F a v popisku ukazovala \u201E(50)", i kdy\u017E filtru odpov\xEDdalo 365 z\xE1znam\u016F.\u2026',
+      'Popisek \u201EV\u0161echny z\xE1znamy (N)" ukazoval po\u010Det na\u010Dten\xFDch \u0159\xE1dk\u016F. Server-side bere N z total \u2014 tedy po\u010Det v\u0161ech filtrovan\xFDch z\xE1znam\u016F (365), ne velikost str\xE1nky.',
+      'Popisek \u201EStr\xE1nka (N)" \u2014 kolik \u0159\xE1dk\u016F je opravdu na aktu\xE1ln\xED str\xE1nce (na posledn\xED jich b\xFDv\xE1 m\xED\u0148 ne\u017E pageSize). Nov\xE9 metody pageCount(), selectedCount(), getSelection().',
+      '\u0160ipka \u201Erozsah a mo\u017Enosti v\xFDb\u011Bru" u hlavi\u010Dkov\xE9ho checkboxu je vid\u011Bt \u2014 m\xEDsto nen\xE1padn\xE9 te\u010Dky je to chevron 12 px s hover stavem (podbarven\xED + r\xE1me\u010Dek), tak\u017Ee je poznat, \u017Ee se tam n\u011Bco rozbaluje.'
+    ]
+  },
   {
     "version": "1.15.0",
     "date": "2026-08-21",
@@ -2746,19 +2758,6 @@ var RELEASES = [
       "\u03A3 ikona je aktivn\xED i p\u0159i zapnut\xE9m v\xE1\u017Een\xE9m souhrnu.",
       "Dialog Sloupce z\u016Fst\xE1v\xE1 otev\u0159en\xFD p\u0159i pr\xE1ci s jeho pod-popovery (souhrn/form\xE1t/skupina/barva/vzorec).",
       "Editor vzorce/souhrnu se neobjev\xED v rohu, kdy\u017E se p\u0159ekreslen\xEDm utrhne kotva."
-    ]
-  },
-  {
-    "version": "1.1.0",
-    "date": "2026-08-01",
-    "text": "Po\u010D\xEDtan\xE9 sloupce z UI \u2014 nov\xFD sloupec definovan\xFD vzorcem (formula): aritmetika, spojov\xE1n\xED textu, podm\xEDnky (if, tern\xE1r), datumov\xE9 v\xFDpo\u010Dty \xB7 Reference funkc\xED v editoru vzorce \u2014 prohled\xE1vateln\xFD seznam v kategori\xEDch (\u010C\xEDsla / Text / Logika / Datum) se z\xE1pisem a\u2026",
-    "items": [
-      "Po\u010D\xEDtan\xE9 sloupce z UI \u2014 nov\xFD sloupec definovan\xFD vzorcem (formula): aritmetika, spojov\xE1n\xED textu, podm\xEDnky (if, tern\xE1r), datumov\xE9 v\xFDpo\u010Dty. Bezpe\u010Dn\xE9 vyhodnocen\xED vlastn\xEDm parserem (bez eval/new\u2026",
-      "Reference funkc\xED v editoru vzorce \u2014 prohled\xE1vateln\xFD seznam v kategori\xEDch (\u010C\xEDsla / Text / Logika / Datum) se z\xE1pisem a popisem; klik funkci vlo\u017E\xED do vzorce.",
-      "V\xE1\u017Een\xFD / poolovan\xFD souhrn sloupce vzorcem z agregac\xED jin\xFDch sloupc\u016F (summaryFormula) \u2014 funkce sum/avg/count/min/max/median nad v\xFDrazem. Umo\u017En\xED matematicky spr\xE1vn\xE9 pom\u011Bry sou\u010Dt\u016F (\u03A3a/\u03A3b) i v\xE1\u017Een\xE9\u2026",
-      "Presety a glob\xE1ln\xED nastaven\xED \u2014 nov\xE1 vy\u010Derp\xE1vaj\xEDc\xED sekce v docs/API.md: kompletn\xED kontrakt glob\xE1ln\xEDch preset\u016F (globalPresets, onSaveGlobalPreset, onDeleteGlobalPreset) i glob\xE1ln\xEDch v\xFDchoz\xEDch\u2026",
-      'U\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka: sekce \u201EPo\u010D\xEDtan\xFD sloupec (vlastn\xED vzorec)" a \u201EV\xE1\u017Een\xFD souhrn vzorcem" s obr\xE1zky.',
-      'Demo: p\u0159\xEDklad \u201EComputed (odvozen\xE9) sloupce" p\u0159ejmenov\xE1n na \u201EPo\u010D\xEDtan\xE9 sloupce" (sjednocen\xED s p\u0159\xEDru\u010Dkou i aplikac\xED).'
     ]
   }
 ];
@@ -5595,8 +5594,8 @@ var cs_default = {
     summaryCount: "Po\u010Det (nepr\xE1zdn\xFDch)"
   },
   summary: {
-    scopePage: "Str\xE1nka",
-    scopeAll: "V\u0161e",
+    scopePage: "Str\xE1nka ({n})",
+    scopeAll: "V\u0161echny z\xE1znamy ({n})",
     scopePageLong: "Zobrazen\xE1 str\xE1nka",
     scopeAllLong: "V\u0161echny z\xE1znamy",
     scopeToggle: "P\u0159epnout rozsah souhrnu (zobrazen\xE1 str\xE1nka / v\u0161echny z\xE1znamy)",
@@ -5954,7 +5953,7 @@ var cs_default = {
     repeat: "Opakovat hodnoty skupin v \u0159\xE1dc\xEDch",
     parts: { year: "Rok", quarter: "Kvart\xE1l", month: "M\u011Bs\xEDc", week: "T\xFDden", weekday: "Den v t\xFDdnu", day: "Den v m\u011Bs\xEDci", hour: "Hodina", minute: "Minuta" }
   },
-  select: { scopePage: "Str\xE1nka", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
+  select: { scopePage: "Str\xE1nka ({n})", scopeAll: "V\u0161echny z\xE1znamy ({n})", invert: "Invertovat v\xFDb\u011Br", none: "Zru\u0161it v\xFDb\u011Br", menu: "Rozsah a mo\u017Enosti v\xFDb\u011Bru" },
   move: { drag: "P\u0159et\xE1hnout \u0159\xE1dek" },
   actions: { title: "Akce", view: "Zobrazit", edit: "Upravit", delete: "Smazat" },
   tree: { collapseAll: "Sbalit v\u0161e", expandAll: "Rozbalit v\u0161e", level: "\xDArove\u0148", levelUp: "Rozbalit dal\u0161\xED \xFArove\u0148", levelDown: "Sbalit o \xFArove\u0148" },
@@ -6131,8 +6130,8 @@ var en_default = {
     summaryCount: "Count (non-empty)"
   },
   summary: {
-    scopePage: "Page",
-    scopeAll: "All",
+    scopePage: "Page ({n})",
+    scopeAll: "All records ({n})",
     scopePageLong: "Displayed page",
     scopeAllLong: "All records",
     scopeToggle: "Toggle summary scope (displayed page / all records)",
@@ -6490,7 +6489,7 @@ var en_default = {
     repeat: "Repeat group values in rows",
     parts: { year: "Year", quarter: "Quarter", month: "Month", week: "Week", weekday: "Weekday", day: "Day of month", hour: "Hour", minute: "Minute" }
   },
-  select: { scopePage: "Page", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
+  select: { scopePage: "Page ({n})", scopeAll: "All records ({n})", invert: "Invert selection", none: "Clear selection", menu: "Selection scope & options" },
   move: { drag: "Drag to reorder" },
   actions: { title: "Actions", view: "View", edit: "Edit", delete: "Delete" },
   tree: { collapseAll: "Collapse all", expandAll: "Expand all", level: "Level", levelUp: "Expand one more level", levelDown: "Collapse one level" },
@@ -7989,14 +7988,14 @@ var Renderer = class {
     if (col._select) {
       const cell2 = el("div.lattice-hcell.lattice-select-cell", { dataset: { field: col.field }, class: "is-center" });
       if (grid.selectable.mode !== "single") {
-        const scopeLabel = grid.selectScope === "all" ? grid.i18n.t("select.scopeAll", { n: grid.filteredCount() }) : grid.i18n.t("select.scopePage");
+        const scopeLabel = grid.selectScope === "all" ? grid.i18n.t("select.scopeAll", { n: grid.filteredCount() }) : grid.i18n.t("select.scopePage", { n: grid.pageCount() });
         const cb = el("input.lattice-select-all", { type: "checkbox", title: scopeLabel });
         cb.addEventListener("click", (e) => {
           e.stopPropagation();
           grid.toggleScopeSelection();
         });
         cell2.appendChild(cb);
-        const caret = el("button.lattice-select-menu", { type: "button", title: grid.i18n.t("select.menu"), text: "\u25BE" });
+        const caret = el("button.lattice-select-menu", { type: "button", title: grid.i18n.t("select.menu"), html: CHEVRON_SVG });
         caret.addEventListener("click", (e) => {
           e.stopPropagation();
           this.openSelectMenu(caret);
@@ -8359,7 +8358,7 @@ var Renderer = class {
     if (!bar) return;
     const grid = this.grid;
     const actions = grid.options.selectionActions;
-    const n = grid.selected.size;
+    const n = grid.selectedCount();
     clear(bar);
     if (!grid.isSelectable() || !Array.isArray(actions) || !actions.length || n === 0) {
       bar.classList.remove("is-active");
@@ -8417,28 +8416,35 @@ var Renderer = class {
     if (!grid.isSelectable()) return;
     const cb = this.nodes.headerRow.querySelector(".lattice-select-all");
     if (!cb) return;
-    const rows = grid.scopeRows();
-    let sel = 0;
-    for (const r of rows) if (grid.selected.has(grid.rowKey(r))) sel++;
-    cb.checked = rows.length > 0 && sel === rows.length;
-    cb.indeterminate = sel > 0 && sel < rows.length;
-    cb.title = grid.selectScope === "all" ? grid.i18n.t("select.scopeAll", { n: grid.filteredCount() }) : grid.i18n.t("select.scopePage");
+    if (grid.selectAllFiltered) {
+      const excluded = grid.selectExcept.size;
+      cb.checked = excluded === 0;
+      cb.indeterminate = excluded > 0 && grid.selectedCount() > 0;
+    } else {
+      const rows = grid.scopeRows();
+      let sel = 0;
+      for (const r of rows) if (grid.isSelected(r)) sel++;
+      cb.checked = rows.length > 0 && sel === rows.length;
+      cb.indeterminate = sel > 0 && sel < rows.length;
+    }
+    cb.title = grid.selectScope === "all" ? grid.i18n.t("select.scopeAll", { n: grid.filteredCount() }) : grid.i18n.t("select.scopePage", { n: grid.pageCount() });
   }
   /**
-   * Menu výběru: přepínač rozsahu (Stránka / Všechny záznamy) + invertovat + zrušit.
-   * Rozsah určuje, na co se vztahuje horní checkbox i invertování.
+   * Menu výběru: **vybrat stránku / vybrat všechny záznamy** + invertovat + zrušit.
+   * První dvě volby rovnou vybírají (a nastaví rozsah, se kterým pak pracuje horní
+   * checkbox i invertování); zvýrazněná je ta, jejíž rozsah je právě celý vybraný.
    */
   openSelectMenu(anchor) {
     const g = this.grid;
     const t = g.i18n.t.bind(g.i18n);
     openMenu(anchor, [
-      { value: "scope-page", label: t("select.scopePage"), active: g.selectScope === "page" },
-      { value: "scope-all", label: t("select.scopeAll", { n: g.filteredCount() }), active: g.selectScope === "all" },
+      { value: "page", label: t("select.scopePage", { n: g.pageCount() }), active: g.isPageAllSelected() },
+      { value: "all", label: t("select.scopeAll", { n: g.filteredCount() }), active: g.isAllRecordsSelected() },
       { value: "invert", label: t("select.invert") },
       { value: "none", label: t("select.none") }
     ], (v) => {
-      if (v === "scope-page") g.setSelectScope("page");
-      else if (v === "scope-all") g.setSelectScope("all");
+      if (v === "page") g.selectPage();
+      else if (v === "all") g.selectAllRecords();
       else if (v === "invert") g.invertSelection();
       else g.clearSelection();
     });
@@ -11842,6 +11848,8 @@ var Lattice = class {
     this.selectable = normSelectable(options.selectable);
     this.selected = /* @__PURE__ */ new Set();
     this.selectScope = "page";
+    this.selectAllFiltered = false;
+    this.selectExcept = /* @__PURE__ */ new Set();
     this.highlightedKeys = new Set(this.state.highlighted || []);
     this.serverSide = !!options.serverSide;
     this.dataSource = this.serverSide ? new ServerData(resolveAjax(options)) : new ClientData(options.data || []);
@@ -13547,11 +13555,19 @@ var Lattice = class {
   }
   /** Je řádek (objekt nebo klíč) vybraný? */
   isSelected(row) {
-    return this.selected.has(typeof row === "object" && row !== null ? this.rowKey(row) : String(row));
+    const key = typeof row === "object" && row !== null ? this.rowKey(row) : String(row);
+    if (this.selectAllFiltered) return !this.selectExcept.has(key);
+    return this.selected.has(key);
   }
   /** Nastaví výběr jednoho řádku (respektuje single/max). */
   setRowSelected(key, on) {
     key = String(key);
+    if (this.selectAllFiltered) {
+      if (on) this.selectExcept.delete(key);
+      else this.selectExcept.add(key);
+      this._afterSelectionChange();
+      return;
+    }
     if (on) {
       if (this.selectable.mode === "single") this.selected.clear();
       if (this.selectable.max && !this.selected.has(key) && this.selected.size >= this.selectable.max) {
@@ -13564,13 +13580,17 @@ var Lattice = class {
     this._afterSelectionChange();
   }
   toggleRow(key) {
-    this.setRowSelected(key, !this.selected.has(String(key)));
+    this.setRowSelected(key, !this.isSelected(String(key)));
   }
   /** Hromadně nastaví výběr sady klíčů (pro shift-výběr rozsahu). */
   selectKeys(keys, on) {
     for (const k of keys) {
-      if (on) this.selected.add(String(k));
-      else this.selected.delete(String(k));
+      const key = String(k);
+      if (this.selectAllFiltered) {
+        if (on) this.selectExcept.delete(key);
+        else this.selectExcept.add(key);
+      } else if (on) this.selected.add(key);
+      else this.selected.delete(key);
     }
     this._afterSelectionChange();
   }
@@ -13582,34 +13602,116 @@ var Lattice = class {
     this.selectScope = scope === "all" ? "all" : "page";
     this.renderer.updateSelectAllCheckbox();
   }
-  /** Řádky aktuálního rozsahu (stránka nebo všechny filtrované). */
+  /** Řádky aktuálního rozsahu (stránka nebo všechny filtrované, co jich grid má). */
   scopeRows() {
     if (this.selectScope === "all") return this.dataSource.allRows && this.dataSource.allRows() || this.rows;
     return this.rows || [];
   }
-  /** Počet řádků odpovídajících filtru (pro popisek „všechny záznamy (N)"). */
+  /**
+   * Počet řádků na **aktuální stránce** — kolik jich je opravdu vidět (na poslední
+   * stránce jich bývá míň než `pageSize`). Popisek „Stránka (N)". `@v1.16.0`
+   */
+  pageCount() {
+    return (this.rows || []).length;
+  }
+  /**
+   * Počet **všech** záznamů odpovídajících filtru — i těch nezobrazených na dalších
+   * stránkách. Server-side je to `total` z odpovědi, client-side celá filtrovaná sada.
+   * Popisek „Všechny záznamy (N)".
+   */
   filteredCount() {
-    const rows = this.dataSource.allRows && this.dataSource.allRows() || this.rows;
-    return rows.length;
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (Array.isArray(all)) return all.length;
+    return Number.isFinite(this.total) ? this.total : (this.rows || []).length;
+  }
+  /** Počet vybraných záznamů (v režimu „vybráno vše" = všechny minus výjimky). */
+  selectedCount() {
+    if (this.selectAllFiltered) return Math.max(0, this.filteredCount() - this.selectExcept.size);
+    return this.selected.size;
   }
   /** Jsou vybrané všechny řádky aktuálního rozsahu? */
   isScopeAllSelected() {
+    if (this.selectAllFiltered) return this.selectScope === "all" ? this.selectExcept.size === 0 : (this.rows || []).every((r) => this.isSelected(r));
     const rows = this.scopeRows();
-    return rows.length > 0 && rows.every((r) => this.selected.has(this.rowKey(r)));
+    return rows.length > 0 && rows.every((r) => this.isSelected(r));
   }
-  /** Vybere / odznačí celý aktuální rozsah (dle isScopeAllSelected). */
+  /**
+   * Vybere / odznačí celý aktuální rozsah (dle `isScopeAllSelected`).
+   *  - rozsah **'page'** = řádky, které jsou právě vidět,
+   *  - rozsah **'all'** = všechny filtrované záznamy. Když je grid client-side, vyjmenují
+   *    se klíče; server-side (klíče nezobrazených stránek grid nezná) se zapne režim
+   *    „vybráno vše" a odškrtnuté řádky se drží jako výjimky — na dalších stránkách
+   *    se výběr projeví, jakmile na ně uživatel vstoupí.
+   */
   toggleScopeSelection() {
-    const rows = this.scopeRows();
     const on = !this.isScopeAllSelected();
-    for (const r of rows) {
+    if (this.selectScope === "all") {
+      if (!on) return this.clearSelection();
+      const all = this.dataSource.allRows && this.dataSource.allRows();
+      if (Array.isArray(all)) {
+        this.selectAllFiltered = false;
+        this.selectExcept.clear();
+        for (const r of all) this.selected.add(this.rowKey(r));
+      } else {
+        this.selectAllFiltered = true;
+        this.selectExcept.clear();
+        this.selected.clear();
+      }
+      this._afterSelectionChange();
+      return;
+    }
+    for (const r of this.rows || []) {
       const k = this.rowKey(r);
-      if (on) this.selected.add(k);
+      if (this.selectAllFiltered) {
+        if (on) this.selectExcept.delete(k);
+        else this.selectExcept.add(k);
+      } else if (on) this.selected.add(k);
       else this.selected.delete(k);
     }
     this._afterSelectionChange();
   }
+  /**
+   * Vybere **celou aktuální stránku** (a přepne na ni rozsah). Volba „Stránka (N)"
+   * v menu výběru — klik rovnou vybírá, nejen přepíná rozsah. `@v1.16.0`
+   */
+  selectPage() {
+    this.setSelectScope("page");
+    for (const r of this.rows || []) {
+      const k = this.rowKey(r);
+      if (this.selectAllFiltered) this.selectExcept.delete(k);
+      else this.selected.add(k);
+    }
+    this._afterSelectionChange();
+  }
+  /**
+   * Vybere **všechny filtrované záznamy** včetně nezobrazených (a přepne na ně rozsah).
+   * Volba „Všechny záznamy (N)" v menu výběru. `@v1.16.0`
+   */
+  selectAllRecords() {
+    this.setSelectScope("all");
+    this.selectAll();
+  }
+  /** Je vybraná celá aktuální stránka? (zvýraznění volby „Stránka" v menu) */
+  isPageAllSelected() {
+    const rows = this.rows || [];
+    return rows.length > 0 && rows.every((r) => this.isSelected(r));
+  }
+  /** Jsou vybrané všechny filtrované záznamy? (zvýraznění volby „Všechny záznamy") */
+  isAllRecordsSelected() {
+    if (this.selectAllFiltered) return this.selectExcept.size === 0;
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (!Array.isArray(all) || !all.length) return false;
+    return all.every((r) => this.isSelected(r));
+  }
   /** Invertuje výběr v rámci aktuálního rozsahu (stránka nebo vše). */
   invertSelection() {
+    if (this.selectAllFiltered) {
+      this.selected = new Set(this.selectExcept);
+      this.selectAllFiltered = false;
+      this.selectExcept.clear();
+      this._afterSelectionChange();
+      return;
+    }
     for (const r of this.scopeRows()) {
       const k = this.rowKey(r);
       if (this.selected.has(k)) this.selected.delete(k);
@@ -13619,12 +13721,34 @@ var Lattice = class {
   }
   clearSelection() {
     this.selected.clear();
+    this.selectAllFiltered = false;
+    this.selectExcept.clear();
     this._afterSelectionChange();
   }
   /** Vybere všechny filtrované záznamy (bez ohledu na rozsah) — convenience API. */
   selectAll() {
-    for (const r of this.dataSource.allRows && this.dataSource.allRows() || this.rows) this.selected.add(this.rowKey(r));
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    if (Array.isArray(all)) {
+      for (const r of all) this.selected.add(this.rowKey(r));
+    } else {
+      this.selectAllFiltered = true;
+      this.selectExcept.clear();
+      this.selected.clear();
+    }
     this._afterSelectionChange();
+  }
+  /**
+   * Popis výběru pro aplikaci. V režimu „vybráno vše" (server-side napříč stránkami)
+   * nejsou klíče známé — aplikace dostane `all: true` + `excluded` a dotáhne si záznamy
+   * sama (typicky přes `getServerParams()` se stejným filtrem). `@v1.16.0`
+   */
+  getSelection() {
+    return {
+      all: this.selectAllFiltered,
+      count: this.selectedCount(),
+      keys: this.selectAllFiltered ? [] : [...this.selected],
+      excluded: this.selectAllFiltered ? [...this.selectExcept] : []
+    };
   }
   getSelectedKeys() {
     return [...this.selected];
@@ -13632,11 +13756,21 @@ var Lattice = class {
   /** Vybrané řádky jako objekty (z client dat, jinak z aktuální stránky). */
   getSelectedRows() {
     const src = this.dataSource.data || this.rows || [];
-    return src.filter((r) => this.selected.has(this.rowKey(r)));
+    return src.filter((r) => this.isSelected(r));
   }
   _afterSelectionChange() {
     this.renderer.updateSelectionUI();
-    if (this.options.onSelectionChange) this.options.onSelectionChange(this.getSelectedRows(), this.getSelectedKeys());
+    if (this.options.onSelectionChange) this.options.onSelectionChange(this.getSelectedRows(), this.getSelectedKeys(), this.getSelection());
+  }
+  /**
+   * Změna filtru mění, co „všechny záznamy" znamená → režim „vybráno vše" se zruší,
+   * aby se výběr tiše nepřenesl na jinou množinu dat.
+   */
+  _resetSelectAllScope() {
+    if (!this.selectAllFiltered) return;
+    this.selectAllFiltered = false;
+    this.selectExcept.clear();
+    this._afterSelectionChange();
   }
   /**
    * Serverové request parametry, které by grid právě teď poslal (sort/filter/search/advanced
@@ -13851,6 +13985,7 @@ var Lattice = class {
   /** Filtry se změnily → options.onFilter({filters, universal, advanced}). */
   _emitFilter() {
     this.renderer.updateFilterClearBtn();
+    this._resetSelectAllScope();
     if (this.options.onFilter) this.options.onFilter({
       filters: JSON.parse(JSON.stringify(this.filters)),
       universal: this.universal ? { ...this.universal } : null,
