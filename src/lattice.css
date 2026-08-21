@@ -272,14 +272,15 @@
   padding: 4px 6px;
   border-bottom: 1px solid var(--lattice-border);
 }
-/* ---------- rychlá řada tlačítek (presety + uložené filtry) ----------
-   Vlastní řádek nad ikonami toolbaru (width:100% → flex-wrap ho zalomí), zarovnaný
-   vpravo. Dvě skupiny vedle sebe oddělené svislou linkou: vlevo presety, vpravo filtry.
-   Čtyři druhy se čtou bez popisků: IKONA = druh (záložka = preset, trychtýř = filtr),
-   BARVA = rozsah (šedá = můj, modrá + modrý rámeček = globální). Aktivní = vyplněný akcent. */
-.lattice-quickbar { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 10px; }
-.lattice-qb-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.lattice-qb-group + .lattice-qb-group { padding-left: 10px; border-left: 1px solid var(--lattice-border); }
+/* ---------- rychlá tlačítka uložených pohledů ----------
+   PRESETY: vlastní řádek nad ikonami (`.lattice-quickbar` má width:100% → flex-wrap ho
+   zalomí), zarovnaný vpravo. Bez presetů se řádek nevykreslí a záhlaví zůstane úzké.
+   FILTRY: v téže řadě jako ikony, hned vlevo od nich (uložených filtrů bývá víc).
+   Druhy se čtou bez popisků: IKONA = druh (záložka = preset, trychtýř = filtr),
+   BARVA = rozsah (šedá = můj, modrá + modré pozadí = globální). Aktivní = vyplněný akcent. */
+.lattice-quickbar { width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; }
+.lattice-qb-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.lattice-qb-group.is-filters { margin-right: 4px; }
 .lattice-qb-btn {
   display: inline-flex; align-items: center; gap: 5px;
   height: 24px; padding: 0 10px;

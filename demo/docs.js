@@ -405,6 +405,7 @@ function docPresety(root) {
   build(root, [
     h2('Presety a globální nastavení'),
     lead('Uložené pohledy a globální výchozí konfigurace, kterou správce prosadí ostatním.'),
+    note('<b>Názvosloví:</b> v API je to <code>preset</code>, v UI (i v uživatelské příručce) se jim říká <b>pohledy</b> — výběr v toolbaru má placeholder <i>„— pohledy —"</i>.'),
 
     h3('Co preset nese'),
     p('Nad polem s názvem si uživatel zaškrtne části, které se uloží — preset pak mění <b>jen ty části, které obsahuje</b> (chybějící nechá, jak je).'),
@@ -418,8 +419,8 @@ function docPresety(root) {
     h3('Kde se preset ukáže (v1.14.0)'),
     p('Při ukládání (a kdykoli potom přepínači v řádku presetu) si uživatel volí, kam se preset propíše — stejná dvojice voleb jako u uložených filtrů:'),
     table(['Volba', 'Klíč', 'Kde se objeví'], [
-      ['<b>tlačítko</b>', '<code>asButton</code>', 'pilulka v rychlé řadě nad ikonami toolbaru (ikona <b>záložky</b>; globální je modrá, lokální šedá)'],
-      ['<b>výběr</b>', '<code>asSelect</code>', 'rozbalovací výběr „uložené pohledy" v toolbaru, ve skupině <i>Presety</i> (uložené filtry mají skupinu <i>Filtry</i>)'],
+      ['<b>tlačítko</b>', '<code>asButton</code>', 'pilulka ve vlastní řadě nad ikonami toolbaru (ikona <b>záložky</b>; globální je modrá, lokální šedá). Bez takového presetu se řádek nevykreslí — tlačítka uložených <i>filtrů</i> jsou v řadě ikon, vlevo od filtračních ikon'],
+      ['<b>výběr</b>', '<code>asSelect</code>', 'rozbalovací výběr <i>„— pohledy —"</i> v toolbaru (vpravo vedle výběru uložených filtrů)'],
       ['<i>nic</i>', '—', 'preset zůstane jen v panelu „Sloupce" (výchozí)'],
     ]),
     p('Programově: <code>presets.saveLocal(name, parts, { button: true, select: true })</code>, přepnutí u uloženého <code>presets.setDisplay(preset, \'asButton\', true)</code>. Čtení pro UI: <code>grid.buttonPresets()</code> / <code>grid.selectPresets()</code> (u filtrů <code>buttonAdvanced()</code> / <code>selectAdvanced()</code> a <code>grid.setAdvancedDisplay(id, key, on)</code>).'),

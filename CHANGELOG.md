@@ -14,15 +14,17 @@ je poznat, co je co, bez popisků. Bez breaking changes.
 - **Preset jako tlačítko / ve výběru.** V panelu presetů („Sloupce") jsou vedle pole s názvem
   zaškrtávátka **tlačítko** a **výběr**; u každého už uloženého presetu jsou tytéž dva přepínače
   přímo v jeho řádku, takže se kvůli změně nemusí ukládat znovu. Klik na pilulku preset použije.
-- **Rychlá řada tlačítek rozlišuje čtyři druhy položek** — globální/lokální preset a globální/lokální
-  filtr — a nezabere kvůli tomu víc místa: **ikona = druh** (záložka = preset, trychtýř = filtr),
-  **barva = rozsah** (šedá na bílé = jen moje, modrá na světle modré = globální). Presety a filtry
-  stojí ve **dvou skupinách vedle sebe** oddělených svislou linkou; aktivní položka je vyplněná
-  akcentem. Tooltip říká druh i rozsah slovy, u presetu i to, které části nese.
+- **Tlačítka rozlišují čtyři druhy položek** — globální/lokální preset a globální/lokální filtr —
+  a nezaberou kvůli tomu víc místa: **ikona = druh** (záložka = preset, trychtýř = filtr),
+  **barva = rozsah** (šedá na bílé = jen moje, modrá na světle modré = globální); aktivní položka
+  je vyplněná akcentem. Tooltip říká druh i rozsah slovy, u presetu i to, které části nese.
+- **Rozmístění v záhlaví:** tlačítka **uložených filtrů** jsou v řadě ikon hned **vlevo od
+  filtračních ikon**, tlačítka **presetů** o **řádek výš** — bez presetu jako tlačítka se ten
+  řádek vůbec nevykreslí a záhlaví zůstane jednořádkové.
 - **Volba „jako výběr" u uložených filtrů** (panel rozšířeného filtru i „Uložit sloupcové filtry").
-  Rozbalovací výběr v toolbaru je teď **společný pro presety i filtry** — když jsou v něm obojí,
-  rozdělí se do skupin **Presety** / **Filtry** (`<optgroup>`), globální nesou glóbus 🌐.
-  Filtrů i pohledů tak může být hodně, aniž by zaplavily záhlaví.
+  V toolbaru jsou vedle sebe **dva výběry**: vlevo **„— uložené filtry —"**, vpravo **„— pohledy —"**
+  (každý jen když v něm něco je); globální položky nesou glóbus 🌐. Filtrů i pohledů tak může být
+  hodně, aniž by zaplavily záhlaví. Vyprázdnění výběru presetů vrátí výchozí zobrazení.
 - **Druhý klik na tlačítko presetu vrátí výchozí zobrazení.** Preset se tak přepíná stejně jako
   uložený filtr. „Výchozí zobrazení" = sloupce a nastavení tabulky jako po startu bez presetu;
   **filtry, řazení i rychlé hledání zůstávají v platnosti**, protože to není součást zobrazení.
@@ -43,6 +45,9 @@ je poznat, co je co, bez popisků. Bez breaking changes.
   `setDisplay(preset, key, on)`, kde `display` je `{ button, select }`.
 
 ### Změněno
+- **Presetům se v UI říká „pohledy".** Všechny uživatelské texty (panel v dialogu „Sloupce",
+  tooltipy, placeholder výběru `— pohledy —`) mluví o **pohledech**; v API a dokumentaci pro
+  vývojáře zůstává `preset` beze změny.
 - **`saveAdvanced(name, tree, scope, display)` a `saveFilterSnapshot(name, scope, display)`**
   berou místo booleanu `asButton` objekt `{ button, select }`. **Legacy boolean funguje dál**
   se stejným významem jako dosud (`true` = jen tlačítko, `false` = jen výběr) a uložené položky

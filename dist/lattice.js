@@ -5282,13 +5282,13 @@ var cs_default = {
     name: { sum: "Sou\u010Det", avg: "Pr\u016Fm\u011Br", min: "Minimum", max: "Maximum", count: "Po\u010Det" }
   },
   presets: {
-    none: "(\u017E\xE1dn\xE9 ulo\u017Een\xE9 presety)",
-    namePlaceholder: "N\xE1zev presetu\u2026",
-    saveLocal: "Ulo\u017Eit preset (jen pro m\u011B)",
+    none: "(\u017E\xE1dn\xE9 ulo\u017Een\xE9 pohledy)",
+    namePlaceholder: "N\xE1zev pohledu\u2026",
+    saveLocal: "Ulo\u017Eit pohled (jen pro m\u011B)",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B (pro v\u0161echny)",
     searchColumn: "Hledat sloupec\u2026",
-    global: "Glob\xE1ln\xED preset",
-    partsLabel: "Ulo\u017Eit do presetu:",
+    global: "Glob\xE1ln\xED pohled",
+    partsLabel: "Ulo\u017Eit do pohledu:",
     partColumns: "Sloupce",
     partColumnsHint: "Po\u0159ad\xED, viditelnost, \u0161\xED\u0159ky, ukotven\xED, souhrny, form\xE1ty a barvy sloupc\u016F.",
     partFilters: "Filtry a \u0159azen\xED",
@@ -5297,23 +5297,22 @@ var cs_default = {
     partInstanceHint: "Seskupen\xED \u0159\xE1dk\u016F, souhrnn\xFD \u0159\xE1dek, mezisou\u010Dty skupin, str\xE1nkov\xE1n\xED, vzhled a form\xE1t hodnot.",
     partsNone: "nic",
     asButton: "tla\u010D\xEDtko",
-    asButtonHint: "Zobrazit tento preset jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = pou\u017E\xEDt).",
+    asButtonHint: "Zobrazit tento pohled jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = pou\u017E\xEDt).",
     asSelect: "v\xFDb\u011Br",
-    asSelectHint: "Nab\xEDdnout tento preset v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky."
+    asSelectHint: "Nab\xEDdnout tento pohled v rozbalovac\xEDm v\xFDb\u011Bru pohled\u016F v z\xE1hlav\xED tabulky."
   },
   quickbar: {
-    presets: "Presety",
+    presets: "Pohledy",
     filters: "Filtry",
-    globalPreset: "Glob\xE1ln\xED preset",
-    myPreset: "M\u016Fj preset",
+    globalPreset: "Glob\xE1ln\xED pohled",
+    myPreset: "M\u016Fj pohled",
     globalFilter: "Glob\xE1ln\xED filtr",
     myFilter: "M\u016Fj filtr",
-    selectTitle: "Ulo\u017Een\xE9 pohledy (presety a filtry)",
-    selectPlaceholder: "\u2014 ulo\u017Een\xE9 pohledy \u2014",
-    presetOn: "Klik = pou\u017E\xEDt preset",
+    presetsPlaceholder: "\u2014 pohledy \u2014",
+    presetOn: "Klik = pou\u017E\xEDt pohled",
     presetOff: "Klik = zp\u011Bt na v\xFDchoz\xED zobrazen\xED (filtry z\u016Fstanou)",
     filterToggle: "Klik = zapnout/vypnout",
-    applyPreset: "Pou\u017E\xEDt preset",
+    applyPreset: "Pou\u017E\xEDt pohled",
     resetView: "Zp\u011Bt na v\xFDchoz\xED zobrazen\xED",
     applyFilter: "Zapnout filtr",
     clearFilter: "Vypnout filtr",
@@ -5563,9 +5562,9 @@ var cs_default = {
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
     asButton: "tla\u010D\xEDtko",
-    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko vlevo od filtra\u010Dn\xEDch ikon (klik = zapnout/vypnout).",
     asSelect: "v\xFDb\u011Br",
-    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky.",
+    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F v z\xE1hlav\xED tabulky.",
     remove: "Odebrat",
     delete: "Smazat ulo\u017Een\xFD filtr",
     ops: {
@@ -5595,9 +5594,9 @@ var cs_default = {
     rename: "P\u0159ejmenovat (jde i dvojklikem na n\xE1zev)",
     namePlaceholder: "N\xE1zev filtru\u2026",
     asButton: "tla\u010D\xEDtko",
-    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = zapnout/vypnout).",
+    asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko vlevo od filtra\u010Dn\xEDch ikon (klik = zapnout/vypnout).",
     asSelect: "v\xFDb\u011Br",
-    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch pohled\u016F v z\xE1hlav\xED tabulky.",
+    asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F v z\xE1hlav\xED tabulky.",
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
     none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
@@ -5803,13 +5802,13 @@ var en_default = {
     name: { sum: "Sum", avg: "Average", min: "Minimum", max: "Maximum", count: "Count" }
   },
   presets: {
-    none: "(no saved presets)",
-    namePlaceholder: "Preset name\u2026",
-    saveLocal: "Save preset (only me)",
+    none: "(no saved views)",
+    namePlaceholder: "View name\u2026",
+    saveLocal: "Save view (only me)",
     saveGlobal: "Save globally (everyone)",
     searchColumn: "Search column\u2026",
-    global: "Global preset",
-    partsLabel: "Save into preset:",
+    global: "Global view",
+    partsLabel: "Save into view:",
     partColumns: "Columns",
     partColumnsHint: "Order, visibility, widths, freezing, summaries, formats and header colors.",
     partFilters: "Filters & sorting",
@@ -5818,23 +5817,22 @@ var en_default = {
     partInstanceHint: "Row grouping, summary row, group subtotals, pagination, appearance and value formats.",
     partsNone: "nothing",
     asButton: "button",
-    asButtonHint: "Show this preset as a button in the row above the icons (click to apply).",
+    asButtonHint: "Show this view as a button in the row above the icons (click to apply).",
     asSelect: "select",
-    asSelectHint: "Offer this preset in the saved-views dropdown in the table header."
+    asSelectHint: "Offer this view in the views dropdown in the table header."
   },
   quickbar: {
-    presets: "Presets",
+    presets: "Views",
     filters: "Filters",
-    globalPreset: "Global preset",
-    myPreset: "My preset",
+    globalPreset: "Global view",
+    myPreset: "My view",
     globalFilter: "Global filter",
     myFilter: "My filter",
-    selectTitle: "Saved views (presets and filters)",
-    selectPlaceholder: "\u2014 saved views \u2014",
-    presetOn: "Click to apply the preset",
+    presetsPlaceholder: "\u2014 views \u2014",
+    presetOn: "Click to apply the view",
     presetOff: "Click to return to the default view (filters stay)",
     filterToggle: "Click to toggle on/off",
-    applyPreset: "Apply preset",
+    applyPreset: "Apply view",
     resetView: "Back to the default view",
     applyFilter: "Turn the filter on",
     clearFilter: "Turn the filter off",
@@ -6084,9 +6082,9 @@ var en_default = {
     save: "Save",
     saveGlobal: "Save globally",
     asButton: "button",
-    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    asButtonHint: "Show this saved filter as a button left of the filter icons (click to toggle on/off).",
     asSelect: "select",
-    asSelectHint: "Offer this filter in the saved-views dropdown in the table header.",
+    asSelectHint: "Offer this filter in the saved-filters dropdown in the table header.",
     remove: "Remove",
     delete: "Delete saved filter",
     ops: {
@@ -6116,9 +6114,9 @@ var en_default = {
     rename: "Rename (double-clicking the name works too)",
     namePlaceholder: "Filter name\u2026",
     asButton: "button",
-    asButtonHint: "Show this saved filter as a button in the row above the icons (click to toggle on/off).",
+    asButtonHint: "Show this saved filter as a button left of the filter icons (click to toggle on/off).",
     asSelect: "select",
-    asSelectHint: "Offer this filter in the saved-views dropdown in the table header.",
+    asSelectHint: "Offer this filter in the saved-filters dropdown in the table header.",
     save: "Save",
     saveGlobal: "Save globally",
     none: "Nothing saved yet",
@@ -8846,60 +8844,63 @@ var Renderer = class {
     return wrap;
   }
   /**
-   * Řada rychlých tlačítek nad ikonami toolbaru. Nese dvě skupiny vedle sebe
-   * (oddělené svislou linkou): vlevo **presety**, vpravo **uložené filtry** —
-   * obojí jen to, co uživatel označil „jako tlačítko".
+   * Řada tlačítek **presetů** — vlastní řádek NAD řadou ikon (width:100% + flex-wrap),
+   * zarovnaný vpravo. Když žádný preset jako tlačítko označený není, řádek se vůbec
+   * nevykreslí a záhlaví o něj nenaroste.
    *
-   * Čtyři druhy se rozliší bez popisků, aby řada zůstala úzká:
-   *   ikona = druh (záložka = preset, trychtýř = filtr),
-   *   barva = rozsah (šedá = můj / modrá = globální, u globálního i modrý rámeček).
-   * Aktivní položka je vyplněná akcentem. Slovní popis je v tooltipu.
+   * Druh a rozsah se čtou bez popisků: ikona **záložky** = preset, barva = rozsah
+   * (šedá = můj, modrá na světle modré = globální). Aktivní je vyplněný akcentem.
    */
-  buildQuickBar(f) {
+  buildPresetBar() {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const presets = grid.buttonPresets();
-    const filters = f.advancedFilter === false ? [] : grid.buttonAdvanced();
-    if (!presets.length && !filters.length) return;
-    const bar = el("div.lattice-quickbar");
-    if (presets.length) {
-      const group = el("div.lattice-qb-group.is-presets", { title: t("quickbar.presets") });
-      for (const p of presets) {
-        const global = p.scope === "global";
-        const parts = partsSummary(grid.presetContents(p), t);
-        const active = grid._activePresetId === p.id;
-        const b = this.quickBtn({
-          text: p.name,
-          icon: BOOKMARK_MINI_SVG,
-          global,
-          active,
-          title: (global ? t("quickbar.globalPreset") : t("quickbar.myPreset")) + " \u2014 " + p.name + (parts ? " (" + parts + ")" : "") + "\n" + (active ? t("quickbar.presetOff") : t("quickbar.presetOn")) + " \xB7 " + t("quickbar.menuHint")
-        });
-        b.addEventListener("click", () => grid.togglePreset(p));
-        b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, p, "preset"));
-        group.appendChild(b);
-      }
-      bar.appendChild(group);
+    if (!presets.length) return;
+    const group = el("div.lattice-qb-group.is-presets", { title: t("quickbar.presets") });
+    for (const p of presets) {
+      const global = p.scope === "global";
+      const parts = partsSummary(grid.presetContents(p), t);
+      const active = grid._activePresetId === p.id;
+      const b = this.quickBtn({
+        text: p.name,
+        icon: BOOKMARK_MINI_SVG,
+        global,
+        active,
+        title: (global ? t("quickbar.globalPreset") : t("quickbar.myPreset")) + " \u2014 " + p.name + (parts ? " (" + parts + ")" : "") + "\n" + (active ? t("quickbar.presetOff") : t("quickbar.presetOn")) + " \xB7 " + t("quickbar.menuHint")
+      });
+      b.addEventListener("click", () => grid.togglePreset(p));
+      b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, p, "preset"));
+      group.appendChild(b);
     }
-    if (filters.length) {
-      const activeId = grid.activeSavedId();
-      const group = el("div.lattice-qb-group.is-filters", { title: t("quickbar.filters") });
-      for (const bf of filters) {
-        const global = bf.scope === "global";
-        const b = this.quickBtn({
-          text: bf.name,
-          icon: FUNNEL_MINI_SVG,
-          global,
-          active: bf.id === activeId,
-          title: (global ? t("quickbar.globalFilter") : t("quickbar.myFilter")) + " \u2014 " + bf.name + "\n" + t("quickbar.filterToggle") + " \xB7 " + t("quickbar.menuHint")
-        });
-        b.addEventListener("click", () => grid.toggleSavedAdvanced(bf.id));
-        b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, bf, "filter"));
-        group.appendChild(b);
-      }
-      bar.appendChild(group);
+    this.nodes.toolbar.appendChild(el("div.lattice-quickbar", {}, [group]));
+  }
+  /**
+   * Tlačítka uložených **filtrů** — v řadě ikon, hned **vlevo od filtračních ikon**
+   * (uložených filtrů bývá víc než presetů, takže sedí blízko toho, co ovládají).
+   * Ikona trychtýře = filtr, barva = rozsah; aktivní je vyplněný akcentem.
+   */
+  buildFilterButtons(f) {
+    const grid = this.grid;
+    if (f.advancedFilter === false) return;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const filters = grid.buttonAdvanced();
+    if (!filters.length) return;
+    const activeId = grid.activeSavedId();
+    const group = el("div.lattice-qb-group.is-filters", { title: t("quickbar.filters") });
+    for (const bf of filters) {
+      const global = bf.scope === "global";
+      const b = this.quickBtn({
+        text: bf.name,
+        icon: FUNNEL_MINI_SVG,
+        global,
+        active: bf.id === activeId,
+        title: (global ? t("quickbar.globalFilter") : t("quickbar.myFilter")) + " \u2014 " + bf.name + "\n" + t("quickbar.filterToggle") + " \xB7 " + t("quickbar.menuHint")
+      });
+      b.addEventListener("click", () => grid.toggleSavedAdvanced(bf.id));
+      b.addEventListener("contextmenu", (e) => this.quickBarMenu(e, bf, "filter"));
+      group.appendChild(b);
     }
-    this.nodes.toolbar.appendChild(bar);
+    this.nodes.toolbar.appendChild(group);
   }
   /**
    * Kontextové menu pilulky (pravý klik) — správa uložené položky rovnou z místa,
@@ -8959,40 +8960,21 @@ var Renderer = class {
     ]);
   }
   /**
-   * Rozbalovací výběr uložených pohledů v toolbaru — jedno místo pro presety
-   * i uložené filtry označené „jako výběr". Když jsou obojí, rozdělí se do dvou
-   * skupin (`<optgroup>`), aby bylo poznat, co je co; globální položky nesou
-   * prefix globusu (v `<option>` nejde SVG ikona).
-   *
-   * Hodnota je `p:<id>` / `f:<id>`, ať se druhy nepopletou při shodě id.
+   * Rozbalovací výběr **uložených filtrů** (těch označených „jako výběr"). Stojí hned
+   * za filtračními ikonami; globální položky nesou prefix globusu (v `<option>` nejde
+   * SVG ikona).
    */
-  buildQuickSelect(f) {
+  buildFilterSelect(f) {
     const grid = this.grid;
+    if (f.advancedFilter === false) return;
     const t = grid.i18n.t.bind(grid.i18n);
-    const presets = grid.selectPresets();
-    const filters = f.advancedFilter === false ? [] : grid.selectAdvanced();
-    if (!presets.length && !filters.length) return;
-    const sel = el("select.lattice-adv-quick", { title: t("quickbar.selectTitle") });
-    sel.appendChild(el("option", { value: "", text: presets.length ? t("quickbar.selectPlaceholder") : t("advanced.savedPlaceholder") }));
-    const label = (x) => (x.scope === "global" ? "\u{1F310} " : "") + x.name;
-    const both = presets.length && filters.length;
-    const add = (parent, items, prefix) => {
-      for (const x of items) parent.appendChild(el("option", { value: prefix + x.id, text: label(x) }));
-    };
-    if (presets.length) {
-      const box = both ? el("optgroup", { label: t("quickbar.presets") }) : sel;
-      add(box, presets, "p:");
-      if (both) sel.appendChild(box);
-    }
-    if (filters.length) {
-      const box = both ? el("optgroup", { label: t("quickbar.filters") }) : sel;
-      add(box, filters, "f:");
-      if (both) sel.appendChild(box);
-    }
-    const activeFilter = grid.activeSavedId();
-    if (activeFilter && filters.some((x) => x.id === activeFilter)) sel.value = "f:" + activeFilter;
-    else if (grid._activePresetId && presets.some((x) => x.id === grid._activePresetId)) sel.value = "p:" + grid._activePresetId;
-    else sel.value = "";
+    const filters = grid.selectAdvanced();
+    if (!filters.length) return;
+    const sel = el("select.lattice-adv-quick", { title: t("quickbar.filters") });
+    sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
+    for (const x of filters) sel.appendChild(el("option", { value: x.id, text: (x.scope === "global" ? "\u{1F310} " : "") + x.name }));
+    const activeId = grid.activeSavedId();
+    sel.value = filters.some((x) => x.id === activeId) ? activeId : "";
     sel.addEventListener("change", () => {
       if (!sel.value) {
         const cur = grid.listAdvanced().find((x) => x.id === grid.activeSavedId());
@@ -9000,16 +8982,30 @@ var Renderer = class {
         else grid.clearAdvanced();
         return;
       }
-      const id = sel.value.slice(2);
-      if (sel.value.startsWith("p:")) {
-        const preset = presets.find((x) => x.id === id);
-        if (preset) grid.applyPreset(preset);
-        return;
-      }
-      const item = filters.find((x) => x.id === id);
+      const item = filters.find((x) => x.id === sel.value);
       if (!item) return;
       if (item.kind === "columns") grid.applyFiltersSnapshot(item);
       else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    });
+    this.nodes.toolbar.appendChild(sel);
+  }
+  /**
+   * Rozbalovací výběr **presetů** (těch označených „jako výběr") — vpravo vedle výběru
+   * filtrů, ať je vidět, že jde o jiný druh. Vyprázdnění vrátí výchozí zobrazení.
+   */
+  buildPresetSelect() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.selectPresets();
+    if (!presets.length) return;
+    const sel = el("select.lattice-adv-quick.is-presets", { title: t("quickbar.presets") });
+    sel.appendChild(el("option", { value: "", text: t("quickbar.presetsPlaceholder") }));
+    for (const p of presets) sel.appendChild(el("option", { value: p.id, text: (p.scope === "global" ? "\u{1F310} " : "") + p.name }));
+    sel.value = presets.some((p) => p.id === grid._activePresetId) ? grid._activePresetId : "";
+    sel.addEventListener("change", () => {
+      if (!sel.value) return grid.resetView();
+      const preset = presets.find((p) => p.id === sel.value);
+      if (preset) grid.applyPreset(preset);
     });
     this.nodes.toolbar.appendChild(sel);
   }
@@ -9017,7 +9013,7 @@ var Renderer = class {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
-    this.buildQuickBar(f);
+    this.buildPresetBar();
     const leftGroup = el("div.lattice-toolbar-left");
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
     if (this.grid.tree) leftGroup.appendChild(this.buildTreeControls());
@@ -9035,6 +9031,7 @@ var Renderer = class {
       leftGroup.appendChild(search);
     }
     if (leftGroup.children.length) toolbar.appendChild(leftGroup);
+    this.buildFilterButtons(f);
     const clearBtn = el("button.lattice-tool-btn.lattice-clear-filters" + (this.grid.hasActiveFilters() ? ".is-visible" : ""), {
       type: "button",
       title: this.grid.i18n.t("columns.clearFilters"),
@@ -9065,7 +9062,8 @@ var Renderer = class {
       toolbar.appendChild(advBtn);
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
     }
-    this.buildQuickSelect(f);
+    this.buildFilterSelect(f);
+    this.buildPresetSelect();
     if (f.gear !== false) {
       const gearBtn = el("button.lattice-tool-btn.lattice-gear-btn", { type: "button", title: this.grid.i18n.t("columns.manage"), html: this.icon("columns", GEAR_SVG) });
       gearBtn.addEventListener("click", () => this.grid.gear.toggle(gearBtn));

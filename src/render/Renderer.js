@@ -1932,62 +1932,64 @@ export class Renderer {
   }
 
   /**
-   * Řada rychlých tlačítek nad ikonami toolbaru. Nese dvě skupiny vedle sebe
-   * (oddělené svislou linkou): vlevo **presety**, vpravo **uložené filtry** —
-   * obojí jen to, co uživatel označil „jako tlačítko".
+   * Řada tlačítek **presetů** — vlastní řádek NAD řadou ikon (width:100% + flex-wrap),
+   * zarovnaný vpravo. Když žádný preset jako tlačítko označený není, řádek se vůbec
+   * nevykreslí a záhlaví o něj nenaroste.
    *
-   * Čtyři druhy se rozliší bez popisků, aby řada zůstala úzká:
-   *   ikona = druh (záložka = preset, trychtýř = filtr),
-   *   barva = rozsah (šedá = můj / modrá = globální, u globálního i modrý rámeček).
-   * Aktivní položka je vyplněná akcentem. Slovní popis je v tooltipu.
+   * Druh a rozsah se čtou bez popisků: ikona **záložky** = preset, barva = rozsah
+   * (šedá = můj, modrá na světle modré = globální). Aktivní je vyplněný akcentem.
    */
-  buildQuickBar(f) {
+  buildPresetBar() {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const presets = grid.buttonPresets();
-    const filters = f.advancedFilter === false ? [] : grid.buttonAdvanced();
-    if (!presets.length && !filters.length) return;
+    if (!presets.length) return;
 
-    const bar = el('div.lattice-quickbar');
-
-    if (presets.length) {
-      const group = el('div.lattice-qb-group.is-presets', { title: t('quickbar.presets') });
-      for (const p of presets) {
-        const global = p.scope === 'global';
-        const parts = partsSummary(grid.presetContents(p), t);
-        const active = grid._activePresetId === p.id;
-        const b = this.quickBtn({
-          text: p.name, icon: BOOKMARK_MINI_SVG, global, active,
-          title: (global ? t('quickbar.globalPreset') : t('quickbar.myPreset')) + ' — ' + p.name
-            + (parts ? ' (' + parts + ')' : '')
-            + '\n' + (active ? t('quickbar.presetOff') : t('quickbar.presetOn')) + ' · ' + t('quickbar.menuHint'),
-        });
-        // klik na aktivní preset = zpět na výchozí zobrazení (filtry a řazení zůstanou)
-        b.addEventListener('click', () => grid.togglePreset(p));
-        b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, p, 'preset'));
-        group.appendChild(b);
-      }
-      bar.appendChild(group);
+    const group = el('div.lattice-qb-group.is-presets', { title: t('quickbar.presets') });
+    for (const p of presets) {
+      const global = p.scope === 'global';
+      const parts = partsSummary(grid.presetContents(p), t);
+      const active = grid._activePresetId === p.id;
+      const b = this.quickBtn({
+        text: p.name, icon: BOOKMARK_MINI_SVG, global, active,
+        title: (global ? t('quickbar.globalPreset') : t('quickbar.myPreset')) + ' — ' + p.name
+          + (parts ? ' (' + parts + ')' : '')
+          + '\n' + (active ? t('quickbar.presetOff') : t('quickbar.presetOn')) + ' · ' + t('quickbar.menuHint'),
+      });
+      // klik na aktivní preset = zpět na výchozí zobrazení (filtry a řazení zůstanou)
+      b.addEventListener('click', () => grid.togglePreset(p));
+      b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, p, 'preset'));
+      group.appendChild(b);
     }
+    this.nodes.toolbar.appendChild(el('div.lattice-quickbar', {}, [group]));
+  }
 
-    if (filters.length) {
-      const activeId = grid.activeSavedId();
-      const group = el('div.lattice-qb-group.is-filters', { title: t('quickbar.filters') });
-      for (const bf of filters) {
-        const global = bf.scope === 'global';
-        const b = this.quickBtn({
-          text: bf.name, icon: FUNNEL_MINI_SVG, global, active: bf.id === activeId,
-          title: (global ? t('quickbar.globalFilter') : t('quickbar.myFilter')) + ' — ' + bf.name
-            + '\n' + t('quickbar.filterToggle') + ' · ' + t('quickbar.menuHint'),
-        });
-        b.addEventListener('click', () => grid.toggleSavedAdvanced(bf.id));
-        b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, bf, 'filter'));
-        group.appendChild(b);
-      }
-      bar.appendChild(group);
+  /**
+   * Tlačítka uložených **filtrů** — v řadě ikon, hned **vlevo od filtračních ikon**
+   * (uložených filtrů bývá víc než presetů, takže sedí blízko toho, co ovládají).
+   * Ikona trychtýře = filtr, barva = rozsah; aktivní je vyplněný akcentem.
+   */
+  buildFilterButtons(f) {
+    const grid = this.grid;
+    if (f.advancedFilter === false) return;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const filters = grid.buttonAdvanced();
+    if (!filters.length) return;
+
+    const activeId = grid.activeSavedId();
+    const group = el('div.lattice-qb-group.is-filters', { title: t('quickbar.filters') });
+    for (const bf of filters) {
+      const global = bf.scope === 'global';
+      const b = this.quickBtn({
+        text: bf.name, icon: FUNNEL_MINI_SVG, global, active: bf.id === activeId,
+        title: (global ? t('quickbar.globalFilter') : t('quickbar.myFilter')) + ' — ' + bf.name
+          + '\n' + t('quickbar.filterToggle') + ' · ' + t('quickbar.menuHint'),
+      });
+      b.addEventListener('click', () => grid.toggleSavedAdvanced(bf.id));
+      b.addEventListener('contextmenu', (e) => this.quickBarMenu(e, bf, 'filter'));
+      group.appendChild(b);
     }
-
-    this.nodes.toolbar.appendChild(bar);
+    this.nodes.toolbar.appendChild(group);
   }
 
   /**
@@ -2053,44 +2055,23 @@ export class Renderer {
   }
 
   /**
-   * Rozbalovací výběr uložených pohledů v toolbaru — jedno místo pro presety
-   * i uložené filtry označené „jako výběr". Když jsou obojí, rozdělí se do dvou
-   * skupin (`<optgroup>`), aby bylo poznat, co je co; globální položky nesou
-   * prefix globusu (v `<option>` nejde SVG ikona).
-   *
-   * Hodnota je `p:<id>` / `f:<id>`, ať se druhy nepopletou při shodě id.
+   * Rozbalovací výběr **uložených filtrů** (těch označených „jako výběr"). Stojí hned
+   * za filtračními ikonami; globální položky nesou prefix globusu (v `<option>` nejde
+   * SVG ikona).
    */
-  buildQuickSelect(f) {
+  buildFilterSelect(f) {
     const grid = this.grid;
+    if (f.advancedFilter === false) return;
     const t = grid.i18n.t.bind(grid.i18n);
-    const presets = grid.selectPresets();
-    const filters = f.advancedFilter === false ? [] : grid.selectAdvanced();
-    if (!presets.length && !filters.length) return;
+    const filters = grid.selectAdvanced();
+    if (!filters.length) return;
 
-    const sel = el('select.lattice-adv-quick', { title: t('quickbar.selectTitle') });
-    sel.appendChild(el('option', { value: '', text: presets.length ? t('quickbar.selectPlaceholder') : t('advanced.savedPlaceholder') }));
-    const label = (x) => (x.scope === 'global' ? '🌐 ' : '') + x.name;
-    const both = presets.length && filters.length;
-    const add = (parent, items, prefix) => {
-      for (const x of items) parent.appendChild(el('option', { value: prefix + x.id, text: label(x) }));
-    };
-    if (presets.length) {
-      const box = both ? el('optgroup', { label: t('quickbar.presets') }) : sel;
-      add(box, presets, 'p:');
-      if (both) sel.appendChild(box);
-    }
-    if (filters.length) {
-      const box = both ? el('optgroup', { label: t('quickbar.filters') }) : sel;
-      add(box, filters, 'f:');
-      if (both) sel.appendChild(box);
-    }
-
-    // Vybraná položka = to, co je právě aplikované (filtr podle stavu filtrů, preset podle id).
-    const activeFilter = grid.activeSavedId();
-    if (activeFilter && filters.some((x) => x.id === activeFilter)) sel.value = 'f:' + activeFilter;
-    else if (grid._activePresetId && presets.some((x) => x.id === grid._activePresetId)) sel.value = 'p:' + grid._activePresetId;
-    else sel.value = '';
-
+    const sel = el('select.lattice-adv-quick', { title: t('quickbar.filters') });
+    sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
+    for (const x of filters) sel.appendChild(el('option', { value: x.id, text: (x.scope === 'global' ? '\u{1F310} ' : '') + x.name }));
+    // pozor: aktivní může být filtr, který ve výběru není (má jen tlačítko) → pak prázdno
+    const activeId = grid.activeSavedId();
+    sel.value = filters.some((x) => x.id === activeId) ? activeId : '';
     sel.addEventListener('change', () => {
       if (!sel.value) {
         // vyprázdnění → zruš to, co je právě aktivní (snímek sloupců vs. rozšířený strom)
@@ -2099,16 +2080,32 @@ export class Renderer {
         else grid.clearAdvanced();
         return;
       }
-      const id = sel.value.slice(2);
-      if (sel.value.startsWith('p:')) {
-        const preset = presets.find((x) => x.id === id);
-        if (preset) grid.applyPreset(preset);
-        return;
-      }
-      const item = filters.find((x) => x.id === id);
+      const item = filters.find((x) => x.id === sel.value);
       if (!item) return;
       if (item.kind === 'columns') grid.applyFiltersSnapshot(item);
       else grid.applyAdvanced(JSON.parse(JSON.stringify(item.tree)));
+    });
+    this.nodes.toolbar.appendChild(sel);
+  }
+
+  /**
+   * Rozbalovací výběr **presetů** (těch označených „jako výběr") — vpravo vedle výběru
+   * filtrů, ať je vidět, že jde o jiný druh. Vyprázdnění vrátí výchozí zobrazení.
+   */
+  buildPresetSelect() {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const presets = grid.selectPresets();
+    if (!presets.length) return;
+
+    const sel = el('select.lattice-adv-quick.is-presets', { title: t('quickbar.presets') });
+    sel.appendChild(el('option', { value: '', text: t('quickbar.presetsPlaceholder') }));
+    for (const p of presets) sel.appendChild(el('option', { value: p.id, text: (p.scope === 'global' ? '\u{1F310} ' : '') + p.name }));
+    sel.value = presets.some((p) => p.id === grid._activePresetId) ? grid._activePresetId : '';
+    sel.addEventListener('change', () => {
+      if (!sel.value) return grid.resetView(); // prázdno = zpět na výchozí zobrazení
+      const preset = presets.find((p) => p.id === sel.value);
+      if (preset) grid.applyPreset(preset);
     });
     this.nodes.toolbar.appendChild(sel);
   }
@@ -2117,9 +2114,9 @@ export class Renderer {
     const { toolbar } = this.nodes;
     clear(toolbar);
     const f = this.grid.options.features || {};
-    // Řada rychlých tlačítek (presety + uložené filtry) — vlastní řádek s width:100%,
-    // takže se díky flex-wrap položí NAD řadu ikon a zarovná se vpravo.
-    this.buildQuickBar(f);
+    // Řada tlačítek presetů — vlastní řádek (width:100%) NAD řadou ikon. Bez presetů
+    // se nevykreslí vůbec, takže záhlaví zůstane jednořádkové.
+    this.buildPresetBar();
     // Levá skupina toolbaru: historie (undo/redo) + ovládání úrovní stromu.
     const leftGroup = el('div.lattice-toolbar-left');
     if (this.grid.history) leftGroup.appendChild(this.buildHistoryControls());
@@ -2137,6 +2134,8 @@ export class Renderer {
     // Mazací ikona (trychtýř s červeným křížkem): zruší VŠECHNY aplikované filtry
     // (sloupcové/univerzální/rozšířený). Viditelná jen když nějaký filtr platí.
     // Uložené rozšířené filtry nemaže.
+    // Tlačítka uložených filtrů — hned vlevo od filtračních ikon (v téže řadě).
+    this.buildFilterButtons(f);
     const clearBtn = el('button.lattice-tool-btn.lattice-clear-filters' + (this.grid.hasActiveFilters() ? '.is-visible' : ''), {
       type: 'button', title: this.grid.i18n.t('columns.clearFilters'), html: CLEAR_FILTER_SVG,
     });
@@ -2169,8 +2168,10 @@ export class Renderer {
       // rectu {0,0,0,0} a skočil do rohu. Když je panel otevřený, přesměruj kotvu na živé tlačítko.
       if (grid.advancedFilter && grid.advancedFilter.panel) grid.advancedFilter.anchor = advBtn;
     }
-    // Výběr uložených pohledů — i když je rozšířený filtr vypnutý, můžou v něm být presety.
-    this.buildQuickSelect(f);
+    // Výběry: uložené filtry a hned vpravo od nich presety (presety jdou i bez
+    // zapnutého rozšířeného filtru).
+    this.buildFilterSelect(f);
+    this.buildPresetSelect();
     if (f.gear !== false) {
       const gearBtn = el('button.lattice-tool-btn.lattice-gear-btn', { type: 'button', title: this.grid.i18n.t('columns.manage'), html: this.icon('columns', GEAR_SVG) });
       gearBtn.addEventListener('click', () => this.grid.gear.toggle(gearBtn));

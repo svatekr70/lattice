@@ -351,7 +351,7 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
-| `saveAdvanced(name, tree, scope?, display?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v rychlé řadě nad ikonami a/nebo položka v rozbalovacím výběru „uložené pohledy". Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. |
+| `saveAdvanced(name, tree, scope?, display?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. |
 | `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
 | `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
 | `selectAdvanced()` | Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez `asSelect` (uložená před `v1.14.0`) se řídí postaru — co není tlačítko, je ve výběru. `@v1.14.0` |
@@ -614,7 +614,7 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do rychlé řady tlačítek, resp. do výběru „uložené pohledy" v toolbaru. |
+| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do řady tlačítek presetů (vlastní řádek nad ikonami), resp. do výběru „— pohledy —" v toolbaru. |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
@@ -706,7 +706,7 @@ CREATE TABLE lattice_presets (
   name       VARCHAR(255) NOT NULL,
   state      JSON         NOT NULL,        -- preset.state (columns/sort/filters)
   as_button  TINYINT(1)   NOT NULL DEFAULT 0,  -- @v1.14.0: pilulka v rychlé řadě nad ikonami
-  as_select  TINYINT(1)   NOT NULL DEFAULT 0,  -- @v1.14.0: položka ve výběru „uložené pohledy"
+  as_select  TINYINT(1)   NOT NULL DEFAULT 0,  -- @v1.14.0: položka v rozbalovacím výběru
   created_by VARCHAR(128),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX (grid_id)

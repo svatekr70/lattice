@@ -79,6 +79,15 @@
   .ibtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:24px;
     vertical-align:middle;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink)}
   .ibtn svg{width:16px;height:16px}
+  ol.steps{counter-reset:step;list-style:none;padding:0;margin:14px 0;max-width:72ch}
+  ol.steps>li{position:relative;padding:8px 0 8px 40px;border-top:1px solid var(--line)}
+  ol.steps>li:first-child{border-top:none}
+  ol.steps>li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:9px;
+    width:25px;height:25px;display:grid;place-items:center;border-radius:50%;
+    background:var(--accent);color:#fff;font:700 12.5px/1 system-ui}
+  table.kinds{border-collapse:collapse;margin:14px 0;max-width:72ch;font-size:14.5px}
+  table.kinds th,table.kinds td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  table.kinds th{background:var(--panel);font-weight:600}
   .note{max-width:72ch;margin:14px 0;background:var(--note-bg);border:1px solid var(--note-line);
     border-radius:10px;padding:12px 15px;font-size:14.5px}
   .note b{color:var(--ink)}
@@ -114,7 +123,7 @@
     <a href="#skupiny">Skupiny a vzhled sloupců</a>
     <a href="#pocitany">Počítaný sloupec</a>
     <a href="#nastaveni">Nastavení tabulky</a>
-    <a href="#presety">Presety</a>
+    <a href="#presety">Uložené pohledy</a>
     <h4>Práce s daty</h4>
     <a href="#seskupeni">Seskupení (i datumové)</a>
     <a href="#editace">Inline editace</a>
@@ -148,7 +157,7 @@
           <div><b>Rozšířený filtr</b> (trychtýř se žlutým plusem) — složené podmínky A/NEBO.
             <i>Tuhle ikonu vidíš standardně.</i> Viz sekce <a href="#rozsireny">Rozšířený filtr</a>.</div></li>
         <li><span class="ic"><img src="img/ic-columns.png" alt=""></span>
-          <div><b>Sloupce</b> — dialog pro viditelnost, pořadí, ukotvení, seskupení a presety. Viz <a href="#dialog-sloupce">Dialog „Sloupce"</a>.</div></li>
+          <div><b>Sloupce</b> — dialog pro viditelnost, pořadí, ukotvení, seskupení a pohledy. Viz <a href="#dialog-sloupce">Dialog „Sloupce"</a>.</div></li>
         <li><span class="ic"><img src="img/ic-settings.png" alt=""></span>
           <div><b>Nastavení tabulky</b> (ozubené kolo) — vzhled a chování celé tabulky. Viz <a href="#nastaveni">Nastavení tabulky</a>.</div></li>
         <li><span class="ic"><img src="img/ic-clearfilter.png" alt=""></span>
@@ -166,7 +175,7 @@
         sloupců</b>, <b>řazení</b>, viditelnost i další úpravy — zůstane zachované i po <b>zavření
         a novém načtení stránky</b>. Tabulka si ho ukládá v prohlížeči, takže se vždy vrátíš přesně
         k tomu, jak jsi ji naposledy měl. (Chceš-li si víc takových pohledů pojmenovat a přepínat mezi
-        nimi, použij <a href="#presety">Presety</a>.)</div>
+        nimi, použij <a href="#presety">Uložené pohledy</a>.)</div>
     </section>
 
     <section id="razeni">
@@ -339,13 +348,13 @@
 
       <h3>Dynamická období v kalendáři („Datum (rozsah)")</h3>
       <p>I kalendářový režim <b>Datum (rozsah)</b> umí <b>dynamické období</b>. V dialogu je nahoře přepínač
-        <b>„dynamické období"</b>: když ho zapneš a klikneš na některý preset (Dnes, Minulý týden, Tento
+        <b>„dynamické období"</b>: když ho zapneš a klikneš na některé přednastavené období (Dnes, Minulý týden, Tento
         měsíc…), uloží se <b>relativně</b> místo pevných dat — takže <b>uložený filtr zůstane platný i
         příště</b> (za týden „Minulý týden" znamená zase minulý týden). V poli to pak poznáš podle
         <b>↻</b> a názvu období. <b>Ruční výběr</b> dnů v kalendáři zůstává <b>pevný</b>.</p>
       <figure>
         <img src="img/filtr-datum-preset-dyn.png" alt="Přepínač dynamické období v date-range pickeru">
-        <figcaption>Dialog „Datum (rozsah)" s přepínačem <b>„dynamické období"</b> (nahoře, zapnutý). S ním preset uloží relativní období (např. „Minulý týden") a filtr se přepočítává; bez něj nastaví pevná data.</figcaption>
+        <figcaption>Dialog „Datum (rozsah)" s přepínačem <b>„dynamické období"</b> (nahoře, zapnutý). S ním se uloží relativní období (např. „Minulý týden") a filtr se přepočítává; bez něj nastaví pevná data.</figcaption>
       </figure>
 
       <h3>Kde jsou filtry (umístění)</h3>
@@ -424,9 +433,9 @@
       <p>Vedle „Uložit" může být i zelené <b>Uložit globálně</b> (jen když to aplikace povolí) — takový
         filtr se <b>sdílí všem uživatelům</b>, ne jen tobě. Globální filtry poznáš v nabídce podle
         <b>glóbu (🌐)</b>. Sdílené filtry ukládá a spravuje aplikace (stejně jako globální
-        <a href="#presety">presety</a>).</p>
+        <a href="#presety">pohledy</a>).</p>
       <p>Při ukládání si zaškrtneš, <b>kde se filtr má nabízet</b> — jako <b>tlačítko</b> nad ikonami
-        a/nebo ve <b>výběru</b> „uložené pohledy" (viz <a href="#ulozene-filtry">Ukládání a sdílení filtrů</a>).</p>
+        a/nebo ve <b>výběru</b> uložených filtrů (viz <a href="#ulozene-filtry">Ukládání a sdílení filtrů</a>).</p>
 
       <h3>Zapnout / vypnout filtr u sloupce</h3>
       <p>V dialogu <b>„Sloupce"</b> (ikona ⊟) ikonou <b>trychtýře</b> u řádku sloupce <b>zapneš nebo
@@ -440,87 +449,154 @@
 
     <section id="ulozene-filtry">
       <h2><span class="n">8</span>Ukládání a sdílení filtrů</h2>
-      <p>Filtry, které si často zapínáš, nemusíš pokaždé klikat znovu. Můžeš je <b>uložit pod názvem</b>,
-        zobrazit jako <b>přepínací tlačítka</b> nad ikonami a — když to aplikace dovolí — <b>sdílet globálně</b>
-        všem uživatelům. Uložit jde jak <a href="#rozsireny">rozšířený filtr</a>, tak i obyčejné
-        <b>„naklikané" sloupcové filtry</b> z hlavičky.</p>
+      <p>Filtry, které si často zapínáš, nemusíš pokaždé klikat znovu. <b>Ulož si je pod názvem</b> —
+        pak je zapneš jedním klikem. Uložit jde obojí:</p>
+      <ul>
+        <li><b>„Naklikané" sloupcové filtry</b> — to, co máš právě nastavené v <b>řádku filtrů
+          v hlavičce</b> (klidně v několika sloupcích naráz). Uloží se jako <b>snímek</b>.</li>
+        <li><b>Rozšířený filtr</b> — složená podmínka A/NEBO z <a href="#rozsireny">query-builderu</a>.</li>
+      </ul>
+      <p>Obojí se pak nabízí na <b>stejném místě</b> a chová se stejně, takže je můžeš míchat.</p>
 
-      <h3>Kde se uložený filtr ukáže: „tlačítko" a „výběr"</h3>
-      <p>U každého uloženého filtru jsou při ukládání dvě zaškrtávátka — <b>tlačítko</b> a <b>výběr</b>
-        (klidně obojí naráz):</p>
+      <h3>Uložit „naklikané" filtry z hlavičky — krok za krokem</h3>
+      <ol class="steps">
+        <li><b>Nafiltruj si tabulku</b> v řádku filtrů v hlavičce (jeden sloupec nebo víc).</li>
+        <li>Vpravo nahoře klikni na ikonu <b>trychtýře s disketou</b>
+          (<span class="ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="var(--accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"></path><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"></path><path fill="#fff" d="M15.5 18h4v2.4h-4z"></path></svg></span>) —
+          otevře se panel <b>„Uložené filtry"</b>.</li>
+        <li>Do pole <b>„Název filtru…"</b> napiš, jak se má filtr jmenovat.</li>
+        <li>Zaškrtni, <b>kde se má nabízet</b>: <b>tlačítko</b> (pilulka v řadě s ikonami, hned
+          vlevo od nich) a/nebo <b>výběr</b> (rozbalovací nabídka za ikonami). <b>Výběr</b> je předzaškrtnutý;
+          klidně zaškrtni obojí. Když odškrtneš obojí, filtr bude jen v tomhle panelu.</li>
+        <li>Ulož:
+          <ul>
+            <li><b>Uložit</b> — <b>lokálně</b>, jen pro tebe (uloží se v tvém prohlížeči).</li>
+            <li><b>Uložit globálně</b> (zelené) — <b>globálně</b>, sdílené <b>všem uživatelům</b>.
+              Tlačítko je vidět, jen když to aplikace umožňuje.</li>
+          </ul>
+        </li>
+      </ol>
+      <p class="muted">Dokud v hlavičce nic nefiltruješ, není co ukládat — panel místo pole s názvem
+        ukáže jen nápovědu a seznam už uložených filtrů.</p>
+
+      <h3>Uložit rozšířený filtr</h3>
+      <ol class="steps">
+        <li>Otevři <b>Rozšířený filtr</b> (trychtýř se žlutým plusem) a poskládej podmínky.</li>
+        <li>Dole do pole <b>„Název filtru…"</b> napiš název.</li>
+        <li>Zaškrtni <b>tlačítko</b> a/nebo <b>výběr</b> (stejná volba jako u naklikaných filtrů).</li>
+        <li><b>Uložit</b> = lokálně jen pro tebe, <b>Uložit globálně</b> = pro všechny.</li>
+      </ol>
+
+      <h3>Lokálně vs. globálně</h3>
       <ul>
-        <li><b>tlačítko</b> — filtr se zobrazí jako <b>pilulka v řadě nad ikonami</b> vpravo v záhlaví
-          tabulky. <b>Klik zapne, další klik vypne</b> (přepínač); aktivní je modře vyplněný.</li>
-        <li><b>výběr</b> (výchozí) — filtr zůstane v <b>rozbalovací nabídce „uložené pohledy"</b> vedle
-          ikon. Hodí se, když je uložených filtrů hodně a nechceš mít záhlaví plné tlačítek.</li>
+        <li><b>Lokální</b> filtr má <b>jen tvůj prohlížeč</b>. Nikdo jiný ho nevidí a na jiném
+          počítači ho mít nebudeš.</li>
+        <li><b>Globální</b> filtr <b>vidí všichni uživatelé</b> aplikace — ukládá ho aplikace do své
+          databáze. Poznáš ho podle <b>glóbu 🌐</b> v nabídce a podle <b>modré ikony</b> na tlačítku.
+          Ukládat globálně jde jen tam, kde to aplikace zapnula (jinak zelené tlačítko není vidět).</li>
       </ul>
-      <p>Řada tlačítek je společná pro <b>uložené filtry i <a href="#presety">presety</a></b> a je v ní
-        <b>vidět, co je co</b> — bez popisků, aby zabrala co nejmíň místa:</p>
+      <div class="note"><b>Pozor u globálních:</b> když globální filtr <b>upravíš, přejmenuješ nebo
+        smažeš</b>, projeví se to <b>všem</b>. Když chceš jen svoji variantu, ulož si ji radši
+        <b>lokálně</b> pod vlastním názvem.</div>
+
+      <h3>Kde se filtr ukáže: „tlačítko" a „výběr"</h3>
       <ul>
-        <li><b>Ikona</b> říká <b>druh</b>: <b>záložka</b> 🔖 = preset (celý pohled), <b>trychtýř</b> = filtr.</li>
-        <li><b>Barva</b> říká <b>rozsah</b>: <b>šedá ikona na bílé</b> = jen tvoje, <b>modrá ikona
-          na světle modré</b> = globální (sdílené všem).</li>
-        <li>Presety a filtry jsou <b>ve dvou skupinách vedle sebe</b>, oddělené svislou čárkou —
-          vlevo presety, vpravo filtry.</li>
+        <li><b>tlačítko</b> — filtr je <b>pilulka v řadě nad ikonami</b> vpravo v záhlaví tabulky.
+          <b>Klik zapne, další klik vypne</b>; zapnutý je modře vyplněný. Ideální na pár filtrů,
+          které používáš pořád.</li>
+        <li><b>výběr</b> — filtr je položkou <b>rozbalovací nabídky „— uložené filtry —"</b>
+          hned za filtračními ikonami. Hodí se, když je uložených filtrů hodně a nechceš mít
+          záhlaví plné tlačítek.</li>
+        <li><b>obojí</b> — filtr je i tlačítkem, i v nabídce.</li>
       </ul>
-      <p>Stejné rozdělení má i rozbalovací nabídka: položky jsou v ní ve skupinách <b>Presety</b>
-        a <b>Filtry</b>, globální poznáš podle <b>glóbu 🌐</b>.</p>
+      <p>Řadu tlačítek i nabídku sdílí filtry s <a href="#presety">pohledy</a> a je v nich
+        <b>poznat, co je co</b> — bez popisků, aby zabraly co nejmíň místa:</p>
+      <table class="kinds">
+        <tr><th>Co to je</th><th>Ikona</th><th>Vzhled</th><th>Klik</th></tr>
+        <tr><td><b>Můj pohled</b></td><td>záložka 🔖</td><td>šedá ikona na bílé</td><td>použije pohled (druhý klik = výchozí zobrazení)</td></tr>
+        <tr><td><b>Globální pohled</b></td><td>záložka 🔖</td><td>modrá ikona na světle modré</td><td>totéž, jen ho vidí všichni</td></tr>
+        <tr><td><b>Můj filtr</b></td><td>trychtýř</td><td>šedá ikona na bílé</td><td>zapne / vypne filtr</td></tr>
+        <tr><td><b>Globální filtr</b></td><td>trychtýř</td><td>modrá ikona na světle modré</td><td>totéž, jen ho vidí všichni</td></tr>
+      </table>
+      <p><b>Kde co v záhlaví najdeš:</b></p>
+      <ul>
+        <li><b>Tlačítka filtrů</b> jsou v <b>řadě s ikonami</b>, hned <b>vlevo od filtračních ikon</b>
+          — tedy u toho, co ovládají.</li>
+        <li><b>Tlačítka pohledů</b> jsou o <b>řádek výš</b>. Když žádný pohled jako tlačítko označený
+          nemáš, řádek se vůbec nevykreslí a záhlaví zůstane <b>jednořádkové</b>.</li>
+        <li><b>Rozbalovací nabídky</b> jsou dvě vedle sebe za ikonami: vlevo
+          <b>„— uložené filtry —"</b>, vpravo <b>„— pohledy —"</b> (každá je vidět, jen když v ní
+          něco je).</li>
+      </ul>
       <figure>
         <img src="img/filtry-tlacitka.png" alt="Řada uložených filtrů jako tlačítka nad ikonami">
-        <figcaption>Položky označené <b>„tlačítko"</b> se ukážou v řadě nad nástrojovými ikonami — vlevo presety (záložka), vpravo filtry (trychtýř); modrá ikona = globální, šedá = jen tvoje. Klik na filtr ho zapne/vypne (aktivní je modrý), klik na preset ho použije.</figcaption>
+        <figcaption>Uložené <b>filtry</b> (trychtýř) jsou jako tlačítka hned vlevo od filtračních ikon, <b>pohledy</b> (záložka) o řádek výš; modrá ikona = globální, šedá = jen tvoje. Vpravo za ikonami jsou dvě nabídky: <b>uložené filtry</b> a <b>pohledy</b>. Klik na filtr ho zapne/vypne (aktivní je modrý), klik na pohled ho použije.</figcaption>
       </figure>
 
-      <h3>Upravit, přejmenovat nebo smazat uložený filtr</h3>
-      <p>Všechno najdeš v panelu <b>„Uložené filtry"</b> — ikona <b>trychtýře s disketou</b> vpravo
-        nahoře. V seznamu jsou <b>všechny</b> uložené filtry (i ty, které nemáš jako tlačítko):</p>
+      <h3>Upravit uložený filtr (změnit, co filtruje)</h3>
+      <p>Uložený filtr se needituje ve formuláři — <b>upravíš ho tím, že si tabulku nafiltruješ
+        znovu, jak chceš, a filtr tím přepíšeš</b>:</p>
+      <ol class="steps">
+        <li><b>Zapni uložený filtr</b>, který chceš upravit — klikem na jeho <b>tlačítko</b>, nebo
+          výběrem z nabídky <b>„— uložené filtry —"</b>. Jeho hodnoty se vrátí do políček v hlavičce
+          a tlačítko <b>zmodrá</b> (= tabulka je nafiltrovaná přesně podle něj).</li>
+        <li><b>Uprav filtrování přímo v tabulce</b> — přepiš hodnoty v hlavičce, přidej filtr
+          v dalším sloupci nebo nějaký zruš.</li>
+        <li>Klikni vpravo nahoře na ikonu <b>trychtýře s disketou</b> → panel <b>„Uložené filtry"</b>.</li>
+        <li>V seznamu u toho filtru klikni na <b>disketu</b>. Uložený filtr se přepíše tím, co máš
+          právě naklikané.
+          <div class="note" style="margin:8px 0 0"><b>Proč jeho název v tu chvíli není modrý?</b>
+            Modré zvýraznění znamená „tabulka je nafiltrovaná přesně podle tohohle uloženého filtru".
+            Jakmile filtrování v kroku 2 změníš, přestane to sedět a zvýraznění zhasne — je to
+            správně a je to i vodítko, že máš <b>nové</b> nastavení, které se ještě neuložilo.
+            Po kliknutí na disketu se zvýraznění zase rozsvítí.</div>
+        </li>
+        <li>Volitelně klikni na <b>tužku</b> a filtr <b>přejmenuj</b> (Enter uloží, Esc zruší).</li>
+      </ol>
+      <p><b>Co zůstane:</b> název (dokud ho sám nezměníš), <b>rozsah</b> (lokální/globální) i to,
+        <b>kde se filtr nabízí</b> (tlačítko / výběr). Mění se jen to, co filtr filtruje —
+        takže tlačítko v záhlaví zůstane na svém místě a od téhle chvíle filtruje nově.</p>
+      <p class="muted">Dokud v hlavičce nic nefiltruješ, je disketa nedostupná (šedá) — nebylo by
+        co uložit. U filtru z <a href="#rozsireny">rozšířeného filtru</a> je místo diskety ikona
+        <b>trychtýře s plusem</b>: otevře podmínky v query-builderu, kde je upravíš a uložíš pod
+        stejným názvem.</p>
+
+      <h3>Přejmenovat, přepnout zobrazení, smazat</h3>
+      <p>Všechno je v panelu <b>„Uložené filtry"</b> (ikona trychtýře s disketou). V seznamu jsou
+        <b>všechny</b> uložené filtry — i ty, které nemáš jako tlačítko:</p>
       <ul>
-        <li><b>Změnit obsah filtru</b> — nejdřív si <b>nastav filtry v hlavičce</b> tabulky tak, jak
-          je chceš mít, pak otevři panel a u položky klikni na <b>disketu</b>. Filtr se přepíše tím,
-          co je právě naklikané; název i to, kde se nabízí, zůstanou. (Dokud v hlavičce nic
-          nefiltruješ, je disketa nedostupná — není co uložit.)</li>
-        <li><b>Přejmenovat</b> — <b>tužka</b> v řádku (nebo <b>dvojklik na název</b>), přepiš
-          a potvrď <i>Enterem</i> (<i>Esc</i> zruší). Obsah filtru zůstane, mění se jen název.</li>
         <li><b>Zapnout/vypnout</b> — klik na název.</li>
-        <li><b>Kde se nabízí</b> — dva přepínače vpravo (tlačítko / výběr).</li>
+        <li><b>Přejmenovat</b> — <b>tužka</b> v řádku (nebo dvojklik na název), přepiš a potvrď
+          <i>Enterem</i> (<i>Esc</i> zruší). Obsah filtru se nemění.</li>
+        <li><b>Přepsat obsah</b> — <b>disketa</b> (viz postup výše).</li>
+        <li><b>Kde se nabízí</b> — dva přepínače: <b>pilulka</b> = tlačítko, <b>seznam se šipkou</b>
+          = výběr. Vyplněné = zapnuté.</li>
         <li><b>Smazat</b> — <b>×</b> na konci řádku.</li>
-        <li>U filtru z <a href="#rozsireny">rozšířeného filtru</a> je místo diskety ikona
-          <b>trychtýře s plusem</b> — otevře ho v query-builderu, kde podmínky upravíš
-          a uložíš pod stejným názvem.</li>
       </ul>
       <p>Rychlejší cesta k témuž: <b>pravý klik na tlačítko</b> filtru v řadě nad ikonami — menu
         nabídne <b>zapnout/vypnout</b>, <b>načíst do hlavičky a upravit</b>, <b>Zobrazit jako
         tlačítko</b>, <b>Zobrazit ve výběru</b> a <b>Smazat</b>. Funguje i na tlačítkách
-        <a href="#presety">presetů</a>.</p>
+        <a href="#presety">pohledů</a>.</p>
 
-      <h3>Uložit „naklikané" sloupcové filtry (snímek)</h3>
-      <p>Nemusíš skládat rozšířený filtr — stačí <b>nastavit filtry přímo v hlavičce</b> sloupců a pak je
-        uložit jako celek. Jakmile je aspoň jeden sloupcový filtr aktivní, objeví se vpravo nahoře ikona
-        <b>trychtýře s disketou</b>
-        (<span class="ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="var(--accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"></path><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"></path><path fill="#fff" d="M15.5 18h4v2.4h-4z"></path></svg></span>).
-        Klikem na ni otevřeš panel, kde filtr <b>pojmenuješ</b> a uložíš — vybereš <b>tlačítko</b>
-        a/nebo <b>výběr</b> a uložíš <b>lokálně</b> nebo <b>globálně</b>.</p>
+      <h3>Co je „snímek" sloupcových filtrů</h3>
+      <p>Uložené „naklikané" filtry jsou <b>snímek</b> hodnot z hlavičky. Když ho použiješ, filtry se
+        <b>vrátí zpět do políček v hlavičce</b> — takže je vidíš a můžeš je po sloupcích doladit
+        (na tom stojí i postup s úpravou výše). Uloží se i to, jaký <b>typ filtru</b> jsi měl
+        u dotčených sloupců přepnutý (třeba „Dynamické" u data).</p>
       <figure>
-        <img src="img/ulozit-filtry.png" alt="Panel Uložit sloupcové filtry">
-        <figcaption>Ikona trychtýře s disketou (vpravo nahoře, objeví se jen když filtruješ) → panel <b>„Uložit sloupcové filtry"</b>: název, volby <b>tlačítko</b> / <b>výběr</b>, Uložit / Uložit globálně a seznam už uložených.</figcaption>
+        <img src="img/ulozit-filtry.png" alt="Panel Uložené filtry">
+        <figcaption>Panel <b>„Uložené filtry"</b>: nahoře název + volby <b>tlačítko</b> / <b>výběr</b> a Uložit / Uložit globálně, pod tím seznam uložených — u každého tužka (přejmenovat), disketa (přepsat), dva přepínače zobrazení a × (smazat).</figcaption>
       </figure>
-      <p>Když snímek později <b>použiješ</b> (z tlačítka nebo z nabídky uložených), filtry se <b>vrátí zpět
-        do políček v hlavičce</b> — takže je vidíš a můžeš je po sloupcích doladit. Uložené snímky se objevují
-        ve <b>stejné nabídce a řadě tlačítek</b> jako uložené rozšířené filtry.</p>
-
-      <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> filtr má jen tvůj prohlížeč. <b>Globální</b>
-        (zelené <b>Uložit globálně</b>, jen když to aplikace umožní) se <b>sdílí všem uživatelům</b> a v nabídce
-        ho poznáš podle <b>glóbu 🌐</b>. Sdílené filtry ukládá a spravuje aplikace (stejně jako globální
-        <a href="#presety">presety</a>).</div>
     </section>
 
     <section id="dialog-sloupce">
       <h2><span class="n">9</span>Dialog „Sloupce"</h2>
       <p>Ikonou <b>⊟</b> vpravo nahoře otevřeš správu sloupců. Je to hlavní místo, odkud řídíš,
         <b>co a jak</b> se v tabulce zobrazuje: viditelnost, pořadí, ukotvení, filtry, souhrny,
-        formát, seskupení i presety.</p>
+        formát, seskupení i pohledy.</p>
       <figure>
         <img src="img/dialog-sloupce.png" alt="Dialog Sloupce">
-        <figcaption>Dialog „Sloupce": nahoře nástroje a presety (včetně volby <b>„Uložit do presetu:"</b>), pak seznam sloupců; u každého řada ikon.</figcaption>
+        <figcaption>Dialog „Sloupce": nahoře nástroje a uložené pohledy (přepínače <b>tlačítko</b>/<b>výběr</b> u každého), volba <b>„Uložit do pohledu:"</b> a řádek pro uložení, pak seznam sloupců.</figcaption>
       </figure>
 
       <h3>Ikony v hlavičce dialogu</h3>
@@ -536,18 +612,23 @@
             zůstávají — ty se resetují jinde.</div></li>
       </ul>
 
-      <h3>Presety (uložené pohledy)</h3>
-      <p>Preset je <b>pojmenované nastavení</b> tabulky — sloupce, jejich pořadí a šířky, řazení,
-        filtry a (podle zaškrtnutí) i nastavení tabulky včetně seskupení a souhrnů. Do pole <b>„Název presetu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
-        (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží lokálně. Uložené presety se pak
+      <h3>Uložené pohledy</h3>
+      <p>Pohled je <b>pojmenované nastavení tabulky</b> — sloupce, jejich pořadí a šířky, řazení,
+        filtry a (podle zaškrtnutí) i nastavení tabulky včetně seskupení a souhrnů. Do pole <b>„Název pohledu…"</b> napiš jméno a klikni na ikonu <b>záložky</b>
+        (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>) — pohled se uloží lokálně. Uložené pohledy se pak
         nabízejí k výběru a jedním klikem si tabulku přepneš do uloženého stavu.</p>
-      <p><b>Globální preset:</b> vedle záložky může být i <b>globus</b> (jen když to aplikace umožní) —
-        tím uložíš preset <b>globálně</b>, sdílený <b>všem uživatelům</b> (v nabídce s glóbem 🌐). Aplikace
-        může mít i presety nastavené <b>správcem</b>. Fungují stejně jako tvoje vlastní.</p>
+      <p><b>Globální pohled:</b> vedle záložky může být i <b>globus</b> (jen když to aplikace umožní) —
+        tím uložíš pohled <b>globálně</b>, sdílený <b>všem uživatelům</b> (v nabídce s glóbem 🌐). Aplikace
+        může mít i pohledy nastavené <b>správcem</b>. Fungují stejně jako tvoje vlastní.</p>
+      <p><b>Kde se pohled nabízí:</b> vedle pole s názvem jsou zaškrtávátka <b>tlačítko</b> a <b>výběr</b>
+        — pohled se pak ukáže jako pilulka v řadě nad ikonami, resp. v rozbalovací nabídce „uložené
+        pohledy". U <b>už uloženého</b> pohledu jsou tytéž dva přepínače vpravo v jeho řádku (vyplněné
+        = zapnuté), takže to jde kdykoli změnit. <b>×</b> pohled smaže. Podrobně v sekci
+        <a href="#presety">Uložené pohledy</a>.</p>
       <p><b>Hledat sloupec:</b> když má tabulka hodně sloupců, do pole <b>„Hledat sloupec…"</b>
         napiš část názvu a seznam se zúží — rychle tak najdeš ten, který chceš zapnout/vypnout.</p>
-      <p class="muted">Co přesně se do presetu ukládá a k čemu je to praktické — viz sekce
-        <a href="#presety">Presety</a>.</p>
+      <p class="muted">Co přesně se do pohledu ukládá a k čemu je to praktické — viz sekce
+        <a href="#presety">Uložené pohledy</a>.</p>
 
       <h3>Ikony u každého sloupce</h3>
       <p>U každého sloupce je vlevo <b>úchyt ⋮⋮</b> (tažením změníš pořadí — viz
@@ -633,7 +714,7 @@
         je <b>barevné kolo</b> a jezdec <b>jasu</b>; druhý tab <b>Palety</b> nabízí přednastavené
         kombinace à la Bootstrap — <b>plné i jemné</b> (16 kombinací) — i vlastní volbu. Picker si
         navíc pamatuje <b>naposledy použité</b> barvy, takže je máš rychle po ruce. Sloupec <b>bez
-        vlastní barvy zdědí barvu své skupiny</b>; písmo se u presetů a kola dopočítá tak, aby bylo čitelné.</p>
+        vlastní barvy zdědí barvu své skupiny</b>; písmo se u pohledů a kola dopočítá tak, aby bylo čitelné.</p>
       <figure>
         <img src="img/skupiny-barvy.png" alt="Obarvené záhlaví skupiny a sloupce">
         <figcaption>Skupina „Osoba" má modré záhlaví (a její sloupce ho zdědily); „E-mail" má vlastní barvu.</figcaption>
@@ -649,7 +730,7 @@
       </figure>
 
       <div class="note"><b>Vše se pamatuje:</b> přejmenování, skupiny a jejich sbalení, barvy i
-        formát buňky zůstanou i po načtení stránky a dají se uložit do <a href="#presety">presetu</a>.</div>
+        formát buňky zůstanou i po načtení stránky a dají se uložit do <a href="#presety">pohledu</a>.</div>
     </section>
 
     <section id="pocitany">
@@ -703,7 +784,7 @@
         podle spočítané hodnoty — chová se jako každý jiný. <b>Needituje se</b> (hodnota vzniká výpočtem).
         Vzorec kdykoli <b>upravíš</b> přes odznak <b>ƒx</b> u sloupce v dialogu „Sloupce" (tam ho jde i smazat).
         Sloupec i jeho vzorec se <b>pamatují</b> i po načtení stránky a dají se uložit do
-        <a href="#presety">presetu</a>.</div>
+        <a href="#presety">pohledu</a>.</div>
     </section>
 
     <section id="nastaveni">
@@ -727,25 +808,28 @@
       <div class="note"><b>Vše se pamatuje:</b> tvoje nastavení (i sloupce, řazení, filtry) zůstane
         i po zavření a příštím otevření tabulky — je uložené v prohlížeči.</div>
       <div class="note"><b>Chceš přepínat mezi několika nastaveními?</b> Volby z tohohle dialogu
-        (včetně seskupení, souhrnného řádku a mezisoučtů) se dají uložit do <b>presetu</b> — stačí
-        u ukládání nechat zaškrtnuté <b>„Nastavení tabulky"</b>. Viz <a href="#presety">Presety</a>.</div>
+        (včetně seskupení, souhrnného řádku a mezisoučtů) se dají uložit do <b>pohledu</b> — stačí
+        u ukládání nechat zaškrtnuté <b>„Nastavení tabulky"</b>. Viz <a href="#presety">Uložené pohledy</a>.</div>
     </section>
 
     <section id="presety">
-      <h2><span class="n">13</span>Presety (uložené pohledy)</h2>
-      <p>Preset je <b>pojmenovaný pohled</b> na tabulku. Nejdřív si tabulku <b>naklikáš</b> přesně
+      <h2><span class="n">13</span>Uložené pohledy</h2>
+      <p>Pohled je <b>pojmenované nastavení celé tabulky</b>. Nejdřív si tabulku <b>naklikáš</b> přesně
         tak, jak ji chceš — zvolíš viditelnost a pořadí sloupců, jejich šířky, nastavíš filtry
         a řazení, případně i seskupení řádků a souhrny — a celý tenhle stav uložíš pod názvem.
-        Když pak preset <b>použiješ</b>, tabulka se do toho stavu jedním klikem celá vrátí.</p>
+        Když pak pohled <b>použiješ</b>, tabulka se do toho stavu jedním klikem celá vrátí.</p>
 
-      <h3>Co se do presetu uloží</h3>
-      <p>Nad polem s názvem si <b>zaškrtneš, co má preset nést</b> — tři volby, klidně jen jednu
+      <p class="muted">Pozn.: v programátorské dokumentaci a v API se pohledům říká <b>presety</b>
+        (<code>preset</code>) — je to totéž.</p>
+
+      <h3>Co se do pohledu uloží</h3>
+      <p>Nad polem s názvem si <b>zaškrtneš, co má pohled nést</b> — tři volby, klidně jen jednu
         (aspoň jedna musí zůstat zapnutá):</p>
       <figure>
-        <img src="img/preset-volby.png" alt="Volba, co se uloží do presetu">
-        <figcaption>Panel presetů v dialogu „Sloupce": nahoře uložené presety, pod nimi volba
-          <b>„Uložit do presetu:"</b> — <b>Sloupce</b>, <b>Filtry a řazení</b>, <b>Nastavení tabulky</b>.
-          Najetím myší na uložený preset se ukáže, které části nese.</figcaption>
+        <img src="img/pohled-volby.png" alt="Volba, co se uloží do pohledu">
+        <figcaption>Panel pohledů v dialogu „Sloupce": nahoře uložené pohledy (u každého globus u globálního,
+          dva přepínače <b>tlačítko</b>/<b>výběr</b> a <b>×</b>), pod nimi volba <b>„Uložit do pohledu:"</b>
+          a řádek s názvem, volbami zobrazení a ikonou záložky (uložit lokálně).</figcaption>
       </figure>
       <ul>
         <li><b>Sloupce</b> — pořadí zleva doprava, viditelnost (co je zapnuté / skryté), šířky
@@ -757,58 +841,92 @@
           <b>souhrnný řádek</b>, <b>mezisoučty skupin</b>, velikost stránky, umístění filtrů,
           vzhled (motiv, hustota, písmo) i formát hodnot.</li>
       </ul>
-      <div class="note"><b>Preset mění jen to, co v sobě má.</b> Preset uložený třeba jen s
+      <div class="note"><b>Pohled mění jen to, co v sobě má.</b> Pohled uložený třeba jen s
         <b>filtry</b> ti při použití nepřerovná sloupce ani nezruší seskupení — sáhne opravdu jen
         na filtry. Tak si můžeš vedle sebe držet „pohledy" (sloupce), „výběry" (filtry) a „režimy
         zobrazení" (seskupení + souhrny) a kombinovat je. Číslo stránky se neukládá nikdy;
         sbalení filtračního panelu taky ne (to zůstává, jak si ho máš).</div>
-      <div class="note"><b>Starší presety:</b> presety uložené dřív, než přibyla volba
+      <div class="note"><b>Starší pohledy:</b> pohledy uložené dřív, než přibyla volba
         „Nastavení tabulky", nastavení tabulky <b>nemění</b> — obnoví jen sloupce, řazení a filtry.
         Když chceš, aby nesly i seskupení a souhrny, ulož je pod stejným názvem znovu.</div>
 
       <h3>K čemu je to praktické</h3>
       <ul>
         <li><b>Výběr sloupců pro export</b> — naklikáš si jen ty sloupce (a pořadí), které chceš
-          vyvézt, uložíš jako preset a máš je kdykoli po ruce.</li>
+          vyvézt, uložíš jako pohled a máš je kdykoli po ruce.</li>
         <li><b>Uložená kombinace filtrů</b> — poskládáš si třeba „aktivní kampaně po termínu"
           a příště ji zapneš jedním klikem, aniž bys filtry klikal znovu.</li>
         <li><b>Režimy práce</b> — přepínání mezi pohledy jako <i>Přehled</i>, <i>Jen po termínu</i>,
           <i>Podle kategorie</i>.</li>
-        <li><b>Uložený způsob zobrazení</b> — preset jen s <b>Nastavením tabulky</b> si zapamatuje
+        <li><b>Uložený způsob zobrazení</b> — pohled jen s <b>Nastavením tabulky</b> si zapamatuje
           třeba „seskupit po měsících + zapnout mezisoučty a souhrnný řádek"; použiješ ho na
           jakýkoli výběr dat, aniž by ti přepsal sloupce nebo filtry.</li>
       </ul>
 
-      <h3>Jak preset vytvořit</h3>
-      <p>Presety najdeš nahoře v dialogu <b>„Sloupce"</b> (ikona ⊟): zaškrtni u <b>„Uložit do
-        presetu:"</b>, co má preset nést, do pole <b>„Název presetu…"</b>
-        napiš jméno a klikni na ikonu <b>záložky</b> 🔖 — pohled se uloží lokálně. Vedle záložky může být
-        i <b>globus</b> (jen když to aplikace umožní): tím preset uložíš <b>globálně</b> pro všechny.
-        Uložené presety se pak nabízejí k výběru; jedním klikem si tabulku přepneš do uloženého stavu.</p>
-      <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> preset má jen tvůj prohlížeč;
-        <b>globální</b> (glóbus 🌐) se sdílí všem — ukládá ho aplikace. Některé aplikace mají navíc
-        <b>globální presety nastavené správcem</b>. Všechny se v nabídce chovají stejně.</div>
+      <h3>Vytvořit pohled — krok za krokem</h3>
+      <ol class="steps">
+        <li><b>Naklikej si tabulku</b> přesně tak, jak ji chceš mít — sloupce, jejich pořadí a šířky,
+          řazení, filtry, seskupení, souhrny, vzhled.</li>
+        <li>Otevři dialog <b>„Sloupce"</b> (ikona ⊟ vpravo nahoře). Pohledy jsou hned nahoře.</li>
+        <li>U <b>„Uložit do pohledu:"</b> zaškrtni, <b>co má pohled nést</b> — <b>Sloupce</b>,
+          <b>Filtry a řazení</b>, <b>Nastavení tabulky</b> (aspoň jedno musí zůstat).</li>
+        <li>Do pole <b>„Název pohledu…"</b> napiš název.</li>
+        <li>Zaškrtni, <b>kde se má pohled nabízet</b>: <b>tlačítko</b> a/nebo <b>výběr</b>
+          (u pohledů není předzaškrtnuté nic — pak zůstane jen tady v dialogu).</li>
+        <li>Ulož:
+          <ul>
+            <li>ikona <b>záložky</b>
+              (<span class="ibtn"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h12a1 1 0 011 1v18l-7-4-7 4V3a1 1 0 011-1z"></path></svg></span>)
+              — <b>lokálně</b>, jen pro tebe (uloží se v tvém prohlížeči),</li>
+            <li>ikona <b>globusu</b> — <b>globálně</b>, sdílené <b>všem uživatelům</b>; je vidět,
+              jen když to aplikace umožňuje.</li>
+          </ul>
+        </li>
+      </ol>
+      <p>Uložený pohled se objeví v seznamu nahoře v dialogu — <b>klik na název ho použije</b>.</p>
+      <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> pohled má jen tvůj prohlížeč;
+        <b>globální</b> (glóbus 🌐) se sdílí všem — ukládá ho aplikace, takže jeho úprava či smazání
+        se projeví <b>všem</b>. Některé aplikace mají navíc <b>globální pohledy nastavené správcem</b>;
+        chovají se stejně jako ostatní.</div>
 
-      <h3>Preset po ruce: „tlačítko" a „výběr"</h3>
-      <p>Preset nemusí zůstat schovaný v dialogu „Sloupce". Vedle pole s názvem jsou dvě
-        zaškrtávátka (a u každého už uloženého presetu dva stejné přepínače vpravo v řádku):</p>
+      <h3>Pohled po ruce: „tlačítko" a „výběr"</h3>
+      <p>Pohled nemusí zůstat schovaný v dialogu „Sloupce". Volbu máš u ukládání (krok 5) a u každého
+        <b>už uloženého</b> pohledu jsou vpravo v jeho řádku <b>dva stejné přepínače</b>, takže ji jde
+        kdykoli změnit bez ukládání znovu:</p>
       <ul>
-        <li><b>tlačítko</b> — preset se zobrazí jako <b>pilulka se záložkou</b> 🔖 v řadě nad ikonami
-          vpravo v záhlaví. <b>Jeden klik = použít</b>; použitý preset je zvýrazněný a <b>druhý klik
-          tě vrátí na výchozí zobrazení</b> (sloupce a nastavení tabulky jako na začátku).
-          <b>Filtry a řazení přitom zůstanou</b>, jak je máš — vypínáš zobrazení, ne výběr dat.</li>
-        <li><b>výběr</b> — preset se nabídne v <b>rozbalovací nabídce „uložené pohledy"</b> vedle ikon,
-          ve skupině <b>Presety</b>. Hodí se, když máš pohledů hodně.</li>
-        <li><b>nic zaškrtnutého</b> (výchozí) — preset zůstane jen tady v dialogu „Sloupce".</li>
+        <li><b>tlačítko</b> (ikona pilulky) — pohled se zobrazí jako <b>pilulka se záložkou</b> 🔖
+          ve <b>vlastní řadě nad ikonami</b> vpravo v záhlaví (řada je tam, jen když nějaký takový
+          pohled máš). <b>Jeden klik = použít</b>; použitý pohled je
+          zvýrazněný a <b>druhý klik tě vrátí na výchozí zobrazení</b> (sloupce a nastavení tabulky
+          jako na začátku). <b>Filtry a řazení přitom zůstanou</b>, jak je máš — vypínáš zobrazení,
+          ne výběr dat.</li>
+        <li><b>výběr</b> (ikona seznamu se šipkou) — pohled se nabídne v <b>rozbalovací nabídce
+          „— pohledy —"</b>, která je v řadě ikon <b>vpravo vedle nabídky uložených filtrů</b>.
+          Hodí se, když máš pohledů hodně. Vyprázdněním nabídky se vrátíš na výchozí zobrazení.</li>
+        <li><b>nic zaškrtnutého</b> (výchozí) — pohled zůstane jen v dialogu „Sloupce".</li>
       </ul>
-      <p>Řadu tlačítek i nabídku sdílí presety s <a href="#ulozene-filtry">uloženými filtry</a>;
-        poznáš je podle ikony (<b>záložka</b> = preset, <b>trychtýř</b> = filtr) a podle barvy
-        (<b>šedá</b> = jen tvoje, <b>modrá</b> = globální).</p>
-      <p><b>Pravý klik na tlačítko presetu</b> nabídne totéž co u filtrů — použít / vrátit výchozí
-        zobrazení, přepnout <b>tlačítko</b> a <b>výběr</b>, <b>upravit</b> a <b>smazat</b>.
-        „Upravit" otevře dialog „Sloupce" s <b>předvyplněným názvem</b> presetu: naklikej si tabulku
-        jinak a ulož ho pod stejným názvem — původní preset se přepíše. Smazat i přepnout zobrazení
-        jde samozřejmě i přímo v dialogu „Sloupce".</p>
+      <p>Řadu tlačítek i nabídku sdílí pohledy s <a href="#ulozene-filtry">uloženými filtry</a>;
+        poznáš je podle ikony (<b>záložka</b> = pohled, <b>trychtýř</b> = filtr) a podle barvy
+        (<b>šedá</b> = jen tvoje, <b>modrá</b> = globální) — viz
+        <a href="#ulozene-filtry">přehledová tabulka</a>.</p>
+
+      <h3>Upravit, přejmenovat nebo smazat pohled</h3>
+      <p>Pohled se — stejně jako filtr — upravuje tak, že si tabulku <b>naklikáš znovu</b> a uložíš
+        ho <b>pod stejným názvem</b> (původní se přepíše, tlačítko i volby zůstanou):</p>
+      <ol class="steps">
+        <li>Použij pohled (klik na jeho tlačítko nebo na název v dialogu „Sloupce").</li>
+        <li>Uprav tabulku, jak potřebuješ — sloupce, řazení, filtry, seskupení…</li>
+        <li>V dialogu „Sloupce" napiš <b>stejný název</b> a ulož (záložka = lokálně, globus = globálně).
+          Rychlejší cesta: <b>pravý klik na tlačítko pohledu → Upravit</b> — dialog se otevře
+          s <b>předvyplněným názvem</b> i volbami, takže jen potvrdíš uložení.</li>
+      </ol>
+      <ul>
+        <li><b>Přejmenovat</b> = uložit pod novým názvem a starý pohled smazat (<b>×</b> v jeho řádku).</li>
+        <li><b>Smazat</b> — <b>×</b> na konci řádku pohledu v dialogu „Sloupce" (nebo pravý klik na
+          tlačítko → <b>Smazat</b>).</li>
+        <li><b>Kde se nabízí</b> — dva přepínače v řádku pohledu (nebo pravý klik na tlačítko →
+          <b>Zobrazit jako tlačítko</b> / <b>Zobrazit ve výběru</b>).</li>
+      </ul>
     </section>
     <section id="seskupeni">
       <h2><span class="n">14</span>Seskupení řádků (i podle data)</h2>
