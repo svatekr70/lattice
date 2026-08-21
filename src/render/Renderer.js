@@ -21,7 +21,7 @@
 import { el, clear, debounce } from '../util/dom.js';
 import { getFormatter } from '../types/columnTypes.js';
 import { getFilter } from '../filters/index.js';
-import { attachResize, attachRowNumberResize } from '../features/resize.js';
+import { attachResize, attachRowNumberResize, attachGroupResize } from '../features/resize.js';
 import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
 import { partsSummary } from '../features/gear.js';
@@ -198,14 +198,17 @@ export class Renderer {
   groupLevelColumns() {
     const grid = this.grid;
     const i18n = grid.i18n;
+    const widths = grid.instance.groupColWidths || {};
     return grid.groupDescriptors().map((desc) => {
       const col = grid.columns.find((c) => c.field === desc.field);
       const title = col ? this.groupLevelTitle({ part: desc.part }, col) : desc.field;
       return {
+        // Sloupec je syntetický (vzniká znovu při každém renderColumns), takže šířka
+        // nemůže žít na něm — bere se z instance (a tím se i persistuje / nese v pohledu).
         field: '__group__' + desc.id, title,
         type: 'text', filter: null, group: null, headerSort: false,
         frozen: 'left', frozenAllowed: false, visible: true,
-        minWidth: 90, width: 130, align: 'left',
+        minWidth: 90, width: widths[desc.id] || 130, align: 'left',
         availableFilters: [], filterEnabled: false, _groupCol: desc,
         formatter: (_v, _col, row) => {
           // „Jen v záhlaví skupiny" (groupRepeat:false) v režimu headers → buňky prázdné,
@@ -765,9 +768,11 @@ export class Renderer {
     // Drag & drop pořadí přímo za titulek hlavičky.
     attachHeaderDrag(cell, col, grid);
 
-    // Resize handle (Excel-like) na pravém okraji.
+    // Resize handle (Excel-like) na pravém okraji. Vedoucí sloupec seskupení je
+    // syntetický → šířka se ukládá do instance, ne na (pokaždé nový) objekt sloupce.
     const handle = el('div.lattice-resize-handle');
-    attachResize(handle, col, grid);
+    if (col._groupCol) attachGroupResize(handle, col, grid, col._groupCol.id);
+    else attachResize(handle, col, grid);
     cell.appendChild(handle);
 
     return cell;

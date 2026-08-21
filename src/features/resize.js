@@ -104,6 +104,60 @@ export function attachRowNumberResize(handle, grid) {
   });
 }
 
+/**
+ * Resize vedoucího sloupce **seskupení řádků**. Ten sloupec je syntetický — vzniká
+ * znovu při každém překreslení, takže šířka nemůže žít na objektu sloupce (hned by se
+ * přepsala výchozí hodnotou). Ukládá se do `instance.groupColWidths[id]`, čímž se
+ * i persistuje a nese v uloženém pohledu. Dvojklik = auto-fit dle obsahu.
+ */
+export function attachGroupResize(handle, col, grid, id) {
+  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
+
+  const setWidth = (w) => {
+    if (!grid.instance.groupColWidths) grid.instance.groupColWidths = {};
+    grid.instance.groupColWidths[id] = w;
+    grid.renderer.applyLayout();
+  };
+
+  const onMove = (e) => {
+    if (!dragging) return;
+    const w = Math.max(col.minWidth, Math.round(startWidth + (e.clientX - startX)));
+    pending = w;
+    if (guide) moveGuide(guide, startX + (w - startWidth) - tableLeft);
+    else setWidth(w);
+  };
+
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.classList.remove('lattice-resizing');
+    if (guide) { setWidth(pending); removeGuide(guide); guide = null; }
+    grid.saveState();
+  };
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX = e.clientX;
+    startWidth = grid.renderer.layout?.widths.get(col.field) ?? col.width;
+    pending = startWidth;
+    dragging = true;
+    document.body.classList.add('lattice-resizing');
+    if (grid.instance.resizeGuide) { tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left; guide = createGuide(grid, startX - tableLeft); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  handle.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const w = measureColumnWidth(col, grid);
+    if (w) { setWidth(w); grid.saveState(); }
+  });
+}
+
 /* ---- vodicí čára (resize guide) — svislá linka přes tabulku, aplikuje se v mouseup ---- */
 
 function createGuide(grid, x) {

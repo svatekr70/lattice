@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.16.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.16.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.16.0
+npm i github:svatekr70/lattice#v1.16.1
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.16.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.16.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -295,6 +295,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. |
 | `groupRepeat` | v režimu `'headers'`: opakovat hodnotu seskupení v každém řádku (`true`, výchozí) \| nechat vedoucí sloupce prázdné a hodnotu jen v liště skupiny (`false`). |
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
+| `groupColWidths` | Šířky **vedoucích sloupců seskupení** (`{ '<groupId>': px }`). Ty sloupce jsou syntetické (vznikají znovu při každém překreslení), takže šířka žije tady — díky tomu se persistuje i nese v uloženém pohledu. Nastavuje ji tažení okraje hlavičky, dvojklik = auto-fit; „Obnovit výchozí" v dialogu Sloupce ji vynuluje. `@v1.16.1` |
 | `actionsLayout` | `'column'` (sloupec) \| `'menu'` (⋮ trojtečkové) |
 | `selectRowClick` | `true` = výběr i klikem na řádek (jinak jen checkbox) |
 | `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Přepínatelné i z UI (*Sloupce a řádky*). Viz *Zvýraznění řádků* (`@v1.8.0`). |

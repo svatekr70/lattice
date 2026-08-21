@@ -46,6 +46,7 @@ const INSTANCE_DEFAULTS = {
   summaryRow: 'none',     // souhrnný řádek: 'none' | 'page' (zobrazená stránka) | 'all' (všechny záznamy)
   groupSubtotals: false,  // mezisoučty za každou skupinu řádků (dle col.summary)
   rowNumberWidth: null,   // uživatelská šířka číslovacího sloupce (null = auto)
+  groupColWidths: {},     // uživatelské šířky vedoucích sloupců seskupení: { '<groupId>': px }
   groupBy: null,          // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: 'headers',// jak zobrazit úrovně seskupení: 'headers' (vnořené hlavičky) | 'columns' (vedoucí sloupce)
   groupRepeat: true,      // opakovat hodnotu seskupení v každém řádku (true) | jen v záhlaví skupiny (false, jen headers)
@@ -88,7 +89,7 @@ function presetParts(parts) {
  * Volby z `instance`, které se ovládají z dialogu „Sloupce" a přeskupují sloupce —
  * „Obnovit výchozí" je vrací spolu se sloupci.
  */
-const COLUMN_INSTANCE_KEYS = ['groupBy', 'groupDisplay', 'groupRepeat'];
+const COLUMN_INSTANCE_KEYS = ['groupBy', 'groupDisplay', 'groupRepeat', 'groupColWidths'];
 
 /** Je to obyčejný objekt (ne null, ne pole)? */
 function isPlainObject(v) {

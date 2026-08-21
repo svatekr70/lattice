@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.16.0";
+var VERSION = "1.16.1";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,14 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.16.1",
+    "date": "2026-08-21",
+    "text": "Oprava \u0161\xED\u0159ky vedouc\xEDch sloupc\u016F seskupen\xED. Beze zm\u011Bny chov\xE1n\xED zbytku knihovny.",
+    "items": [
+      "Sloupci, podle kter\xE9ho jsou seskupen\xE9 \u0159\xE1dky, ne\u0161la m\u011Bnit \u0161\xED\u0159ka. Vedouc\xED sloupec seskupen\xED je syntetick\xFD a vznik\xE1 znovu p\u0159i ka\u017Ed\xE9m p\u0159ekreslen\xED, tak\u017Ee \u0161\xED\u0159ka zapsan\xE1 na objekt sloupce se okam\u017Eit\u011B\u2026"
+    ]
+  },
   {
     "version": "1.16.0",
     "date": "2026-08-21",
@@ -2739,25 +2747,6 @@ var RELEASES = [
       "\u0160\xED\u0159ka/barva svisl\xFDch linek bun\u011Bk jde p\u0159epsat na \xFArovni gridu \u2014 --lattice-cell-vborder se u\u017E nedefinuje napevno v :root (vno\u0159en\xFD var() se vyhodnocoval moc brzy a p\u0159epis na potomkovi se neprojevil);\u2026",
       "Color picker se zobrazuje nad mod\xE1lem Nastaven\xED tabulky (d\u0159\xEDv se schoval pod n\u011Bj).",
       "Sbalen\xED skupin sloupc\u016F se persistuje i po reloadu \u2014 Store nov\u011B na\u010D\xEDt\xE1 kl\xED\u010D colGroups (dosud se ukl\xE1dal, ale p\u0159i na\u010Dten\xED se zahazoval, tak\u017Ee skupiny byly po obnoven\xED str\xE1nky zase rozbalen\xE9)."
-    ]
-  },
-  {
-    "version": "1.2.0",
-    "date": "2026-08-01",
-    "text": "Sbaliteln\xE9 skupiny sloupc\u016F \u2014 v z\xE1hlav\xED skupiny ikona \u2212/+; sbalen\xE1 skupina se schov\xE1 do \xFAzk\xE9ho prou\u017Eku \xB7 Barvy z\xE1hlav\xED sloupce i skupiny \u2014 color picker s barevn\xFDm kolem (v\xFDchoz\xED tab), jezdcem jasu a Bootstrap presety \xB7 Form\xE1t bu\u0148ky \u2014 vzhled t\u011Bla sloupce v UI:\u2026",
-    "items": [
-      "Sbaliteln\xE9 skupiny sloupc\u016F \u2014 v z\xE1hlav\xED skupiny ikona \u2212/+; sbalen\xE1 skupina se schov\xE1 do \xFAzk\xE9ho prou\u017Eku. Stav se persistuje. API: toggleColGroup, isColGroupCollapsed.",
-      "Barvy z\xE1hlav\xED sloupce i skupiny \u2014 color picker s barevn\xFDm kolem (v\xFDchoz\xED tab), jezdcem jasu a Bootstrap presety. Sloupec bez vlastn\xED barvy zd\u011Bd\xED barvu skupiny; p\xEDsmo se dopo\u010D\xEDt\xE1 kontrastn\u011B. API:\u2026",
-      "Form\xE1t bu\u0148ky \u2014 vzhled t\u011Bla sloupce v UI: zarovn\xE1n\xED, tu\u010Dn\xE9/kurz\xEDva/podtr\u017Een\xE9/p\u0159e\u0161krtnut\xE9, barva p\xEDsma i pozad\xED. API: setColumnCellFormat; option cellFormat.",
-      "P\u0159ejmenov\xE1n\xED sloupce \u2014 dvojklik na n\xE1zev v dialogu Sloupce (persistuje se). API: setColumnTitle.",
-      'V\xE1\u017Een\xFD souhrn se slou\u010D\xED do \u0159\xE1dku standardn\xEDho souhrnu, kdy\u017E ho pojmenuje\u0161 stejn\u011B (nap\u0159. \u201EPr\u016Fm\u011Br") \u2014 ikona \u0192 ho odli\u0161\xED.',
-      "Demo: hled\xE1n\xED uk\xE1zek v postrann\xEDm menu; gener\xE1tor k\xF3du dopln\u011Bn o pozn\xE1mku k runtime vzhledu.",
-      'Barva a zru\u0161en\xED skupiny se nastavuj\xED v nab\xEDdce skupiny (dialog Sloupce), ne p\u0159\xEDmo v gridu (a\u0165 se na zru\u0161en\xED neklikne omylem). \u201ENov\xE1 skupina" se nab\xEDz\xED jen sloupci bez skupiny.',
-      "Dialog Sloupce se roz\u0161\xED\u0159\xED, aby se ve\u0161ly ikony i del\u0161\xED n\xE1zvy.",
-      'Demo: kategorie \u201ENovinky" pro\u010Di\u0161t\u011Bna (Skupiny sloupc\u016F, Po\u010D\xEDtan\xE9 sloupce, Souhrny).',
-      "\u03A3 ikona je aktivn\xED i p\u0159i zapnut\xE9m v\xE1\u017Een\xE9m souhrnu.",
-      "Dialog Sloupce z\u016Fst\xE1v\xE1 otev\u0159en\xFD p\u0159i pr\xE1ci s jeho pod-popovery (souhrn/form\xE1t/skupina/barva/vzorec).",
-      "Editor vzorce/souhrnu se neobjev\xED v rohu, kdy\u017E se p\u0159ekreslen\xEDm utrhne kotva."
     ]
   }
 ];
@@ -6965,6 +6954,58 @@ function attachRowNumberResize(handle, grid) {
     grid.renderer.applyLayout();
   });
 }
+function attachGroupResize(handle, col, grid, id) {
+  let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
+  const setWidth = (w) => {
+    if (!grid.instance.groupColWidths) grid.instance.groupColWidths = {};
+    grid.instance.groupColWidths[id] = w;
+    grid.renderer.applyLayout();
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const w = Math.max(col.minWidth, Math.round(startWidth + (e.clientX - startX)));
+    pending = w;
+    if (guide) moveGuide(guide, startX + (w - startWidth) - tableLeft);
+    else setWidth(w);
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+    document.body.classList.remove("lattice-resizing");
+    if (guide) {
+      setWidth(pending);
+      removeGuide(guide);
+      guide = null;
+    }
+    grid.saveState();
+  };
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX = e.clientX;
+    startWidth = grid.renderer.layout?.widths.get(col.field) ?? col.width;
+    pending = startWidth;
+    dragging = true;
+    document.body.classList.add("lattice-resizing");
+    if (grid.instance.resizeGuide) {
+      tableLeft = grid.renderer.nodes.table.getBoundingClientRect().left;
+      guide = createGuide(grid, startX - tableLeft);
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+  handle.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const w = measureColumnWidth(col, grid);
+    if (w) {
+      setWidth(w);
+      grid.saveState();
+    }
+  });
+}
 function createGuide(grid, x) {
   const table = grid.renderer.nodes.table;
   const g = document.createElement("div");
@@ -7466,10 +7507,13 @@ var Renderer = class {
   groupLevelColumns() {
     const grid = this.grid;
     const i18n = grid.i18n;
+    const widths = grid.instance.groupColWidths || {};
     return grid.groupDescriptors().map((desc) => {
       const col = grid.columns.find((c) => c.field === desc.field);
       const title = col ? this.groupLevelTitle({ part: desc.part }, col) : desc.field;
       return {
+        // Sloupec je syntetický (vzniká znovu při každém renderColumns), takže šířka
+        // nemůže žít na něm — bere se z instance (a tím se i persistuje / nese v pohledu).
         field: "__group__" + desc.id,
         title,
         type: "text",
@@ -7480,7 +7524,7 @@ var Renderer = class {
         frozenAllowed: false,
         visible: true,
         minWidth: 90,
-        width: 130,
+        width: widths[desc.id] || 130,
         align: "left",
         availableFilters: [],
         filterEnabled: false,
@@ -8071,7 +8115,8 @@ var Renderer = class {
     }
     attachHeaderDrag(cell, col, grid);
     const handle = el("div.lattice-resize-handle");
-    attachResize(handle, col, grid);
+    if (col._groupCol) attachGroupResize(handle, col, grid, col._groupCol.id);
+    else attachResize(handle, col, grid);
     cell.appendChild(handle);
     return cell;
   }
@@ -11741,6 +11786,8 @@ var INSTANCE_DEFAULTS = {
   // mezisoučty za každou skupinu řádků (dle col.summary)
   rowNumberWidth: null,
   // uživatelská šířka číslovacího sloupce (null = auto)
+  groupColWidths: {},
+  // uživatelské šířky vedoucích sloupců seskupení: { '<groupId>': px }
   groupBy: null,
   // seskupení řádků: pole (field) | {field,part} | jejich pole (víceúrovňové)
   groupDisplay: "headers",
@@ -11787,7 +11834,7 @@ function presetParts(parts) {
   const p = parts || {};
   return { columns: p.columns !== false, filters: p.filters !== false, instance: p.instance !== false };
 }
-var COLUMN_INSTANCE_KEYS = ["groupBy", "groupDisplay", "groupRepeat"];
+var COLUMN_INSTANCE_KEYS = ["groupBy", "groupDisplay", "groupRepeat", "groupColWidths"];
 function isPlainObject(v) {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }

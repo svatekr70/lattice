@@ -4,6 +4,19 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.16.1] – 2026-08-21
+
+Oprava šířky vedoucích sloupců seskupení. Beze změny chování zbytku knihovny.
+
+### Opraveno
+- **Sloupci, podle kterého jsou seskupené řádky, nešla měnit šířka.** Vedoucí sloupec
+  seskupení je syntetický a vzniká znovu při každém překreslení, takže šířka zapsaná na
+  objekt sloupce se okamžitě přepsala výchozí hodnotou — tažení okraje se navenek
+  neprojevilo (na rozdíl od běžného ukotveného sloupce, který se chová stejně a resize
+  umí). Nově se šířka ukládá do `instance.groupColWidths` (per úroveň seskupení), takže
+  přežije překreslení, **persistuje se** a nese se i v uloženém pohledu. Dvojklik na
+  oddělovač = auto-fit; „Obnovit výchozí" v dialogu „Sloupce" ji vrátí zpět.
+
 ## [1.16.0] – 2026-08-21
 
 Výběr řádků dělá to, co slibuje: volby v menu rovnou vybírají, „Všechny záznamy" berou opravdu

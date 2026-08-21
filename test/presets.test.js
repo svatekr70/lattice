@@ -334,7 +334,7 @@ test('PresetStore: parts se propíšou do captureState', () => {
 });
 
 test('resetColumns: vrátí i seskupení řádků a zahodí sbalené skupiny', () => {
-  const grid = latticeCtx({ groupBy: ['a'], groupDisplay: 'columns', groupRepeat: false, summaryRow: 'all', theme: 'slate' });
+  const grid = latticeCtx({ groupBy: ['a'], groupDisplay: 'columns', groupRepeat: false, summaryRow: 'all', theme: 'slate', groupColWidths: { a: 260 } });
   grid.groupsCollapsed.add('Praha');
   grid.colGroupsCollapsed.add('Kontakt');
   grid.rerenderColumns = () => {};
@@ -346,6 +346,7 @@ test('resetColumns: vrátí i seskupení řádků a zahodí sbalené skupiny', (
   assert.equal(grid.instance.groupRepeat, true);
   assert.equal(grid.groupsCollapsed.size, 0);
   assert.equal(grid.colGroupsCollapsed.size, 0);
+  assert.deepEqual(grid.instance.groupColWidths, {}, 'i šířky vedoucích sloupců seskupení');
   assert.equal(grid.instance.summaryRow, 'all', 'nastavení tabulky mimo dialog sloupců zůstává');
   assert.equal(grid.instance.theme, 'slate');
   assert.deepEqual(grid.state.columns, []);

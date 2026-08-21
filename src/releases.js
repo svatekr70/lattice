@@ -4,6 +4,14 @@
  */
 export const RELEASES = [
   {
+    "version": "1.16.1",
+    "date": "2026-08-21",
+    "text": "Oprava šířky vedoucích sloupců seskupení. Beze změny chování zbytku knihovny.",
+    "items": [
+      "Sloupci, podle kterého jsou seskupené řádky, nešla měnit šířka. Vedoucí sloupec seskupení je syntetický a vzniká znovu při každém překreslení, takže šířka zapsaná na objekt sloupce se okamžitě…"
+    ]
+  },
+  {
     "version": "1.16.0",
     "date": "2026-08-21",
     "text": "Výběr řádků dělá to, co slibuje: volby v menu rovnou vybírají, „Všechny záznamy\" berou opravdu všechny filtrované záznamy (i nezobrazené stránky) a počty v popiscích sedí. Bez breaking changes.",
@@ -222,25 +230,6 @@ export const RELEASES = [
       "Šířka/barva svislých linek buněk jde přepsat na úrovni gridu — --lattice-cell-vborder se už nedefinuje napevno v :root (vnořený var() se vyhodnocoval moc brzy a přepis na potomkovi se neprojevil);…",
       "Color picker se zobrazuje nad modálem Nastavení tabulky (dřív se schoval pod něj).",
       "Sbalení skupin sloupců se persistuje i po reloadu — Store nově načítá klíč colGroups (dosud se ukládal, ale při načtení se zahazoval, takže skupiny byly po obnovení stránky zase rozbalené)."
-    ]
-  },
-  {
-    "version": "1.2.0",
-    "date": "2026-08-01",
-    "text": "Sbalitelné skupiny sloupců — v záhlaví skupiny ikona −/+; sbalená skupina se schová do úzkého proužku · Barvy záhlaví sloupce i skupiny — color picker s barevným kolem (výchozí tab), jezdcem jasu a Bootstrap presety · Formát buňky — vzhled těla sloupce v UI:…",
-    "items": [
-      "Sbalitelné skupiny sloupců — v záhlaví skupiny ikona −/+; sbalená skupina se schová do úzkého proužku. Stav se persistuje. API: toggleColGroup, isColGroupCollapsed.",
-      "Barvy záhlaví sloupce i skupiny — color picker s barevným kolem (výchozí tab), jezdcem jasu a Bootstrap presety. Sloupec bez vlastní barvy zdědí barvu skupiny; písmo se dopočítá kontrastně. API:…",
-      "Formát buňky — vzhled těla sloupce v UI: zarovnání, tučné/kurzíva/podtržené/přeškrtnuté, barva písma i pozadí. API: setColumnCellFormat; option cellFormat.",
-      "Přejmenování sloupce — dvojklik na název v dialogu Sloupce (persistuje se). API: setColumnTitle.",
-      "Vážený souhrn se sloučí do řádku standardního souhrnu, když ho pojmenuješ stejně (např. „Průměr\") — ikona ƒ ho odliší.",
-      "Demo: hledání ukázek v postranním menu; generátor kódu doplněn o poznámku k runtime vzhledu.",
-      "Barva a zrušení skupiny se nastavují v nabídce skupiny (dialog Sloupce), ne přímo v gridu (ať se na zrušení neklikne omylem). „Nová skupina\" se nabízí jen sloupci bez skupiny.",
-      "Dialog Sloupce se rozšíří, aby se vešly ikony i delší názvy.",
-      "Demo: kategorie „Novinky\" pročištěna (Skupiny sloupců, Počítané sloupce, Souhrny).",
-      "Σ ikona je aktivní i při zapnutém váženém souhrnu.",
-      "Dialog Sloupce zůstává otevřený při práci s jeho pod-popovery (souhrn/formát/skupina/barva/vzorec).",
-      "Editor vzorce/souhrnu se neobjeví v rohu, když se překreslením utrhne kotva."
     ]
   }
 ];
