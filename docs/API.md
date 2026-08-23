@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.17.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.16.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.17.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.16.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.17.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.16.1
+npm i github:svatekr70/lattice#v1.17.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.16.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.17.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -95,7 +95,7 @@ const grid = new Lattice('#grid', {
 | `rowContextMenu` | Kontextové menu řádku (pravý klik na buňku typu `id`): `(row, index) => [{ label, action, disabled? }]`; `action(row, index)`. |
 | `cellContextMenu` | Kontextové menu buňky (pravý klik): `(ctx) => [{ label, action, disabled? }]`, kde `ctx = { row, value, field, index, col, cell, grid }`; `action(ctx)`. |
 | `rowClass` / `rowStyle` | Podmíněné formátování řádku (třídy / inline styl dle dat). |
-| `i18n` | `'cs'` \| `'en'` \| vlastní slovník / objekt. |
+| `i18n` | `'cs'` \| `'en'` \| `'pl'` \| `'sk'` \| vlastní slovník / objekt. |
 | `features` | Vypnutí částí UI: `{ gear, instanceSettings, advancedFilter, help, version }` — `false` skryje danou ikonu/prvek (`version` = verze v patičce, `@v1.15.0`). |
 | `helpUrl` | URL nápovědy — ikona **?** v toolbaru (vpravo od ⚙, otevírá se v nové kartě). Default oficiální příručka; `null` ikonu skryje. |
 | `storage` | Vlastní `Storage` (default `localStorage`; lze in-memory shim). |
@@ -977,5 +977,7 @@ Tmavý režim: `theme: 'slate'` nebo `theme: 'auto'` (dle `prefers-color-scheme`
 
 ## Lokalizace
 
-Vestavěné `cs` / `en`. Vlastní jazyk: `registerLanguage('de', dict)` (stejná struktura jako
-`src/i18n/en.js`) nebo rovnou `i18n: dictObject`. Za běhu `grid.setLanguage('en')`.
+Vestavěné `cs` / `en` / `pl` (`@v1.17.0`) / `sk` (`@v1.17.0`). Vlastní jazyk:
+`registerLanguage('de', dict)` (stejná struktura jako `src/i18n/en.js`) nebo rovnou
+`i18n: dictObject`. Za běhu `grid.setLanguage('en')`. Seznam vestavěných vrátí
+`availableLanguages()`.

@@ -4,6 +4,23 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.17.0] – 2026-08-23
+
+Polština a slovenština jako vestavěné jazyky. Bez breaking changes — chování v `cs`/`en`
+se nemění.
+
+### Přidáno
+- **Polský překlad (`i18n: 'pl'`)** — `src/i18n/pl.js`, kompletních 569 řetězců: nastavení
+  tabulky, filtry (včetně nápovědy k dynamickým obdobím), uložené pohledy a filtry, počítané
+  sloupce i s popisy všech funkcí, souhrny, stránkování, kalendář (měsíce, zkratky, dny
+  v týdnu) a záložka „O Lattice".
+- **Slovenský překlad (`i18n: 'sk'`)** — `src/i18n/sk.js`, tytéž řetězce.
+- Oba jazyky jsou **vestavěné**, takže stačí `new Lattice('#grid', { i18n: 'pl' })` nebo
+  `grid.setLanguage('sk')` — bez `registerLanguage()`. `availableLanguages()` teď vrací
+  `['cs', 'en', 'pl', 'sk']`.
+- Překladatelské studio v demu nabízí polštinu a slovenštinu jako zdrojový základ pro další
+  jazyky (vedle češtiny a angličtiny).
+
 ## [1.16.1] – 2026-08-21
 
 Oprava šířky vedoucích sloupců seskupení. Beze změny chování zbytku knihovny.

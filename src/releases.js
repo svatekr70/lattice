@@ -4,6 +4,17 @@
  */
 export const RELEASES = [
   {
+    "version": "1.17.0",
+    "date": "2026-08-23",
+    "text": "Polština a slovenština jako vestavěné jazyky. Bez breaking changes — chování v cs/en se nemění.",
+    "items": [
+      "Polský překlad (i18n: 'pl') — src/i18n/pl.js, kompletních 569 řetězců: nastavení tabulky, filtry (včetně nápovědy k dynamickým obdobím), uložené pohledy a filtry, počítané sloupce i s popisy všech…",
+      "Slovenský překlad (i18n: 'sk') — src/i18n/sk.js, tytéž řetězce.",
+      "Oba jazyky jsou vestavěné, takže stačí new Lattice('#grid', { i18n: 'pl' }) nebo grid.setLanguage('sk') — bez registerLanguage(). availableLanguages() teď vrací ['cs', 'en', 'pl', 'sk'].",
+      "Překladatelské studio v demu nabízí polštinu a slovenštinu jako zdrojový základ pro další jazyky (vedle češtiny a angličtiny)."
+    ]
+  },
+  {
     "version": "1.16.1",
     "date": "2026-08-21",
     "text": "Oprava šířky vedoucích sloupců seskupení. Beze změny chování zbytku knihovny.",
@@ -212,24 +223,6 @@ export const RELEASES = [
     "text": "Zalamování názvů sloupců (wrapHeader) — nezávislé na zalamování dat v buňkách (wrapText)",
     "items": [
       "Zalamování názvů sloupců (wrapHeader) — nezávislé na zalamování dat v buňkách (wrapText). Když je zapnuté, auto-fit (dvojklik na oddělovač) změří šířku podle názvu složeného do 2 řádků (nikdy neužší…"
-    ]
-  },
-  {
-    "version": "1.3.0",
-    "date": "2026-08-01",
-    "text": "Generátor stylů (demo/styler.html) — naklikatelný vzhled: všechny theming proměnné --lattice-* (barvy s alfa kanálem, písmo, tvary, rozestupy, okraje), živý náhled a export hotového lattice-custom.css (ke stažení i kopírování) vč · Alfa kanál v color pickeru…",
-    "items": [
-      "Generátor stylů (demo/styler.html) — naklikatelný vzhled: všechny theming proměnné --lattice-* (barvy s alfa kanálem, písmo, tvary, rozestupy, okraje), živý náhled a export hotového…",
-      "Alfa kanál v color pickeru — openColorPicker má nově volitelný jezdec průhlednosti (opts.alpha); vrací pak rgba(...).",
-      "Paměť naposledy použitých barev — picker si pamatuje posledních 12 vlastních barev (kolo/vlastní vstup) a nabízí je k výběru (persistováno v localStorage).",
-      "Okraje sloupců v generátoru stylů — barva i šířka pro obyčejné svislé linky (--lattice-cell-vborder-color/-width), hrany skupin (--lattice-group-border-width) a dělící linku ukotvených sloupců…",
-      "Spodní okraje záhlaví — samostatná barva i šířka pod řádkem skupin (--lattice-group-border-bottom-*), pod řádkem záhlaví (--lattice-header-border-*) a pod řádkem filtrů (--lattice-filter-border-*).",
-      "Sidebar generátoru stylů skládá volby do 2 sloupců (dle šířky) — méně rolování.",
-      "Palety v color pickeru nabízejí obě varianty Bootstrapu 5 — plné (sytá barva + kontrastní písmo) i jemné „alert\" tóny (světlé pozadí + tmavý text). 16 kombinací.",
-      "Nastavení tabulky — „Barvy škály (semafor)\" i barvy ve „Vlastních úpravách\" otevírají šestiúhelníkový picker (kolo + palety) místo nativního výběru barvy.",
-      "Šířka/barva svislých linek buněk jde přepsat na úrovni gridu — --lattice-cell-vborder se už nedefinuje napevno v :root (vnořený var() se vyhodnocoval moc brzy a přepis na potomkovi se neprojevil);…",
-      "Color picker se zobrazuje nad modálem Nastavení tabulky (dřív se schoval pod něj).",
-      "Sbalení skupin sloupců se persistuje i po reloadu — Store nově načítá klíč colGroups (dosud se ukládal, ale při načtení se zahazoval, takže skupiny byly po obnovení stránky zase rozbalené)."
     ]
   }
 ];

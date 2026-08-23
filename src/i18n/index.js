@@ -6,14 +6,16 @@
  * angličtinu (default), a když ani tam není, vrátí se sám klíč (viditelné
  * v UI, snadno se dohledá).
  *
- * Jazyk se předává v configu jako `i18n: 'cs'` (vestavěný) nebo jako objekt
+ * Jazyk se předává v configu jako `i18n: 'cs'` (vestavěné: cs, en, pl, sk) nebo jako objekt
  * s vlastním slovníkem (částečný slovník se přeloží tam, kde klíče má, zbytek
  * padá na default).
  */
 import cs from './cs.js';
 import en from './en.js';
+import pl from './pl.js';
+import sk from './sk.js';
 
-const BUILTIN = { cs, en };
+const BUILTIN = { cs, en, pl, sk };
 const DEFAULT = en;
 
 /**

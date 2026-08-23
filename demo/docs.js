@@ -462,9 +462,9 @@ function docPresety(root) {
 function docLokalizace(root) {
   build(root, [
     h2('Lokalizace'),
-    lead('Vestavěná čeština a angličtina; snadno přidáš další jazyk.'),
+    lead('Vestavěná čeština, angličtina, polština a slovenština; snadno přidáš další jazyk.'),
     h3('Volba jazyka'),
-    code(`new Lattice('#grid', { i18n: 'cs' });   // 'cs' | 'en' | vlastní slovník (objekt)
+    code(`new Lattice('#grid', { i18n: 'cs' });   // 'cs' | 'en' | 'pl' | 'sk' | vlastní slovník (objekt)
 grid.setLanguage('en');`),
     h3('Nový jazyk'),
     p('V demu je nástroj <b>„Překlad do dalšího jazyka"</b> — vygeneruje z cs/en všechny řetězce, přeložíš (ručně nebo přes „zadání pro překladač"), stáhneš hotový <code>&lt;kód&gt;.js</code> a uložíš do <code>src/i18n/</code>. Registrace pak jedním voláním:'),
@@ -519,7 +519,7 @@ function docApi(root) {
       ['<code>rangeSelection</code>', 'Výběr rozsahu buněk + schránka. Automaticky přidá <b>souhrn výběru</b> (počet/součet/průměr/min/max) a <b>fill handle</b>.'],
       ['<code>history</code>', 'Undo/redo (client-side).'],
       ['<code>actions</code>', 'Sloupec akcí (ikony / ⋮ menu).'],
-      ['<code>i18n</code>', "'cs' | 'en' | vlastní slovník."],
+      ['<code>i18n</code>', "'cs' | 'en' | 'pl' | 'sk' | vlastní slovník."],
       ['<code>globalPresets</code> / <code>globalDefaults</code>', 'Sdílené presety / výchozí konfigurace.'],
       ['<code>on…</code> callbacky', 'Viz <i>Callbacky</i>.'],
     ]),
@@ -553,6 +553,7 @@ function docApi(root) {
       ['<code>registerType(name, formatter)</code>', 'Vlastní datový typ.'],
       ['<code>registerFilter(name, def)</code>', 'Vlastní filtr.'],
       ['<code>registerLanguage(code, dict)</code>', 'Vlastní jazyk.'],
+      ['<code>availableLanguages()</code>', 'Kódy vestavěných jazyků.'],
     ]),
   ]);
 }

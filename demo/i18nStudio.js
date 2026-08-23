@@ -11,8 +11,10 @@ import { Lattice } from '../src/index.js';
 import { campaignColumns } from './columns.js';
 import en from '../src/i18n/en.js';
 import cs from '../src/i18n/cs.js';
+import pl from '../src/i18n/pl.js';
+import sk from '../src/i18n/sk.js';
 
-const BASES = { en, cs };
+const BASES = { en, cs, pl, sk };
 
 /* ---- ploché klíče <-> vnořený objekt ------------------------------------ */
 
@@ -67,6 +69,8 @@ export function i18nStudioExample(el, ctx) {
     <label>Základ (zdroj): <select class="base">
       <option value="en">English</option>
       <option value="cs">Čeština</option>
+      <option value="pl">Polski</option>
+      <option value="sk">Slovenčina</option>
     </select></label>
     <label>Cílový jazyk – kód: <input class="code" placeholder="např. de" size="6" value="de"></label>
     <label>Název: <input class="name" placeholder="Deutsch" size="12" value="Deutsch"></label>
