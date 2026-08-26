@@ -256,6 +256,8 @@ function docFiltry(root, ctx) {
       ['<code>boolean</code>', 'boolean', 'Ano / Ne / Vše.'],
     ]),
 
+    p('Možnosti <code>select</code>/<code>multiselect</code>/<code>multiselect-exclude</code> se berou z <code>filterValues</code>, jinak z <code>filterUrl</code>, a když není ani jedno, <b>odvodí se z dat</b> — z distinktních hodnot sloupce v <b>celém datasetu</b>, ne z aktuálního výběru (jinak by si uživatel výběrem zúžil vlastní nabídku). V režimu <code>serverSide</code> grid celou sadu nezná, takže tam číselník zadej.'),
+
     h3('Odvození z typu'),
     p('Pokud <code>filter</code> nezadáš, číselné/datumové/textové sloupce jsou <b>filtrovatelné rovnou</b> — filtr je dostupný (zapneš ho v dialogu „Sloupce"), jen ve výchozím stavu vypnutý. Explicitní <code>filter</code>/<code>filterTypes</code> je zapnutý hned.'),
     code(`{ field: 'budget', type: 'money' }                    // filtr dostupný (vypnutý)

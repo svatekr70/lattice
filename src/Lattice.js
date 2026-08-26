@@ -670,6 +670,7 @@ export class Lattice {
     this.universal = null;
     this.advanced = null;
     this.page = 1;
+    this.dataSource.invalidate?.(); // hlavička se staví hned, refresh() je až za tím
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1155,6 +1156,7 @@ export class Lattice {
     this._clearActivePreset();
     this.filters = {};
     this.page = 1;
+    this.dataSource.invalidate?.();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -1302,6 +1304,7 @@ export class Lattice {
     const had = field in this.filters;
     delete this.filters[field]; // hodnota starého typu už nedává smysl
     this.page = 1;
+    this.dataSource.invalidate?.();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();

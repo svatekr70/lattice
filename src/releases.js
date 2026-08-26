@@ -4,6 +4,16 @@
  */
 export const RELEASES = [
   {
+    "version": "1.18.2",
+    "date": "2026-08-26",
+    "text": "Oprava nabídky hodnot ve filtrech select / multiselect / multiselect-exclude u sloupců bez filterValues a filterUrl. Bez změny API.",
+    "items": [
+      "Nabídka ve filtru se zúžila na to, co bylo zrovna vyfiltrované — a nešlo se vrátit. Možnosti odvozené z dat se braly z dataSource.allRows(), což je sada po filtrování (slouží souhrnům). Ovládací…",
+      "Nabídka odvozená z dat se přenačte při každém otevření panelu, takže odráží i změny dat (setData(), addRow(), deleteRow()) bez překreslení hlavičky. Statický číselník (filterValues) ani filterUrl se…",
+      "Při zrušení filtrů (clearAllFilters(), clearColumnFilters()) a přepnutí typu filtru (setColumnFilterType()) se zahodí zapamatovaná filtrovaná sada (ClientData.invalidate()). Hlavička se staví hned,…"
+    ]
+  },
+  {
     "version": "1.18.1",
     "date": "2026-08-26",
     "text": "Oprava automatické šířky sloupce s čísly řádků. Beze změny chování zbytku knihovny.",
@@ -219,14 +229,6 @@ export const RELEASES = [
     "items": [
       "Relativní datové tokeny v rozšířeném filtru — v hodnotě podmínky lze místo pevného data napsat token, který se dopočítá až při každém vyhodnocení filtru (uložený filtr tak „posouvá okno\" s časem,…",
       "Dokumentace (docs/API.md), uživatelská příručka a demo ukázka „Rozšířený filtr\" doplněny o relativní datum."
-    ]
-  },
-  {
-    "version": "1.5.1",
-    "date": "2026-08-03",
-    "text": "docs/API.md — rozsáhlé doplnění a opravy (jen dokumentace, chování knihovny beze změny): - Nová sekce Server-side režim (serverSide / ajax): plný objekt ajax (url, method, params, headers, paramNames, requestBuilder, responseParser), skládání ajax.params při…",
-    "items": [
-      "docs/API.md — rozsáhlé doplnění a opravy (jen dokumentace, chování knihovny beze změny): - Nová sekce Server-side režim (serverSide / ajax): plný objekt ajax (url, method, params, headers,…"
     ]
   }
 ];

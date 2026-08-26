@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.2/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.2/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.18.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.18.2`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.18.1
+npm i github:svatekr70/lattice#v1.18.2
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.18.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.18.2` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -195,9 +195,17 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 | `number-range` | number/money/… | Rozsah Od–Do. |
 | `date-range` / `date-two` | date/datetime | Kalendářní rozsah / dvě pole Od / Do. |
 | `dynamic` | date/datetime | Vlastní výraz: operátory `>` `<` `>=` `<=` `=`, spojky `AND`/`OR` (AND váže těsněji), pevné datum i relativní tokeny (`today±N[dwmy]`, `now` — viz tabulka u rozšířeného filtru). Např. `>today-14 AND <today+14`; chybný výraz se tiše ignoruje. `@v1.11.0` |
-| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (potřebuje `filterValues` nebo `filterUrl`). |
+| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (`filterValues`, `filterUrl`, jinak **odvozeno z dat** — viz níže). |
 | `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní (i prázdné buňky). Prázdný výběr nefiltruje. `@v1.18.0` |
 | `boolean` | boolean | Ano / Ne / Vše. |
+
+**Odkud se berou možnosti** u `select` / `multiselect` / `multiselect-exclude`: z `col.filterValues`
+(statický číselník), jinak z `col.filterUrl` (JSON pole hodnot nebo `{value,label}`), a když není ani
+jedno, **odvodí se z dat** — z distinktních hodnot sloupce v **celém datasetu**, ne z aktuálního
+výběru (jinak by si uživatel výběrem zúžil vlastní nabídku a už by se k ostatním hodnotám nedostal).
+Nabídka se přenačte při každém otevření panelu, takže drží krok se `setData()`/`addRow()`/`deleteRow()`.
+V režimu **`serverSide`** grid celou sadu nezná — odvodí ji jen z právě načtené stránky, takže tam
+`filterValues`/`filterUrl` zadej. `@v1.18.2`
 
 **Umístění filtrů** řídí `instance.filterLayout`: `'header'` (v záhlaví) \| `'external'` (panel nad
 tabulkou) \| `'universal'` (jedno pole Pole/Typ/Hodnota) \| `'none'`. Navíc **rozšířený filtr**

@@ -81,6 +81,19 @@ function fetchOptions(column, ctx) {
   return Promise.resolve([]);
 }
 
+/**
+ * Přenačte možnosti ODVOZENÉ z dat (sloupec nemá filterValues ani filterUrl).
+ * Volá se při otevření panelu, aby nabídka odpovídala aktuálním datům i poté,
+ * co se dataset změnil (setData/addRow/deleteRow) — ovládací prvek si options
+ * jinak drží z okamžiku svého vzniku. Statický číselník ani filterUrl se
+ * netahají znovu (u URL by to znamenalo dotaz při každém otevření).
+ */
+function derivedOptions(column, ctx) {
+  if (Array.isArray(column.filterValues) || column.filterUrl) return null;
+  if (typeof ctx.distinctValues !== 'function') return null;
+  return sortOptions(ctx.distinctValues().map(normOption), column, ctx);
+}
+
 /* ---- TEXT (s podporou negace !výraz) ----------------------------------- */
 
 registerFilter('text', {
@@ -418,6 +431,8 @@ function buildSelect(column, ctx) {
     panel.append(search, list);
     document.body.appendChild(panel);
     positionPanel(panel, control);
+    const fresh = derivedOptions(column, ctx);
+    if (fresh) options = fresh;
     renderPanelList(list, '');
     control.classList.add('is-open');
     closePanel = onOutside(panel, (e) => { if (!control.contains(e.target)) close(); });
@@ -619,6 +634,8 @@ function buildMultiselect(column, ctx, opts = {}) {
     panel.append(search, list);
     document.body.appendChild(panel);
     positionPanel(panel, control);
+    const fresh = derivedOptions(column, ctx);
+    if (fresh) options = fresh;
     renderPanelList(list, '');
     control.classList.add('is-open');
     closePanel = onOutside(panel, (e) => { if (!control.contains(e.target)) close(); });

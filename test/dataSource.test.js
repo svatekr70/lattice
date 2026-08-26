@@ -28,6 +28,39 @@ test('client: filtr + stránkování', async () => {
   assert.equal(r.rows.length, 2);
 });
 
+/* --- zdroj možností pro odvozené select/multiselect filtry --- */
+
+test('client: rawRows() drží CELÝ dataset i po filtrovaném dotazu', async () => {
+  const cd = new ClientData(data);
+  await cd.query({ page: 1, pageSize: 10, paginate: true, sort: [], filters: { name: 'alfa' }, columns });
+  // allRows() = filtrovaná sada (pro souhrny), rawRows() = celý dataset (pro nabídku filtru)
+  assert.deepEqual(cd.allRows().map((x) => x.name), ['alfa']);
+  assert.deepEqual(cd.rawRows().map((x) => x.name), ['alfa', 'beta', 'gama', 'delta']);
+});
+
+test('client: invalidate() zahodí zapamatovanou filtrovanou sadu', async () => {
+  const cd = new ClientData(data);
+  await cd.query({ page: 1, pageSize: 10, paginate: true, sort: [], filters: { name: 'alfa' }, columns });
+  assert.equal(cd.allRows().length, 1);
+  cd.invalidate(); // grid zruší filtry — data se přepočítají až v refresh()
+  assert.equal(cd.allRows().length, 4);
+});
+
+test('client: rawRows() vidí změny dat (setData/addRow/deleteRow)', async () => {
+  const cd = new ClientData(data);
+  cd.addRow({ name: 'epsilon', n: 50 });
+  assert.equal(cd.rawRows().length, 5);
+  cd.deleteRow('name', 'alfa');
+  assert.deepEqual(cd.rawRows().map((x) => x.name), ['beta', 'gama', 'delta', 'epsilon']);
+  cd.setData([{ name: 'jedna', n: 1 }]);
+  assert.deepEqual(cd.rawRows().map((x) => x.name), ['jedna']);
+});
+
+test('server: rawRows() nemá (celou sadu nezná) → nabídka jen z filterValues/filterUrl', () => {
+  const sd = new ServerData({ url: '/api' });
+  assert.equal(typeof sd.rawRows, 'undefined');
+});
+
 test('client: bez stránkování vrátí vše', async () => {
   const cd = new ClientData(data);
   const r = await cd.query({ page: 1, pageSize: 2, paginate: false, sort: [], filters: {}, columns });

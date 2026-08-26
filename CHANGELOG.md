@@ -4,6 +4,30 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.18.2] – 2026-08-26
+
+Oprava nabídky hodnot ve filtrech `select` / `multiselect` / `multiselect-exclude` u sloupců
+bez `filterValues` a `filterUrl`. Bez změny API.
+
+### Opraveno
+- **Nabídka ve filtru se zúžila na to, co bylo zrovna vyfiltrované — a nešlo se vrátit.**
+  Možnosti odvozené z dat se braly z `dataSource.allRows()`, což je sada **po** filtrování
+  (slouží souhrnům). Ovládací prvek si nabídku načte při svém vzniku, takže stačilo jakékoli
+  překreslení hlavičky za aktivního filtru — seřazení podle jiného sloupce, změna šířky či
+  pořadí sloupce, načtení pohledu, „Zrušit všechny filtry" — a v nabídce zůstaly jen dřív
+  vybrané hodnoty. Jediná cesta ven byl reload stránky. Nově se možnosti berou z **celého
+  datasetu** (`ClientData.rawRows()`).
+- **Nabídka odvozená z dat se přenačte při každém otevření panelu**, takže odráží i změny
+  dat (`setData()`, `addRow()`, `deleteRow()`) bez překreslení hlavičky. Statický číselník
+  (`filterValues`) ani `filterUrl` se znovu netahají.
+- Při zrušení filtrů (`clearAllFilters()`, `clearColumnFilters()`) a přepnutí typu filtru
+  (`setColumnFilterType()`) se zahodí zapamatovaná filtrovaná sada (`ClientData.invalidate()`).
+  Hlavička se staví hned, kdežto `refresh()` je asynchronní — bez toho by cokoli, co si při
+  vzniku sáhne na data, vidělo stav starý o jeden krok.
+
+**Server-side beze změny:** `ServerData` celou sadu nezná, možnosti se dál odvozují jen
+z načtené stránky — u takových sloupců patří `filterValues` / `filterUrl`.
+
 ## [1.18.1] – 2026-08-26
 
 Oprava automatické šířky sloupce s čísly řádků. Beze změny chování zbytku knihovny.

@@ -39,6 +39,27 @@ export class ClientData {
     return this._filtered || this.data;
   }
 
+  /**
+   * CELÝ dataset bez ohledu na filtry — zdroj možností pro select/multiselect
+   * filtry odvozené z dat. Kdyby se braly z `allRows()`, uživatel by si výběrem
+   * zúžil vlastní nabídku a neměl by se jak vrátit k ostatním hodnotám.
+   * ServerData tuhle metodu nemá (celou sadu nezná) — tam se možnosti zadávají
+   * přes `filterValues` / `filterUrl`.
+   */
+  rawRows() {
+    return this.data;
+  }
+
+  /**
+   * Zahodí zapamatovanou filtrovanou sadu. Volá grid, když se změní filtry, ale
+   * data se ještě nepřepočítala (`refresh()` je asynchronní): hlavička se staví
+   * hned, a bez tohohle by cokoli, co si při vzniku sáhne na `allRows()`, vidělo
+   * výsledek PŘEDCHOZÍHO filtru. ServerData metodu nemá (nic si nepamatuje).
+   */
+  invalidate() {
+    this._filtered = null;
+  }
+
   /* ---- granulární mutace (pro grid.addRow/updateRow/deleteRow/updateData) ---- */
 
   addRow(row, atStart = false) {

@@ -15,6 +15,7 @@ function makeGrid({ global = false } = {}) {
     state: { advancedFilters: [] },
     globalAdvanced: [],
     store: { save() {} },
+    dataSource: { invalidate() {} },
     renderer: { renderToolbar() {}, renderHeader() {}, applyLayout() {} },
     options: global ? { onSaveGlobalAdvancedFilter() {} } : {},
     columns: [

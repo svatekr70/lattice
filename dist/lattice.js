@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.18.1";
+var VERSION = "1.18.2";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,16 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.18.2",
+    "date": "2026-08-26",
+    "text": "Oprava nab\xEDdky hodnot ve filtrech select / multiselect / multiselect-exclude u sloupc\u016F bez filterValues a filterUrl. Bez zm\u011Bny API.",
+    "items": [
+      "Nab\xEDdka ve filtru se z\xFA\u017Eila na to, co bylo zrovna vyfiltrovan\xE9 \u2014 a ne\u0161lo se vr\xE1tit. Mo\u017Enosti odvozen\xE9 z dat se braly z dataSource.allRows(), co\u017E je sada po filtrov\xE1n\xED (slou\u017E\xED souhrn\u016Fm). Ovl\xE1dac\xED\u2026",
+      "Nab\xEDdka odvozen\xE1 z dat se p\u0159ena\u010Dte p\u0159i ka\u017Ed\xE9m otev\u0159en\xED panelu, tak\u017Ee odr\xE1\u017E\xED i zm\u011Bny dat (setData(), addRow(), deleteRow()) bez p\u0159ekreslen\xED hlavi\u010Dky. Statick\xFD \u010D\xEDseln\xEDk (filterValues) ani filterUrl se\u2026",
+      "P\u0159i zru\u0161en\xED filtr\u016F (clearAllFilters(), clearColumnFilters()) a p\u0159epnut\xED typu filtru (setColumnFilterType()) se zahod\xED zapamatovan\xE1 filtrovan\xE1 sada (ClientData.invalidate()). Hlavi\u010Dka se stav\xED hned,\u2026"
+    ]
+  },
   {
     "version": "1.18.1",
     "date": "2026-08-26",
@@ -2736,14 +2746,6 @@ var RELEASES = [
     "items": [
       'Relativn\xED datov\xE9 tokeny v roz\u0161\xED\u0159en\xE9m filtru \u2014 v hodnot\u011B podm\xEDnky lze m\xEDsto pevn\xE9ho data napsat token, kter\xFD se dopo\u010D\xEDt\xE1 a\u017E p\u0159i ka\u017Ed\xE9m vyhodnocen\xED filtru (ulo\u017Een\xFD filtr tak \u201Eposouv\xE1 okno" s \u010Dasem,\u2026',
       'Dokumentace (docs/API.md), u\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka a demo uk\xE1zka \u201ERoz\u0161\xED\u0159en\xFD filtr" dopln\u011Bny o relativn\xED datum.'
-    ]
-  },
-  {
-    "version": "1.5.1",
-    "date": "2026-08-03",
-    "text": "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers, paramNames, requestBuilder, responseParser), skl\xE1d\xE1n\xED ajax.params p\u0159i\u2026",
-    "items": [
-      "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers,\u2026"
     ]
   }
 ];
@@ -4530,6 +4532,11 @@ function fetchOptions(column, ctx) {
   if (typeof ctx.distinctValues === "function") return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
   return Promise.resolve([]);
 }
+function derivedOptions(column, ctx) {
+  if (Array.isArray(column.filterValues) || column.filterUrl) return null;
+  if (typeof ctx.distinctValues !== "function") return null;
+  return sortOptions(ctx.distinctValues().map(normOption), column, ctx);
+}
 registerFilter("text", {
   build(column, ctx) {
     const input = el("input.lattice-filter-input", {
@@ -4847,6 +4854,8 @@ function buildSelect(column, ctx) {
     panel.append(search, list);
     document.body.appendChild(panel);
     positionPanel(panel, control);
+    const fresh = derivedOptions(column, ctx);
+    if (fresh) options = fresh;
     renderPanelList(list, "");
     control.classList.add("is-open");
     closePanel = onOutside(panel, (e) => {
@@ -5031,6 +5040,8 @@ function buildMultiselect(column, ctx, opts = {}) {
     panel.append(search, list);
     document.body.appendChild(panel);
     positionPanel(panel, control);
+    const fresh = derivedOptions(column, ctx);
+    if (fresh) options = fresh;
     renderPanelList(list, "");
     control.classList.add("is-open");
     closePanel = onOutside(panel, (e) => {
@@ -5129,6 +5140,25 @@ var ClientData = class {
   /** Celá filtrovaná+seřazená sada (pro souhrn nad všemi řádky). */
   allRows() {
     return this._filtered || this.data;
+  }
+  /**
+   * CELÝ dataset bez ohledu na filtry — zdroj možností pro select/multiselect
+   * filtry odvozené z dat. Kdyby se braly z `allRows()`, uživatel by si výběrem
+   * zúžil vlastní nabídku a neměl by se jak vrátit k ostatním hodnotám.
+   * ServerData tuhle metodu nemá (celou sadu nezná) — tam se možnosti zadávají
+   * přes `filterValues` / `filterUrl`.
+   */
+  rawRows() {
+    return this.data;
+  }
+  /**
+   * Zahodí zapamatovanou filtrovanou sadu. Volá grid, když se změní filtry, ale
+   * data se ještě nepřepočítala (`refresh()` je asynchronní): hlavička se staví
+   * hned, a bez tohohle by cokoli, co si při vzniku sáhne na `allRows()`, vidělo
+   * výsledek PŘEDCHOZÍHO filtru. ServerData metodu nemá (nic si nepamatuje).
+   */
+  invalidate() {
+    this._filtered = null;
   }
   /* ---- granulární mutace (pro grid.addRow/updateRow/deleteRow/updateData) ---- */
   addRow(row, atStart = false) {
@@ -9283,8 +9313,12 @@ var Renderer = class {
       fetchJson: (url) => fetch(url).then((r) => r.json()),
       onChange: (value) => this.grid.setFilter(col.field, value),
       // Distinktní hodnoty sloupce z dat — fallback pro select/multiselect bez filterValues.
+      // Z CELÉHO datasetu (`rawRows`), ne z vyfiltrovaného: jinak by si uživatel
+      // výběrem zúžil vlastní nabídku a k ostatním hodnotám by se nedostal.
+      // ServerData `rawRows` nemá (celou sadu nezná) → zůstává dosavadní chování.
       distinctValues: () => {
-        const src = this.grid.dataSource.allRows && this.grid.dataSource.allRows() || this.grid.rows || [];
+        const ds = this.grid.dataSource;
+        const src = ds.rawRows && ds.rawRows() || ds.allRows && ds.allRows() || this.grid.rows || [];
         const seen = /* @__PURE__ */ new Set(), out = [];
         for (const r of src) {
           const v = cellValue(r, col);
@@ -13480,6 +13514,7 @@ var Lattice = class {
     this.universal = null;
     this.advanced = null;
     this.page = 1;
+    this.dataSource.invalidate?.();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -13914,6 +13949,7 @@ var Lattice = class {
     this._clearActivePreset();
     this.filters = {};
     this.page = 1;
+    this.dataSource.invalidate?.();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
@@ -14048,6 +14084,7 @@ var Lattice = class {
     const had = field2 in this.filters;
     delete this.filters[field2];
     this.page = 1;
+    this.dataSource.invalidate?.();
     this.saveState();
     this.renderer.renderHeader();
     this.renderer.applyLayout();
