@@ -4,6 +4,17 @@
  */
 export const RELEASES = [
   {
+    "version": "1.18.0",
+    "date": "2026-08-26",
+    "text": "Nový typ filtru „Vyloučit více\" (multiselect-exclude) — inverze filtru „Více hodnot\". Bez breaking changes.",
+    "items": [
+      "Filtr multiselect-exclude („Vyloučit více\") — zaškrtnuté hodnoty se skryjí a v tabulce zůstane všechno ostatní (řádky s prázdnou buňkou se považují za nevyloučené). Prázdný výběr nefiltruje.…",
+      "Server-side: filtr se serializuje jako type:'notIn' s hodnotou pole (filter[0][value][0], filter[0][value][1], …) — stejně jako in, jen s opačným významem (NOT IN). Demo servery (demo/server.js,…",
+      "Přepínač typu filtru: textové sloupce teď v trychtýři nabízejí čtveřici Text / Výběr / Více hodnot / Vyloučit více (hodnoty si filtr odvodí z dat, když nejsou filterValues/filterUrl). Překlady ve…",
+      "Dokumentace: docs/API.md (tabulka filtrů + kontrakt requestu), dokumentace v demu, uživatelská příručka (nová podkapitola „Vyloučit více\") a builder sloupců. V demu filtr používá sloupec Stav v…"
+    ]
+  },
+  {
     "version": "1.17.0",
     "date": "2026-08-23",
     "text": "Polština a slovenština jako vestavěné jazyky. Bez breaking changes — chování v cs/en se nemění.",
@@ -215,14 +226,6 @@ export const RELEASES = [
     "text": "Globální (sdílené) rozšířené filtry — uložené rozšířené filtry (strom pravidel) lze teď ukládat nejen lokálně (per-uživatel, localStorage), ale i globálně pro všechny",
     "items": [
       "Globální (sdílené) rozšířené filtry — uložené rozšířené filtry (strom pravidel) lze teď ukládat nejen lokálně (per-uživatel, localStorage), ale i globálně pro všechny. Stejný vzor jako globální…"
-    ]
-  },
-  {
-    "version": "1.4.0",
-    "date": "2026-08-02",
-    "text": "Zalamování názvů sloupců (wrapHeader) — nezávislé na zalamování dat v buňkách (wrapText)",
-    "items": [
-      "Zalamování názvů sloupců (wrapHeader) — nezávislé na zalamování dat v buňkách (wrapText). Když je zapnuté, auto-fit (dvojklik na oddělovač) změří šířku podle názvu složeného do 2 řádků (nikdy neužší…"
     ]
   }
 ];

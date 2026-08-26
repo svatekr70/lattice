@@ -4,6 +4,27 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.18.0] – 2026-08-26
+
+Nový typ filtru **„Vyloučit více"** (`multiselect-exclude`) — inverze filtru „Více hodnot".
+Bez breaking changes.
+
+### Přidáno
+- **Filtr `multiselect-exclude` („Vyloučit více")** — zaškrtnuté hodnoty se **skryjí** a
+  v tabulce zůstane všechno ostatní (řádky s prázdnou buňkou se považují za nevyloučené).
+  Prázdný výběr nefiltruje. Ovládání je stejné jako u „Více hodnot" (pole s hledáním a
+  štítky), jen mluví opačně: placeholder „Vyloučit…", v nabídce **✕** místo ✓ a vybrané
+  hodnoty se ukazují jako červené **přeškrtnuté** štítky.
+- **Server-side:** filtr se serializuje jako `type:'notIn'` s hodnotou **pole**
+  (`filter[0][value][0]`, `filter[0][value][1]`, …) — stejně jako `in`, jen s opačným
+  významem (`NOT IN`). Demo servery (`demo/server.js`, `demo/mock-api.js`) `notIn` umí.
+- **Přepínač typu filtru:** textové sloupce teď v trychtýři nabízejí čtveřici
+  Text / Výběr / Více hodnot / **Vyloučit více** (hodnoty si filtr odvodí z dat, když nejsou
+  `filterValues`/`filterUrl`). Překlady ve všech vestavěných jazycích (cs/en/pl/sk).
+- Dokumentace: `docs/API.md` (tabulka filtrů + kontrakt requestu), dokumentace v demu,
+  uživatelská příručka (nová podkapitola „Vyloučit více") a builder sloupců. V demu filtr
+  používá sloupec **Stav** v ukázce „Filtry v záhlaví".
+
 ## [1.17.0] – 2026-08-23
 
 Polština a slovenština jako vestavěné jazyky. Bez breaking changes — chování v `cs`/`en`

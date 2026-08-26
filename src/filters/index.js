@@ -488,18 +488,40 @@ registerFilter('multiselect', {
   toServer: (field, value) => [{ field, type: 'in', value }],
 });
 
+/* ---- MULTISELECT-EXCLUDE (vyloučit více) -------------------------------- */
+/* Inverze multiselectu: zaškrtnuté hodnoty se SKRYJÍ, zobrazí se všechno
+ * ostatní (včetně prázdných buněk). Prázdný výběr nic nevylučuje → nefiltruje. */
+
+registerFilter('multiselect-exclude', {
+  build(column, ctx) {
+    return buildMultiselect(column, ctx, { exclude: true });
+  },
+  isEmpty: (v) => !Array.isArray(v) || v.length === 0,
+  match(value, cell) {
+    const set = value.map(norm);
+    return !set.includes(norm(cell));
+  },
+  toServer: (field, value) => [{ field, type: 'notIn', value }],
+});
+
 /**
  * Vlastní multiselect (Select2-like, bez závislosti): kompaktní pole s chipy
  * vybraných hodnot + rozbalovací panel s hledáním a odškrtáváním. Žádný nativní
  * <select multiple> se 4 řádky a scrollerem.
+ *
+ * `opts.exclude` přepne do režimu „Vyloučit více": chování je totožné, mění se
+ * jen řeč UI (placeholder, ✕ místo ✓, danger barvy chipů) — sémantiku „skryj
+ * vybrané" řeší match/toServer registrovaného filtru.
  */
-function buildMultiselect(column, ctx) {
+function buildMultiselect(column, ctx, opts = {}) {
+  const exclude = !!opts.exclude;
   let selected = Array.isArray(ctx.value) ? ctx.value.map(String) : [];
   let options = [];
   let panel = null;
   let closePanel = null;
 
   const control = el('div.lattice-ms', { tabindex: '0' });
+  if (exclude) control.classList.add('lattice-ms-exclude');
   const chips = el('div.lattice-ms-chips');
   const caret = el('span.lattice-ms-caret', { html: CARET_SVG });
   control.append(chips, caret);
@@ -516,7 +538,7 @@ function buildMultiselect(column, ctx) {
   function renderChips() {
     clear(chips);
     if (selected.length === 0) {
-      chips.appendChild(el('span.lattice-ms-placeholder', { text: ctx.i18n.t('filters.all') }));
+      chips.appendChild(el('span.lattice-ms-placeholder', { text: ctx.i18n.t(exclude ? 'filters.excludePlaceholder' : 'filters.all') }));
       return;
     }
     for (const v of selected) {
@@ -588,6 +610,7 @@ function buildMultiselect(column, ctx) {
   function open() {
     if (panel) return;
     panel = el('div.lattice-ms-panel');
+    if (exclude) panel.classList.add('lattice-ms-exclude');
     const search = el('input.lattice-ms-search', { type: 'text', placeholder: ctx.i18n.t('filters.search') });
     const list = el('div.lattice-ms-list');
     panel._search = search;
@@ -621,7 +644,7 @@ function buildMultiselect(column, ctx) {
     for (const o of shown) {
       const on = selected.includes(o.value);
       const row = el('div.lattice-ms-option', { class: on ? 'is-selected' : '' }, [
-        el('span.lattice-ms-check', { text: on ? '✓' : '' }),
+        el('span.lattice-ms-check', { text: on ? (exclude ? '✕' : '✓') : '' }),
         el('span', { text: o.label }),
       ]);
       row.addEventListener('mousedown', (e) => { e.preventDefault(); toggle(o.value); });

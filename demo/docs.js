@@ -252,6 +252,7 @@ function docFiltry(root, ctx) {
       ['<code>number-range</code>', 'number/money/…', 'Rozsah Od–Do.'],
       ['<code>date-range</code> / <code>date-two</code>', 'date/datetime', 'Kalendářní rozsah / dvě pole Od / Do.'],
       ['<code>select</code> / <code>multiselect</code>', 'kdykoli', 'Výběr jedné / více hodnot (Select2-like, řazeno locale-aware).'],
+      ['<code>multiselect-exclude</code>', 'kdykoli', '<b>Vyloučit více</b> — inverze multiselectu: zaškrtnuté hodnoty se skryjí, zůstane všechno ostatní.'],
       ['<code>boolean</code>', 'boolean', 'Ano / Ne / Vše.'],
     ]),
 

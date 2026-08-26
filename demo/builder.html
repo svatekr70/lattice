@@ -326,7 +326,7 @@ const CAMPAIGN_CATALOG = [
   nc({ field: 'web', title: 'Web', type: 'link', filter: 'text', on: false, width: 170 }),
 ];
 const TYPES = ['id', 'text', 'number', 'money', 'date', 'datetime', 'boolean', 'tick', 'progress', 'rating', 'sparkline', 'link', 'image', 'icon', 'color', 'html'];
-const FILTERS = ['', 'text', 'select', 'multiselect', 'number', 'number-range', 'date-range', 'boolean'];
+const FILTERS = ['', 'text', 'select', 'multiselect', 'multiselect-exclude', 'number', 'number-range', 'date-range', 'boolean'];
 const FROZEN = [['', '—'], ['left', 'Vlevo'], ['right', 'Vpravo']];
 const ALIGN = [['', 'auto'], ['left', 'Vlevo'], ['center', 'Střed'], ['right', 'Vpravo']];
 const RESP = [['', 'výchozí'], ['false', 'nikdy neschovat'], ['10', 'schovat dřív']];
@@ -498,7 +498,7 @@ function activeColumns() {
     if (c.width) o.width = c.width;
     if (c.align) o.align = c.align;
     if (c.filter) o.filter = c.filter;
-    if (c.filter === 'select' || c.filter === 'multiselect') o.filterValues = distinctValues(c.field, mode);
+    if (c.filter === 'select' || c.filter === 'multiselect' || c.filter === 'multiselect-exclude') o.filterValues = distinctValues(c.field, mode);
     if (c.group) o.group = c.group;
     if (c.type === 'link' && c.urlField) o.urlField = c.urlField;
     if ((c.type === 'boolean' || c.type === 'tick') && c.boolStyle && BOOL_STYLES[c.boolStyle][1]) o.formatterParams = BOOL_STYLES[c.boolStyle][1];

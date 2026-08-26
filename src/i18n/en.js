@@ -354,10 +354,12 @@ export default {
     dynamic: 'Dynamic',
     select: 'Select',
     multiselect: 'Multi-select',
+    'multiselect-exclude': 'Exclude multiple',
     boolean: 'Yes / No',
   },
   filters: {
     all: 'All',
+    excludePlaceholder: 'Exclude…',
     yes: 'Yes',
     no: 'No',
     from: 'From',

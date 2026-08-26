@@ -153,8 +153,8 @@ const RAW_GROUPS = [
       {
         id: 'ex-filter-header',
         title: 'Filtry v záhlaví',
-        blurb: 'Každý sloupec má vlastní filtr podle typu: text, číslo/rozsah, výběr, multiselect, datum (rozsah, od/do i <b>dynamický</b> výraz jako <code>&gt;today-14 AND &lt;today+14</code> — u pole je tlačítko „?" s hotovými obdobími), ano/ne. Kalendář „Datum (rozsah)" má přepínač <b>„dynamické období"</b> (preset se uloží relativně a zůstane živý). Typ lze přepínat trychtýřem u sloupce. Když nějaký filtr zapneš, objeví se vpravo nahoře ikona <b>trychtýř+disketa</b> — uloží „naklikané" filtry pod názvem (i jako tlačítko, lokálně/globálně).',
-        code: `columns = [\n  { field: 'name', filter: 'text' },\n  { field: 'budget', filter: 'number-range' },\n  { field: 'category', filter: 'multiselect' },\n  { field: 'createdAt', filter: 'date-range' },\n  { field: 'startsAt', filter: 'dynamic' },   // >today-14 AND <today+14\n]`,
+        blurb: 'Každý sloupec má vlastní filtr podle typu: text, číslo/rozsah, výběr, multiselect, <b>vyloučit více</b> (inverze multiselectu — zaškrtnuté hodnoty se skryjí, viz sloupec Stav), datum (rozsah, od/do i <b>dynamický</b> výraz jako <code>&gt;today-14 AND &lt;today+14</code> — u pole je tlačítko „?" s hotovými obdobími), ano/ne. Kalendář „Datum (rozsah)" má přepínač <b>„dynamické období"</b> (preset se uloží relativně a zůstane živý). Typ lze přepínat trychtýřem u sloupce. Když nějaký filtr zapneš, objeví se vpravo nahoře ikona <b>trychtýř+disketa</b> — uloží „naklikané" filtry pod názvem (i jako tlačítko, lokálně/globálně).',
+        code: `columns = [\n  { field: 'name', filter: 'text' },\n  { field: 'budget', filter: 'number-range' },\n  { field: 'category', filter: 'multiselect' },\n  { field: 'status', filter: 'multiselect-exclude' },   // vybrané hodnoty se SKRYJÍ\n  { field: 'createdAt', filter: 'date-range' },\n  { field: 'startsAt', filter: 'dynamic' },   // >today-14 AND <today+14\n]`,
         mount: (el, ctx) => new Lattice(el, base(ctx, {
           id: 'ex-filter-header', columns: campaignColumns(), data: ctx.data, pageSize: 25,
           instance: { filterLayout: 'header' },

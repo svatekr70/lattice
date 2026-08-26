@@ -839,6 +839,12 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 .lattice-ms-chip-x { cursor: pointer; font-weight: 700; line-height: 1; }
 .lattice-ms-chip-x:hover { color: var(--lattice-danger); }
 .lattice-ms-more { background: var(--lattice-header-bg); color: var(--lattice-muted); font-weight: 600; }
+/* „Vyloučit více" — vybrané hodnoty se skrývají, proto danger barvy a přeškrtnutý štítek. */
+.lattice-ms-exclude .lattice-ms-chip { background: var(--lattice-danger-soft); color: var(--lattice-danger); }
+.lattice-ms-exclude .lattice-ms-chip.lattice-ms-more { background: var(--lattice-header-bg); color: var(--lattice-muted); }
+.lattice-ms-exclude .lattice-ms-chip-label { text-decoration: line-through; }
+.lattice-ms-exclude .lattice-ms-option.is-selected { color: var(--lattice-danger); }
+.lattice-ms-exclude .lattice-ms-check { color: var(--lattice-danger); }
 .lattice-ms-caret { flex: 0 0 auto; display: inline-flex; color: var(--lattice-muted); }
 
 .lattice-ms-panel {

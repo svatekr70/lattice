@@ -888,7 +888,7 @@ function deriveAvailableFilters(def) {
   } else {
     const type = def.type || "text";
     list = (FILTERS_BY_TYPE[type] || []).slice();
-    if (type === "text") list.push("select", "multiselect");
+    if (type === "text") list.push("select", "multiselect", "multiselect-exclude");
   }
   if (def.filter && !list.includes(def.filter)) list.unshift(def.filter);
   return [...new Set(list)];
@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.17.0";
+var VERSION = "1.18.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,17 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.18.0",
+    "date": "2026-08-26",
+    "text": 'Nov\xFD typ filtru \u201EVylou\u010Dit v\xEDce" (multiselect-exclude) \u2014 inverze filtru \u201EV\xEDce hodnot". Bez breaking changes.',
+    "items": [
+      'Filtr multiselect-exclude (\u201EVylou\u010Dit v\xEDce") \u2014 za\u0161krtnut\xE9 hodnoty se skryj\xED a v tabulce z\u016Fstane v\u0161echno ostatn\xED (\u0159\xE1dky s pr\xE1zdnou bu\u0148kou se pova\u017Euj\xED za nevylou\u010Den\xE9). Pr\xE1zdn\xFD v\xFDb\u011Br nefiltruje.\u2026',
+      "Server-side: filtr se serializuje jako type:'notIn' s hodnotou pole (filter[0][value][0], filter[0][value][1], \u2026) \u2014 stejn\u011B jako in, jen s opa\u010Dn\xFDm v\xFDznamem (NOT IN). Demo servery (demo/server.js,\u2026",
+      "P\u0159ep\xEDna\u010D typu filtru: textov\xE9 sloupce te\u010F v trycht\xFD\u0159i nab\xEDzej\xED \u010Dtve\u0159ici Text / V\xFDb\u011Br / V\xEDce hodnot / Vylou\u010Dit v\xEDce (hodnoty si filtr odvod\xED z dat, kdy\u017E nejsou filterValues/filterUrl). P\u0159eklady ve\u2026",
+      'Dokumentace: docs/API.md (tabulka filtr\u016F + kontrakt requestu), dokumentace v demu, u\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka (nov\xE1 podkapitola \u201EVylou\u010Dit v\xEDce") a builder sloupc\u016F. V demu filtr pou\u017E\xEDv\xE1 sloupec Stav v\u2026'
+    ]
+  },
   {
     "version": "1.17.0",
     "date": "2026-08-23",
@@ -2732,14 +2743,6 @@ var RELEASES = [
     "text": "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny",
     "items": [
       "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny. Stejn\xFD vzor jako glob\xE1ln\xED\u2026"
-    ]
-  },
-  {
-    "version": "1.4.0",
-    "date": "2026-08-02",
-    "text": "Zalamov\xE1n\xED n\xE1zv\u016F sloupc\u016F (wrapHeader) \u2014 nez\xE1visl\xE9 na zalamov\xE1n\xED dat v bu\u0148k\xE1ch (wrapText)",
-    "items": [
-      "Zalamov\xE1n\xED n\xE1zv\u016F sloupc\u016F (wrapHeader) \u2014 nez\xE1visl\xE9 na zalamov\xE1n\xED dat v bu\u0148k\xE1ch (wrapText). Kdy\u017E je zapnut\xE9, auto-fit (dvojklik na odd\u011Blova\u010D) zm\u011B\u0159\xED \u0161\xED\u0159ku podle n\xE1zvu slo\u017Een\xE9ho do 2 \u0159\xE1dk\u016F (nikdy neu\u017E\u0161\xED\u2026"
     ]
   }
 ];
@@ -4913,12 +4916,25 @@ registerFilter("multiselect", {
   },
   toServer: (field2, value) => [{ field: field2, type: "in", value }]
 });
-function buildMultiselect(column, ctx) {
+registerFilter("multiselect-exclude", {
+  build(column, ctx) {
+    return buildMultiselect(column, ctx, { exclude: true });
+  },
+  isEmpty: (v) => !Array.isArray(v) || v.length === 0,
+  match(value, cell) {
+    const set = value.map(norm2);
+    return !set.includes(norm2(cell));
+  },
+  toServer: (field2, value) => [{ field: field2, type: "notIn", value }]
+});
+function buildMultiselect(column, ctx, opts = {}) {
+  const exclude = !!opts.exclude;
   let selected = Array.isArray(ctx.value) ? ctx.value.map(String) : [];
   let options = [];
   let panel = null;
   let closePanel = null;
   const control = el("div.lattice-ms", { tabindex: "0" });
+  if (exclude) control.classList.add("lattice-ms-exclude");
   const chips = el("div.lattice-ms-chips");
   const caret = el("span.lattice-ms-caret", { html: CARET_SVG });
   control.append(chips, caret);
@@ -4932,7 +4948,7 @@ function buildMultiselect(column, ctx) {
   function renderChips() {
     clear(chips);
     if (selected.length === 0) {
-      chips.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t("filters.all") }));
+      chips.appendChild(el("span.lattice-ms-placeholder", { text: ctx.i18n.t(exclude ? "filters.excludePlaceholder" : "filters.all") }));
       return;
     }
     for (const v of selected) {
@@ -5005,6 +5021,7 @@ function buildMultiselect(column, ctx) {
   function open() {
     if (panel) return;
     panel = el("div.lattice-ms-panel");
+    if (exclude) panel.classList.add("lattice-ms-exclude");
     const search = el("input.lattice-ms-search", { type: "text", placeholder: ctx.i18n.t("filters.search") });
     const list = el("div.lattice-ms-list");
     panel._search = search;
@@ -5038,7 +5055,7 @@ function buildMultiselect(column, ctx) {
     for (const o of shown) {
       const on = selected.includes(o.value);
       const row = el("div.lattice-ms-option", { class: on ? "is-selected" : "" }, [
-        el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
+        el("span.lattice-ms-check", { text: on ? exclude ? "\u2715" : "\u2713" : "" }),
         el("span", { text: o.label })
       ]);
       row.addEventListener("mousedown", (e) => {
@@ -5060,8 +5077,8 @@ function buildMultiselect(column, ctx) {
     }
     if (e.key === "Escape") close();
   });
-  fetchOptions(column, ctx).then((opts) => {
-    options = opts;
+  fetchOptions(column, ctx).then((opts2) => {
+    options = opts2;
     renderChips();
     if (panel) renderPanelList(panel._list, panel._search.value);
   });
@@ -5788,10 +5805,12 @@ var cs_default = {
     dynamic: "Dynamick\xE9",
     select: "V\xFDb\u011Br",
     multiselect: "V\xEDce hodnot",
+    "multiselect-exclude": "Vylou\u010Dit v\xEDce",
     boolean: "Ano / Ne"
   },
   filters: {
     all: "V\u0161e",
+    excludePlaceholder: "Vylou\u010Dit\u2026",
     yes: "Ano",
     no: "Ne",
     from: "Od",
@@ -6324,10 +6343,12 @@ var en_default = {
     dynamic: "Dynamic",
     select: "Select",
     multiselect: "Multi-select",
+    "multiselect-exclude": "Exclude multiple",
     boolean: "Yes / No"
   },
   filters: {
     all: "All",
+    excludePlaceholder: "Exclude\u2026",
     yes: "Yes",
     no: "No",
     from: "From",
@@ -6860,10 +6881,12 @@ var pl_default = {
     dynamic: "Dynamiczny",
     select: "Lista",
     multiselect: "Wiele warto\u015Bci",
+    "multiselect-exclude": "Wyklucz wiele",
     boolean: "Tak / Nie"
   },
   filters: {
     all: "Wszystko",
+    excludePlaceholder: "Wyklucz\u2026",
     yes: "Tak",
     no: "Nie",
     from: "Od",
@@ -7396,10 +7419,12 @@ var sk_default = {
     dynamic: "Dynamick\xE9",
     select: "V\xFDber",
     multiselect: "Viac hodn\xF4t",
+    "multiselect-exclude": "Vyl\xFA\u010Di\u0165 viac",
     boolean: "\xC1no / Nie"
   },
   filters: {
     all: "V\u0161etko",
+    excludePlaceholder: "Vyl\xFA\u010Di\u0165\u2026",
     yes: "\xC1no",
     no: "Nie",
     from: "Od",

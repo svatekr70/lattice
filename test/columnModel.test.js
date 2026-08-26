@@ -114,10 +114,10 @@ test('deriveAvailableFilters dle datového typu', () => {
   assert.deepEqual(deriveAvailableFilters({ field: 'b', type: 'boolean', filter: 'boolean' }), ['boolean']);
 });
 
-test('text vždy nabídne trojici text/select/multiselect', () => {
+test('text vždy nabídne text/select/multiselect/multiselect-exclude', () => {
   // s číselníkem i bez něj — select/multiselect si hodnoty odvodí z dat
-  assert.deepEqual(deriveAvailableFilters({ field: 'c', type: 'text', filter: 'text', filterValues: [{ value: 'x' }] }), ['text', 'select', 'multiselect']);
-  assert.deepEqual(deriveAvailableFilters({ field: 'c', type: 'text', filter: 'text' }), ['text', 'select', 'multiselect']);
+  assert.deepEqual(deriveAvailableFilters({ field: 'c', type: 'text', filter: 'text', filterValues: [{ value: 'x' }] }), ['text', 'select', 'multiselect', 'multiselect-exclude']);
+  assert.deepEqual(deriveAvailableFilters({ field: 'c', type: 'text', filter: 'text' }), ['text', 'select', 'multiselect', 'multiselect-exclude']);
 });
 
 test('explicitní def.filterTypes má přednost a vždy obsahuje aktuální filtr', () => {
@@ -129,7 +129,7 @@ test('filtr se odvodí z typu i bez explicitního filter', () => {
   // číselné/datumové/textové typy jsou filtrovatelné rovnou
   assert.deepEqual(deriveAvailableFilters({ field: 'x', type: 'number' }), ['number', 'number-range']);
   assert.deepEqual(deriveAvailableFilters({ field: 'm', type: 'money' }), ['number', 'number-range']);
-  assert.deepEqual(deriveAvailableFilters({ field: 't', type: 'text' }), ['text', 'select', 'multiselect']);
+  assert.deepEqual(deriveAvailableFilters({ field: 't', type: 'text' }), ['text', 'select', 'multiselect', 'multiselect-exclude']);
 });
 
 test('nefiltrovatelný typ → žádné přepínání (pokud si filtr nevynutí def.filter)', () => {

@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.17.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.17.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.17.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.18.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.17.0
+npm i github:svatekr70/lattice#v1.18.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.17.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.18.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -143,7 +143,7 @@ new Lattice('#grid', {
 | `visible` | boolean | Výchozí viditelnost (výchozí `true`). **`false` = skrytý po startu, ale zapnutelný** uživatelem v dialogu Sloupce (☰). Uživatelská viditelnost se persistuje (`lattice:<id>`) a má přednost před touto výchozí hodnotou. |
 | `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI **sbalit** do úzkého proužku (ikona −/+ v záhlaví skupiny). Alternativně nested definice: `{ title, columns:[…] }`. |
 | `filter` | string | Typ filtru; když se vynechá, odvodí se z typu. |
-| `filterValues` | array | Hodnoty pro `select`/`multiselect` filtr (jinak `filterUrl`). |
+| `filterValues` | array | Hodnoty pro `select`/`multiselect`/`multiselect-exclude` filtr (jinak `filterUrl`). |
 | `editable` | boolean | Povolí inline editaci buňky. |
 | `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
@@ -196,6 +196,7 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 | `date-range` / `date-two` | date/datetime | Kalendářní rozsah / dvě pole Od / Do. |
 | `dynamic` | date/datetime | Vlastní výraz: operátory `>` `<` `>=` `<=` `=`, spojky `AND`/`OR` (AND váže těsněji), pevné datum i relativní tokeny (`today±N[dwmy]`, `now` — viz tabulka u rozšířeného filtru). Např. `>today-14 AND <today+14`; chybný výraz se tiše ignoruje. `@v1.11.0` |
 | `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (potřebuje `filterValues` nebo `filterUrl`). |
+| `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní (i prázdné buňky). Prázdný výběr nefiltruje. `@v1.18.0` |
 | `boolean` | boolean | Ano / Ne / Vše. |
 
 **Umístění filtrů** řídí `instance.filterLayout`: `'header'` (v záhlaví) \| `'external'` (panel nad
@@ -457,10 +458,11 @@ Je to **jediný** způsob, jak poslat na server stav mimo grid (externí filtry)
 
 - `page` (**1-based**), `size` — posílají se jen při zapnutém stránkování.
 - `sort` = pole `[{ field, dir }]` → serializuje se jako `sort[0][field]`, `sort[0][dir]`, …
-- `filter` = pole `[{ field, type, value }]`, kde `type` ∈ `like, !like, =, !=, in, >=, >, <=, <, dateRange`:
+- `filter` = pole `[{ field, type, value }]`, kde `type` ∈ `like, !like, =, !=, in, notIn, >=, >, <=, <, dateRange`:
   - **range** (`number-range`, `date-two`): dva záznamy se stejným `field` (`>=` a `<=`); kterýkoli může chybět.
   - **date-range**: JEDEN záznam `type:'dateRange'`, `value: "from|to"`.
   - **multiselect**: `type:'in'`, `value` je **pole** → `filter[0][value][0]`, `filter[0][value][1]`, … (ne spojené `'|'`).
+  - **multiselect-exclude**: `type:'notIn'`, `value` je **pole** (stejná serializace jako `in`) — backend má vrátit řádky, které v seznamu **nejsou** (`NOT IN`). `@v1.18.0`
 - `search` (quick search) — trimovaný řetězec, výchozí klíč `search`.
 - `advanced` (rozšířený filtr, strom AND/OR pravidel) — **jen když je neprázdný**; formát viz níže (`@v1.7.0`).
 

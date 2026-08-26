@@ -354,10 +354,12 @@ export default {
     dynamic: 'Dynamiczny',
     select: 'Lista',
     multiselect: 'Wiele wartości',
+    'multiselect-exclude': 'Wyklucz wiele',
     boolean: 'Tak / Nie',
   },
   filters: {
     all: 'Wszystko',
+    excludePlaceholder: 'Wyklucz…',
     yes: 'Tak',
     no: 'Nie',
     from: 'Od',

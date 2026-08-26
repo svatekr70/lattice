@@ -219,7 +219,7 @@ const FILTERS_BY_TYPE = {
 /**
  * Odvodí seznam přepínatelných typů filtru pro sloupec.
  *  - `def.filterTypes` (pole) má absolutní přednost (explicitní whitelist).
- *  - jinak dle datového typu; u textu s číselníkem hodnot přidá select/multiselect.
+ *  - jinak dle datového typu; u textu přidá select/multiselect/multiselect-exclude.
  *  - vždy obsahuje aktuální `def.filter`, aby šlo přepnout zpět.
  */
 export function deriveAvailableFilters(def) {
@@ -233,9 +233,9 @@ export function deriveAvailableFilters(def) {
     // color, link, tick, id) nemají žádný — pokud si ho def.filter nevynutí.
     const type = def.type || 'text';
     list = (FILTERS_BY_TYPE[type] || []).slice();
-    // Textové sloupce vždy nabídnou trojici Text / Výběr / Více hodnot (select
-    // i multiselect si hodnoty odvodí z dat, když nejsou filterValues/filterUrl).
-    if (type === 'text') list.push('select', 'multiselect');
+    // Textové sloupce vždy nabídnou Text / Výběr / Více hodnot / Vyloučit více
+    // (select i multiselect si hodnoty odvodí z dat, když nejsou filterValues/filterUrl).
+    if (type === 'text') list.push('select', 'multiselect', 'multiselect-exclude');
   }
   if (def.filter && !list.includes(def.filter)) list.unshift(def.filter);
   return [...new Set(list)];

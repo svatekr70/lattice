@@ -24,7 +24,7 @@ export function campaignColumns() {
     { field: 'label',     title: 'Štítek',       type: 'html',     width: 130 },
     { field: 'createdAt', title: 'Vytvořeno',    type: 'date',     filter: 'date-range',   width: 150 },
     { field: 'startsAt',  title: 'Start',        type: 'date',     filter: 'dynamic',      width: 180 },
-    { field: 'status',    title: 'Stav',         type: 'text',     filter: 'select',       filterValues: OPTIONS.statuses, width: 130 },
+    { field: 'status',    title: 'Stav',         type: 'text',     filter: 'multiselect-exclude', filterValues: OPTIONS.statuses, width: 130 },
     { field: 'active',    title: 'Aktivní',      type: 'boolean',  filter: 'boolean',      width: 110, align: 'center' },
   ];
 }

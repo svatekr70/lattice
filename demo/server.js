@@ -195,6 +195,7 @@ function matchFilter(row, f) {
     case '>=': return cmpGte(val, fv);
     case '<=': return cmpLte(val, fv);
     case 'in': return toArr(fv).map(String).includes(String(val));
+    case 'notIn': return !toArr(fv).map(String).includes(String(val));
     case 'dateRange': {
       const [from, to] = String(fv).split('|');
       const t = day(val);

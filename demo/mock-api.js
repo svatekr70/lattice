@@ -107,6 +107,7 @@ function matchFilter(row, f) {
     case '>=': return isDate(fv) ? day(val) >= day(fv) : num(val) >= num(fv);
     case '<=': return isDate(fv) ? day(val) <= day(fv) : num(val) <= num(fv);
     case 'in': return toArr(fv).map(String).includes(String(val));
+    case 'notIn': return !toArr(fv).map(String).includes(String(val));
     case 'dateRange': {
       const [from, to] = String(fv).split('|');
       const t = day(val);

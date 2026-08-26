@@ -99,7 +99,7 @@
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="var(--accent)"/><g fill="none" stroke="#fff" stroke-width="2"><rect x="7" y="7" width="18" height="18" rx="2"/><path d="M7 13h18M7 19h18M13 7v18M19 7v18"/></g></svg>
       Lattice
     </a>
-    <span class="ver">v1.17.0</span>
+    <span class="ver">v1.18.0</span>
     <span class="spacer"></span>
     <a class="navlink" href="/demo/">Demo</a>
     <a class="navlink" href="/prirucka/">Příručka</a>
@@ -136,7 +136,7 @@
   <span class="k">import</span> { Lattice } <span class="k">from</span> <span class="s">'https://cdn.jsdelivr.net/gh/svatekr70/lattice@main/dist/lattice.min.js'</span>;
   <span class="k">new</span> <span class="t">Lattice</span>(<span class="s">'#grid'</span>, { columns, data });
 <span class="k">&lt;/script&gt;</span></pre>
-        <p class="caption">Pro produkci připni verzi (<code>@v1.17.0</code>) místo <code>@main</code>. Přes npm jde instalovat z GitHubu: <code>npm i github:svatekr70/lattice#v1.17.0</code> — na npmjs.com knihovna není, <code>npm i lattice</code> stáhne cizí balíček.</p>
+        <p class="caption">Pro produkci připni verzi (<code>@v1.18.0</code>) místo <code>@main</code>. Přes npm jde instalovat z GitHubu: <code>npm i github:svatekr70/lattice#v1.18.0</code> — na npmjs.com knihovna není, <code>npm i lattice</code> stáhne cizí balíček.</p>
       </div>
     </section>
 
@@ -145,7 +145,7 @@
       <p class="sub">Kompletní tabulková logika v jednom souboru — od filtrů přes stromy až po export.</p>
       <div class="grid">
         <div class="card"><div class="ic">▦</div><h3>Bohaté datové typy</h3><p>14 vestavěných formátovačů: text, čísla, měny, data, boolean, progress, hvězdičky, sparkline, odkazy, obrázky s lightboxem, ikony, barvy, HTML. Vlastní typy přes <code>registerType()</code>.</p></div>
-        <div class="card"><div class="ic">⌕</div><h3>Filtry pro každý sloupec</h3><p>Text, číselné rozsahy, kalendářní rozsahy, select/multiselect, boolean. Umístění v záhlaví, v panelu, nebo univerzální „Pole/Typ/Hodnota". Navíc rozšířený filtr se stromem AND/OR pravidel.</p></div>
+        <div class="card"><div class="ic">⌕</div><h3>Filtry pro každý sloupec</h3><p>Text, číselné rozsahy, kalendářní rozsahy, select/multiselect (i vylučovací), boolean. Umístění v záhlaví, v panelu, nebo univerzální „Pole/Typ/Hodnota". Navíc rozšířený filtr se stromem AND/OR pravidel.</p></div>
         <div class="card"><div class="ic">⋔</div><h3>Stromová zobrazení</h3><p>Zanořená data, plochá s <code>parentId</code>, i nested-set (lft/rgt). Filtry i hledání fungují i ve stromu — zachovají cestu k nálezu a rozbalí větev.</p></div>
         <div class="card"><div class="ic">✎</div><h3>Inline editace &amp; validace</h3><p>Editace přímo v buňce podle typu sloupce, s validací a historií změn (undo/redo). Knihovna počítá, událostí <code>on…</code> si aplikace řídí persistenci.</p></div>
         <div class="card"><div class="ic">∑</div><h3>Seskupení &amp; souhrny</h3><p>Skupiny řádků, souhrnné řádky (sum, avg, count…), stránkování i virtuální scrollování pro velké datasety.</p></div>
@@ -174,7 +174,7 @@
           <div class="chips">
             <span class="chip">text</span><span class="chip">number</span><span class="chip">number-range</span>
             <span class="chip">date-range</span><span class="chip">date-two</span>
-            <span class="chip">select</span><span class="chip">multiselect</span><span class="chip">boolean</span>
+            <span class="chip">select</span><span class="chip">multiselect</span><span class="chip">multiselect-exclude</span><span class="chip">boolean</span>
             <span class="chip">rozšířený (AND/OR)</span>
           </div>
         </div>

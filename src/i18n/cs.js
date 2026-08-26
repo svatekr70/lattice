@@ -354,10 +354,12 @@ export default {
     dynamic: 'Dynamické',
     select: 'Výběr',
     multiselect: 'Více hodnot',
+    'multiselect-exclude': 'Vyloučit více',
     boolean: 'Ano / Ne',
   },
   filters: {
     all: 'Vše',
+    excludePlaceholder: 'Vyloučit…',
     yes: 'Ano',
     no: 'Ne',
     from: 'Od',

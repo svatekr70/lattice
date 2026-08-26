@@ -71,6 +71,15 @@ test('multiselect: in', () => {
   assert.deepEqual(f.toServer('c', ['A', 'B']), [{ field: 'c', type: 'in', value: ['A', 'B'] }]);
 });
 
+test('multiselect-exclude: notIn (inverze multiselectu)', () => {
+  const f = getFilter('multiselect-exclude');
+  assert.equal(f.match(['A', 'B'], 'B'), false);   // vybrané se skryjí
+  assert.equal(f.match(['A', 'B'], 'C'), true);    // ostatní zůstanou
+  assert.equal(f.match(['A'], ''), true);          // prázdná buňka není vyloučená
+  assert.equal(f.isEmpty([]), true);               // nic nevybráno → nefiltruje
+  assert.deepEqual(f.toServer('c', ['A', 'B']), [{ field: 'c', type: 'notIn', value: ['A', 'B'] }]);
+});
+
 test('boolean: ano/ne', () => {
   const f = getFilter('boolean');
   assert.equal(f.match('true', true), true);
