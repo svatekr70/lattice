@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.18.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.18.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.18.0
+npm i github:svatekr70/lattice#v1.18.1
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.18.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.18.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -290,6 +290,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `paginationPosition` | `'footer'` \| `'header'` \| `'both'` \| `'none'` |
 | `filterLayout` | `'header'` \| `'external'` \| `'universal'` \| `'none'` |
 | `rowNumbers` | `'none'` \| `'continuous'` \| `'perPage'` |
+| `rowNumberWidth` | Šířka číslovacího (`#`) sloupce v px; `null` (výchozí) = **automatická** — spočítá se z délky nejdelšího čísla (tj. z počtu řádků) a z hustoty/velikosti písma, takže se sloupec přizpůsobí sám. Tažení okraje hlavičky sem uloží pevnou šířku (ta má přednost), **dvojklik** na okraj ji vrátí na `null`. `@v1.18.1` |
 | `headerRotate` | `'none'` \| `'90'` \| `'270'` |
 | `summaryRow` | `'none'` \| `'page'` (zobrazená stránka) \| `'all'`. **Server-side:** `'all'` agreguje jen z **aktuálně načtených řádků** (grid nemá celý dataset) — souhrn „přes vše" musí spočítat server. |
 | `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |

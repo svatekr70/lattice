@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.18.0";
+var VERSION = "1.18.1";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,15 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.18.1",
+    "date": "2026-08-26",
+    "text": "Oprava automatick\xE9 \u0161\xED\u0159ky sloupce s \u010D\xEDsly \u0159\xE1dk\u016F. Beze zm\u011Bny chov\xE1n\xED zbytku knihovny.",
+    "items": [
+      "Sloupec s \u010D\xEDsly \u0159\xE1dk\u016F (#) se nerozt\xE1hl podle po\u010Dtu \u0159\xE1dk\u016F. \u0160\xED\u0159ka se po\u010D\xEDt\xE1 z d\xE9lky nejdel\u0161\xEDho \u010D\xEDsla, jen\u017Ee p\u0159i prvn\xEDm layoutu je\u0161t\u011B nejsou na\u010Dten\xE1 data (total = 0), tak\u017Ee vy\u0161la na dv\u011B \u010D\xEDslice \u2014 a po\u2026",
+      "Automatick\xE1 \u0161\xED\u0159ka # sloupce bere v potaz hustotu a velikost p\xEDsma. D\u0159\xEDv to byl pevn\xFD odhad (9 px na \u010D\xEDslici), kter\xFD u prostorn\u011Bj\u0161\xEDch motiv\u016F (nap\u0159. material) nebo v\u011Bt\u0161\xEDho p\xEDsma nesta\u010Dil. Nov\u011B se\u2026"
+    ]
+  },
   {
     "version": "1.18.0",
     "date": "2026-08-26",
@@ -2735,14 +2744,6 @@ var RELEASES = [
     "text": "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers, paramNames, requestBuilder, responseParser), skl\xE1d\xE1n\xED ajax.params p\u0159i\u2026",
     "items": [
       "docs/API.md \u2014 rozs\xE1hl\xE9 dopln\u011Bn\xED a opravy (jen dokumentace, chov\xE1n\xED knihovny beze zm\u011Bny): - Nov\xE1 sekce Server-side re\u017Eim (serverSide / ajax): pln\xFD objekt ajax (url, method, params, headers,\u2026"
-    ]
-  },
-  {
-    "version": "1.5.0",
-    "date": "2026-08-03",
-    "text": "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny",
-    "items": [
-      "Glob\xE1ln\xED (sd\xEDlen\xE9) roz\u0161\xED\u0159en\xE9 filtry \u2014 ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry (strom pravidel) lze te\u010F ukl\xE1dat nejen lok\xE1ln\u011B (per-u\u017Eivatel, localStorage), ale i glob\xE1ln\u011B pro v\u0161echny. Stejn\xFD vzor jako glob\xE1ln\xED\u2026"
     ]
   }
 ];
@@ -8777,6 +8778,31 @@ var Renderer = class {
     };
   }
   /**
+   * Metriky buňky (vodorovný padding + velikost písma) pro odhad šířky číslovacího
+   * sloupce — číslice jsou tabulární, takže stačí jejich počet. `getComputedStyle`
+   * se čte jen při změně hustoty/písma/motivu; renderColumns() běží několikrát
+   * za jedno překreslení a měření by se jinak zbytečně opakovalo.
+   */
+  _cellMetrics() {
+    const inst = this.grid.instance;
+    const vars = inst.cssVars || {};
+    const sig = [
+      inst.density,
+      inst.fontSize,
+      inst.theme,
+      inst.fontFamily,
+      vars["--lattice-cell-pad-x"],
+      vars["--lattice-font-size"]
+    ].join("|");
+    if (this._cm && this._cm.sig === sig) return this._cm;
+    const root = this.nodes && this.nodes.root;
+    const cs = root && root.isConnected && typeof getComputedStyle === "function" ? getComputedStyle(root) : null;
+    const padX = cs ? parseFloat(cs.getPropertyValue("--lattice-cell-pad-x")) : NaN;
+    const fontSize = cs ? parseFloat(cs.getPropertyValue("--lattice-font-size")) : NaN;
+    if (!padX || !fontSize) return { sig: null, padX: 10, fontSize: Number(inst.fontSize) || 14 };
+    return this._cm = { sig, padX, fontSize };
+  }
+  /**
    * Syntetický sloupec s čísly řádků (nebo null když je vypnutý).
    * `force` = vynutí sloupec i při rowNumbers 'none' (režim ⋮ menu bez ID sloupce).
    */
@@ -8787,7 +8813,9 @@ var Renderer = class {
     const maxNum = mode === "perPage" ? Math.min(this.grid.pageSize, this.grid.total || this.grid.pageSize) : this.grid.total || 0;
     const digits = Math.max(2, String(Math.max(1, maxNum)).length);
     const menuActions = this.grid.hasActions() && this.grid.instance.actionsLayout === "menu";
-    const width = this.grid.instance.rowNumberWidth || 22 + digits * 9 + (menuActions ? 22 : 0);
+    const m = this._cellMetrics();
+    const auto = Math.round(m.padX * 2 + 6 + digits * m.fontSize * 0.62) + (menuActions ? 24 : 0);
+    const width = this.grid.instance.rowNumberWidth || auto;
     return {
       field: "__rownum__",
       title: "#",
@@ -8838,8 +8866,35 @@ var Renderer = class {
     const frozenEdges = /* @__PURE__ */ new Set();
     if (left.length) frozenEdges.add(left[left.length - 1].field);
     if (right.length) frozenEdges.add(right[0].field);
-    this.layout = { widths, leftOff, rightOff, list, groupEdges, frozenEdges };
+    this.layout = { widths, base: this._baseWidths(list), leftOff, rightOff, list, groupEdges, frozenEdges };
     this.styleCells();
+  }
+  /** Základní (neroztažené) šířky sloupců — otisk pro detekci zastaralého layoutu. */
+  _baseWidths(list) {
+    const m = /* @__PURE__ */ new Map();
+    for (const c of list) m.set(c.field, Math.max(c.minWidth, c.width));
+    return m;
+  }
+  /**
+   * Přepočítá layout, když se od posledního `applyLayout()` změnily základní šířky
+   * sloupců. Týká se hlavně číslovacího sloupce: jeho šířka se odvíjí od nejdelšího
+   * čísla, tedy od `total` — a to při prvním layoutu (před načtením dat) ještě
+   * neznáme. Bez tohohle by sloupec zůstal úzký a čísla na dalších stránkách
+   * („201") by se ořízla, dokud by ho uživatel neroztáhl ručně.
+   */
+  _relayoutIfStale(list) {
+    if (!this.layout || !this.layout.base) return;
+    const base = this._baseWidths(list);
+    if (base.size !== this.layout.base.size) {
+      this.applyLayout();
+      return;
+    }
+    for (const [field2, w] of base) {
+      if (this.layout.base.get(field2) !== w) {
+        this.applyLayout();
+        return;
+      }
+    }
   }
   /**
    * Efektivní šířky sloupců podle layout režimu instance:
@@ -9278,6 +9333,7 @@ var Renderer = class {
     }
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
+    this._relayoutIfStale(list);
     this.renderPinned(list);
     this._treeColField = this.grid.tree ? (list.find((c) => !c._rownum && !c._move && !c._select && !c._actions && !c._actionsMenu && !c._rowsum) || {}).field : null;
     this._detailColField = this._hasDetail() && !this.grid.tree ? (list.find((c) => !c._rownum && !c._move && !c._select && !c._actions && !c._actionsMenu && !c._rowsum) || {}).field : null;

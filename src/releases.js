@@ -4,6 +4,15 @@
  */
 export const RELEASES = [
   {
+    "version": "1.18.1",
+    "date": "2026-08-26",
+    "text": "Oprava automatické šířky sloupce s čísly řádků. Beze změny chování zbytku knihovny.",
+    "items": [
+      "Sloupec s čísly řádků (#) se neroztáhl podle počtu řádků. Šířka se počítá z délky nejdelšího čísla, jenže při prvním layoutu ještě nejsou načtená data (total = 0), takže vyšla na dvě číslice — a po…",
+      "Automatická šířka # sloupce bere v potaz hustotu a velikost písma. Dřív to byl pevný odhad (9 px na číslici), který u prostornějších motivů (např. material) nebo většího písma nestačil. Nově se…"
+    ]
+  },
+  {
     "version": "1.18.0",
     "date": "2026-08-26",
     "text": "Nový typ filtru „Vyloučit více\" (multiselect-exclude) — inverze filtru „Více hodnot\". Bez breaking changes.",
@@ -218,14 +227,6 @@ export const RELEASES = [
     "text": "docs/API.md — rozsáhlé doplnění a opravy (jen dokumentace, chování knihovny beze změny): - Nová sekce Server-side režim (serverSide / ajax): plný objekt ajax (url, method, params, headers, paramNames, requestBuilder, responseParser), skládání ajax.params při…",
     "items": [
       "docs/API.md — rozsáhlé doplnění a opravy (jen dokumentace, chování knihovny beze změny): - Nová sekce Server-side režim (serverSide / ajax): plný objekt ajax (url, method, params, headers,…"
-    ]
-  },
-  {
-    "version": "1.5.0",
-    "date": "2026-08-03",
-    "text": "Globální (sdílené) rozšířené filtry — uložené rozšířené filtry (strom pravidel) lze teď ukládat nejen lokálně (per-uživatel, localStorage), ale i globálně pro všechny",
-    "items": [
-      "Globální (sdílené) rozšířené filtry — uložené rozšířené filtry (strom pravidel) lze teď ukládat nejen lokálně (per-uživatel, localStorage), ale i globálně pro všechny. Stejný vzor jako globální…"
     ]
   }
 ];

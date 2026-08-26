@@ -307,6 +307,28 @@ export class Renderer {
   }
 
   /**
+   * Metriky buňky (vodorovný padding + velikost písma) pro odhad šířky číslovacího
+   * sloupce — číslice jsou tabulární, takže stačí jejich počet. `getComputedStyle`
+   * se čte jen při změně hustoty/písma/motivu; renderColumns() běží několikrát
+   * za jedno překreslení a měření by se jinak zbytečně opakovalo.
+   */
+  _cellMetrics() {
+    const inst = this.grid.instance;
+    const vars = inst.cssVars || {};
+    const sig = [inst.density, inst.fontSize, inst.theme, inst.fontFamily,
+      vars['--lattice-cell-pad-x'], vars['--lattice-font-size']].join('|');
+    if (this._cm && this._cm.sig === sig) return this._cm;
+    const root = this.nodes && this.nodes.root;
+    const cs = root && root.isConnected && typeof getComputedStyle === 'function' ? getComputedStyle(root) : null;
+    const padX = cs ? parseFloat(cs.getPropertyValue('--lattice-cell-pad-x')) : NaN;
+    const fontSize = cs ? parseFloat(cs.getPropertyValue('--lattice-font-size')) : NaN;
+    // Dokud grid nevisí v DOM (nebo styly ještě nejsou), spočítej z výchozích hodnot
+    // a NEcachuj — příště už se změří doopravdy.
+    if (!padX || !fontSize) return { sig: null, padX: 10, fontSize: Number(inst.fontSize) || 14 };
+    return (this._cm = { sig, padX, fontSize });
+  }
+
+  /**
    * Syntetický sloupec s čísly řádků (nebo null když je vypnutý).
    * `force` = vynutí sloupec i při rowNumbers 'none' (režim ⋮ menu bez ID sloupce).
    */
@@ -322,7 +344,9 @@ export class Renderer {
     // uživatelská šířka (po resize) má přednost před automatickou;
     // v režimu 'menu' přidáme místo na ⋮ tlačítko akcí uvnitř číslovacího sloupce.
     const menuActions = this.grid.hasActions() && this.grid.instance.actionsLayout === 'menu';
-    const width = this.grid.instance.rowNumberWidth || (22 + digits * 9 + (menuActions ? 22 : 0));
+    const m = this._cellMetrics();
+    const auto = Math.round(m.padX * 2 + 6 + digits * m.fontSize * 0.62) + (menuActions ? 24 : 0);
+    const width = this.grid.instance.rowNumberWidth || auto;
     return {
       field: '__rownum__', title: '#', type: 'text', filter: null, group: null,
       frozen: true, frozenAllowed: false, visible: true, align: 'right',
@@ -372,8 +396,31 @@ export class Renderer {
     if (left.length) frozenEdges.add(left[left.length - 1].field);
     if (right.length) frozenEdges.add(right[0].field);
 
-    this.layout = { widths, leftOff, rightOff, list, groupEdges, frozenEdges };
+    this.layout = { widths, base: this._baseWidths(list), leftOff, rightOff, list, groupEdges, frozenEdges };
     this.styleCells();
+  }
+
+  /** Základní (neroztažené) šířky sloupců — otisk pro detekci zastaralého layoutu. */
+  _baseWidths(list) {
+    const m = new Map();
+    for (const c of list) m.set(c.field, Math.max(c.minWidth, c.width));
+    return m;
+  }
+
+  /**
+   * Přepočítá layout, když se od posledního `applyLayout()` změnily základní šířky
+   * sloupců. Týká se hlavně číslovacího sloupce: jeho šířka se odvíjí od nejdelšího
+   * čísla, tedy od `total` — a to při prvním layoutu (před načtením dat) ještě
+   * neznáme. Bez tohohle by sloupec zůstal úzký a čísla na dalších stránkách
+   * („201") by se ořízla, dokud by ho uživatel neroztáhl ručně.
+   */
+  _relayoutIfStale(list) {
+    if (!this.layout || !this.layout.base) return;
+    const base = this._baseWidths(list);
+    if (base.size !== this.layout.base.size) { this.applyLayout(); return; }
+    for (const [field, w] of base) {
+      if (this.layout.base.get(field) !== w) { this.applyLayout(); return; }
+    }
   }
 
   /**
@@ -844,6 +891,10 @@ export class Renderer {
     for (const c of this.grid.columns) { c._fmt = this.grid.effectiveFormat(c); c._i18n = this.grid.i18n; c._linkNewTab = this.grid.instance.linkNewTab; }
     const { list } = this.renderColumns();
     const rows = this.grid.rows || [];
+    // Tělo se překresluje i po načtení dat (kdy applyLayout už neběží) — a právě
+    // tehdy se mění šířka číslovacího sloupce (zná se total). Tělo je v tuhle
+    // chvíli prázdné, takže přepočet layoutu je levný.
+    this._relayoutIfStale(list);
 
     this.renderPinned(list); // připnuté řádky (nahoře/dole) — nezávislé na těle
 

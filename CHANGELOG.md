@@ -4,6 +4,23 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.18.1] – 2026-08-26
+
+Oprava automatické šířky sloupce s čísly řádků. Beze změny chování zbytku knihovny.
+
+### Opraveno
+- **Sloupec s čísly řádků (#) se neroztáhl podle počtu řádků.** Šířka se počítá z délky
+  nejdelšího čísla, jenže při prvním layoutu ještě nejsou načtená data (`total` = 0), takže
+  vyšla na dvě číslice — a po načtení dat se překresluje jen tělo, layout ne. Sloupec tak
+  zůstal úzký a od 100. řádku dál se čísla ořezávala („2…"), dokud ho uživatel neroztáhl
+  ručně. Tělo teď při překreslení pozná, že se základní šířky sloupců změnily, a layout
+  přepočítá.
+- **Automatická šířka # sloupce bere v potaz hustotu a velikost písma.** Dřív to byl pevný
+  odhad (9 px na číslici), který u prostornějších motivů (např. `material`) nebo většího
+  písma nestačil. Nově se počítá z `--lattice-cell-pad-x` a `--lattice-font-size`.
+  Ruční šířka (`instance.rowNumberWidth`, tažení okraje) má dál přednost; dvojklik na okraj
+  ji vrátí na automatickou.
+
 ## [1.18.0] – 2026-08-26
 
 Nový typ filtru **„Vyloučit více"** (`multiselect-exclude`) — inverze filtru „Více hodnot".
