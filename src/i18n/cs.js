@@ -431,6 +431,7 @@ export default {
     pageSize: 'Velikost stránky',
     all: 'Vše',
     showing: 'Zobrazeno {from}-{to} z {total} řádků',
+    showingFiltered: 'Zobrazeno {from}-{to} z {total} řádků (filtrováno z celkem {totalAll})',
     empty: 'Žádné záznamy',
     pageLabel: 'Strana',
     gotoTitle: 'Přejít na stránku',

@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.18.2";
+var VERSION = "1.19.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,19 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.19.0",
+    "date": "2026-08-27",
+    "text": "Paginace nov\u011B p\u0159izn\xE1, \u017Ee zobrazen\xFD po\u010Det je po filtrech. Bez breaking changes \u2014 pagination.showing se nem\u011Bn\xED, jen p\u0159ibyl druh\xFD kl\xED\u010D.",
+    "items": [
+      'Paginace p\u0159izn\xE1, \u017Ee po\u010Det je filtrovan\xFD. Text vlevo (\u201EZobrazeno 1-50 z 21 001 \u0159\xE1dk\u016F") ukazoval po\u010Det po filtrech, ale nijak to nedal najevo \u2014 u\u017Eivatel nem\u011Bl jak poznat, jestli tabulka opravdu tolik\u2026',
+      "Nov\xFD i18n kl\xED\u010D pagination.showingFiltered (cs/en/pl/sk). P\u016Fvodn\xED pagination.showing se nem\u011Bn\xED ani nemiz\xED \u2014 v nefiltrovan\xE9m stavu je text znak po znaku stejn\xFD jako d\u0159\xEDv, tak\u017Ee vlastn\xED slovn\xEDky\u2026",
+      "Server-side (serverSide: true) beze zm\u011Bny \u2014 ServerData celou sadu nezn\xE1, total mu chod\xED z backendu jako jedin\xE9 \u010D\xEDslo. Text z\u016Fst\xE1v\xE1 p\u016Fvodn\xED. (Kdyby to n\u011Bkdo cht\u011Bl i tam, pat\u0159\xED nefiltrovan\xFD po\u010Det do\u2026",
+      "Tree re\u017Eim beze zm\u011Bny \u2014 total je po\u010Det zplo\u0161t\u011Bl\xFDch viditeln\xFDch uzl\u016F, kde\u017Eto syrov\xE1 data jsou hierarchick\xE1; \u010D\xEDsla by se nepotkala, tak\u017Ee se nic nep\u0159ipisuje.",
+      'Progresivn\xED re\u017Eim beze zm\u011Bny \u2014 m\xE1 vlastn\xED pati\u010Dku (\u201ENa\u010Dteno X z N").',
+      "Filtr, kter\xFD nic neodfiltruje, i pr\xE1zdn\xFD v\xFDsledek (\u017D\xE1dn\xE9 z\xE1znamy) z\u016Fst\xE1vaj\xED beze zm\u011Bny."
+    ]
+  },
   {
     "version": "1.18.2",
     "date": "2026-08-26",
@@ -2737,15 +2750,6 @@ var RELEASES = [
       '\xDAnik \u201Eklik mimo" listeneru (onOutside). Listener se navazuje p\u0159es setTimeout(\u2026,0); kdy\u017E se panel zav\u0159el d\u0159\xEDv, ne\u017E timer stihl nav\xE1zat, disposer odebral je\u0161t\u011B neexistuj\xEDc\xED listener a timer ho pak\u2026',
       "P\u0159epis glob\xE1ln\xEDho filtru pod stejn\xFDm n\xE1zvem generoval nov\xE9 id p\u0159i ka\u017Ed\xE9m ulo\u017Een\xED \u2192 aplikace (perzistence kl\xED\u010Dovan\xE1 na id/ext_id) zakl\xE1dala nov\xFD DB \u0159\xE1dek a po reloadu vznikla duplicita. saveAdvanced\u2026",
       'P\u0159edvypln\u011Bn\xED n\xE1zvu v panelu roz\u0161\xED\u0159en\xE9ho filtru. Po v\xFDb\u011Bru ulo\u017Een\xE9ho filtru se jeho n\xE1zev zkop\xEDruje do pole \u201EN\xE1zev filtru"; p\u0159i otev\u0159en\xED panelu s aktivn\xEDm ulo\u017Een\xFDm filtrem se n\xE1zev p\u0159edvypln\xED hned.\u2026'
-    ]
-  },
-  {
-    "version": "1.6.0",
-    "date": "2026-08-05",
-    "text": 'Relativn\xED datov\xE9 tokeny v roz\u0161\xED\u0159en\xE9m filtru \u2014 v hodnot\u011B podm\xEDnky lze m\xEDsto pevn\xE9ho data napsat token, kter\xFD se dopo\u010D\xEDt\xE1 a\u017E p\u0159i ka\u017Ed\xE9m vyhodnocen\xED filtru (ulo\u017Een\xFD filtr tak \u201Eposouv\xE1 okno" s \u010Dasem, ide\xE1ln\xED pro glob\xE1ln\u011B sd\xEDlen\xE9 filtry): - today, today+14,\u2026',
-    "items": [
-      'Relativn\xED datov\xE9 tokeny v roz\u0161\xED\u0159en\xE9m filtru \u2014 v hodnot\u011B podm\xEDnky lze m\xEDsto pevn\xE9ho data napsat token, kter\xFD se dopo\u010D\xEDt\xE1 a\u017E p\u0159i ka\u017Ed\xE9m vyhodnocen\xED filtru (ulo\u017Een\xFD filtr tak \u201Eposouv\xE1 okno" s \u010Dasem,\u2026',
-      'Dokumentace (docs/API.md), u\u017Eivatelsk\xE1 p\u0159\xEDru\u010Dka a demo uk\xE1zka \u201ERoz\u0161\xED\u0159en\xFD filtr" dopln\u011Bny o relativn\xED datum.'
     ]
   }
 ];
@@ -5913,6 +5917,7 @@ var cs_default = {
     pageSize: "Velikost str\xE1nky",
     all: "V\u0161e",
     showing: "Zobrazeno {from}-{to} z {total} \u0159\xE1dk\u016F",
+    showingFiltered: "Zobrazeno {from}-{to} z {total} \u0159\xE1dk\u016F (filtrov\xE1no z celkem {totalAll})",
     empty: "\u017D\xE1dn\xE9 z\xE1znamy",
     pageLabel: "Strana",
     gotoTitle: "P\u0159ej\xEDt na str\xE1nku"
@@ -6451,6 +6456,7 @@ var en_default = {
     pageSize: "Page size",
     all: "All",
     showing: "Showing {from}-{to} of {total} rows",
+    showingFiltered: "Showing {from}-{to} of {total} rows (filtered from {totalAll} total)",
     empty: "No rows",
     pageLabel: "Page",
     gotoTitle: "Go to page"
@@ -6989,6 +6995,7 @@ var pl_default = {
     pageSize: "Wielko\u015B\u0107 strony",
     all: "Wszystko",
     showing: "Wy\u015Bwietlono {from}-{to} z {total} wierszy",
+    showingFiltered: "Wy\u015Bwietlono {from}-{to} z {total} wierszy (przefiltrowano z {totalAll})",
     empty: "Brak rekord\xF3w",
     pageLabel: "Strona",
     gotoTitle: "Przejd\u017A na stron\u0119"
@@ -7527,6 +7534,7 @@ var sk_default = {
     pageSize: "Ve\u013Ekos\u0165 strany",
     all: "V\u0161etko",
     showing: "Zobrazen\xE9 {from}-{to} z {total} riadkov",
+    showingFiltered: "Zobrazen\xE9 {from}-{to} z {total} riadkov (filtrovan\xE9 z celkovo {totalAll})",
     empty: "\u017Diadne z\xE1znamy",
     pageLabel: "Strana",
     gotoTitle: "Prejs\u0165 na stranu"
@@ -10857,9 +10865,7 @@ var Pagination = class {
     const total = grid.total ?? 0;
     const from = total === 0 ? 0 : (page - 1) * grid.pageSize + 1;
     const to = Math.min(page * grid.pageSize, total);
-    const info = el("div.lattice-page-info", {
-      text: total === 0 ? t("pagination.empty") : t("pagination.showing", { from, to, total })
-    });
+    const info = el("div.lattice-page-info", { text: this.infoText(from, to, total) });
     const sizes = grid.options.pageSizes || [10, 25, 50, 100];
     const isAll = grid.pageSize >= ALL_PAGE_SIZE;
     const sizeSel = el("select.lattice-page-size");
@@ -10907,6 +10913,40 @@ var Pagination = class {
       jumpWrap
     ]);
     footer.append(info, controls);
+  }
+  /**
+   * Text vlevo v paginaci. Když filtry počet zúžily a velikost celého datasetu
+   * známe, přizná to (`pagination.showingFiltered`) — jinak uživatel nemá jak
+   * poznat, jestli tabulka tolik řádků opravdu má, nebo mu zbytek schoval
+   * filtr, na který zapomněl. V nefiltrovaném stavu zůstává původní
+   * `pagination.showing`, znak po znaku.
+   */
+  infoText(from, to, total) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    if (total === 0) return t("pagination.empty");
+    const totalAll = this.totalAll();
+    if (totalAll != null && totalAll > total) {
+      return t("pagination.showingFiltered", { from, to, total, totalAll });
+    }
+    return t("pagination.showing", { from, to, total });
+  }
+  /**
+   * Počet řádků CELÉHO datasetu bez ohledu na filtry, nebo `null`, když ho
+   * knihovna nezná — pak se nepřipisuje nic.
+   *  - `ServerData` `rawRows()` nemá: celou sadu nezná, `total` mu chodí
+   *    z backendu jako jediné číslo. (Kdyby to někdo chtěl i server-side,
+   *    patří to do kontraktu odpovědi jako další pole, ne do dohadování tady.)
+   *  - Tree režim: `grid.total` je počet zploštělých viditelných uzlů, kdežto
+   *    `rawRows()` vrací syrové (hierarchické) řádky — čísla se nepotkají,
+   *    takže radši nic.
+   */
+  totalAll() {
+    const grid = this.grid;
+    if (grid.tree) return null;
+    const ds = grid.dataSource;
+    if (!ds || typeof ds.rawRows !== "function") return null;
+    const raw = ds.rawRows();
+    return Array.isArray(raw) ? raw.length : null;
   }
   /** Vrátí okno čísel stránek kolem aktuální (count tlačítek, klampováno). */
   pageWindow(page, last) {

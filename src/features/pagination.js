@@ -1,5 +1,6 @@
 /**
- * Paginace — vlevo info „Zobrazeno X-Y z N řádků", vpravo
+ * Paginace — vlevo info „Zobrazeno X-Y z N řádků" (s aktivním filtrem navíc
+ * „(filtrováno z celkem M)", viz `infoText()`), vpravo
  * „Velikost stránky" + select + « ‹ [číslované stránky] › » (aktivní zvýrazněná).
  * Když je stránkování v instanci vypnuté, patička se nevykreslí.
  */
@@ -24,9 +25,7 @@ export class Pagination {
     /* --- levá část: „Zobrazeno X-Y z N řádků" --- */
     const from = total === 0 ? 0 : (page - 1) * grid.pageSize + 1;
     const to = Math.min(page * grid.pageSize, total);
-    const info = el('div.lattice-page-info', {
-      text: total === 0 ? t('pagination.empty') : t('pagination.showing', { from, to, total }),
-    });
+    const info = el('div.lattice-page-info', { text: this.infoText(from, to, total) });
 
     /* --- pravá část: velikost stránky + navigace --- */
     const sizes = grid.options.pageSizes || [10, 25, 50, 100];
@@ -80,6 +79,42 @@ export class Pagination {
     ]);
 
     footer.append(info, controls);
+  }
+
+  /**
+   * Text vlevo v paginaci. Když filtry počet zúžily a velikost celého datasetu
+   * známe, přizná to (`pagination.showingFiltered`) — jinak uživatel nemá jak
+   * poznat, jestli tabulka tolik řádků opravdu má, nebo mu zbytek schoval
+   * filtr, na který zapomněl. V nefiltrovaném stavu zůstává původní
+   * `pagination.showing`, znak po znaku.
+   */
+  infoText(from, to, total) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
+    if (total === 0) return t('pagination.empty');
+    const totalAll = this.totalAll();
+    if (totalAll != null && totalAll > total) {
+      return t('pagination.showingFiltered', { from, to, total, totalAll });
+    }
+    return t('pagination.showing', { from, to, total });
+  }
+
+  /**
+   * Počet řádků CELÉHO datasetu bez ohledu na filtry, nebo `null`, když ho
+   * knihovna nezná — pak se nepřipisuje nic.
+   *  - `ServerData` `rawRows()` nemá: celou sadu nezná, `total` mu chodí
+   *    z backendu jako jediné číslo. (Kdyby to někdo chtěl i server-side,
+   *    patří to do kontraktu odpovědi jako další pole, ne do dohadování tady.)
+   *  - Tree režim: `grid.total` je počet zploštělých viditelných uzlů, kdežto
+   *    `rawRows()` vrací syrové (hierarchické) řádky — čísla se nepotkají,
+   *    takže radši nic.
+   */
+  totalAll() {
+    const grid = this.grid;
+    if (grid.tree) return null;
+    const ds = grid.dataSource;
+    if (!ds || typeof ds.rawRows !== 'function') return null;
+    const raw = ds.rawRows();
+    return Array.isArray(raw) ? raw.length : null;
   }
 
   /** Vrátí okno čísel stránek kolem aktuální (count tlačítek, klampováno). */

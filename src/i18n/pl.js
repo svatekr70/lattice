@@ -431,6 +431,7 @@ export default {
     pageSize: 'Wielkość strony',
     all: 'Wszystko',
     showing: 'Wyświetlono {from}-{to} z {total} wierszy',
+    showingFiltered: 'Wyświetlono {from}-{to} z {total} wierszy (przefiltrowano z {totalAll})',
     empty: 'Brak rekordów',
     pageLabel: 'Strona',
     gotoTitle: 'Przejdź na stronę',

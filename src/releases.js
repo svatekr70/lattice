@@ -4,6 +4,19 @@
  */
 export const RELEASES = [
   {
+    "version": "1.19.0",
+    "date": "2026-08-27",
+    "text": "Paginace nově přizná, že zobrazený počet je po filtrech. Bez breaking changes — pagination.showing se nemění, jen přibyl druhý klíč.",
+    "items": [
+      "Paginace přizná, že počet je filtrovaný. Text vlevo („Zobrazeno 1-50 z 21 001 řádků\") ukazoval počet po filtrech, ale nijak to nedal najevo — uživatel neměl jak poznat, jestli tabulka opravdu tolik…",
+      "Nový i18n klíč pagination.showingFiltered (cs/en/pl/sk). Původní pagination.showing se nemění ani nemizí — v nefiltrovaném stavu je text znak po znaku stejný jako dřív, takže vlastní slovníky…",
+      "Server-side (serverSide: true) beze změny — ServerData celou sadu nezná, total mu chodí z backendu jako jediné číslo. Text zůstává původní. (Kdyby to někdo chtěl i tam, patří nefiltrovaný počet do…",
+      "Tree režim beze změny — total je počet zploštělých viditelných uzlů, kdežto syrová data jsou hierarchická; čísla by se nepotkala, takže se nic nepřipisuje.",
+      "Progresivní režim beze změny — má vlastní patičku („Načteno X z N\").",
+      "Filtr, který nic neodfiltruje, i prázdný výsledek (Žádné záznamy) zůstávají beze změny."
+    ]
+  },
+  {
     "version": "1.18.2",
     "date": "2026-08-26",
     "text": "Oprava nabídky hodnot ve filtrech select / multiselect / multiselect-exclude u sloupců bez filterValues a filterUrl. Bez změny API.",
@@ -220,15 +233,6 @@ export const RELEASES = [
       "Únik „klik mimo\" listeneru (onOutside). Listener se navazuje přes setTimeout(…,0); když se panel zavřel dřív, než timer stihl navázat, disposer odebral ještě neexistující listener a timer ho pak…",
       "Přepis globálního filtru pod stejným názvem generoval nové id při každém uložení → aplikace (perzistence klíčovaná na id/ext_id) zakládala nový DB řádek a po reloadu vznikla duplicita. saveAdvanced…",
       "Předvyplnění názvu v panelu rozšířeného filtru. Po výběru uloženého filtru se jeho název zkopíruje do pole „Název filtru\"; při otevření panelu s aktivním uloženým filtrem se název předvyplní hned.…"
-    ]
-  },
-  {
-    "version": "1.6.0",
-    "date": "2026-08-05",
-    "text": "Relativní datové tokeny v rozšířeném filtru — v hodnotě podmínky lze místo pevného data napsat token, který se dopočítá až při každém vyhodnocení filtru (uložený filtr tak „posouvá okno\" s časem, ideální pro globálně sdílené filtry): - today, today+14,…",
-    "items": [
-      "Relativní datové tokeny v rozšířeném filtru — v hodnotě podmínky lze místo pevného data napsat token, který se dopočítá až při každém vyhodnocení filtru (uložený filtr tak „posouvá okno\" s časem,…",
-      "Dokumentace (docs/API.md), uživatelská příručka a demo ukázka „Rozšířený filtr\" doplněny o relativní datum."
     ]
   }
 ];

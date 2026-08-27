@@ -475,6 +475,9 @@ grid.setLanguage('en');`),
 import de from './src/i18n/de.js';
 registerLanguage('de', de);
 new Lattice('#grid', { i18n: 'de' });`),
+    h3('Text paginace'),
+    p('Info vlevo v paginaci má tři klíče a knihovna mezi nimi přepíná sama: <code>pagination.showing</code> (<code>{from} {to} {total}</code>), <code>pagination.showingFiltered</code> (navíc <code>{totalAll}</code> — použije se, když filtry počet zúžily a knihovna zná velikost celého datasetu) a <code>pagination.empty</code>. Server-side, tree ani progresivní režim nefiltrovaný počet neznají → text zůstává původní.'),
+    code(`i18n: { pagination: { showingFiltered: '{from}–{to} z {total} (z celkem {totalAll})' } }`),
     note('Locale pro formát čísel/datumů je oddělený od jazyka UI (Nastavení tabulky → Jazyk formátu). Řazení hodnot ve filtru je locale-aware (v češtině „č" hned za „c").'),
   ]);
 }

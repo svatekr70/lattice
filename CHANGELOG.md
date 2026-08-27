@@ -4,6 +4,34 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.19.0] – 2026-08-27
+
+Paginace nově přizná, že zobrazený počet je po filtrech. Bez breaking changes —
+`pagination.showing` se nemění, jen přibyl druhý klíč.
+
+### Přidáno
+- **Paginace přizná, že počet je filtrovaný.** Text vlevo („Zobrazeno 1-50 z 21 001 řádků")
+  ukazoval počet **po** filtrech, ale nijak to nedal najevo — uživatel neměl jak poznat,
+  jestli tabulka opravdu tolik řádků má, nebo mu zbytek schoval filtr, na který zapomněl
+  (u širokých tabulek s deseti filtry běžný stav). Nově se v takovém případě použije nový
+  klíč `pagination.showingFiltered`: *„Zobrazeno 1-50 z 21 001 řádků (filtrováno z celkem
+  22 504)"*. Platí pro sloupcové filtry, rychlé hledání i univerzální a rozšířený filtr —
+  všechny zužují `total`.
+- **Nový i18n klíč `pagination.showingFiltered`** (cs/en/pl/sk). Původní `pagination.showing`
+  se **nemění** ani nemizí — v nefiltrovaném stavu je text znak po znaku stejný jako dřív,
+  takže vlastní slovníky aplikací fungují dál. Kdo si chce znění přípony upravit, přebije
+  si jen tenhle jeden klíč.
+
+Přípona se ukáže, jen když knihovna nefiltrovaný počet **zná** a je opravdu vyšší:
+- **Server-side (`serverSide: true`) beze změny** — `ServerData` celou sadu nezná, `total`
+  mu chodí z backendu jako jediné číslo. Text zůstává původní. (Kdyby to někdo chtěl i tam,
+  patří nefiltrovaný počet do kontraktu odpovědi jako další pole, ne do dohadování na
+  klientovi.)
+- **Tree režim beze změny** — `total` je počet zploštělých viditelných uzlů, kdežto syrová
+  data jsou hierarchická; čísla by se nepotkala, takže se nic nepřipisuje.
+- **Progresivní režim beze změny** — má vlastní patičku („Načteno X z N").
+- Filtr, který nic neodfiltruje, i prázdný výsledek (`Žádné záznamy`) zůstávají beze změny.
+
 ## [1.18.2] – 2026-08-26
 
 Oprava nabídky hodnot ve filtrech `select` / `multiselect` / `multiselect-exclude` u sloupců

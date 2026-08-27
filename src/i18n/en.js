@@ -431,6 +431,7 @@ export default {
     pageSize: 'Page size',
     all: 'All',
     showing: 'Showing {from}-{to} of {total} rows',
+    showingFiltered: 'Showing {from}-{to} of {total} rows (filtered from {totalAll} total)',
     empty: 'No rows',
     pageLabel: 'Page',
     gotoTitle: 'Go to page',

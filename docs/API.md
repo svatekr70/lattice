@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.2/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.19.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.18.2/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.19.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.18.2`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.19.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.18.2
+npm i github:svatekr70/lattice#v1.19.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.18.2` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.19.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -992,3 +992,27 @@ Vestavěné `cs` / `en` / `pl` (`@v1.17.0`) / `sk` (`@v1.17.0`). Vlastní jazyk:
 `registerLanguage('de', dict)` (stejná struktura jako `src/i18n/en.js`) nebo rovnou
 `i18n: dictObject`. Za běhu `grid.setLanguage('en')`. Seznam vestavěných vrátí
 `availableLanguages()`.
+
+### Text paginace
+
+Info vlevo v paginaci se skládá ze tří klíčů — knihovna mezi nimi přepíná sama:
+
+| klíč | placeholdery | kdy se použije |
+|---|---|---|
+| `pagination.showing` | `{from}` `{to}` `{total}` | běžně |
+| `pagination.showingFiltered` `@v1.19.0` | `{from}` `{to}` `{total}` `{totalAll}` | když filtry počet zúžily a knihovna zná velikost celého datasetu |
+| `pagination.empty` | – | `total === 0` |
+
+`{total}` je počet **po** filtrech (sloupcové filtry, rychlé hledání, univerzální
+i rozšířený filtr), `{totalAll}` počet celého datasetu. Přebít jde kterýkoli klíč
+vlastním slovníkem; `pagination.showing` se nemění, takže starší slovníky fungují dál.
+
+```js
+i18n: { pagination: { showingFiltered: '{from}–{to} z {total} (z celkem {totalAll})' } }
+```
+
+**Nefiltrovaný počet knihovna nezná ve třech případech** a pak použije `pagination.showing`:
+`serverSide: true` (`ServerData` celou sadu nezná — `total` chodí z backendu jako jediné
+číslo; kdo ho chce i tam, musí si přepsat text sám nebo si nefiltrovaný počet dotáhnout),
+tree režim (`total` je počet zploštělých uzlů, syrová data jsou hierarchická) a progresivní
+režim (má vlastní patičku „Načteno X z N", `progressive.loaded`).
