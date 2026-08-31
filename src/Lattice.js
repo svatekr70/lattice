@@ -24,6 +24,7 @@ import { Gear } from './features/gear.js';
 import { InstanceSettings } from './features/instanceSettings.js';
 import { Pagination } from './features/pagination.js';
 import { PresetStore, normalizeDisplay } from './features/presets.js';
+import { normalizeGroup } from './util/groups.js';
 import { measureColumnWidth } from './features/resize.js';
 import { AdvancedFilter } from './features/advancedFilter.js';
 import { SaveFiltersPanel } from './features/saveFilters.js';
@@ -908,14 +909,18 @@ export class Lattice {
    *  - scope 'global' — knihovna filtr jen sestaví, ukáže v seznamu a předá aplikaci
    *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
+   *
+   * `group` je volitelný štítek skupiny („Prodeje", „Faktury"…) — filtry se stejnou
+   * skupinou se v rozbalovacím výběru sdruží pod jeden nadpis (`<optgroup>`). `@v1.20.0`
    */
-  saveAdvanced(name, tree, scope = 'local', display = false) {
-    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)) });
+  saveAdvanced(name, tree, scope = 'local', display = false, group = '') {
+    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)), group });
 }
 
   /**
    * Společná perzistence pojmenovaného uloženého filtru (rozšířený strom NEBO snímek
-   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes }).
+   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes })
+   * a volitelnou `group` (štítek skupiny ve výběru).
    * Stejný název ve stejném scope přepíše (zachová id → downstream INSERT … ON DUPLICATE KEY).
    *  - local  → do localStorage blobu (state.advancedFilters), kompletně v knihovně.
    *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
@@ -927,6 +932,9 @@ export class Lattice {
     // Zobrazení v toolbaru: tlačítko a/nebo výběr. Legacy boolean = jen tlačítko
     // (a tím pádem ne ve výběru), jak se `asButton` chovalo od v1.10.0.
     const core = { name, ...normalizeDisplay(display), ...fields };
+    // Skupina je volitelná — prázdnou neukládáme, ať se v datech nedrží šum.
+    const grp = normalizeGroup(core.group);
+    if (grp) core.group = grp; else delete core.group;
     if (scope === 'global') {
       const existing = this.globalAdvanced.find((f) => f.name === name);
       const id = existing ? existing.id : uid();
@@ -971,6 +979,16 @@ export class Lattice {
     this.store.save(this.state);
     this.renderer.renderToolbar();
     return item;
+  }
+
+  /**
+   * Nastaví (nebo zruší prázdným řetězcem) skupinu uloženého filtru — štítek, pod
+   * kterým se filtr sdruží v rozbalovacím výběru. `@v1.20.0`
+   */
+  setAdvancedGroup(id, group) {
+    const item = this.listAdvanced().find((f) => f.id === id);
+    if (!item) return null;
+    return this.renameSavedFilter(id, item.name, group);
   }
 
   /** Smaže uložený rozšířený filtr (lokální z blobu; globální z UI + callback aplikace). */
@@ -1080,12 +1098,15 @@ export class Lattice {
     return { filters: JSON.parse(JSON.stringify(filters)), filterTypes };
   }
 
-  /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
-  saveFilterSnapshot(name, scope = 'local', display = false) {
+  /**
+   * Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko).
+   * `group` je volitelný štítek skupiny ve výběru (viz `saveAdvanced`). `@v1.20.0`
+   */
+  saveFilterSnapshot(name, scope = 'local', display = false, group = '') {
     const snap = this._captureColumnFilters();
     if (!snap) return null;
     return this._saveNamedFilter(name, scope, display, {
-      kind: 'columns', filters: snap.filters, filterTypes: snap.filterTypes,
+      kind: 'columns', filters: snap.filters, filterTypes: snap.filterTypes, group,
     });
   }
 
@@ -1103,22 +1124,27 @@ export class Lattice {
     return this.saveFilterSnapshot(item.name, item.scope || 'local', {
       button: !!item.asButton,
       select: item.asSelect === undefined ? !item.asButton : !!item.asSelect,
-    });
+    }, item.group);
   }
 
   /**
-   * Přejmenuje uložený filtr (snímek i strom) — mění jen název, `id` a obsah zůstávají.
-   * Případná jiná položka téhož názvu ustoupí, ať nevznikne dvojice. `@v1.14.0`
+   * Přejmenuje uložený filtr (snímek i strom) — mění jen název (a volitelně skupinu),
+   * `id` a obsah zůstávají. Případná jiná položka téhož názvu ustoupí, ať nevznikne
+   * dvojice. `group` nezadaná = skupina zůstává, prázdný řetězec ji zruší. `@v1.14.0`
+   * (skupina `@v1.20.0`)
    */
-  renameSavedFilter(id, name) {
+  renameSavedFilter(id, name, group) {
     const nm = String(name || '').trim();
     if (!nm) return null;
     const g = this.globalAdvanced.find((f) => f.id === id);
     const target = g || (this.state.advancedFilters || []).find((f) => f.id === id);
-    if (!target || target.name === nm) return null;
+    if (!target) return null;
+    const grp = group === undefined ? undefined : normalizeGroup(group);
+    if (target.name === nm && (grp === undefined || grp === normalizeGroup(target.group))) return null;
     if (g) this.globalAdvanced = this.globalAdvanced.filter((f) => f.id === id || f.name !== nm);
     else this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id === id || f.name !== nm);
     target.name = nm;
+    if (grp !== undefined) { if (grp) target.group = grp; else delete target.group; }
     if (g) {
       const cb = this.options.onSaveGlobalAdvancedFilter;
       if (typeof cb === 'function') { const { scope, ...core } = target; cb({ ...core }); }

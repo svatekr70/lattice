@@ -59,6 +59,8 @@
   kbd{font:600 12px/1 ui-monospace,monospace;background:var(--code-bg);border:1px solid var(--line);
     border-radius:5px;padding:2px 6px}
   code{font:13px/1 ui-monospace,monospace;background:var(--code-bg);border-radius:5px;padding:2px 6px}
+  pre.tree{font:13px/1.6 ui-monospace,monospace;background:var(--code-bg);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;max-width:520px;overflow-x:auto;white-space:pre}
 
   figure{margin:16px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
     padding:12px;box-shadow:var(--shadow);max-width:820px}
@@ -477,6 +479,9 @@
           (<span class="ibtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 4h15l-5.5 7v5l-4 2v-7z"></path><path fill="var(--accent)" d="M15 14h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"></path><path fill="#fff" d="M15.6 14.6h2.8v2.2h-2.8z"></path><path fill="#fff" d="M15.5 18h4v2.4h-4z"></path></svg></span>) —
           otevře se panel <b>„Uložené filtry"</b>.</li>
         <li>Do pole <b>„Název filtru…"</b> napiš, jak se má filtr jmenovat.</li>
+        <li>Volitelně vyplň <b>„Skupina…"</b> — třeba <i>Prodeje</i> nebo <i>Faktury</i>. Filtry se
+          stejnou skupinou se pak v rozbalovací nabídce sdruží pod její název. Viz
+          <a href="#skupiny-vyberu">Skupiny v nabídce</a>.</li>
         <li>Zaškrtni, <b>kde se má nabízet</b>: <b>tlačítko</b> (pilulka v řadě s ikonami, hned
           vlevo od nich) a/nebo <b>výběr</b> (rozbalovací nabídka za ikonami). <b>Výběr</b> je předzaškrtnutý;
           klidně zaškrtni obojí. Když odškrtneš obojí, filtr bude jen v tomhle panelu.</li>
@@ -494,7 +499,9 @@
       <h3>Uložit rozšířený filtr</h3>
       <ol class="steps">
         <li>Otevři <b>Rozšířený filtr</b> (trychtýř se žlutým plusem) a poskládej podmínky.</li>
-        <li>Dole do pole <b>„Název filtru…"</b> napiš název.</li>
+        <li>Dole do pole <b>„Název filtru…"</b> napiš název, vedle volitelně
+          <b>„Skupina ve výběru…"</b> (viz <a href="#skupiny-vyberu">Skupiny v nabídce</a>) — se
+          skupinami podmínek <b>A zároveň / Nebo</b> v builderu to nemá nic společného.</li>
         <li>Zaškrtni <b>tlačítko</b> a/nebo <b>výběr</b> (stejná volba jako u naklikaných filtrů).</li>
         <li><b>Uložit</b> = lokálně jen pro tebe, <b>Uložit globálně</b> = pro všechny.</li>
       </ol>
@@ -545,6 +552,36 @@
         <figcaption>Uložené <b>filtry</b> (trychtýř) jsou jako tlačítka hned vlevo od filtračních ikon, <b>pohledy</b> (záložka) o řádek výš; modrá ikona = globální, šedá = jen tvoje. Vpravo za ikonami jsou dvě nabídky: <b>uložené filtry</b> a <b>pohledy</b>. Klik na filtr ho zapne/vypne (aktivní je modrý), klik na pohled ho použije.</figcaption>
       </figure>
 
+      <h3 id="skupiny-vyberu">Skupiny v nabídce („Prodeje", „Faktury"…)</h3>
+      <p>Když je uložených filtrů (nebo <a href="#presety">pohledů</a>) hodně, dá se nabídka
+        <b>rozčlenit do skupin</b>. Vedle pole s názvem je políčko <b>„Skupina…"</b> — napiš do něj
+        libovolný název skupiny, třeba <i>Prodeje</i>. Všechno se stejnou skupinou se v rozbalovací
+        nabídce sdruží <b>pod její nadpis</b>:</p>
+      <pre class="tree">— uložené filtry —
+Všechny obchodní případy     ← bez skupiny (zůstává nahoře)
+Bordel
+  <b>PRODEJE</b>
+     Prodeje (všechny výhry)
+     Prodeje potvrzené
+  <b>FAKTURY</b>
+     Neuhrazené faktury</pre>
+      <ul>
+        <li><b>Napovídá</b> — jakmile nějakou skupinu použiješ, políčko ji příště nabídne
+          (stačí začít psát). Napsat jde ale i úplně novou.</li>
+        <li><b>Bez skupiny</b> — položka se nabízí normálně, jen <b>nad</b> skupinami. Hodí se pro
+          to nejpoužívanější („Všechno", „Moje").</li>
+        <li><b>Pořadí skupin</b> se neabecedí — jdou tak, jak vznikly. Chceš-li jiné pořadí, ulož
+          položky ve výsledném pořadí (nebo skupinu přejmenuj).</li>
+        <li><b>Skupinu jde změnit i dodatečně</b> — u uloženého filtru klikni na <b>tužku</b>
+          (nebo dvojklik na název): vedle názvu se objeví i políčko skupiny. Vyprázdněním ji
+          zrušíš. U pohledu ho ulož znovu pod stejným názvem s jinou skupinou.</li>
+        <li><b>Tlačítek se skupiny netýkají</b> — pilulky v záhlaví zůstávají v jedné řadě.
+          Skupiny mají smysl v rozbalovacích nabídkách.</li>
+      </ul>
+      <p>Stejné políčko je i v dialogu <b>„Sloupce"</b> u pohledů a v patičce <b>rozšířeného
+        filtru</b>. V panelech se skupiny ukazují jako <b>nadpis nad položkami</b>, stejně jako
+        v nabídce.</p>
+
       <h3>Upravit uložený filtr (změnit, co filtruje)</h3>
       <p>Uložený filtr se needituje ve formuláři — <b>upravíš ho tím, že si tabulku nafiltruješ
         znovu, jak chceš, a filtr tím přepíšeš</b>:</p>
@@ -578,8 +615,9 @@
         <b>všechny</b> uložené filtry — i ty, které nemáš jako tlačítko:</p>
       <ul>
         <li><b>Zapnout/vypnout</b> — klik na název.</li>
-        <li><b>Přejmenovat</b> — <b>tužka</b> v řádku (nebo dvojklik na název), přepiš a potvrď
-          <i>Enterem</i> (<i>Esc</i> zruší). Obsah filtru se nemění.</li>
+        <li><b>Přejmenovat</b> (a případně změnit <b>skupinu</b>) — <b>tužka</b> v řádku (nebo
+          dvojklik na název): objeví se políčko s názvem a vedle něj políčko skupiny. Přepiš
+          a potvrď <i>Enterem</i> (<i>Esc</i> zruší). Obsah filtru se nemění.</li>
         <li><b>Přepsat obsah</b> — <b>disketa</b> (viz postup výše).</li>
         <li><b>Kde se nabízí</b> — dva přepínače: <b>pilulka</b> = tlačítko, <b>seznam se šipkou</b>
           = výběr. Vyplněné = zapnuté.</li>
@@ -896,7 +934,9 @@
         <li>Otevři dialog <b>„Sloupce"</b> (ikona ⊟ vpravo nahoře). Pohledy jsou hned nahoře.</li>
         <li>U <b>„Uložit do pohledu:"</b> zaškrtni, <b>co má pohled nést</b> — <b>Sloupce</b>,
           <b>Filtry a řazení</b>, <b>Nastavení tabulky</b> (aspoň jedno musí zůstat).</li>
-        <li>Do pole <b>„Název pohledu…"</b> napiš název.</li>
+        <li>Do pole <b>„Název pohledu…"</b> napiš název; vedle volitelně <b>„Skupina…"</b>, chceš-li
+          pohled zařadit v nabídce pod společný nadpis (viz
+          <a href="#skupiny-vyberu">Skupiny v nabídce</a>).</li>
         <li>Zaškrtni, <b>kde se má pohled nabízet</b>: <b>tlačítko</b> a/nebo <b>výběr</b>
           (u pohledů není předzaškrtnuté nic — pak zůstane jen tady v dialogu).</li>
         <li>Ulož:
@@ -928,7 +968,9 @@
           ne výběr dat.</li>
         <li><b>výběr</b> (ikona seznamu se šipkou) — pohled se nabídne v <b>rozbalovací nabídce
           „— pohledy —"</b>, která je v řadě ikon <b>vpravo vedle nabídky uložených filtrů</b>.
-          Hodí se, když máš pohledů hodně. Vyprázdněním nabídky se vrátíš na výchozí zobrazení.</li>
+          Hodí se, když máš pohledů hodně — a dají se v ní ještě
+          <a href="#skupiny-vyberu">sdružit do skupin</a>. Vyprázdněním nabídky se vrátíš na
+          výchozí zobrazení.</li>
         <li><b>nic zaškrtnutého</b> (výchozí) — pohled zůstane jen v dialogu „Sloupce".</li>
       </ul>
       <p>Řadu tlačítek i nabídku sdílí pohledy s <a href="#ulozene-filtry">uloženými filtry</a>;

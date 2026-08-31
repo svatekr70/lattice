@@ -7,6 +7,7 @@
 import { el, clear, onOutside } from '../util/dom.js';
 import { positionUnder } from './gear.js';
 import { ADV_OPS, isGroup } from '../filters/advancedEval.js';
+import { groupField, fillGroupedSelect } from '../util/groups.js';
 
 export class AdvancedFilter {
   constructor(grid) {
@@ -99,19 +100,30 @@ export class AdvancedFilter {
     const asSelLabel = el('label.lattice-adv-asbtn', { title: t('advanced.asSelectHint') }, [
       asSelInput, el('span', { text: t('advanced.asSelect') }),
     ]);
+    // Volitelná skupina ve výběru („Prodeje", „Faktury"…) — pozor, s AND/OR skupinami
+    // podmínek v builderu nemá nic společného, jde jen o sdružení v rozbalovacím výběru.
+    const grp = groupField(this.grid.listAdvanced(), {
+      placeholder: t('advanced.groupPlaceholder'), title: t('advanced.groupHint'),
+    });
+    this.groupInput = grp.input;
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) grp.input.value = cur.group || '';
+    }
     const saveBtn = el('button.lattice-dr-btn', { type: 'button', text: t('advanced.save') });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) { nameInput.focus(); return; }
-      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked });
+      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       nameInput.value = '';
+      grp.input.value = '';
       asBtnInput.checked = false;
       asSelInput.checked = true;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener('click', () => saveWithScope('local'));
-    const saveRowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
+    const saveRowEls = [nameInput, grp.el, asBtnLabel, asSelLabel, saveBtn];
     // Globus (globální filtr) — jen když aplikace dodala callback; klik pošle callback.
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el('button.lattice-dr-btn.is-success', { type: 'button', text: t('advanced.saveGlobal') });
@@ -138,7 +150,7 @@ export class AdvancedFilter {
     const sel = el('select.lattice-adv-saved');
     sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
     // globální filtry (sdílené aplikací) odlišíme glóbem, ať je poznat od lokálních
-    for (const f of saved) sel.appendChild(el('option', { value: f.id, text: (f.scope === 'global' ? '🌐 ' : '') + f.name }));
+    fillGroupedSelect(sel, saved, (f) => el('option', { value: f.id, text: (f.scope === 'global' ? '🌐 ' : '') + f.name }));
     sel.value = this.selectedId || '';
     sel.addEventListener('change', () => {
       this.selectedId = sel.value;
@@ -148,6 +160,7 @@ export class AdvancedFilter {
       if (this.nameInput) this.nameInput.value = f.name; // předvyplň název → uložení pod stejným
       if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton; // odraz stav „jako tlačítko"
       if (this.asSelInput) this.asSelInput.checked = f.asSelect === undefined ? !f.asButton : !!f.asSelect;
+      if (this.groupInput) this.groupInput.value = f.group || '';   // i skupinu, ať se uložením neztratí
       this.renderBuilder();            // překresli JEN strom, select zůstane vybraný
       grid.applyAdvanced(this.tree);   // vybraný filtr rovnou aplikuj
     });

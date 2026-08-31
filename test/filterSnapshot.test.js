@@ -32,6 +32,7 @@ function makeGrid({ global = false } = {}) {
     '_isSnapshot', '_isSavedActive', '_sameFilters', '_activeColumnFilters', 'hasColumnFilters',
     '_captureColumnFilters', 'saveFilterSnapshot', 'applyFiltersSnapshot', 'clearColumnFilters',
     'overwriteSavedFilter', 'renameSavedFilter', 'deleteAdvanced', 'setAdvancedDisplay',
+    'setAdvancedGroup',
   ];
   for (const m of bind) ctx[m] = Lattice.prototype[m];
   return ctx;
@@ -188,4 +189,45 @@ test('renameSavedFilter — název, který už existuje, tu druhou položku nahr
   g.renameSavedFilter(first.id, 'Druhý');
   assert.deepEqual(g.state.advancedFilters.map((f) => f.name), ['Druhý']);
   assert.deepEqual(g.state.advancedFilters[0].filters, { name: 'a' }, 'zůstal ten přejmenovaný');
+});
+
+test('skupina uloženého filtru: uložení, přepsání, přejmenování, zrušení', () => {
+  const g = makeGrid();
+  g.filters = { name: 'abc' };
+  const item = g.saveFilterSnapshot('Prodeje dnes', 'local', { select: true }, '  Prodeje  ');
+  assert.equal(item.group, 'Prodeje', 'skupina se ořízne');
+
+  const plain = g.saveFilterSnapshot('Bez skupiny', 'local', { select: true });
+  assert.equal('group' in plain, false, 'prázdná skupina se neukládá');
+
+  // přepsání aktuálními filtry skupinu zachová
+  g.filters = { name: 'xyz' };
+  const over = g.overwriteSavedFilter(item.id);
+  assert.equal(over.group, 'Prodeje');
+  assert.equal(over.id, item.id);
+
+  // změna skupiny bez přejmenování
+  g.setAdvancedGroup(item.id, 'Faktury');
+  assert.equal(g.listAdvanced().find((f) => f.id === item.id).group, 'Faktury');
+
+  // přejmenování se skupinou naráz i její zrušení
+  g.renameSavedFilter(item.id, 'Prodeje včera', '');
+  const after = g.listAdvanced().find((f) => f.id === item.id);
+  assert.equal(after.name, 'Prodeje včera');
+  assert.equal('group' in after, false);
+
+  // nezadaná skupina ji nechává být
+  g.setAdvancedGroup(item.id, 'Storno');
+  g.renameSavedFilter(item.id, 'Prodeje zítra');
+  assert.equal(g.listAdvanced().find((f) => f.id === item.id).group, 'Storno');
+});
+
+test('skupina rozšířeného filtru projde do globálního callbacku', () => {
+  const sent = [];
+  const g = makeGrid({ global: true });
+  g.options.onSaveGlobalAdvancedFilter = (payload) => sent.push(payload);
+  g.saveAdvanced = Lattice.prototype.saveAdvanced;
+  g.saveAdvanced('Neuhrazené', { comb: 'and', rules: [] }, 'global', { select: true }, 'Faktury');
+  assert.equal(sent[0].group, 'Faktury');
+  assert.equal(g.listAdvanced()[0].group, 'Faktury');
 });

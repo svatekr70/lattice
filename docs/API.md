@@ -364,14 +364,15 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
-| `saveAdvanced(name, tree, scope?, display?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. |
+| `saveAdvanced(name, tree, scope?, display?, group?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. `group` (`@v1.20.0`) = štítek skupiny ve výběru (viz *Skupiny ve výběru*). |
 | `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
 | `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
 | `selectAdvanced()` | Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez `asSelect` (uložená před `v1.14.0`) se řídí postaru — co není tlačítko, je ve výběru. `@v1.14.0` |
 | `setAdvancedDisplay(id, key, on)` | Přepne u uloženého filtru zobrazení bez opětovného ukládání — `key` je `'asButton'` \| `'asSelect'`. U globálního filtru pošle změnu přes `onSaveGlobalAdvancedFilter`. `@v1.14.0` |
+| `setAdvancedGroup(id, group)` | Nastaví (prázdným řetězcem zruší) **skupinu** uloženého filtru ve výběru. U globálního filtru pošle změnu přes `onSaveGlobalAdvancedFilter`. `@v1.20.0` |
 | `overwriteSavedFilter(id)` | Přepíše uložený **snímek** aktuálními sloupcovými filtry z hlavičky (`id`, název, rozsah i volby zobrazení zůstávají). Vrací `null`, když není co uložit. `@v1.14.0` |
-| `renameSavedFilter(id, name)` | Přejmenuje uložený filtr (snímek i strom) — mění jen název. `@v1.14.0` |
-| `saveFilterSnapshot(name, scope?, display?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`display` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` |
+| `renameSavedFilter(id, name, group?)` | Přejmenuje uložený filtr (snímek i strom) — mění jen název, volitelně naráz i skupinu (`''` ji zruší, nezadaná ji nechá být). `@v1.14.0` (skupina `@v1.20.0`) |
+| `saveFilterSnapshot(name, scope?, display?, group?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`display`/`group` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` (skupina `@v1.20.0`) |
 | `applyFiltersSnapshot(snap)` / `clearColumnFilters()` / `hasColumnFilters()` | Obnoví snímek zpět do políček hlavičky (a přefiltruje) / zruší jen sloupcové filtry / je aktivní aspoň jeden sloupcový filtr? `@v1.11.0` |
 | `applyPreset(preset)` / `buttonPresets()` / `selectPresets()` | Aplikuje preset / presety označené jako tlačítko / presety nabízené v rozbalovacím výběru v toolbaru. `@v1.14.0` |
 | `togglePreset(preset)` | Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní aplikuje, u aktivního zavolá `resetView()`. `@v1.14.0` |
@@ -613,6 +614,8 @@ Nad polem s názvem jsou v panelu presetů tři zaškrtávátka — uživatel si
 
 Programově totéž: `grid.captureState({ columns: true, filters: false, instance: true })`, resp.
 `grid.presets.saveLocal(name, parts)` / `saveGlobal(name, parts)`. Bez `parts` se uloží vše.
+Čtvrtý argument obou metod je **skupina** ve výběru (`saveLocal(name, parts, display, group)`,
+`@v1.20.0`); u už uloženého pohledu ji změní `grid.presets.setGroup(preset, group)`.
 
 **Klíčové pravidlo:** `applyPreset()` mění jen ty části, které snímek **obsahuje**. Preset
 „jen filtry" tedy nesáhne na sloupce ani na seskupení. Co preset nese, zjistí
@@ -632,17 +635,53 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do řady tlačítek presetů (vlastní řádek nad ikonami), resp. do výběru „— pohledy —" v toolbaru. |
+| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?,group?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do řady tlačítek presetů (vlastní řádek nad ikonami), resp. do výběru „— pohledy —" v toolbaru. `group` (`@v1.20.0`) sdruží pohledy ve výběru pod nadpis (viz *Skupiny ve výběru*). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
 | Callback | Kdy se volá | Argument |
 |---|---|---|
-| `onSaveGlobalPreset(preset)` | uživatel uložil globální preset (tlačítko **globus**) nebo u něj přepnul zobrazení (tlačítko / výběr) | `{ id, name, state, asButton, asSelect }` (`asButton`/`asSelect` `@v1.14.0`) |
+| `onSaveGlobalPreset(preset)` | uživatel uložil globální preset (tlačítko **globus**), přepnul u něj zobrazení (tlačítko / výběr) nebo změnil skupinu | `{ id, name, state, asButton, asSelect, group }` (`asButton`/`asSelect` `@v1.14.0`, `group` `@v1.20.0` — bez skupiny prázdný řetězec) |
 | `onDeleteGlobalPreset(preset)` | uživatel smazal globální preset (**×**) | `{ id, name }` |
 
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
 Knihovna preset po uložení rovnou přidá do své nabídky — nemusíš překreslovat ani znovu načítat.
+
+### Skupiny ve výběru — `@v1.20.0`
+
+Uložený filtr i pohled může nést volitelný štítek **`group`** („Prodeje", „Faktury", „Storno"…).
+Položky se stejným štítkem se v rozbalovacím výběru v záhlaví sdruží do `<optgroup>` pod jeho
+název, v panelech („Uložené filtry", presety v panelu „Sloupce") pod nadpis skupiny:
+
+```
+— uložené filtry —
+Všechny obchodní případy      ← bez skupiny (stojí nahoře)
+Bordel
+  PRODEJE                     ← <optgroup label="Prodeje">
+    Prodeje (všechny výhry)
+    Prodeje potvrzené
+  FAKTURY
+    Neuhrazené faktury
+```
+
+- **Kde se zadává:** políčko „Skupina…" vedle názvu v ukládacím řádku — v panelu uložených
+  filtrů, v patičce rozšířeného filtru i v panelu presetů. Napovídá (`<datalist>`) už použité
+  skupiny, ale zapsat jde cokoli. U uloženého filtru se dá změnit i dodatečně (tužka /
+  dvojklik na název → druhé políčko vedle názvu).
+- **Pořadí:** nezařazené položky jsou vždy nahoře, skupiny následují v pořadí prvního výskytu
+  v seznamu — knihovna je nepřerovnává (abecedně ani jinak), pořadí drží aplikace / pořadí
+  ukládání. Uvnitř skupiny zůstává pořadí položek.
+- **Programově:** `saveAdvanced(name, tree, scope, display, group)`,
+  `saveFilterSnapshot(name, scope, display, group)`, `setAdvancedGroup(id, group)`,
+  `renameSavedFilter(id, name, group)`; u pohledů `presets.saveLocal(name, parts, display, group)`,
+  `presets.saveGlobal(...)` a `presets.setGroup(preset, group)`.
+- **Perzistence:** štítek je běžná vlastnost položky — lokální jde do localStorage blobu,
+  globální dorazí aplikaci v payloadu callbacku (`onSaveGlobalAdvancedFilter` /
+  `onSaveGlobalPreset`) a aplikace ho vrátí zpět v `globalAdvancedFilters` / `globalPresets`.
+  Prázdná skupina se neukládá (klíč v objektu chybí), takže starší uložené položky fungují beze
+  změny — jsou prostě „bez skupiny".
+- **Tlačítka (pilulky) skupiny neřeší** — řada tlačítek nad ikonami zůstává plochá; skupiny
+  jsou nástroj pro delší nabídky ve výběru.
 
 ### Rozsah výběru: „Stránka" vs „Všechny záznamy" — `@v1.16.0`
 
@@ -694,13 +733,13 @@ je odliší podle přítomnosti `kind: 'columns'` (jinak stačí uložit celý o
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalAdvancedFilters` | `Array<{id,name,tree,asButton?,asSelect?}>` \| `Array<{id,name,kind:'columns',filters,filterTypes,asButton?,asSelect?}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). |
+| `globalAdvancedFilters` | `Array<{id,name,tree,asButton?,asSelect?,group?}>` \| `Array<{id,name,kind:'columns',filters,filterTypes,asButton?,asSelect?,group?}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). `group` (`@v1.20.0`) sdruží filtry ve výběru pod nadpis (viz *Skupiny ve výběru*). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
 | Callback | Kdy se volá | Argument |
 |---|---|---|
-| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (**globus** v panelu rozšířeného filtru nebo v panelu „uložit sloupcové filtry") | strom: `{ id, name, tree, asButton, asSelect }` · snímek: `{ id, name, kind:'columns', filters, filterTypes, asButton, asSelect }` (`asSelect` `@v1.14.0`) |
+| `onSaveGlobalAdvancedFilter(filter)` | uživatel uložil globální filtr (**globus** v panelu rozšířeného filtru nebo v panelu „uložit sloupcové filtry"), přepnul u něj zobrazení nebo změnil skupinu | strom: `{ id, name, tree, asButton, asSelect, group? }` · snímek: `{ id, name, kind:'columns', filters, filterTypes, asButton, asSelect, group? }` (`asSelect` `@v1.14.0`, `group` `@v1.20.0` — bez skupiny klíč chybí) |
 | `onDeleteGlobalAdvancedFilter(filter)` | uživatel smazal globální filtr (**×**) | `{ id, name }` |
 
 Bez `onSaveGlobalAdvancedFilter` se globus v panelu rozšířeného filtru neukáže (globální

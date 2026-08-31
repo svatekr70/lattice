@@ -16,6 +16,8 @@
  * (captureState/applyPreset), protože sahá do vnitřků gridu.
  */
 
+import { normalizeGroup } from '../util/groups.js';
+
 /**
  * Kam se má uložená položka (preset / filtr) v toolbaru propsat. Přijímá:
  *  - `{ button, select }` — volba z UI (zaškrtávátka „jako tlačítko" / „jako výběr"),
@@ -93,14 +95,16 @@ export class PresetStore {
    * vybírá, co preset ponese (`{columns, filters, instance}`) — nezadáno = vše.
    * `display` = kde se preset ukáže v toolbaru: `{ button, select }` (nebo legacy
    * boolean = jen tlačítko). Nezadáno → nikde, preset žije jen v panelu „Sloupce".
+   * `group` = volitelný štítek skupiny („Prodeje", „Faktury"…); pohledy se stejnou
+   * skupinou se v rozbalovacím výběru sdruží pod jeden nadpis. `@v1.20.0`
    */
-  saveLocal(name, parts, display) {
+  saveLocal(name, parts, display, group = '') {
     const nm = String(name).trim();
     if (!nm) return null;
     const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
     // stejný název přepíše, ale ponechá id → downstream INSERT … ON DUPLICATE KEY
     const prev = this.local().find((p) => p.name === nm);
-    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, ...groupField(group), state: this.grid.captureState(parts) };
     const list = this.local().filter((p) => p.name !== preset.name);
     list.push(preset);
     this.grid.state.presets = list;
@@ -114,19 +118,19 @@ export class PresetStore {
    * v seznamu a předá aplikaci přes callback onSaveGlobalPreset(preset) — ta si
    * poradí s perzistencí (DB, sdílení mezi uživateli). Vrací sestavený preset.
    * `parts` vybírá, co preset ponese (viz `saveLocal`), `display` určuje jeho
-   * zobrazení v toolbaru (tlačítko / výběr).
+   * zobrazení v toolbaru (tlačítko / výběr) a `group` skupinu ve výběru.
    */
-  saveGlobal(name, parts, display) {
+  saveGlobal(name, parts, display, group = '') {
     const nm = String(name).trim();
     if (!nm) return null;
     const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
     const prev = this.globals.find((p) => p.name === nm);
-    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, ...groupField(group), state: this.grid.captureState(parts) };
     this.globals = this.globals.filter((p) => p.name !== preset.name);
     const norm = { ...preset, scope: 'global' };
     this.globals.push(norm);
     const cb = this.grid.options.onSaveGlobalPreset;
-    if (typeof cb === 'function') cb({ id: preset.id, name: preset.name, asButton: preset.asButton, asSelect: preset.asSelect, state: preset.state });
+    if (typeof cb === 'function') cb({ id: preset.id, name: preset.name, asButton: preset.asButton, asSelect: preset.asSelect, group: preset.group || '', state: preset.state });
     else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(preset)).catch(() => {});
     this.grid.renderer?.renderToolbar();
     return norm;
@@ -144,7 +148,7 @@ export class PresetStore {
       if (!p) return null;
       p[key] = !!on;
       const cb = this.grid.options.onSaveGlobalPreset;
-      if (typeof cb === 'function') cb({ id: p.id, name: p.name, asButton: !!p.asButton, asSelect: !!p.asSelect, state: p.state });
+      if (typeof cb === 'function') cb({ id: p.id, name: p.name, asButton: !!p.asButton, asSelect: !!p.asSelect, group: p.group || '', state: p.state });
       else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(p)).catch(() => {});
       this.grid.renderer?.renderToolbar();
       return p;
@@ -153,6 +157,34 @@ export class PresetStore {
     const p = list.find((x) => x.id === preset.id);
     if (!p) return null;
     p[key] = !!on;
+    this.grid.state.presets = list;
+    this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
+    return p;
+  }
+
+  /**
+   * Nastaví (nebo zruší prázdným řetězcem) skupinu presetu — štítek, pod kterým se
+   * pohled sdruží v rozbalovacím výběru. U globálního presetu pošle změnu aplikaci
+   * stejným callbackem jako uložení. `@v1.20.0`
+   */
+  setGroup(preset, group) {
+    const grp = normalizeGroup(group);
+    const apply = (p) => { if (grp) p.group = grp; else delete p.group; };
+    if (preset.scope === 'global') {
+      const p = this.globals.find((x) => x.id === preset.id);
+      if (!p) return null;
+      apply(p);
+      const cb = this.grid.options.onSaveGlobalPreset;
+      if (typeof cb === 'function') cb({ id: p.id, name: p.name, asButton: !!p.asButton, asSelect: !!p.asSelect, group: p.group || '', state: p.state });
+      else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(p)).catch(() => {});
+      this.grid.renderer?.renderToolbar();
+      return p;
+    }
+    const list = this.local();
+    const p = list.find((x) => x.id === preset.id);
+    if (!p) return null;
+    apply(p);
     this.grid.state.presets = list;
     this.grid.saveState();
     this.grid.renderer?.renderToolbar();
@@ -172,6 +204,12 @@ export class PresetStore {
     }
     this.grid.renderer?.renderToolbar();
   }
+}
+
+/** Skupina do objektu presetu — prázdnou vůbec neuvádíme, ať se v datech nedrží šum. */
+function groupField(group) {
+  const g = normalizeGroup(group);
+  return g ? { group: g } : {};
 }
 
 function uid() {

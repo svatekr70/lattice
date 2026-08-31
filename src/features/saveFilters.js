@@ -9,6 +9,7 @@
  */
 import { el, onOutside } from '../util/dom.js';
 import { positionUnder } from './gear.js';
+import { groupField, groupItems } from '../util/groups.js';
 
 export class SaveFiltersPanel {
   constructor(grid) {
@@ -73,6 +74,9 @@ export class SaveFiltersPanel {
     const t = grid.i18n.t.bind(grid.i18n);
 
     const nameInput = el('input.lattice-adv-name', { type: 'text', placeholder: t('saveFilters.namePlaceholder'), value: prefillName });
+    // Volitelná skupina — filtry se stejným štítkem se v rozbalovacím výběru sdruží
+    // pod jeden nadpis (datalist napovídá už použité skupiny).
+    const grp = groupField(grid.listAdvanced(), { placeholder: t('saveFilters.groupPlaceholder'), title: t('saveFilters.groupHint') });
     const asBtnInput = el('input', { type: 'checkbox' });
     const asBtnLabel = el('label.lattice-adv-asbtn', { title: t('saveFilters.asButtonHint') }, [
       asBtnInput, el('span', { text: t('saveFilters.asButton') }),
@@ -85,15 +89,20 @@ export class SaveFiltersPanel {
     // Úprava uloženého: převezmi jeho volby zobrazení, ať se uložením pod stejným názvem neztratí.
     if (prefillName) {
       const cur = grid.listAdvanced().find((f) => f.name === prefillName);
-      if (cur) { asBtnInput.checked = !!cur.asButton; asSelInput.checked = cur.asSelect === undefined ? !cur.asButton : !!cur.asSelect; }
+      if (cur) {
+        asBtnInput.checked = !!cur.asButton;
+        asSelInput.checked = cur.asSelect === undefined ? !cur.asButton : !!cur.asSelect;
+        grp.input.value = cur.group || '';
+      }
     }
 
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
       if (!name) { nameInput.focus(); return; }
-      const item = grid.saveFilterSnapshot(name, scope, { button: asBtnInput.checked, select: asSelInput.checked });
+      const item = grid.saveFilterSnapshot(name, scope, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       if (!item) return; // žádný aktivní sloupcový filtr → není co uložit
       nameInput.value = '';
+      grp.input.value = '';
       asBtnInput.checked = false;
       asSelInput.checked = true;
       this.renderList(); // ukázat novou položku v seznamu
@@ -102,7 +111,7 @@ export class SaveFiltersPanel {
     const saveBtn = el('button.lattice-dr-btn.is-primary', { type: 'button', text: t('saveFilters.save') });
     saveBtn.addEventListener('click', () => saveWithScope('local'));
     nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveWithScope('local'); });
-    const rowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
+    const rowEls = [nameInput, grp.el, asBtnLabel, asSelLabel, saveBtn];
     if (grid.canSaveGlobalAdvanced()) {
       const globeBtn = el('button.lattice-dr-btn.is-success', { type: 'button', text: t('saveFilters.saveGlobal') });
       globeBtn.addEventListener('click', () => saveWithScope('global'));
@@ -124,60 +133,70 @@ export class SaveFiltersPanel {
     }
     const activeId = grid.activeSavedId();
     this._rows = [];
-    for (const item of saved) {
-      const row = el('div.lattice-savefilters-row');
-
-      const apply = el('button.lattice-savefilters-name' + (item.id === activeId ? '.is-active' : ''), {
-        type: 'button', text: (item.scope === 'global' ? '🌐 ' : '') + item.name,
-        title: (item.id === activeId ? t('quickbar.clearFilter') : t('quickbar.applyFilter')) + ' · ' + t('saveFilters.rename'),
-      });
-      // Pozor: po zapnutí/vypnutí seznam NEpřekreslujeme celý (jen zvýraznění), jinak by
-      // se řádky vyměnily mezi dvěma kliky a dvojklik na název by se nikdy nespustil.
-      apply.addEventListener('click', () => { grid.toggleSavedAdvanced(item.id); this.syncActive(); });
-      apply.addEventListener('dblclick', () => this.renameInline(row, apply, item));
-      row.appendChild(apply);
-      this._rows.push({ item, apply });
-
-      // Tužka: přejmenovat (obsah filtru zůstává). Totéž svede i dvojklik na název.
-      const ren = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.rename'), html: PENCIL_SVG });
-      ren.addEventListener('click', () => this.renameInline(row, apply, item));
-      row.appendChild(ren);
-
-      // Disketa: přepiš tenhle uložený filtr TÍM, co je právě naklikané v hlavičce.
-      // Tak se mění „vlastnosti" filtru — nastav filtry v tabulce a klikni sem.
-      if (item.kind === 'columns') {
-        const over = el('button.lattice-preset-pin.lattice-savefilters-overwrite', {
-          type: 'button', html: DISK_SVG,
-          title: grid.hasColumnFilters() ? t('saveFilters.overwrite') : t('saveFilters.overwriteDisabled'),
-        });
-        over.disabled = !grid.hasColumnFilters();
-        over.addEventListener('click', () => { grid.overwriteSavedFilter(item.id); this.renderList(); });
-        row.appendChild(over);
-      } else {
-        // strom z rozšířeného filtru se upravuje v query-builderu
-        const edit = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.edit'), html: BUILDER_SVG });
-        edit.addEventListener('click', () => { this.close(); grid.renderer.editSavedItem(item, 'filter'); });
-        row.appendChild(edit);
-      }
-
-      // Kde se filtr nabízí — dvojice přepínačů jako u presetů v panelu „Sloupce".
-      const asSelect = item.asSelect === undefined ? !item.asButton : !!item.asSelect;
-      for (const [key, on, icon, hint] of [
-        ['asButton', !!item.asButton, PILL_SVG, 'saveFilters.asButtonHint'],
-        ['asSelect', asSelect, SELECT_SVG, 'saveFilters.asSelectHint'],
-      ]) {
-        const tog = el('button.lattice-preset-pin' + (on ? '.is-on' : ''), { type: 'button', title: t(hint), html: icon });
-        tog.addEventListener('click', () => { grid.setAdvancedDisplay(item.id, key, !on); this.renderList(); });
-        row.appendChild(tog);
-      }
-
-      const del = el('button.lattice-icon-btn.is-danger', { type: 'button', title: t('saveFilters.delete'), text: '×' });
-      del.addEventListener('click', () => { grid.deleteAdvanced(item.id); this.renderList(); });
-      row.appendChild(del);
-
-      list.appendChild(row);
+    // Filtry se skupinou se seřadí pod nadpis skupiny (stejně jako v rozbalovacím
+    // výběru); nezařazené zůstanou nahoře.
+    for (const bucket of groupItems(saved)) {
+      if (bucket.group) list.appendChild(el('div.lattice-saved-group', { text: bucket.group }));
+      for (const item of bucket.items) list.appendChild(this.buildRow(item, activeId));
     }
     if (this.panel) positionUnder(this.panel, this.anchor);
+  }
+
+  /** Jeden řádek seznamu uložených filtrů (název + akce). */
+  buildRow(item, activeId) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const row = el('div.lattice-savefilters-row');
+
+    const apply = el('button.lattice-savefilters-name' + (item.id === activeId ? '.is-active' : ''), {
+      type: 'button', text: (item.scope === 'global' ? '🌐 ' : '') + item.name,
+      title: (item.id === activeId ? t('quickbar.clearFilter') : t('quickbar.applyFilter')) + ' · ' + t('saveFilters.rename'),
+    });
+    // Pozor: po zapnutí/vypnutí seznam NEpřekreslujeme celý (jen zvýraznění), jinak by
+    // se řádky vyměnily mezi dvěma kliky a dvojklik na název by se nikdy nespustil.
+    apply.addEventListener('click', () => { grid.toggleSavedAdvanced(item.id); this.syncActive(); });
+    apply.addEventListener('dblclick', () => this.renameInline(row, apply, item));
+    row.appendChild(apply);
+    this._rows.push({ item, apply });
+
+    // Tužka: přejmenovat (obsah filtru zůstává). Totéž svede i dvojklik na název.
+    const ren = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.rename'), html: PENCIL_SVG });
+    ren.addEventListener('click', () => this.renameInline(row, apply, item));
+    row.appendChild(ren);
+
+    // Disketa: přepiš tenhle uložený filtr TÍM, co je právě naklikané v hlavičce.
+    // Tak se mění „vlastnosti" filtru — nastav filtry v tabulce a klikni sem.
+    if (item.kind === 'columns') {
+      const over = el('button.lattice-preset-pin.lattice-savefilters-overwrite', {
+        type: 'button', html: DISK_SVG,
+        title: grid.hasColumnFilters() ? t('saveFilters.overwrite') : t('saveFilters.overwriteDisabled'),
+      });
+      over.disabled = !grid.hasColumnFilters();
+      over.addEventListener('click', () => { grid.overwriteSavedFilter(item.id); this.renderList(); });
+      row.appendChild(over);
+    } else {
+      // strom z rozšířeného filtru se upravuje v query-builderu
+      const edit = el('button.lattice-preset-pin', { type: 'button', title: t('saveFilters.edit'), html: BUILDER_SVG });
+      edit.addEventListener('click', () => { this.close(); grid.renderer.editSavedItem(item, 'filter'); });
+      row.appendChild(edit);
+    }
+
+    // Kde se filtr nabízí — dvojice přepínačů jako u presetů v panelu „Sloupce".
+    const asSelect = item.asSelect === undefined ? !item.asButton : !!item.asSelect;
+    for (const [key, on, icon, hint] of [
+      ['asButton', !!item.asButton, PILL_SVG, 'saveFilters.asButtonHint'],
+      ['asSelect', asSelect, SELECT_SVG, 'saveFilters.asSelectHint'],
+    ]) {
+      const tog = el('button.lattice-preset-pin' + (on ? '.is-on' : ''), { type: 'button', title: t(hint), html: icon });
+      tog.addEventListener('click', () => { grid.setAdvancedDisplay(item.id, key, !on); this.renderList(); });
+      row.appendChild(tog);
+    }
+
+    const del = el('button.lattice-icon-btn.is-danger', { type: 'button', title: t('saveFilters.delete'), text: '×' });
+    del.addEventListener('click', () => { grid.deleteAdvanced(item.id); this.renderList(); });
+    row.appendChild(del);
+
+    return row;
   }
 
   /** Přebarví zvýraznění aktivní položky bez překreslení seznamu (viz klik na název). */
@@ -191,24 +210,35 @@ export class SaveFiltersPanel {
     }
   }
 
-  /** Přejmenování na místě: název se změní v políčku, Enter uloží, Escape zruší. */
+  /**
+   * Úprava na místě: název a skupina se změní v políčkách, Enter uloží, Escape zruší.
+   * Skupina se dá i vyprázdnit (filtr pak stojí ve výběru samostatně nahoře).
+   */
   renameInline(row, nameBtn, item) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
     const input = el('input.lattice-savefilters-rename', { type: 'text', value: item.name });
-    row.replaceChild(input, nameBtn);
+    const grp = groupField(this.grid.listAdvanced(), {
+      value: item.group || '', placeholder: t('saveFilters.groupPlaceholder'), title: t('saveFilters.groupHint'),
+    });
+    const wrap = el('span.lattice-savefilters-edit', {}, [input, grp.el]);
+    row.replaceChild(wrap, nameBtn);
     input.focus();
     input.select();
     let done = false;
     const finish = (save) => {
       if (done) return;
       done = true;
-      if (save) this.grid.renameSavedFilter(item.id, input.value);
+      if (save) this.grid.renameSavedFilter(item.id, input.value, grp.input.value);
       this.renderList();
     };
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') finish(true);
-      else if (e.key === 'Escape') finish(false);
-    });
-    input.addEventListener('blur', () => finish(true));
+    for (const inp of [input, grp.input]) {
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') finish(true);
+        else if (e.key === 'Escape') finish(false);
+      });
+    }
+    // focusout místo blur: přeskok mezi názvem a skupinou úpravu neukončuje
+    wrap.addEventListener('focusout', (e) => { if (!wrap.contains(e.relatedTarget)) finish(true); });
   }
 }
 

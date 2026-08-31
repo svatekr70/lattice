@@ -4,6 +4,37 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [Nevydáno]
+
+### Přidáno
+- **Skupiny ve výběru uložených filtrů a pohledů.** Uložený filtr i pohled může nést volitelný
+  štítek **skupiny** („Prodeje", „Faktury", „Storno"…). Položky se stejným štítkem se
+  v rozbalovacím výběru v záhlaví sdruží do `<optgroup>` pod jeho název a v panelech („Uložené
+  filtry", presety v dialogu „Sloupce") pod nadpis skupiny. Nezařazené položky zůstávají nahoře,
+  skupiny jdou v pořadí prvního výskytu (knihovna je nepřerovnává). Dlouhá nabídka desítek
+  připravených filtrů tak zůstane čitelná.
+- **Políčko „Skupina…" v ukládacích řádcích** — v panelu uložených filtrů, v patičce rozšířeného
+  filtru i v panelu presetů, vždy hned vedle názvu. Napovídá (`<datalist>`) už použité skupiny,
+  zapsat jde ale cokoli. U uloženého **filtru** se skupina dá změnit i dodatečně: tužka (nebo
+  dvojklik na název) nabídne vedle názvu i políčko skupiny; vyprázdněním se skupina zruší.
+- **API:** `saveAdvanced(name, tree, scope, display, group)`,
+  `saveFilterSnapshot(name, scope, display, group)`, `renameSavedFilter(id, name, group?)`,
+  nové `setAdvancedGroup(id, group)`; u pohledů `presets.saveLocal/saveGlobal(name, parts, display, group)`
+  a nové `presets.setGroup(preset, group)`. Skupina se propíše i do payloadu globálních callbacků
+  (`onSaveGlobalAdvancedFilter`, `onSaveGlobalPreset` — klíč `group`) a přijímá se zpět
+  v `globalAdvancedFilters` / `globalPresets`.
+- **Nové i18n klíče** `groupPlaceholder` a `groupHint` v namespace `presets`, `advanced`
+  a `saveFilters` (cs/en/pl/sk).
+
+Prázdná skupina se neukládá (klíč v objektu chybí), takže **starší uložené položky i data
+aplikace fungují beze změny** — jsou prostě „bez skupiny". Řada tlačítek (pilulek) v záhlaví
+zůstává plochá; skupiny jsou nástroj pro rozbalovací nabídky.
+
+### Opraveno
+- **Test relativních datových tokenů** počítal očekávaný měsíční posun bez ošetření přetečení,
+  takže 31. dne v měsíci padal (`today+1m` knihovna správně ořízne na 30. 9., test čekal 1. 10.).
+  Test teď počítá stejně jako `addMonths` uvnitř knihovny.
+
 ## [1.19.0] – 2026-08-27
 
 Paginace nově přizná, že zobrazený počet je po filtrech. Bez breaking changes —

@@ -185,6 +185,8 @@ export default {
     asButtonHint: 'Pokaż ten widok jako przycisk w rzędzie nad ikonami (kliknięcie = zastosuj).',
     asSelect: 'lista',
     asSelectHint: 'Udostępnij ten widok na rozwijanej liście widoków w nagłówku tabeli.',
+    groupPlaceholder: 'Grupa…',
+    groupHint: 'Opcjonalna grupa na liście wyboru („Sprzedaż“, „Faktury“…) — widoki z tą samą grupą pojawią się pod wspólnym nagłówkiem.',
   },
   quickbar: {
     presets: 'Widoki',
@@ -454,6 +456,8 @@ export default {
     asButtonHint: 'Pokaż ten zapisany filtr jako przycisk po lewej od ikon filtrów (kliknięcie = włącz/wyłącz).',
     asSelect: 'lista',
     asSelectHint: 'Udostępnij ten filtr na rozwijanej liście zapisanych filtrów w nagłówku tabeli.',
+    groupPlaceholder: 'Grupa na liście wyboru…',
+    groupHint: 'Opcjonalna grupa na liście wyboru („Sprzedaż“, „Faktury“…) — filtry z tą samą grupą pojawią się pod wspólnym nagłówkiem. (Nie ma związku z grupami warunków AND/OR.)',
     remove: 'Usuń',
     delete: 'Usuń zapisany filtr',
     ops: {
@@ -479,6 +483,8 @@ export default {
     asButtonHint: 'Pokaż ten zapisany filtr jako przycisk po lewej od ikon filtrów (kliknięcie = włącz/wyłącz).',
     asSelect: 'lista',
     asSelectHint: 'Udostępnij ten filtr na rozwijanej liście zapisanych filtrów w nagłówku tabeli.',
+    groupPlaceholder: 'Grupa…',
+    groupHint: 'Opcjonalna grupa na liście wyboru („Sprzedaż“, „Faktury“…) — filtry z tą samą grupą pojawią się pod wspólnym nagłówkiem.',
     save: 'Zapisz',
     saveGlobal: 'Zapisz globalnie',
     none: 'Nic jeszcze nie zapisano',

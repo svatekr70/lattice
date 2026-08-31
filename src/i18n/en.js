@@ -185,6 +185,8 @@ export default {
     asButtonHint: 'Show this view as a button in the row above the icons (click to apply).',
     asSelect: 'select',
     asSelectHint: 'Offer this view in the views dropdown in the table header.',
+    groupPlaceholder: 'Group…',
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"…) — views sharing a group are listed under one heading.',
   },
   quickbar: {
     presets: 'Views',
@@ -454,6 +456,8 @@ export default {
     asButtonHint: 'Show this saved filter as a button left of the filter icons (click to toggle on/off).',
     asSelect: 'select',
     asSelectHint: 'Offer this filter in the saved-filters dropdown in the table header.',
+    groupPlaceholder: 'Group in the dropdown…',
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"…) — filters sharing a group are listed under one heading. (Unrelated to AND/OR condition groups.)',
     remove: 'Remove',
     delete: 'Delete saved filter',
     ops: {
@@ -479,6 +483,8 @@ export default {
     asButtonHint: 'Show this saved filter as a button left of the filter icons (click to toggle on/off).',
     asSelect: 'select',
     asSelectHint: 'Offer this filter in the saved-filters dropdown in the table header.',
+    groupPlaceholder: 'Group…',
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"…) — filters sharing a group are listed under one heading.',
     save: 'Save',
     saveGlobal: 'Save globally',
     none: 'Nothing saved yet',

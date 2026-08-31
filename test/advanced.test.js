@@ -77,8 +77,17 @@ test('relativní datové tokeny — resolveToken', () => {
 
 test('měsíční/roční posun tokenu', () => {
   const d = new Date();
-  const m = new Date(); m.setMonth(m.getMonth() + 1);
-  const y = new Date(); y.setFullYear(y.getFullYear() - 1);
+  // posun s ošetřením přetečení (31.8. + 1m → 30.9., ne 1.10.) — stejně jako addMonths uvnitř
+  const shiftMonths = (dt, n) => {
+    const out = new Date(dt);
+    const day = out.getDate();
+    out.setDate(1);
+    out.setMonth(out.getMonth() + n);
+    out.setDate(Math.min(day, new Date(out.getFullYear(), out.getMonth() + 1, 0).getDate()));
+    return out;
+  };
+  const m = shiftMonths(new Date(), 1);
+  const y = shiftMonths(new Date(), -12);
   const fmt = (dt) => { const p = (x) => String(x).padStart(2, '0'); return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`; };
   assert.equal(resolveToken('today+1m'), fmt(m));
   assert.equal(resolveToken('today-1y'), fmt(y));

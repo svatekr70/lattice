@@ -185,6 +185,8 @@ export default {
     asButtonHint: 'Zobraziť tento pohľad ako tlačidlo v rade nad ikonami (klik = použiť).',
     asSelect: 'výber',
     asSelectHint: 'Ponúknuť tento pohľad v rozbaľovacom výbere pohľadov v záhlaví tabuľky.',
+    groupPlaceholder: 'Skupina…',
+    groupHint: 'Voliteľná skupina vo výbere („Predaje“, „Faktúry“…) — pohľady s rovnakou skupinou sa vo výbere zlúčia pod spoločný nadpis.',
   },
   quickbar: {
     presets: 'Pohľady',
@@ -454,6 +456,8 @@ export default {
     asButtonHint: 'Zobraziť tento uložený filter ako tlačidlo vľavo od filtračných ikon (klik = zapnúť/vypnúť).',
     asSelect: 'výber',
     asSelectHint: 'Ponúknuť tento filter v rozbaľovacom výbere uložených filtrov v záhlaví tabuľky.',
+    groupPlaceholder: 'Skupina vo výbere…',
+    groupHint: 'Voliteľná skupina vo výbere („Predaje“, „Faktúry“…) — filtre s rovnakou skupinou sa vo výbere zlúčia pod spoločný nadpis. (S AND/OR skupinami podmienok nesúvisí.)',
     remove: 'Odobrať',
     delete: 'Zmazať uložený filter',
     ops: {
@@ -479,6 +483,8 @@ export default {
     asButtonHint: 'Zobraziť tento uložený filter ako tlačidlo vľavo od filtračných ikon (klik = zapnúť/vypnúť).',
     asSelect: 'výber',
     asSelectHint: 'Ponúknuť tento filter v rozbaľovacom výbere uložených filtrov v záhlaví tabuľky.',
+    groupPlaceholder: 'Skupina…',
+    groupHint: 'Voliteľná skupina vo výbere („Predaje“, „Faktúry“…) — filtre s rovnakou skupinou sa vo výbere zlúčia pod spoločný nadpis.',
     save: 'Uložiť',
     saveGlobal: 'Uložiť globálne',
     none: 'Zatiaľ žiadne uložené',

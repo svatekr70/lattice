@@ -20,6 +20,7 @@ import { levelColor, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { DATE_PARTS } from '../core/dateParts.js';
 import { validateFormula, compileFormula, FORMULA_CATALOG, validateAggregate, compileAggregate, AGGREGATE_CATALOG } from '../core/formula.js';
 import { openHeaderColorPicker, openColorPicker } from './headerColor.js';
+import { groupField, groupItems } from '../util/groups.js';
 
 /** Části stavu, které si uživatel může vybrat do presetu. */
 const PRESET_PARTS = ['columns', 'filters', 'instance'];
@@ -142,7 +143,12 @@ export class Gear {
       wrap.appendChild(el('div.lattice-preset-empty', { text: t('presets.none') }));
     } else {
       const list = el('div.lattice-preset-list');
-      for (const p of presets) list.appendChild(this.buildPresetRow(p));
+      // Pohledy se skupinou se seřadí pod nadpis skupiny (stejně jako v rozbalovacím
+      // výběru v záhlaví); nezařazené zůstanou nahoře.
+      for (const bucket of groupItems(presets)) {
+        if (bucket.group) list.appendChild(el('div.lattice-saved-group', { text: bucket.group }));
+        for (const p of bucket.items) list.appendChild(this.buildPresetRow(p));
+      }
       wrap.appendChild(list);
     }
 
@@ -188,11 +194,16 @@ export class Gear {
     const asSelLabel = el('label.lattice-adv-asbtn', { title: t('presets.asSelectHint') }, [
       asSelInput, el('span', { text: t('presets.asSelect') }),
     ]);
+    // Volitelná skupina ve výběru („Prodeje", „Faktury"…) — datalist napovídá už použité.
+    const grp = groupField(presets, {
+      value: prefill ? (prefill.group || '') : '',
+      placeholder: t('presets.groupPlaceholder'), title: t('presets.groupHint'),
+    });
     const saveBtn = el('button.lattice-icon-btn', { type: 'button', title: t('presets.saveLocal'), html: BOOKMARK_SVG });
     const doSaveLocal = () => {
       const name = input.value.trim();
       if (!name) { input.focus(); return; }
-      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
+      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       input.value = '';
       this._prefill = null;
       this.refresh();
@@ -200,7 +211,7 @@ export class Gear {
     saveBtn.addEventListener('click', doSaveLocal);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSaveLocal(); });
 
-    const rowEls = [input, asBtnLabel, asSelLabel, saveBtn];
+    const rowEls = [input, grp.el, asBtnLabel, asSelLabel, saveBtn];
     // Globus (globální preset) — hned za záložkou; klik pošle callback aplikaci.
     let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
@@ -208,7 +219,7 @@ export class Gear {
       globeBtn.addEventListener('click', () => {
         const name = input.value.trim();
         if (!name) { input.focus(); return; }
-        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
+        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
         input.value = '';
         this._prefill = null;
         this.refresh();

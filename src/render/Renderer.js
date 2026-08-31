@@ -25,6 +25,7 @@ import { attachResize, attachRowNumberResize, attachGroupResize } from '../featu
 import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
 import { partsSummary } from '../features/gear.js';
+import { fillGroupedSelect } from '../util/groups.js';
 import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
 import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
@@ -2154,7 +2155,7 @@ export class Renderer {
   /**
    * Rozbalovací výběr **uložených filtrů** (těch označených „jako výběr"). Stojí hned
    * za filtračními ikonami; globální položky nesou prefix globusu (v `<option>` nejde
-   * SVG ikona).
+   * SVG ikona). Filtry se skupinou se sdruží do `<optgroup>` pod její název.
    */
   buildFilterSelect(f) {
     const grid = this.grid;
@@ -2165,7 +2166,8 @@ export class Renderer {
 
     const sel = el('select.lattice-adv-quick', { title: t('quickbar.filters') });
     sel.appendChild(el('option', { value: '', text: t('advanced.savedPlaceholder') }));
-    for (const x of filters) sel.appendChild(el('option', { value: x.id, text: (x.scope === 'global' ? '\u{1F310} ' : '') + x.name }));
+    // filtry se štítkem skupiny se sdruží do <optgroup>, nezařazené zůstanou nahoře
+    fillGroupedSelect(sel, filters, (x) => el('option', { value: x.id, text: (x.scope === 'global' ? '\u{1F310} ' : '') + x.name }));
     // pozor: aktivní může být filtr, který ve výběru není (má jen tlačítko) → pak prázdno
     const activeId = grid.activeSavedId();
     sel.value = filters.some((x) => x.id === activeId) ? activeId : '';
@@ -2188,6 +2190,7 @@ export class Renderer {
   /**
    * Rozbalovací výběr **presetů** (těch označených „jako výběr") — vpravo vedle výběru
    * filtrů, ať je vidět, že jde o jiný druh. Vyprázdnění vrátí výchozí zobrazení.
+   * Pohledy se skupinou se sdruží do `<optgroup>` pod její název.
    */
   buildPresetSelect() {
     const grid = this.grid;
@@ -2197,7 +2200,7 @@ export class Renderer {
 
     const sel = el('select.lattice-adv-quick.is-presets', { title: t('quickbar.presets') });
     sel.appendChild(el('option', { value: '', text: t('quickbar.presetsPlaceholder') }));
-    for (const p of presets) sel.appendChild(el('option', { value: p.id, text: (p.scope === 'global' ? '\u{1F310} ' : '') + p.name }));
+    fillGroupedSelect(sel, presets, (p) => el('option', { value: p.id, text: (p.scope === 'global' ? '\u{1F310} ' : '') + p.name }));
     sel.value = presets.some((p) => p.id === grid._activePresetId) ? grid._activePresetId : '';
     sel.addEventListener('change', () => {
       if (!sel.value) return grid.resetView(); // prázdno = zpět na výchozí zobrazení

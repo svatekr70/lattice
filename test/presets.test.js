@@ -359,3 +359,37 @@ test('resetColumns: respektuje options.instance jako výchozí seskupení', () =
   grid.resetColumns();
   assert.deepEqual(grid.instance.groupBy, ['b'], 'výchozí z konfigurace aplikace, ne prázdno');
 });
+
+test('skupina presetu: uložení, přepnutí, zrušení', () => {
+  const grid = fakeGrid();
+  const ps = new PresetStore(grid);
+
+  const p = ps.saveLocal('Prodeje dnes', null, { select: true }, '  Prodeje  ');
+  assert.equal(p.group, 'Prodeje', 'skupina se ořízne');
+
+  const plain = ps.saveLocal('Bez skupiny', null, { select: true });
+  assert.equal('group' in plain, false, 'prázdná skupina se neukládá');
+
+  ps.setGroup({ ...plain, scope: 'local' }, 'Faktury');
+  assert.equal(ps.local().find((x) => x.name === 'Bez skupiny').group, 'Faktury');
+
+  ps.setGroup({ ...p, scope: 'local' }, '');
+  assert.equal('group' in ps.local().find((x) => x.name === 'Prodeje dnes'), false, 'prázdná skupina ji zruší');
+});
+
+test('skupina globálního presetu projde callbackem', () => {
+  const saved = [];
+  const grid = {
+    state: { presets: [] },
+    options: { onSaveGlobalPreset: (p) => saved.push(p) },
+    saveState() {},
+    captureState() { return {}; },
+  };
+  const ps = new PresetStore(grid);
+  const g = ps.saveGlobal('Firemní', null, { select: true }, 'Prodeje');
+  assert.equal(saved[0].group, 'Prodeje');
+
+  ps.setGroup(g, 'Faktury');
+  assert.equal(saved[1].group, 'Faktury');
+  assert.equal(ps.globals[0].group, 'Faktury');
+});
