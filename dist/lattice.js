@@ -10426,7 +10426,7 @@ var Renderer = class {
       sortBtn
     ]);
     row.appendChild(inner);
-    const toggle = () => grid.toggleGroup(node.key);
+    const toggle = () => grid.toggleGroup(node.key, node);
     row.addEventListener("click", toggle);
     row.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -14319,12 +14319,30 @@ var Lattice = class {
   isGroupCollapsed(key) {
     return this.groupsCollapsed.has(key);
   }
-  /** Přepne sbalení / rozbalení skupiny (persistováno) a překreslí tělo. */
-  toggleGroup(key) {
-    if (this.groupsCollapsed.has(key)) this.groupsCollapsed.delete(key);
-    else this.groupsCollapsed.add(key);
+  /**
+   * Přepne sbalení / rozbalení skupiny (persistováno) a překreslí tělo.
+   *
+   * Sbalení skupiny sbalí natrvalo i celý její podstrom (pokud je předán uzel
+   * stromu skupin) — po opětovném rozbalení nadřazené skupiny tak zůstanou její
+   * podskupiny sbalené a rozbalí je až vlastní klik.
+   */
+  toggleGroup(key, node = null) {
+    if (this.groupsCollapsed.has(key)) {
+      this.groupsCollapsed.delete(key);
+    } else {
+      this.groupsCollapsed.add(key);
+      this._collectSubgroupKeys(node, this.groupsCollapsed);
+    }
     this.saveState();
     this.renderer.renderBody();
+  }
+  /** Rekurzivně nasbírá klíče všech podskupin uzlu do sady `out`. */
+  _collectSubgroupKeys(node, out) {
+    for (const g of node && node.groups || []) {
+      out.add(g.key);
+      this._collectSubgroupKeys(g, out);
+    }
+    return out;
   }
   /** Je skupina SLOUPCŮ (dle názvu) sbalená? */
   isColGroupCollapsed(title) {
