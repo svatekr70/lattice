@@ -138,6 +138,10 @@ export class InstanceSettings {
     if ((grid.options.features || {}).version !== false) {
       gA.appendChild(rowToggle(t('instance.showVersion'), inst.showVersion !== false, (v) => set({ showVersion: v })));
     }
+    // Tipy nad tabulkou — jen když je aplikace vůbec zapnula (options.tips).
+    if (grid.tips && grid.tips.enabled) {
+      gA.appendChild(rowToggle(t('instance.showTips'), inst.showTips !== false, (v) => set({ showTips: v })));
+    }
     gA.appendChild(rowScaleColors(t('instance.scaleColors'), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
 
     /* ---------- Rozvržení ---------- */

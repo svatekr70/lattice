@@ -264,6 +264,34 @@
 }
 
 /* ---------- toolbar ---------- */
+/* ---------- info pruh s tipem (nad toolbarem) ----------
+   Jeden řádek: žárovka, popisek „Tip", text tipu (ořezaný na jeden řádek) a vpravo
+   „další tip" + křížek. Skrytý pruh nezabírá místo (display:none), takže bez tipů
+   vypadá tabulka přesně jako dřív. */
+.lattice-tips { display: none; }
+.lattice-tips.is-visible {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--lattice-border);
+  background: var(--lattice-accent-soft);
+  color: var(--lattice-text);
+  font-size: 0.86em; line-height: 1.35;
+}
+.lattice-tips-ico { display: inline-flex; flex: 0 0 auto; color: var(--lattice-accent); }
+.lattice-tips-label { flex: 0 0 auto; font-weight: 600; color: var(--lattice-accent); }
+.lattice-tips-label::after { content: ':'; }
+/* jednořádkový text — co se nevejde, se ořízne (celé znění je v tooltipu) */
+.lattice-tips-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lattice-tips-btn {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 20px; padding: 0;
+  border: none; border-radius: var(--lattice-control-radius);
+  background: none; color: var(--lattice-muted); cursor: pointer;
+  font-size: 15px; line-height: 1;
+}
+.lattice-tips-btn:hover { background: var(--lattice-bg); color: var(--lattice-accent); }
+.lattice-tips-hide:hover { color: var(--lattice-danger); }
+
 .lattice-toolbar {
   display: flex;
   flex-wrap: wrap; /* řada tlačítek uložených filtrů (width:100%) se položí nad ikony */
@@ -298,8 +326,9 @@
 .lattice-qb-btn.is-active:hover { background: var(--lattice-accent); color: #fff; border-color: var(--lattice-accent); }
 .lattice-qb-btn.is-active .lattice-qb-ico { color: #fff; }
 /* ---------- panel „uložit sloupcové filtry" ---------- */
-.lattice-savefilters-panel { width: 390px; max-width: 92vw; }
-/* ať se název + volby zobrazení („tlačítko" / „výběr") + uložit vejdou na jeden řádek */
+/* širší od v1.20.0: v ukládacím řádku přibylo políčko „Skupina…", ať se řádek nezalomí */
+.lattice-savefilters-panel { width: 460px; max-width: 92vw; }
+/* ať se název + skupina + volby zobrazení („tlačítko" / „výběr") + uložit vejdou na jeden řádek */
 .lattice-savefilters-panel .lattice-adv-name { flex: 1 1 110px; min-width: 0; }
 .lattice-savefilters-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
 .lattice-savefilters-empty { color: var(--lattice-muted); font-size: 0.85em; padding: 4px 2px; }

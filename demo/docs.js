@@ -458,6 +458,21 @@ function docPresety(root) {
   globalDefaults: { version, state },                 // od aplikace
   onSaveGlobalDefaults: ({version, state}) => saveToDb(...),
 });`),
+    h3('Tipy pro uživatele (v1.20.0)'),
+    p('Nad tabulkou může být info pruh s <b>jednořádkovým tipem</b> pro toho, kdo v tabulce pracuje — přesun sloupců myší, Shift+klik pro víceúrovňové řazení, typy filtrů, seskupení podle data, souhrny, pohledy… Tip se losuje při každém otevření, šipka v pruhu vylosuje další, křížek pruh skryje. Zapíná ho aplikace volbou <code>tips</code> (výchozí vypnuto).'),
+    code(`new Lattice('#grid', {
+  columns, data,
+  tips: true,                        // vestavěné tipy (69 ks, cs/en/pl/sk)
+})
+
+// jemněji: vlastní tipy aplikace, volitelně bez vestavěných
+tips: { enabled: true, builtin: true, extra: ['Detail otevřeš klikem na řádek.'] }
+
+// programově
+grid.nextTip(); grid.hideTips(); grid.tipsVisible()`),
+    p('Nabízejí se <b>jen tipy, které na tu kterou tabulku sedí</b> — tip o stromu jen ve stromovém gridu, tip o kopírování rozsahu jen s <code>rangeSelection</code>, tipy o dialogu „Sloupce" zmizí s <code>features: { gear: false }</code>. Texty jsou v i18n pod <code>tips.list.&lt;id&gt;</code>, takže je aplikace může přebít vlastním slovníkem.'),
+    p('<b>Uživatel má poslední slovo:</b> křížek v pruhu nastaví <code>instance.showTips: false</code> (persistuje se, nese se i v presetu), zpět se zapne v <i>Nastavení tabulky → Vzhled</i>. Volba se tam nabídne, jen když tipy zapnula aplikace.'),
+
     h3('Verze knihovny v UI (v1.15.0)'),
     p('V patičce gridu je pod „Zobrazeno X-Y z N" verze (<code>Lattice x.y.z</code>). Uživatel ji vypne v <i>Nastavení tabulky → Vzhled</i> (<code>instance.showVersion</code>, persistuje se a nese se v presetu), aplikace natvrdo přes <code>features: { version: false }</code>. Záložka <b>„O Lattice"</b> v nastavení ukazuje verzi vždy — plus autora, licenci, odkazy a přehled vydání (generuje se z CHANGELOGu příkazem <code>npm run releases</code>).'),
     code(`import { VERSION, HELP_URL, GITHUB_URL } from 'lattice';`),

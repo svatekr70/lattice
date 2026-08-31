@@ -669,6 +669,30 @@ new Lattice('#grid', { columns: withEditing(columns), data });`,
     category: 'Novinky',
     items: [
       {
+        id: 'ex-tips',
+        title: 'Tipy pro uživatele',
+        blurb: 'Nad tabulkou může být info pruh s jednořádkovým tipem pro toho, kdo v tabulce pracuje — přesun sloupců myší, Shift+klik pro víceúrovňové řazení, typy filtrů, seskupení, souhrny, pohledy… Tip se losuje při každém otevření, šipka vylosuje další. Zapíná se volbou <code>tips: true</code> (výchozí vypnuto), uživatel si pruh vypne křížkem a zapne zpět v <i>Nastavení tabulky → Vzhled</i>. Vestavěných tipů je 69 (cs/en/pl/sk) a nabízejí se jen ty, které na tuhle tabulku sedí — tip o stromu nebo o výběru řádků se v gridu bez nich neukáže. Vlastní tipy aplikace přidá přes <code>tips: { extra: [...] }</code>.',
+        code: `new Lattice('#grid', {
+  columns, data,
+  tips: true,                       // pruh s tipem nad tabulkou (vestavěné tipy)
+})
+
+// jemněji: vlastní tipy aplikace (nebo jen ony, bez vestavěných)
+new Lattice('#grid', {
+  columns, data,
+  tips: { extra: ['Detail kampaně otevřeš klikem na řádek.'], builtin: true },
+})
+
+// programově:
+grid.nextTip()        // vylosuje a zobrazí další tip
+grid.hideTips()       // = instance.showTips: false (uživatelská volba, persistuje se)
+grid.tipsVisible()`,
+        mount: (el, ctx) => new Lattice(el, base(ctx, {
+          id: 'ex-tips', columns: campaignColumns(), data: ctx.data, pageSize: 15,
+          tips: { extra: ['Tenhle tip dodala aplikace přes tips.extra — vedle vestavěných.'] },
+        })),
+      },
+      {
         id: 'ex-highlight',
         title: 'Zvýraznění řádků',
         blurb: 'Klikni na řádek → žluté podbarvení; druhý klik odbarví, klidně víc řádků najednou. Zapíná <code>instance.rowHighlight: true</code>. Stav drží knihovna — přežije řazení/filtr/stránkování i re-render a persistuje se do localStorage. Klik do editovatelné buňky, akčního tlačítka nebo checkboxu výběru se ignoruje. Barvu řídí CSS proměnná <code>--lattice-row-highlight-bg</code> (bez <code>!important</code>). Poslední sloupec „Poznámka" má <code>col.wrap: true</code> — zalamuje se jen on, ostatní zůstávají na jednom řádku.',
@@ -839,7 +863,7 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-highlight', 'ex-groups', 'ex-computed', 'ex-summary'],
+  'Novinky': ['ex-tips', 'ex-highlight', 'ex-groups', 'ex-computed', 'ex-summary'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
   'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',

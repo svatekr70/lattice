@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.19.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.19.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.19.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.20.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.19.0
+npm i github:svatekr70/lattice#v1.20.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.19.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.20.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -98,6 +98,7 @@ const grid = new Lattice('#grid', {
 | `i18n` | `'cs'` \| `'en'` \| `'pl'` \| `'sk'` \| vlastní slovník / objekt. |
 | `features` | Vypnutí částí UI: `{ gear, instanceSettings, advancedFilter, help, version }` — `false` skryje danou ikonu/prvek (`version` = verze v patičce, `@v1.15.0`). |
 | `helpUrl` | URL nápovědy — ikona **?** v toolbaru (vpravo od ⚙, otevírá se v nové kartě). Default oficiální příručka; `null` ikonu skryje. |
+| `tips` | Info pruh s **tipem pro uživatele** nad tabulkou (výchozí vypnuto). `true` = vestavěné tipy; `{ enabled?, builtin?, extra? }` = doladění (`extra` = vlastní tipy aplikace, `builtin: false` = jen ony). Viz *Tipy pro uživatele*. `@v1.20.0` |
 | `storage` | Vlastní `Storage` (default `localStorage`; lze in-memory shim). |
 | `globalPresets` / `onSaveGlobalPreset` / `onDeleteGlobalPreset` | Sdílené (globální) presety — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
 | `globalAdvancedFilters` / `onSaveGlobalAdvancedFilter` / `onDeleteGlobalAdvancedFilter` | Sdílené (globální) rozšířené filtry — aplikace je dodá a persistuje. Viz *Presety a globální nastavení*. |
@@ -311,6 +312,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `rowHighlight` | `true` \| `'click'` = klik na řádek přepíná **zvýraznění** (podbarvení). Ignoruje klik do editovatelných buněk, akčních tlačítek a checkboxu výběru. Přepínatelné i z UI (*Sloupce a řádky*). Viz *Zvýraznění řádků* (`@v1.8.0`). |
 | `resizeGuide` | `true` = vodicí čára při změně šířky |
 | `showVersion` | `true` (výchozí) = verze knihovny pod „Zobrazeno X-Y z N" v patičce. Uživatel si ji přepne v *Nastavení tabulky → Vzhled*; `features.version: false` ji zakáže natvrdo (volba se pak ani nenabídne). V dialogu nastavení je verze vidět vždy. `@v1.15.0` |
+| `showTips` | `true` (výchozí) = pruh s tipem nad tabulkou — ale jen když ho aplikace zapnula (`options.tips`). Uživatel ho vypne křížkem v pruhu, zpět v *Nastavení tabulky → Vzhled*. `@v1.20.0` |
 | `zebra` / `wrapText` / `emptyText` | pruhování / **globální** zalamování dat v buňkách (per-sloupec přebije `col.wrap`) / placeholder prázdné buňky |
 | `wrapHeader` | `true` = zalamovat názvy sloupců v záhlaví (nezávisle na `wrapText`). Auto-fit (dvojklik na oddělovač) pak počítá šířku podle názvu složeného do 2 řádků, ale nikdy ne užší než nejširší nezalomená data na stránce. Netýká se otočených hlaviček. |
 | `linkNewTab` | odkazy (typ `link`) otevírat v nové kartě + ikona externího odkazu. Per-sloupec přebije `formatterParams.target`. |
@@ -376,6 +378,7 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `applyFiltersSnapshot(snap)` / `clearColumnFilters()` / `hasColumnFilters()` | Obnoví snímek zpět do políček hlavičky (a přefiltruje) / zruší jen sloupcové filtry / je aktivní aspoň jeden sloupcový filtr? `@v1.11.0` |
 | `applyPreset(preset)` / `buttonPresets()` / `selectPresets()` | Aplikuje preset / presety označené jako tlačítko / presety nabízené v rozbalovacím výběru v toolbaru. `@v1.14.0` |
 | `togglePreset(preset)` | Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní aplikuje, u aktivního zavolá `resetView()`. `@v1.14.0` |
+| `nextTip()` / `hideTips()` / `tipsVisible()` | Vylosovat další tip / skrýt pruh s tipy (= `instance.showTips: false`) / ukazuje se pruh? `@v1.20.0` |
 | `resetView()` | **Výchozí zobrazení** — sloupce a nastavení tabulky jako po startu bez presetu (výchozí ← `options.instance`). Filtry (sloupcové, univerzální, rozšířený), řazení i rychlé hledání zůstávají v platnosti. `@v1.14.0` |
 | `setPage(n)` / `setPageSize(n)` | Stránkování. |
 | `setInstance(patch)` | Nastavení tabulky (theme, layout, …). |
@@ -646,6 +649,46 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 Bez `onSaveGlobalPreset` se tlačítko globus vůbec neukáže (globální ukládání je vypnuté).
 Knihovna preset po uložení rovnou přidá do své nabídky — nemusíš překreslovat ani znovu načítat.
+
+### Tipy pro uživatele — `@v1.20.0`
+
+Nad tabulkou může být **info pruh s jednořádkovým tipem** pro toho, kdo v tabulce pracuje
+(ne pro toho, kdo Lattice implementuje): přesun sloupců myší, `Shift`+klik pro víceúrovňové
+řazení, typy filtrů, seskupení podle data, souhrny, uložené pohledy… Tip se **losuje** při
+každém otevření tabulky, šipka v pruhu vylosuje další, křížek pruh skryje.
+
+```js
+new Lattice('#grid', {
+  columns, data,
+  tips: true,                                    // vestavěné tipy (výchozí je vypnuto)
+});
+
+// jemněji
+new Lattice('#grid', {
+  columns, data,
+  tips: {
+    enabled: true,                               // výchozí u objektu
+    builtin: true,                               // false = jen vlastní tipy
+    extra: ['Detail kampaně otevřeš klikem na řádek.'],  // tipy aplikace (přidají se k vestavěným)
+  },
+});
+```
+
+- **Vestavěných tipů je 69** ve všech čtyřech jazycích (cs/en/pl/sk), v i18n pod `tips.list.<id>`
+  — aplikace je může přebít vlastním slovníkem stejně jako kterýkoli jiný popisek.
+- **Nabízejí se jen tipy, které na tuhle tabulku sedí.** Každý tip má v `src/features/tips.js`
+  volitelnou podmínku: tip o stromu se ukáže jen ve stromovém gridu, tip o kopírování rozsahu
+  jen s `rangeSelection`, tipy o dialogu „Sloupce" zmizí s `features: { gear: false }` atd.
+  Chybějící překlad tip taky vyřadí (v pruhu nikdy nesvítí `tips.list.neco`).
+- **Uživatel má poslední slovo:** křížek v pruhu = `instance.showTips: false` (persistuje se
+  jako ostatní nastavení a nese se i v presetu), zpět v *Nastavení tabulky → Vzhled →
+  „Zobrazovat tipy nad tabulkou"*. Volba se v nastavení nabídne, jen když tipy zapnula aplikace.
+- **Programově:** `grid.nextTip()` (vylosuje a zobrazí další), `grid.hideTips()`,
+  `grid.tipsVisible()`.
+
+Pruh je jeden řádek: 💡 · **Tip:** · text · „další tip" · ×. Delší text se ořízne třemi tečkami
+a celý zůstane v tooltipu, takže výška záhlaví je vždy stejná. S vypnutými tipy se uzel
+nevykresluje (`display: none`) a tabulka vypadá přesně jako dřív.
 
 ### Skupiny ve výběru — `@v1.20.0`
 
@@ -1039,7 +1082,7 @@ Info vlevo v paginaci se skládá ze tří klíčů — knihovna mezi nimi přep
 | klíč | placeholdery | kdy se použije |
 |---|---|---|
 | `pagination.showing` | `{from}` `{to}` `{total}` | běžně |
-| `pagination.showingFiltered` `@v1.19.0` | `{from}` `{to}` `{total}` `{totalAll}` | když filtry počet zúžily a knihovna zná velikost celého datasetu |
+| `pagination.showingFiltered` `@v1.20.0` | `{from}` `{to}` `{total}` `{totalAll}` | když filtry počet zúžily a knihovna zná velikost celého datasetu |
 | `pagination.empty` | – | `total === 0` |
 
 `{total}` je počet **po** filtrech (sloupcové filtry, rychlé hledání, univerzální

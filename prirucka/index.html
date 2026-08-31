@@ -182,6 +182,28 @@
         a novém načtení stránky</b>. Tabulka si ho ukládá v prohlížeči, takže se vždy vrátíš přesně
         k tomu, jak jsi ji naposledy měl. (Chceš-li si víc takových pohledů pojmenovat a přepínat mezi
         nimi, použij <a href="#presety">Uložené pohledy</a>.)</div>
+
+      <h3 id="tipy">Tipy nad tabulkou</h3>
+      <p>Nad tabulkou může být <b>světle modrý pruh s tipem</b> — jednořádková rada, jak si práci
+        s tabulkou usnadnit (přesun sloupců myší, víceúrovňové řazení, seskupení podle data,
+        souhrny…). Tip se <b>vylosuje při každém otevření</b> stránky, takže postupně narazíš
+        na většinu funkcí, i na ty, které bys sám nehledal.</p>
+      <ul>
+        <li><b>↻ (šipka v kroužku)</b> vpravo v pruhu vylosuje <b>další tip</b> — hodí se, když tě
+          zrovna zajímá něco jiného.</li>
+        <li><b>×</b> pruh <b>skryje</b>. Volba je tvoje a pamatuje se; tabulka pak vypadá přesně
+          jako bez tipů.</li>
+        <li><b>Zpátky je zapneš</b> v <b>Nastavení tabulky → Vzhled → „Zobrazovat tipy nad
+          tabulkou"</b>.</li>
+      </ul>
+      <figure>
+        <img src="img/tipy.png" alt="Pruh s tipem nad tabulkou">
+        <figcaption>Pruh s tipem nad záhlavím: <b>💡 Tip:</b> a jednořádková rada, vpravo <b>↻</b>
+          (další tip) a <b>×</b> (skrýt). Pod ním už jsou běžné nástrojové ikony tabulky.</figcaption>
+      </figure>
+      <p class="muted">Jestli tipy vůbec uvidíš, rozhoduje autor aplikace — někde jsou zapnuté,
+        jinde ne. Nabízejí se navíc jen ty, které na tvou tabulku sedí: tip o stromu se ukáže jen
+        tam, kde je stromové zobrazení, tip o hromadném výběru jen tam, kde jsou checkboxy.</p>
     </section>
 
     <section id="razeni">
@@ -635,7 +657,7 @@ Bordel
         u dotčených sloupců přepnutý (třeba „Dynamické" u data).</p>
       <figure>
         <img src="img/ulozit-filtry.png" alt="Panel Uložené filtry">
-        <figcaption>Panel <b>„Uložené filtry"</b>: nahoře název + volby <b>tlačítko</b> / <b>výběr</b> a Uložit / Uložit globálně, pod tím seznam uložených — u každého tužka (přejmenovat), disketa (přepsat), dva přepínače zobrazení a × (smazat).</figcaption>
+        <figcaption>Panel <b>„Uložené filtry"</b>: nahoře název, volitelná <b>skupina</b> a volby <b>tlačítko</b> / <b>výběr</b> a Uložit / Uložit globálně, pod tím seznam uložených — sdružený pod <b>nadpisy skupin</b> (PRODEJE, FAKTURY), u každé položky tužka (přejmenovat a změnit skupinu), disketa (přepsat), dva přepínače zobrazení a × (smazat).</figcaption>
       </figure>
     </section>
 
@@ -847,7 +869,9 @@ Bordel
       </figure>
       <ul>
         <li><b>Vzhled</b> — motiv (světlý/tmavý/…), velikost písma, hustota řádků, barvy škály (semafor)
-          a přepínač <b>„Verze knihovny v patičce"</b>. Barvy se vybírají stejným
+          a přepínače <b>„Verze knihovny v patičce"</b> a <b>„Zobrazovat tipy nad tabulkou"</b>
+          (viz <a href="#tipy">Tipy nad tabulkou</a> — druhý je v nabídce, jen když tipy zapnula
+          aplikace). Barvy se vybírají stejným
           <b>pickerem s kolem</b> jako u záhlaví.</li>
         <li><b>Rozvržení</b> — způsob šířky sloupců, zalamování textu v buňkách,
           <b>zalamování názvů sloupců</b> (nezávisle na datech — dlouhý název se složí do dvou
@@ -949,6 +973,12 @@ Bordel
           </ul>
         </li>
       </ol>
+      <figure>
+        <img src="img/preset-volby.png" alt="Uložené pohledy a řádek pro uložení v dialogu Sloupce">
+        <figcaption>Nahoře uložené pohledy (sdružené pod <b>nadpisy skupin</b> — PRODEJE, FAKTURY,
+          pohled bez skupiny stojí nad nimi), pod nimi volba <b>„Uložit do pohledu:"</b> a řádek
+          s názvem, volitelnou <b>skupinou</b> a přepínači <b>tlačítko</b> / <b>výběr</b>.</figcaption>
+      </figure>
       <p>Uložený pohled se objeví v seznamu nahoře v dialogu — <b>klik na název ho použije</b>.</p>
       <div class="note"><b>Lokálně vs. globálně:</b> <b>lokální</b> pohled má jen tvůj prohlížeč;
         <b>globální</b> (glóbus 🌐) se sdílí všem — ukládá ho aplikace, takže jeho úprava či smazání

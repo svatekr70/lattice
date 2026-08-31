@@ -25,6 +25,7 @@ import { InstanceSettings } from './features/instanceSettings.js';
 import { Pagination } from './features/pagination.js';
 import { PresetStore, normalizeDisplay } from './features/presets.js';
 import { normalizeGroup } from './util/groups.js';
+import { normalizeTips, pickTip } from './features/tips.js';
 import { measureColumnWidth } from './features/resize.js';
 import { AdvancedFilter } from './features/advancedFilter.js';
 import { SaveFiltersPanel } from './features/saveFilters.js';
@@ -60,6 +61,7 @@ const INSTANCE_DEFAULTS = {
   fontFamily: '',         // '' = dle motivu | jinak CSS font-family override
   zebra: true,            // pruhované řádky
   showVersion: true,      // verze knihovny vpravo v patičce (kontrola, s jakou verzí uživatel pracuje)
+  showTips: true,         // pruh s tipy nad tabulkou (jen když je aplikace zapnula přes options.tips)
   wrapText: false,        // zalamovat text v buňkách (jinak … ořez)
   wrapHeader: false,      // zalamovat názvy sloupců v záhlaví (nezávisle na wrapText); auto-fit počítá s 2 řádky
   emptyText: '',          // placeholder pro prázdné buňky (např. '—')
@@ -216,6 +218,10 @@ export class Lattice {
 
     // 7) features + render
     this._activePresetId = null;
+    // Tipy pro uživatele (pruh nad tabulkou) — zapíná aplikace přes options.tips,
+    // uživatel si je vypne křížkem (instance.showTips).
+    this.tips = normalizeTips(options.tips);
+    this.tip = '';
     this.presets = new PresetStore(this);
     this.gear = new Gear(this);
     this.instanceSettings = new InstanceSettings(this);
@@ -2561,6 +2567,7 @@ export class Lattice {
     if ('selectRowClick' in patch || 'rowHighlight' in patch) { this.renderer.renderBody(); } // znovu navázat klik-listenery
     if ('actionsLayout' in patch) { this.renderer.renderHeader(); this.renderer.renderBody(); this.renderer.applyLayout(); }
     if ('showVersion' in patch) this.renderer.renderFooter(); // ukázat/schovat verzi v patičce
+    if ('showTips' in patch) this.renderer.renderTips();     // ukázat/schovat pruh s tipy nad tabulkou
     if ('paginationPosition' in patch || 'pageSize' in patch) {
       // pozor: refresh()/pager čtou this.pageSize (ne this.instance.pageSize) —
       // bez této synchronizace by se změna projevila až po reloadu.
@@ -2572,10 +2579,31 @@ export class Lattice {
     }
   }
 
+  /* =================== tipy =================== */
+
+  /** Ukazuje se pruh s tipy? (aplikace ho zapnula a uživatel ho nevypnul) `@v1.20.0` */
+  tipsVisible() {
+    return !!(this.tips && this.tips.enabled) && this.instance.showTips !== false;
+  }
+
+  /** Vylosuje další tip a překreslí pruh (tlačítko „Další tip"). `@v1.20.0` */
+  nextTip() {
+    this.tip = pickTip(this, this.tip);
+    this.renderer.renderTips();
+    return this.tip;
+  }
+
+  /** Skryje pruh s tipy (uživatelská volba, persistuje se; zpět v Nastavení tabulky). `@v1.20.0` */
+  hideTips() {
+    this.setInstance({ showTips: false });
+  }
+
   /* =================== ostatní =================== */
 
   setLanguage(lang) {
     this.i18n.setLang(lang);
+    this.tip = ''; // texty tipů jsou ze slovníku → vylosuj v novém jazyce
+    this.renderer.renderTips();
     this.renderer.renderToolbar();
     this.renderer.renderHeader();
     this.renderer.renderFooter();

@@ -4,9 +4,31 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
-## [Nevydáno]
+## [1.20.0] – 2026-08-31
+
+Dvě věci pro uživatele tabulky: **tipy nad tabulkou** (jednořádkový info pruh, opt-in přes
+`tips`) a **skupiny ve výběru** uložených filtrů a pohledů (`<optgroup>` podle štítku `group`).
+Bez breaking changes — obojí je volitelné a starší data fungují beze změny.
 
 ### Přidáno
+- **Tipy pro uživatele nad tabulkou.** Nová volba `tips` zapne nad tabulkou úzký info pruh
+  s **jednořádkovým tipem** pro toho, kdo v tabulce pracuje (ne pro toho, kdo Lattice
+  implementuje): přesun sloupců myší, `Shift`+klik pro víceúrovňové řazení, typy filtrů,
+  seskupení podle data, souhrny, uložené pohledy… Tip se losuje při každém otevření tabulky,
+  šipka v pruhu vylosuje další, křížek pruh skryje. Výchozí stav je **vypnuto** — pruh se
+  objeví, jen když ho aplikace zapne (`tips: true`, nebo `{ enabled, builtin, extra }`
+  s vlastními tipy aplikace).
+- **69 vestavěných tipů ve všech čtyřech jazycích** (cs/en/pl/sk) pod i18n klíči
+  `tips.list.<id>` — aplikace je může přebít vlastním slovníkem jako kterýkoli jiný popisek.
+  Nabízejí se jen ty, které na danou tabulku sedí: tip o stromu jen ve stromovém gridu, tip
+  o kopírování rozsahu jen s `rangeSelection`, tipy o dialogu „Sloupce" mizí s
+  `features: { gear: false }` a tak dál.
+- **Uživatel má poslední slovo:** křížek v pruhu = `instance.showTips: false` (persistuje se
+  jako ostatní nastavení a nese se i v presetu), zpět v *Nastavení tabulky → Vzhled →
+  „Zobrazovat tipy nad tabulkou"*. Volba se v nastavení nabídne, jen když tipy zapnula aplikace.
+- **API:** `grid.nextTip()`, `grid.hideTips()`, `grid.tipsVisible()`; nové i18n klíče
+  `tips.label`, `tips.next`, `tips.hide`, `tips.list.*` a `instance.showTips`.
+
 - **Skupiny ve výběru uložených filtrů a pohledů.** Uložený filtr i pohled může nést volitelný
   štítek **skupiny** („Prodeje", „Faktury", „Storno"…). Položky se stejným štítkem se
   v rozbalovacím výběru v záhlaví sdruží do `<optgroup>` pod jeho název a v panelech („Uložené
@@ -29,6 +51,10 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 Prázdná skupina se neukládá (klíč v objektu chybí), takže **starší uložené položky i data
 aplikace fungují beze změny** — jsou prostě „bez skupiny". Řada tlačítek (pilulek) v záhlaví
 zůstává plochá; skupiny jsou nástroj pro rozbalovací nabídky.
+
+### Změněno
+- **Demo server neposílá nic do cache** (`Cache-Control: no-store`) — jinak si prohlížeč držel
+  staré ESM moduly a demo ukazovalo předchozí verzi knihovny i po editaci zdrojáků.
 
 ### Opraveno
 - **Test relativních datových tokenů** počítal očekávaný měsíční posun bez ošetření přetečení,

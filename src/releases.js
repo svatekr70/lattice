@@ -4,6 +4,23 @@
  */
 export const RELEASES = [
   {
+    "version": "1.20.0",
+    "date": "2026-08-31",
+    "text": "Dvě věci pro uživatele tabulky: tipy nad tabulkou (jednořádkový info pruh, opt-in přes tips) a skupiny ve výběru uložených filtrů a pohledů (<optgroup> podle štítku group). Bez breaking changes — obojí je volitelné a starší data fungují beze změny.",
+    "items": [
+      "Tipy pro uživatele nad tabulkou. Nová volba tips zapne nad tabulkou úzký info pruh s jednořádkovým tipem pro toho, kdo v tabulce pracuje (ne pro toho, kdo Lattice implementuje): přesun sloupců myší,…",
+      "69 vestavěných tipů ve všech čtyřech jazycích (cs/en/pl/sk) pod i18n klíči tips.list.<id> — aplikace je může přebít vlastním slovníkem jako kterýkoli jiný popisek. Nabízejí se jen ty, které na danou…",
+      "Uživatel má poslední slovo: křížek v pruhu = instance.showTips: false (persistuje se jako ostatní nastavení a nese se i v presetu), zpět v *Nastavení tabulky → Vzhled → „Zobrazovat tipy nad…",
+      "API: grid.nextTip(), grid.hideTips(), grid.tipsVisible(); nové i18n klíče tips.label, tips.next, tips.hide, tips.list.* a instance.showTips.",
+      "Skupiny ve výběru uložených filtrů a pohledů. Uložený filtr i pohled může nést volitelný štítek skupiny („Prodeje\", „Faktury\", „Storno\"…). Položky se stejným štítkem se v rozbalovacím výběru v…",
+      "Políčko „Skupina…\" v ukládacích řádcích — v panelu uložených filtrů, v patičce rozšířeného filtru i v panelu presetů, vždy hned vedle názvu. Napovídá (<datalist>) už použité skupiny, zapsat jde ale…",
+      "API: saveAdvanced(name, tree, scope, display, group), saveFilterSnapshot(name, scope, display, group), renameSavedFilter(id, name, group?), nové setAdvancedGroup(id, group); u pohledů…",
+      "Nové i18n klíče groupPlaceholder a groupHint v namespace presets, advanced a saveFilters (cs/en/pl/sk).",
+      "Demo server neposílá nic do cache (Cache-Control: no-store) — jinak si prohlížeč držel staré ESM moduly a demo ukazovalo předchozí verzi knihovny i po editaci zdrojáků.",
+      "Test relativních datových tokenů počítal očekávaný měsíční posun bez ošetření přetečení, takže 31. dne v měsíci padal (today+1m knihovna správně ořízne na 30. 9., test čekal 1. 10.). Test teď počítá…"
+    ]
+  },
+  {
     "version": "1.19.0",
     "date": "2026-08-27",
     "text": "Paginace nově přizná, že zobrazený počet je po filtrech. Bez breaking changes — pagination.showing se nemění, jen přibyl druhý klíč.",
@@ -222,17 +239,6 @@ export const RELEASES = [
     "text": "Rychlý select uložených filtrů v toolbaru (.lattice-adv-quick) ořezával název a nativní chevron překrýval poslední znaky",
     "items": [
       "Rychlý select uložených filtrů v toolbaru (.lattice-adv-quick) ořezával název a nativní chevron překrýval poslední znaky. Pravý padding byl jen 6px, což je méně než šířka chevronu → text se plazil…"
-    ]
-  },
-  {
-    "version": "1.6.1",
-    "date": "2026-08-05",
-    "text": "Panel rozšířeného filtru odskakoval do levého horního rohu · Únik „klik mimo\" listeneru (onOutside) · Přepis globálního filtru pod stejným názvem generoval nové id při každém uložení → aplikace (perzistence klíčovaná na id/ext_id) zakládala nový DB řádek a po…",
-    "items": [
-      "Panel rozšířeného filtru odskakoval do levého horního rohu. Po výběru uloženého filtru (nebo jakékoli akci překreslující toolbar) se toggle tlačítko vytvořilo znovu a panel se přepočítal proti…",
-      "Únik „klik mimo\" listeneru (onOutside). Listener se navazuje přes setTimeout(…,0); když se panel zavřel dřív, než timer stihl navázat, disposer odebral ještě neexistující listener a timer ho pak…",
-      "Přepis globálního filtru pod stejným názvem generoval nové id při každém uložení → aplikace (perzistence klíčovaná na id/ext_id) zakládala nový DB řádek a po reloadu vznikla duplicita. saveAdvanced…",
-      "Předvyplnění názvu v panelu rozšířeného filtru. Po výběru uloženého filtru se jeho název zkopíruje do pole „Název filtru\"; při otevření panelu s aktivním uloženým filtrem se název předvyplní hned.…"
     ]
   }
 ];

@@ -257,7 +257,12 @@ async function serveStatic(pathname, res) {
   const filePath = join(ROOT, safe);
   try {
     const body = await readFile(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[extname(filePath)] || 'application/octet-stream' });
+    // vývojový server: nic necachovat, ať se editace zdrojáků projeví po reloadu
+    // (bez toho si prohlížeč drží ESM moduly a demo ukazuje starou verzi knihovny)
+    res.writeHead(200, {
+      'Content-Type': MIME[extname(filePath)] || 'application/octet-stream',
+      'Cache-Control': 'no-store, must-revalidate',
+    });
     res.end(body);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

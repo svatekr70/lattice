@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.19.0";
+var VERSION = "1.20.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,23 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.20.0",
+    "date": "2026-08-31",
+    "text": "Dv\u011B v\u011Bci pro u\u017Eivatele tabulky: tipy nad tabulkou (jedno\u0159\xE1dkov\xFD info pruh, opt-in p\u0159es tips) a skupiny ve v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F a pohled\u016F (<optgroup> podle \u0161t\xEDtku group). Bez breaking changes \u2014 oboj\xED je voliteln\xE9 a star\u0161\xED data funguj\xED beze zm\u011Bny.",
+    "items": [
+      "Tipy pro u\u017Eivatele nad tabulkou. Nov\xE1 volba tips zapne nad tabulkou \xFAzk\xFD info pruh s jedno\u0159\xE1dkov\xFDm tipem pro toho, kdo v tabulce pracuje (ne pro toho, kdo Lattice implementuje): p\u0159esun sloupc\u016F my\u0161\xED,\u2026",
+      "69 vestav\u011Bn\xFDch tip\u016F ve v\u0161ech \u010Dty\u0159ech jazyc\xEDch (cs/en/pl/sk) pod i18n kl\xED\u010Di tips.list.<id> \u2014 aplikace je m\u016F\u017Ee p\u0159eb\xEDt vlastn\xEDm slovn\xEDkem jako kter\xFDkoli jin\xFD popisek. Nab\xEDzej\xED se jen ty, kter\xE9 na danou\u2026",
+      "U\u017Eivatel m\xE1 posledn\xED slovo: k\u0159\xED\u017Eek v pruhu = instance.showTips: false (persistuje se jako ostatn\xED nastaven\xED a nese se i v presetu), zp\u011Bt v *Nastaven\xED tabulky \u2192 Vzhled \u2192 \u201EZobrazovat tipy nad\u2026",
+      "API: grid.nextTip(), grid.hideTips(), grid.tipsVisible(); nov\xE9 i18n kl\xED\u010De tips.label, tips.next, tips.hide, tips.list.* a instance.showTips.",
+      'Skupiny ve v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F a pohled\u016F. Ulo\u017Een\xFD filtr i pohled m\u016F\u017Ee n\xE9st voliteln\xFD \u0161t\xEDtek skupiny (\u201EProdeje", \u201EFaktury", \u201EStorno"\u2026). Polo\u017Eky se stejn\xFDm \u0161t\xEDtkem se v rozbalovac\xEDm v\xFDb\u011Bru v\u2026',
+      'Pol\xED\u010Dko \u201ESkupina\u2026" v ukl\xE1dac\xEDch \u0159\xE1dc\xEDch \u2014 v panelu ulo\u017Een\xFDch filtr\u016F, v pati\u010Dce roz\u0161\xED\u0159en\xE9ho filtru i v panelu preset\u016F, v\u017Edy hned vedle n\xE1zvu. Napov\xEDd\xE1 (<datalist>) u\u017E pou\u017Eit\xE9 skupiny, zapsat jde ale\u2026',
+      "API: saveAdvanced(name, tree, scope, display, group), saveFilterSnapshot(name, scope, display, group), renameSavedFilter(id, name, group?), nov\xE9 setAdvancedGroup(id, group); u pohled\u016F\u2026",
+      "Nov\xE9 i18n kl\xED\u010De groupPlaceholder a groupHint v namespace presets, advanced a saveFilters (cs/en/pl/sk).",
+      "Demo server nepos\xEDl\xE1 nic do cache (Cache-Control: no-store) \u2014 jinak si prohl\xED\u017Ee\u010D dr\u017Eel star\xE9 ESM moduly a demo ukazovalo p\u0159edchoz\xED verzi knihovny i po editaci zdroj\xE1k\u016F.",
+      "Test relativn\xEDch datov\xFDch token\u016F po\u010D\xEDtal o\u010Dek\xE1van\xFD m\u011Bs\xED\u010Dn\xED posun bez o\u0161et\u0159en\xED p\u0159ete\u010Den\xED, tak\u017Ee 31. dne v m\u011Bs\xEDci padal (today+1m knihovna spr\xE1vn\u011B o\u0159\xEDzne na 30. 9., test \u010Dekal 1. 10.). Test te\u010F po\u010D\xEDt\xE1\u2026"
+    ]
+  },
   {
     "version": "1.19.0",
     "date": "2026-08-27",
@@ -2740,17 +2757,6 @@ var RELEASES = [
     "items": [
       "Rychl\xFD select ulo\u017Een\xFDch filtr\u016F v toolbaru (.lattice-adv-quick) o\u0159ez\xE1val n\xE1zev a nativn\xED chevron p\u0159ekr\xFDval posledn\xED znaky. Prav\xFD padding byl jen 6px, co\u017E je m\xE9n\u011B ne\u017E \u0161\xED\u0159ka chevronu \u2192 text se plazil\u2026"
     ]
-  },
-  {
-    "version": "1.6.1",
-    "date": "2026-08-05",
-    "text": 'Panel roz\u0161\xED\u0159en\xE9ho filtru odskakoval do lev\xE9ho horn\xEDho rohu \xB7 \xDAnik \u201Eklik mimo" listeneru (onOutside) \xB7 P\u0159epis glob\xE1ln\xEDho filtru pod stejn\xFDm n\xE1zvem generoval nov\xE9 id p\u0159i ka\u017Ed\xE9m ulo\u017Een\xED \u2192 aplikace (perzistence kl\xED\u010Dovan\xE1 na id/ext_id) zakl\xE1dala nov\xFD DB \u0159\xE1dek a po\u2026',
-    "items": [
-      "Panel roz\u0161\xED\u0159en\xE9ho filtru odskakoval do lev\xE9ho horn\xEDho rohu. Po v\xFDb\u011Bru ulo\u017Een\xE9ho filtru (nebo jak\xE9koli akci p\u0159ekresluj\xEDc\xED toolbar) se toggle tla\u010D\xEDtko vytvo\u0159ilo znovu a panel se p\u0159epo\u010D\xEDtal proti\u2026",
-      '\xDAnik \u201Eklik mimo" listeneru (onOutside). Listener se navazuje p\u0159es setTimeout(\u2026,0); kdy\u017E se panel zav\u0159el d\u0159\xEDv, ne\u017E timer stihl nav\xE1zat, disposer odebral je\u0161t\u011B neexistuj\xEDc\xED listener a timer ho pak\u2026',
-      "P\u0159epis glob\xE1ln\xEDho filtru pod stejn\xFDm n\xE1zvem generoval nov\xE9 id p\u0159i ka\u017Ed\xE9m ulo\u017Een\xED \u2192 aplikace (perzistence kl\xED\u010Dovan\xE1 na id/ext_id) zakl\xE1dala nov\xFD DB \u0159\xE1dek a po reloadu vznikla duplicita. saveAdvanced\u2026",
-      'P\u0159edvypln\u011Bn\xED n\xE1zvu v panelu roz\u0161\xED\u0159en\xE9ho filtru. Po v\xFDb\u011Bru ulo\u017Een\xE9ho filtru se jeho n\xE1zev zkop\xEDruje do pole \u201EN\xE1zev filtru"; p\u0159i otev\u0159en\xED panelu s aktivn\xEDm ulo\u017Een\xFDm filtrem se n\xE1zev p\u0159edvypln\xED hned.\u2026'
-    ]
   }
 ];
 
@@ -2893,6 +2899,9 @@ var InstanceSettings = class {
     gA.appendChild(rowToggle(t("instance.zebra"), inst.zebra !== false, (v) => set({ zebra: v })));
     if ((grid.options.features || {}).version !== false) {
       gA.appendChild(rowToggle(t("instance.showVersion"), inst.showVersion !== false, (v) => set({ showVersion: v })));
+    }
+    if (grid.tips && grid.tips.enabled) {
+      gA.appendChild(rowToggle(t("instance.showTips"), inst.showTips !== false, (v) => set({ showTips: v })));
     }
     gA.appendChild(rowScaleColors(t("instance.scaleColors"), inst.scaleColors || DEFAULT_SCALE_COLORS, (arr) => set({ scaleColors: arr }), t));
     const gL = makeTab(t("instance.groupLayout"));
@@ -5787,6 +5796,7 @@ var cs_default = {
     fontDefault: "Dle motivu",
     zebra: "Pruhovan\xE9 \u0159\xE1dky",
     showVersion: "Verze knihovny v pati\u010Dce",
+    showTips: "Zobrazovat tipy nad tabulkou",
     scaleColors: "Barvy \u0161k\xE1ly (semafor)",
     wrapText: "Zalamovat text",
     wrapHeader: "Zalamovat n\xE1zvy sloupc\u016F",
@@ -6079,7 +6089,84 @@ var cs_default = {
   validate: { required: "Povinn\xE9 pole", invalid: "Neplatn\xE1 hodnota", pattern: "Nespr\xE1vn\xFD form\xE1t", min: "Mus\xED b\xFDt \u2265 {n}", max: "Mus\xED b\xFDt \u2264 {n}", minLen: "Nejm\xE9n\u011B {n} znak\u016F", maxLen: "Nejv\xEDce {n} znak\u016F" },
   empty: "\u017D\xE1dn\xE1 data",
   loading: "Na\u010D\xEDt\xE1n\xED\u2026",
-  error: "Chyba na\u010Dten\xED dat"
+  error: "Chyba na\u010Dten\xED dat",
+  tips: {
+    label: "Tip",
+    next: "Dal\u0161\xED tip",
+    hide: "Skr\xFDt tipy (zp\u011Bt je zapne\u0161 v Nastaven\xED tabulky \u2192 Vzhled)",
+    /* Jednořádkové tipy pro uživatele tabulky; klíč = id v src/features/tips.js. */
+    list: {
+      sort: "Klik na z\xE1hlav\xED sloupce \u0159ad\xED vzestupn\u011B, druh\xFD klik sestupn\u011B, t\u0159et\xED \u0159azen\xED zru\u0161\xED.",
+      sortMulti: "Shift + klik na dal\u0161\xED sloupec p\u0159id\xE1 druh\xE9 krit\xE9rium \u0159azen\xED \u2014 u sloupc\u016F se uk\xE1\u017Ee po\u0159ad\xED 1, 2, \u2026",
+      sortDefault: "V\xFDchoz\xED \u0159azen\xED po otev\u0159en\xED nastav\xED\u0161 v Nastaven\xED tabulky \u2192 Sloupce a \u0159\xE1dky \u2192 \u201EV\xFDchoz\xED \u0159azen\xED\u201C.",
+      moveColumn: "Sloupec p\u0159esune\u0161 ta\u017Een\xEDm za jeho n\xE1zev; modr\xE1 linka ukazuje, kam zapadne.",
+      moveColumnDialog: "Po\u0159ad\xED sloupc\u016F jde m\u011Bnit i v dialogu \u201ESloupce\u201C \u2014 ta\u017Een\xEDm \u0159\xE1dku za \xFAchyt \u22EE\u22EE.",
+      resize: "\u0160\xED\u0159ku sloupce zm\u011Bn\xED\u0161 ta\u017Een\xEDm za prav\xFD okraj z\xE1hlav\xED; dvojklik ji p\u0159izp\u016Fsob\xED obsahu.",
+      fitWidth: "Tla\u010D\xEDtko \u201EP\u0159izp\u016Fsobit \u0161\xED\u0159ku sloupc\u016F obsahu\u201C v dialogu \u201ESloupce\u201C srovn\xE1 \u0161\xED\u0159ky v\u0161ech sloupc\u016F nar\xE1z.",
+      freeze: "\u0160pendl\xEDkem \u{1F4CC} v dialogu \u201ESloupce\u201C ukotv\xED\u0161 sloupec vlevo nebo vpravo \u2014 z\u016Fstane vid\u011Bt i p\u0159i scrollov\xE1n\xED.",
+      hideColumn: "Nepot\u0159ebn\xE9 sloupce skryje\u0161 za\u0161krt\xE1v\xE1tkem v dialogu \u201ESloupce\u201C (ikona \u229F vpravo naho\u0159e).",
+      searchColumn: "Hodn\u011B sloupc\u016F? V dialogu \u201ESloupce\u201C napi\u0161 \u010D\xE1st n\xE1zvu do \u201EHledat sloupec\u2026\u201C a seznam se z\xFA\u017E\xED.",
+      renameColumn: "Dvojklik na n\xE1zev sloupce v dialogu \u201ESloupce\u201C ho p\u0159ejmenuje \u2014 Enter ulo\u017E\xED, Esc zru\u0161\xED.",
+      filterType: "Ikona trycht\xFD\u0159e u filtru p\u0159epne jeho typ \u2014 text, v\xFDb\u011Br, v\xEDce hodnot, vylou\u010Dit v\xEDce\u2026",
+      filterNegate: "Vyk\u0159i\u010Dn\xEDk na za\u010D\xE1tku textov\xE9ho filtru ho obr\xE1t\xED: !Bannery zobraz\xED v\u0161e krom\u011B \u201EBannery\u201C.",
+      filterNumber: "U \u010D\xEDseln\xFDch sloupc\u016F funguje ve filtru i porovn\xE1n\xED: >70, <10, =5.",
+      filterRange: "Typ filtru \u201ERozsah\u201C nab\xEDdne dv\u011B pole Od\u2013Do; hod\xED se u \u010D\xEDsel i u dat.",
+      filterDateTwo: "\u201EDatum (Od / Do)\u201C sta\u010D\xED vyplnit z jedn\xE9 strany \u2014 samotn\xE9 \u201EOd\u201C znamen\xE1 v\u0161e od toho data d\xE1l.",
+      filterDynamic: "Dynamick\xFD datumov\xFD filtr po\u010D\xEDt\xE1 s relativn\xEDmi daty: >today-14 AND <today+14 plat\xED i z\xEDtra.",
+      filterDynamicHelp: "Syntaxi dynamick\xE9ho filtru zn\xE1t nemus\xED\u0161 \u2014 tla\u010D\xEDtko \u201E?\u201C u pole nab\xEDdne hotov\xE1 obdob\xED.",
+      filterDynamicRange: "V kalend\xE1\u0159i zapni \u201Edynamick\xE9 obdob\xED\u201C a \u201EMinul\xFD t\xFDden\u201C z\u016Fstane minul\xFDm t\xFDdnem i za m\u011Bs\xEDc.",
+      filterClear: "Trycht\xFD\u0159 s \u010Derven\xFDm k\u0159\xED\u017Ekem vpravo naho\u0159e zru\u0161\xED v\u0161echny filtry nar\xE1z.",
+      filterToggleColumn: "Trycht\xFD\u0159 u sloupce v dialogu \u201ESloupce\u201C schov\xE1 jeho filtrovac\xED pole, kdy\u017E u n\u011Bj filtrovat nechce\u0161.",
+      filterCount: "Pati\u010Dka p\u0159izn\xE1, kolik \u0159\xE1dk\u016F zbylo po filtrech \u2014 \u201E(filtrov\xE1no z celkem N)\u201C odhal\xED zapomenut\xFD filtr.",
+      filterLayout: "Filtry m\u016F\u017Ee\u0161 m\xEDt v z\xE1hlav\xED, v panelu nad tabulkou, nebo jako jeden univerz\xE1ln\xED \u2014 Nastaven\xED tabulky.",
+      advanced: "Roz\u0161\xED\u0159en\xFD filtr (trycht\xFD\u0159 s plusem) skl\xE1d\xE1 podm\xEDnky do stromu \u201EA z\xE1rove\u0148\u201C / \u201ENebo\u201C.",
+      advancedGroup: "V roz\u0161\xED\u0159en\xE9m filtru vno\u0159\xED \u201E+ Skupina\u201C vlastn\xED logiku \u2014 t\u0159eba (A nebo B) a z\xE1rove\u0148 (C nebo D).",
+      advancedRelative: "V roz\u0161\xED\u0159en\xE9m filtru zad\xE1\u0161 i relativn\xED datum: today, today+14, today-7, sow, eom\u2026",
+      saveFilter: "Filtry, kter\xE9 klik\xE1\u0161 po\u0159\xE1d dokola, si ulo\u017E \u2014 trycht\xFD\u0159 s disketou, n\xE1zev, Ulo\u017Eit.",
+      saveFilterWhere: "U ulo\u017Een\xE9ho filtru si vol\xED\u0161, kde se nab\xEDdne: jako tla\u010D\xEDtko nad ikonami a/nebo ve v\xFDb\u011Bru.",
+      saveFilterGroup: "Ulo\u017Een\xE9 filtry i pohledy jde za\u0159adit do skupin (\u201EProdeje\u201C, \u201EFaktury\u201C) \u2014 v nab\xEDdce se sdru\u017E\xED pod nadpis.",
+      saveFilterOverwrite: "Ulo\u017Een\xFD filtr p\u0159ep\xED\u0161e\u0161 tak, \u017Ee tabulku nafiltruje\u0161 znovu a v panelu u n\u011Bj klikne\u0161 na disketu.",
+      quickbarMenu: "Prav\xFD klik na tla\u010D\xEDtko filtru nebo pohledu otev\u0159e menu: upravit, kde zobrazit, smazat.",
+      globalShared: "Polo\u017Eky s gl\xF3bem \u{1F310} jsou sd\xEDlen\xE9 v\u0161em \u2014 jejich \xFAprava nebo smaz\xE1n\xED se projev\xED i ostatn\xEDm.",
+      presets: "Pohled je pojmenovan\xE9 nastaven\xED tabulky \u2014 ulo\u017E\xED\u0161 ho v dialogu \u201ESloupce\u201C ikonou z\xE1lo\u017Eky.",
+      presetParts: "U ukl\xE1d\xE1n\xED pohledu si vybere\u0161, co ponese: sloupce, filtry a \u0159azen\xED, nastaven\xED tabulky.",
+      presetToggle: "Klik na tla\u010D\xEDtko pohledu ho pou\u017Eije, druh\xFD klik vr\xE1t\xED v\xFDchoz\xED zobrazen\xED \u2014 filtry z\u016Fstanou.",
+      groupRows: "\u0158\xE1dky seskup\xED\u0161 ikonou seskupen\xED u sloupce v dialogu \u201ESloupce\u201C \u2014 klidn\u011B i v\xEDce\xFArov\u0148ov\u011B.",
+      groupDate: "Datumov\xFD sloupec jde seskupit podle roku, kvart\xE1lu, m\u011Bs\xEDce i t\xFDdne \u2014 a v\xEDc \xFArovn\xED nar\xE1z.",
+      groupDisplay: "Podobu skupin (vedouc\xED sloupce vs. sbaliteln\xE9 li\u0161ty) p\u0159epne\u0161 v Nastaven\xED tabulky \u2192 Sloupce a \u0159\xE1dky.",
+      groupSort: "\u0160ipka \u21C5 v li\u0161t\u011B skupiny se\u0159ad\xED skupiny; \u0159\xE1dky uvnit\u0159 \u0159ad\xED\u0161 klikem na hlavi\u010Dku sloupce.",
+      summary: "Souhrn sloupce (sou\u010Det, pr\u016Fm\u011Br, min, max, po\u010Det) zapne\u0161 ikonou \u03A3 u sloupce v dialogu \u201ESloupce\u201C.",
+      summaryScope: "P\u0159ep\xEDna\u010D u souhrnn\xE9ho \u0159\xE1dku ur\u010Duje, jestli po\u010D\xEDt\xE1 ze zobrazen\xE9 str\xE1nky, nebo ze v\u0161ech z\xE1znam\u016F.",
+      subtotals: "U seskupen\xFDch \u0159\xE1dk\u016F si zapni mezisou\u010Dty za ka\u017Edou skupinu \u2014 Nastaven\xED tabulky \u2192 Sloupce a \u0159\xE1dky.",
+      columnGroup: "Sousedn\xED sloupce spoj\xED\u0161 pod spole\u010Dn\xE9 z\xE1hlav\xED ikonou skupiny; skupinu jde v z\xE1hlav\xED sbalit do prou\u017Eku.",
+      headerColor: "Ikona A obarv\xED z\xE1hlav\xED sloupce, ikona \xB6 nastav\xED form\xE1t bu\u0148ky \u2014 zarovn\xE1n\xED, \u0159ez p\xEDsma i barvy.",
+      computed: "Sloupec, kter\xFD v datech nen\xED, si spo\u010D\xEDt\xE1\u0161 s\xE1m: dialog \u201ESloupce\u201C \u2192 \u201E\uFF0B P\u0159idat po\u010D\xEDtan\xFD sloupec\u201C.",
+      computedHelp: "V editoru vzorce je sekce \u201E\u0192 Funkce\u201C s vyhled\xE1v\xE1n\xEDm \u2014 klikem funkci rovnou vlo\u017E\xED\u0161 do vzorce.",
+      rowNumbers: "\u010C\xEDslov\xE1n\xED \u0159\xE1dk\u016F (pr\u016Fb\u011B\u017En\xE9, nebo od 1 na ka\u017Ed\xE9 str\xE1nce) zapne\u0161 v Nastaven\xED tabulky \u2192 Sloupce a \u0159\xE1dky.",
+      theme: "Motiv, velikost p\xEDsma i hustotu \u0159\xE1dk\u016F si nastav\xED\u0161 v Nastaven\xED tabulky \u2192 Vzhled.",
+      wrap: "Dlouh\xE9 texty se o\u0159ez\xE1vaj\xED \u2014 zalamov\xE1n\xED bun\u011Bk i n\xE1zv\u016F sloupc\u016F zapne\u0161 v Nastaven\xED tabulky \u2192 Rozvr\u017Een\xED.",
+      scale: "Barevn\xE1 \u0161k\xE1la (\u201Esemafor\u201C) u \u010D\xEDseln\xE9ho sloupce se zap\xEDn\xE1 ikonou 0.0 v dialogu \u201ESloupce\u201C.",
+      format: "Desetinn\xE1 m\xEDsta, odd\u011Blova\u010D tis\xEDc\u016F i m\u011Bnu nastav\xED\u0161 v Nastaven\xED tabulky \u2192 Form\xE1t hodnot.",
+      reset: "\u201EObnovit v\xFDchoz\xED\u201C v dialogu \u201ESloupce\u201C vr\xE1t\xED sloupce do p\u016Fvodn\xEDho stavu a zru\u0161\xED seskupen\xED.",
+      persistence: "V\u0161echno, co si naklik\xE1\u0161 \u2014 sloupce, \u0161\xED\u0159ky, filtry, \u0159azen\xED \u2014 si prohl\xED\u017Ee\u010D pamatuje i po zav\u0159en\xED str\xE1nky.",
+      pageSize: "Velikost str\xE1nky (i \u201EV\u0161e\u201C) p\u0159epne\u0161 dole u str\xE1nkov\xE1n\xED.",
+      keyboard: "V tabulce se pohybuje\u0161 \u0161ipkami; Home/End sk\xE1\u010De na kraj \u0159\xE1dku, Ctrl+Home/End na za\u010D\xE1tek a konec.",
+      quickSearch: "Pole hled\xE1n\xED naho\u0159e prohled\xE1 v\u0161echny sloupce nar\xE1z \u2014 rychlej\u0161\xED ne\u017E filtrovat po sloupc\xEDch.",
+      range: "Bu\u0148ky ozna\u010D\xED\u0161 ta\u017Een\xEDm jako v Excelu; dole se uk\xE1\u017Ee po\u010Det, sou\u010Det, pr\u016Fm\u011Br, min i max.",
+      rangeCopy: "Ozna\u010Den\xFD rozsah bun\u011Bk zkop\xEDruje\u0161 p\u0159es Ctrl/\u2318 + C a vlo\u017E\xED\u0161 t\u0159eba do Excelu.",
+      edit: "Dvojklik do bu\u0148ky (nebo Enter na vybran\xE9) spust\xED \xFApravu \u2014 Enter ulo\u017E\xED, Esc zru\u0161\xED.",
+      selection: "\u0160ipka u hlavi\u010Dkov\xE9ho checkboxu nab\xEDdne \u201EStr\xE1nka\u201C i \u201EV\u0161echny z\xE1znamy\u201C \u2014 i ty na dal\u0161\xEDch str\xE1nk\xE1ch.",
+      selectionFilter: "\u201EV\u0161echny z\xE1znamy\u201C znamen\xE1 v\u0161echny odpov\xEDdaj\xEDc\xED filtru; p\u0159i zm\u011Bn\u011B filtru se v\xFDb\u011Br zru\u0161\xED.",
+      tree: "Ve stromu rozbal\xED\u0161 v\u011Btev \u0161ipkou; naho\u0159e jsou Sbalit v\u0161e / Rozbalit v\u0161e a volba \xFArovn\u011B.",
+      rowMove: "\u0158\xE1dky p\u0159esouv\xE1\u0161 ta\u017Een\xEDm za \xFAchyt \u283F vlevo; ve stromu se uzel p\u0159esune i se sv\xFDmi pod\u0159\xEDzen\xFDmi.",
+      history: "Ctrl/\u2318 + Z vr\xE1t\xED posledn\xED zm\u011Bnu zp\u011Bt, Ctrl+Y (nebo Ctrl+Shift+Z) ji provede znovu.",
+      detail: "\u0160ipka \u25B8 na za\u010D\xE1tku \u0159\xE1dku rozbal\xED detail s \xFAdaji, kter\xE9 se do sloupc\u016F neve\u0161ly.",
+      contextMenu: "Prav\xFD klik na \u0159\xE1dek nebo bu\u0148ku nab\xEDdne akce \u2014 t\u0159eba otev\u0159\xEDt detail nebo kop\xEDrovat hodnotu.",
+      help: "Ikona \u201E?\u201C vpravo naho\u0159e otev\u0159e u\u017Eivatelskou p\u0159\xEDru\u010Dku s podrobn\xFDm popisem tabulky.",
+      about: "Nastaven\xED tabulky \u2192 \u201EO Lattice\u201C uk\xE1\u017Ee verzi, odkazy i p\u0159ehled toho, co kter\xE1 verze p\u0159inesla.",
+      tipsOff: "Tipy vypne\u0161 k\u0159\xED\u017Ekem vpravo v tomhle pruhu; zp\xE1tky je zapne\u0161 v Nastaven\xED tabulky \u2192 Vzhled."
+    }
+  }
 };
 
 // src/i18n/en.js
@@ -6332,6 +6419,7 @@ var en_default = {
     fontDefault: "Theme default",
     zebra: "Zebra rows",
     showVersion: "Library version in the footer",
+    showTips: "Show tips above the table",
     scaleColors: "Scale colors (traffic light)",
     wrapText: "Wrap text",
     wrapHeader: "Wrap column titles",
@@ -6624,7 +6712,84 @@ var en_default = {
   validate: { required: "Required", invalid: "Invalid value", pattern: "Wrong format", min: "Must be \u2265 {n}", max: "Must be \u2264 {n}", minLen: "At least {n} characters", maxLen: "At most {n} characters" },
   empty: "No data",
   loading: "Loading\u2026",
-  error: "Failed to load data"
+  error: "Failed to load data",
+  tips: {
+    label: "Tip",
+    next: "Another tip",
+    hide: "Hide tips (turn them back on in Table settings \u2192 Appearance)",
+    /* Jednořádkové tipy pro uživatele tabulky; klíč = id v src/features/tips.js. */
+    list: {
+      sort: "Click a column header to sort ascending, click again for descending, a third click clears it.",
+      sortMulti: "Shift + click another column adds a second sort level \u2014 the order 1, 2, \u2026 appears on the columns.",
+      sortDefault: 'Set the sorting used on open in Table settings \u2192 Columns and rows \u2192 "Default sorting".',
+      moveColumn: "Drag a column by its header to move it; the blue line shows where it will land.",
+      moveColumnDialog: 'You can reorder columns in the "Columns" dialog too \u2014 drag a row by its \u22EE\u22EE handle.',
+      resize: "Resize a column by dragging the right edge of its header; a double-click fits it to the content.",
+      fitWidth: '"Fit column widths to content" in the "Columns" dialog resizes every column at once.',
+      freeze: 'Pin a column left or right with \u{1F4CC} in the "Columns" dialog \u2014 it stays visible while you scroll.',
+      hideColumn: 'Hide the columns you do not need with the checkbox in the "Columns" dialog (\u229F icon, top right).',
+      searchColumn: 'Many columns? Type part of a name into "Search column\u2026" in the "Columns" dialog to narrow the list.',
+      renameColumn: 'Double-click a column name in the "Columns" dialog to rename it \u2014 Enter saves, Esc cancels.',
+      filterType: "The funnel icon next to a filter switches its type \u2014 text, select, multi-select, exclude\u2026",
+      filterNegate: 'An exclamation mark inverts a text filter: !Banners shows everything except "Banners".',
+      filterNumber: "Numeric columns accept comparisons in the filter: >70, <10, =5.",
+      filterRange: 'The "Range" filter type gives you two fields, From\u2013To; handy for numbers and dates alike.',
+      filterDateTwo: '"Date (From / To)" works with one side only \u2014 just "From" means everything from that date on.',
+      filterDynamic: "The dynamic date filter understands relative dates: >today-14 AND <today+14 still holds tomorrow.",
+      filterDynamicHelp: 'No need to memorise the syntax \u2014 the "?" button next to the field offers ready-made periods.',
+      filterDynamicRange: 'Turn on "dynamic period" in the calendar and "Last week" stays last week a month from now.',
+      filterClear: "The funnel with a red cross in the top right clears every filter at once.",
+      filterToggleColumn: 'The funnel next to a column in the "Columns" dialog hides its filter field when you do not want one.',
+      filterCount: 'The footer admits how many rows survived filtering \u2014 "(filtered from N)" reveals a forgotten filter.',
+      filterLayout: "Filters can sit in the header, in a panel above the table, or as one universal field \u2014 Table settings.",
+      advanced: 'The advanced filter (funnel with a plus) builds conditions into an "All" / "Any" tree.',
+      advancedGroup: '"+ Group" in the advanced filter nests its own logic \u2014 say (A or B) and at the same time (C or D).',
+      advancedRelative: "The advanced filter takes relative dates too: today, today+14, today-7, sow, eom\u2026",
+      saveFilter: "Save the filters you keep clicking over and over \u2014 funnel with a disk, a name, Save.",
+      saveFilterWhere: "For each saved filter you choose where it shows up: as a button above the icons and/or in the dropdown.",
+      saveFilterGroup: 'Saved filters and views can go into groups ("Sales", "Invoices") \u2014 the dropdown lists them under a heading.',
+      saveFilterOverwrite: "To change a saved filter, filter the table anew and click the disk next to it in the panel.",
+      quickbarMenu: "Right-click a filter or view button for a menu: edit, where to show it, delete.",
+      globalShared: "Items marked with a globe \u{1F310} are shared with everyone \u2014 editing or deleting one affects them too.",
+      presets: 'A view is a named table setup \u2014 save it in the "Columns" dialog with the bookmark icon.',
+      presetParts: "When saving a view you pick what it carries: columns, filters and sorting, table settings.",
+      presetToggle: "Clicking a view button applies it; a second click returns the default layout \u2014 filters stay.",
+      groupRows: 'Group rows with the grouping icon next to a column in the "Columns" dialog \u2014 several levels if you like.',
+      groupDate: "A date column can be grouped by year, quarter, month or week \u2014 and by several levels at once.",
+      groupDisplay: "Switch how groups look (leading columns vs. collapsible bars) in Table settings \u2192 Columns and rows.",
+      groupSort: "The \u21C5 arrow in a group bar sorts the groups; rows inside them sort by clicking a column header.",
+      summary: 'Turn on a column summary (sum, average, min, max, count) with the \u03A3 icon in the "Columns" dialog.',
+      summaryScope: "The switch on the summary row decides whether it counts the current page or all records.",
+      subtotals: "With grouped rows you can add subtotals per group \u2014 Table settings \u2192 Columns and rows.",
+      columnGroup: "Merge adjacent columns under a shared header with the group icon; a group collapses into a narrow strip.",
+      headerColor: "The A icon colours a column header, the \xB6 icon sets the cell format \u2014 alignment, weight and colours.",
+      computed: 'Need a column that is not in the data? "Columns" dialog \u2192 "\uFF0B Add calculated column".',
+      computedHelp: 'The formula editor has an "\u0192 Functions" section with search \u2014 click a function to insert it.',
+      rowNumbers: "Row numbering (continuous or restarting on each page) lives in Table settings \u2192 Columns and rows.",
+      theme: "Theme, font size and row density are in Table settings \u2192 Appearance.",
+      wrap: "Long texts get truncated \u2014 turn on wrapping for cells and column names in Table settings \u2192 Layout.",
+      scale: 'The colour scale ("traffic lights") for a numeric column is switched on with the 0.0 icon in "Columns".',
+      format: "Decimals, the thousands separator and the currency are set in Table settings \u2192 Value format.",
+      reset: '"Reset to default" in the "Columns" dialog restores the columns and clears grouping.',
+      persistence: "Everything you set up \u2014 columns, widths, filters, sorting \u2014 is remembered by your browser.",
+      pageSize: 'Change the page size (including "All") at the pager below the table.',
+      keyboard: "Move around with the arrow keys; Home/End jump to the row edges, Ctrl+Home/End to the very start and end.",
+      quickSearch: "The search box at the top searches every column at once \u2014 quicker than filtering column by column.",
+      range: "Select cells by dragging like in a spreadsheet; the count, sum, average, min and max appear below.",
+      rangeCopy: "Copy the selected range with Ctrl/\u2318 + C and paste it straight into Excel.",
+      edit: "Double-click a cell (or press Enter on it) to edit \u2014 Enter saves, Esc cancels.",
+      selection: 'The arrow next to the header checkbox offers "Page" and "All records" \u2014 including rows on other pages.',
+      selectionFilter: '"All records" means everything matching the current filter; changing the filter clears the selection.',
+      tree: "In a tree the arrow expands a branch; Collapse all / Expand all and a level picker sit at the top.",
+      rowMove: "Drag rows by the \u283F handle on the left; in a tree the node moves together with its children.",
+      history: "Ctrl/\u2318 + Z undoes the last change, Ctrl+Y (or Ctrl+Shift+Z) redoes it.",
+      detail: "The \u25B8 arrow at the start of a row expands a detail panel with data that did not fit into columns.",
+      contextMenu: "Right-click a row or cell for actions \u2014 opening the detail or copying a value, for instance.",
+      help: 'The "?" icon in the top right opens the user guide with a detailed tour of the table.',
+      about: 'Table settings \u2192 "About Lattice" shows the version, the links and what each release brought.',
+      tipsOff: "Hide these tips with the cross on the right; bring them back in Table settings \u2192 Appearance."
+    }
+  }
 };
 
 // src/i18n/pl.js
@@ -6877,6 +7042,7 @@ var pl_default = {
     fontDefault: "Wed\u0142ug motywu",
     zebra: "Wiersze w paski",
     showVersion: "Wersja biblioteki w stopce",
+    showTips: "Pokazuj wskaz\xF3wki nad tabel\u0105",
     scaleColors: "Kolory skali (sygnalizacja)",
     wrapText: "Zawijaj tekst",
     wrapHeader: "Zawijaj nazwy kolumn",
@@ -7169,7 +7335,84 @@ var pl_default = {
   validate: { required: "Pole wymagane", invalid: "Nieprawid\u0142owa warto\u015B\u0107", pattern: "Niepoprawny format", min: "Musi by\u0107 \u2265 {n}", max: "Musi by\u0107 \u2264 {n}", minLen: "Co najmniej {n} znak\xF3w", maxLen: "Najwy\u017Cej {n} znak\xF3w" },
   empty: "Brak danych",
   loading: "Wczytywanie\u2026",
-  error: "B\u0142\u0105d wczytywania danych"
+  error: "B\u0142\u0105d wczytywania danych",
+  tips: {
+    label: "Wskaz\xF3wka",
+    next: "Nast\u0119pna wskaz\xF3wka",
+    hide: "Ukryj wskaz\xF3wki (w\u0142\u0105czysz je w Ustawieniach tabeli \u2192 Wygl\u0105d)",
+    /* Jednořádkové tipy pro uživatele tabulky; klíč = id v src/features/tips.js. */
+    list: {
+      sort: "Klikni\u0119cie w nag\u0142\xF3wek kolumny sortuje rosn\u0105co, drugie malej\u0105co, trzecie usuwa sortowanie.",
+      sortMulti: "Shift + klikni\u0119cie w kolejn\u0105 kolumn\u0119 dodaje drugie kryterium \u2014 przy kolumnach pojawi si\u0119 1, 2, \u2026",
+      sortDefault: "Sortowanie po otwarciu ustawisz w Ustawieniach tabeli \u2192 Kolumny i wiersze \u2192 \u201ESortowanie domy\u015Blne\u201C.",
+      moveColumn: "Kolumn\u0119 przeniesiesz, przeci\u0105gaj\u0105c j\u0105 za nag\u0142\xF3wek; niebieska linia pokazuje miejsce docelowe.",
+      moveColumnDialog: "Kolejno\u015B\u0107 kolumn zmienisz te\u017C w oknie \u201EKolumny\u201C \u2014 przeci\u0105gnij wiersz za uchwyt \u22EE\u22EE.",
+      resize: "Szeroko\u015B\u0107 kolumny zmienisz, ci\u0105gn\u0105c praw\u0105 kraw\u0119d\u017A nag\u0142\xF3wka; dwuklik dopasuje j\u0105 do tre\u015Bci.",
+      fitWidth: "Przycisk \u201EDopasuj szeroko\u015B\u0107 kolumn do tre\u015Bci\u201C w oknie \u201EKolumny\u201C wyr\xF3wna wszystkie kolumny naraz.",
+      freeze: "Pinezk\u0105 \u{1F4CC} w oknie \u201EKolumny\u201C przypniesz kolumn\u0119 do lewej lub prawej \u2014 zostanie widoczna przy przewijaniu.",
+      hideColumn: "Niepotrzebne kolumny ukryjesz polem wyboru w oknie \u201EKolumny\u201C (ikona \u229F w prawym g\xF3rnym rogu).",
+      searchColumn: "Du\u017Co kolumn? W oknie \u201EKolumny\u201C wpisz fragment nazwy w \u201ESzukaj kolumny\u2026\u201C, a lista si\u0119 zaw\u0119zi.",
+      renameColumn: "Dwuklik w nazw\u0119 kolumny w oknie \u201EKolumny\u201C zmienia jej nazw\u0119 \u2014 Enter zapisuje, Esc anuluje.",
+      filterType: "Ikona lejka przy filtrze prze\u0142\u0105cza jego typ \u2014 tekst, wyb\xF3r, wiele warto\u015Bci, wyklucz wiele\u2026",
+      filterNegate: "Wykrzyknik na pocz\u0105tku filtra tekstowego odwraca go: !Banery poka\u017Ce wszystko opr\xF3cz \u201EBanery\u201C.",
+      filterNumber: "W kolumnach liczbowych filtr przyjmuje por\xF3wnania: >70, <10, =5.",
+      filterRange: "Typ filtra \u201EZakres\u201C daje dwa pola Od\u2013Do; przydaje si\u0119 przy liczbach i datach.",
+      filterDateTwo: "\u201EData (Od / Do)\u201C wystarczy wype\u0142ni\u0107 z jednej strony \u2014 samo \u201EOd\u201C oznacza wszystko od tej daty.",
+      filterDynamic: "Dynamiczny filtr dat rozumie daty wzgl\u0119dne: >today-14 AND <today+14 zadzia\u0142a tak\u017Ce jutro.",
+      filterDynamicHelp: "Sk\u0142adni nie musisz zna\u0107 \u2014 przycisk \u201E?\u201C przy polu podpowie gotowe okresy.",
+      filterDynamicRange: "W\u0142\u0105cz \u201Eokres dynamiczny\u201C w kalendarzu, a \u201EZesz\u0142y tydzie\u0144\u201C pozostanie zesz\u0142ym tygodniem i za miesi\u0105c.",
+      filterClear: "Lejek z czerwonym krzy\u017Cykiem w prawym g\xF3rnym rogu usuwa wszystkie filtry naraz.",
+      filterToggleColumn: "Lejek przy kolumnie w oknie \u201EKolumny\u201C ukryje jej pole filtra, gdy nie chcesz tam filtrowa\u0107.",
+      filterCount: "Stopka przyznaje, ile wierszy zosta\u0142o po filtrach \u2014 \u201E(przefiltrowano z N)\u201C zdradzi zapomniany filtr.",
+      filterLayout: "Filtry mog\u0105 by\u0107 w nag\u0142\xF3wku, w panelu nad tabel\u0105 albo jako jeden uniwersalny \u2014 Ustawienia tabeli.",
+      advanced: "Filtr zaawansowany (lejek z plusem) uk\u0142ada warunki w drzewo \u201EI jednocze\u015Bnie\u201C / \u201ELub\u201C.",
+      advancedGroup: "\u201E+ Grupa\u201C w filtrze zaawansowanym zagnie\u017Cd\u017Ca w\u0142asn\u0105 logik\u0119 \u2014 np. (A lub B) i jednocze\u015Bnie (C lub D).",
+      advancedRelative: "Filtr zaawansowany przyjmuje te\u017C daty wzgl\u0119dne: today, today+14, today-7, sow, eom\u2026",
+      saveFilter: "Filtry, kt\xF3re klikasz w k\xF3\u0142ko, zapisz \u2014 lejek z dyskietk\u0105, nazwa, Zapisz.",
+      saveFilterWhere: "Przy zapisanym filtrze wybierasz, gdzie si\u0119 pojawi: jako przycisk nad ikonami i/lub na li\u015Bcie wyboru.",
+      saveFilterGroup: "Zapisane filtry i widoki mo\u017Cesz przypisa\u0107 do grup (\u201ESprzeda\u017C\u201C, \u201EFaktury\u201C) \u2014 trafi\u0105 pod wsp\xF3lny nag\u0142\xF3wek.",
+      saveFilterOverwrite: "Zapisany filtr zmienisz tak, \u017Ce filtrujesz tabel\u0119 na nowo i klikasz dyskietk\u0119 przy nim w panelu.",
+      quickbarMenu: "Prawy klik na przycisk filtra lub widoku otwiera menu: edycja, gdzie pokazywa\u0107, usu\u0144.",
+      globalShared: "Pozycje z globusem \u{1F310} s\u0105 wsp\xF3lne dla wszystkich \u2014 ich zmiana lub usuni\u0119cie dotyczy te\u017C innych.",
+      presets: "Widok to nazwane ustawienie tabeli \u2014 zapiszesz go w oknie \u201EKolumny\u201C ikon\u0105 zak\u0142adki.",
+      presetParts: "Przy zapisie widoku wybierasz, co ma nie\u015B\u0107: kolumny, filtry i sortowanie, ustawienia tabeli.",
+      presetToggle: "Klikni\u0119cie przycisku widoku w\u0142\u0105cza go, drugie wraca do widoku domy\u015Blnego \u2014 filtry zostaj\u0105.",
+      groupRows: "Wiersze pogrupujesz ikon\u0105 grupowania przy kolumnie w oknie \u201EKolumny\u201C \u2014 tak\u017Ce wielopoziomowo.",
+      groupDate: "Kolumn\u0119 z dat\u0105 pogrupujesz wed\u0142ug roku, kwarta\u0142u, miesi\u0105ca czy tygodnia \u2014 nawet kilka poziom\xF3w naraz.",
+      groupDisplay: "Wygl\u0105d grup (kolumny wiod\u0105ce vs. zwijane belki) prze\u0142\u0105czysz w Ustawieniach tabeli \u2192 Kolumny i wiersze.",
+      groupSort: "Strza\u0142ka \u21C5 na belce grupy sortuje grupy; wiersze w \u015Brodku sortujesz klikaj\u0105c nag\u0142\xF3wek kolumny.",
+      summary: "Podsumowanie kolumny (suma, \u015Brednia, min, maks, liczba) w\u0142\u0105czysz ikon\u0105 \u03A3 w oknie \u201EKolumny\u201C.",
+      summaryScope: "Prze\u0142\u0105cznik przy wierszu podsumowania decyduje, czy liczy z bie\u017C\u0105cej strony, czy ze wszystkich rekord\xF3w.",
+      subtotals: "Przy pogrupowanych wierszach mo\u017Cesz w\u0142\u0105czy\u0107 sumy cz\u0119\u015Bciowe dla ka\u017Cdej grupy \u2014 Ustawienia tabeli.",
+      columnGroup: "S\u0105siednie kolumny z\u0142\u0105czysz pod wsp\xF3lnym nag\u0142\xF3wkiem ikon\u0105 grupy; grup\u0119 mo\u017Cna zwin\u0105\u0107 do w\u0105skiego paska.",
+      headerColor: "Ikona A koloruje nag\u0142\xF3wek kolumny, ikona \xB6 ustawia format kom\xF3rki \u2014 wyr\xF3wnanie, kr\xF3j i kolory.",
+      computed: "Potrzebujesz kolumny, kt\xF3rej nie ma w danych? Okno \u201EKolumny\u201C \u2192 \u201E\uFF0B Dodaj kolumn\u0119 obliczan\u0105\u201C.",
+      computedHelp: "W edytorze formu\u0142y jest sekcja \u201E\u0192 Funkcje\u201C z wyszukiwaniem \u2014 klikni\u0119cie wstawia funkcj\u0119.",
+      rowNumbers: "Numeracj\u0119 wierszy (ci\u0105g\u0142\u0105 lub od 1 na ka\u017Cdej stronie) w\u0142\u0105czysz w Ustawieniach tabeli \u2192 Kolumny i wiersze.",
+      theme: "Motyw, wielko\u015B\u0107 czcionki i g\u0119sto\u015B\u0107 wierszy ustawisz w Ustawieniach tabeli \u2192 Wygl\u0105d.",
+      wrap: "D\u0142ugie teksty s\u0105 przycinane \u2014 zawijanie kom\xF3rek i nazw kolumn w\u0142\u0105czysz w Ustawieniach tabeli \u2192 Uk\u0142ad.",
+      scale: "Skal\u0119 kolor\xF3w (\u201Esygnalizacja\u201C) dla kolumny liczbowej w\u0142\u0105czysz ikon\u0105 0.0 w oknie \u201EKolumny\u201C.",
+      format: "Miejsca dziesi\u0119tne, separator tysi\u0119cy i walut\u0119 ustawisz w Ustawieniach tabeli \u2192 Format warto\u015Bci.",
+      reset: "\u201EPrzywr\xF3\u0107 domy\u015Blne\u201C w oknie \u201EKolumny\u201C przywraca kolumny i usuwa grupowanie.",
+      persistence: "Wszystko, co ustawisz \u2014 kolumny, szeroko\u015Bci, filtry, sortowanie \u2014 przegl\u0105darka zapami\u0119ta po zamkni\u0119ciu strony.",
+      pageSize: "Wielko\u015B\u0107 strony (tak\u017Ce \u201EWszystko\u201C) zmienisz przy stronicowaniu pod tabel\u0105.",
+      keyboard: "Po tabeli poruszasz si\u0119 strza\u0142kami; Home/End skacz\u0105 na brzeg wiersza, Ctrl+Home/End na pocz\u0105tek i koniec.",
+      quickSearch: "Pole wyszukiwania u g\xF3ry przeszukuje wszystkie kolumny naraz \u2014 szybciej ni\u017C filtr po kolumnach.",
+      range: "Kom\xF3rki zaznaczysz przeci\u0105gni\u0119ciem jak w arkuszu; poni\u017Cej pojawi si\u0119 liczba, suma, \u015Brednia, min i maks.",
+      rangeCopy: "Zaznaczony zakres skopiujesz przez Ctrl/\u2318 + C i wkleisz cho\u0107by do Excela.",
+      edit: "Dwuklik w kom\xF3rk\u0119 (lub Enter na zaznaczonej) otwiera edycj\u0119 \u2014 Enter zapisuje, Esc anuluje.",
+      selection: "Strza\u0142ka przy polu wyboru w nag\u0142\xF3wku oferuje \u201EStrona\u201C i \u201EWszystkie rekordy\u201C \u2014 tak\u017Ce z dalszych stron.",
+      selectionFilter: "\u201EWszystkie rekordy\u201C oznacza wszystkie pasuj\u0105ce do filtra; zmiana filtra kasuje zaznaczenie.",
+      tree: "W drzewie ga\u0142\u0105\u017A rozwiniesz strza\u0142k\u0105; u g\xF3ry s\u0105 Zwi\u0144 wszystko / Rozwi\u0144 wszystko i wyb\xF3r poziomu.",
+      rowMove: "Wiersze przeci\u0105gasz za uchwyt \u283F z lewej; w drzewie w\u0119ze\u0142 przenosi si\u0119 razem z podrz\u0119dnymi.",
+      history: "Ctrl/\u2318 + Z cofa ostatni\u0105 zmian\u0119, Ctrl+Y (lub Ctrl+Shift+Z) przywraca j\u0105.",
+      detail: "Strza\u0142ka \u25B8 na pocz\u0105tku wiersza rozwija panel ze szczeg\xF3\u0142ami, kt\xF3re nie zmie\u015Bci\u0142y si\u0119 w kolumnach.",
+      contextMenu: "Prawy klik na wiersz lub kom\xF3rk\u0119 podpowie akcje \u2014 na przyk\u0142ad otwarcie szczeg\xF3\u0142\xF3w albo kopiowanie warto\u015Bci.",
+      help: "Ikona \u201E?\u201C w prawym g\xF3rnym rogu otwiera podr\u0119cznik u\u017Cytkownika z dok\u0142adnym opisem tabeli.",
+      about: "Ustawienia tabeli \u2192 \u201EO Lattice\u201C pokazuj\u0105 wersj\u0119, odno\u015Bniki i przegl\u0105d tego, co przynios\u0142o ka\u017Cde wydanie.",
+      tipsOff: "Wskaz\xF3wki ukryjesz krzy\u017Cykiem po prawej; wr\xF3c\u0105 przez Ustawienia tabeli \u2192 Wygl\u0105d."
+    }
+  }
 };
 
 // src/i18n/sk.js
@@ -7422,6 +7665,7 @@ var sk_default = {
     fontDefault: "Pod\u013Ea t\xE9my",
     zebra: "Pruhovan\xE9 riadky",
     showVersion: "Verzia kni\u017Enice v p\xE4ti\u010Dke",
+    showTips: "Zobrazova\u0165 tipy nad tabu\u013Ekou",
     scaleColors: "Farby \u0161k\xE1ly (semafor)",
     wrapText: "Zalamova\u0165 text",
     wrapHeader: "Zalamova\u0165 n\xE1zvy st\u013Apcov",
@@ -7714,7 +7958,84 @@ var sk_default = {
   validate: { required: "Povinn\xE9 pole", invalid: "Neplatn\xE1 hodnota", pattern: "Nespr\xE1vny form\xE1t", min: "Mus\xED by\u0165 \u2265 {n}", max: "Mus\xED by\u0165 \u2264 {n}", minLen: "Najmenej {n} znakov", maxLen: "Najviac {n} znakov" },
   empty: "\u017Diadne d\xE1ta",
   loading: "Na\u010D\xEDtavanie\u2026",
-  error: "Chyba na\u010D\xEDtania d\xE1t"
+  error: "Chyba na\u010D\xEDtania d\xE1t",
+  tips: {
+    label: "Tip",
+    next: "\u010Eal\u0161\xED tip",
+    hide: "Skry\u0165 tipy (sp\xE4\u0165 ich zapne\u0161 v Nastaveniach tabu\u013Eky \u2192 Vzh\u013Ead)",
+    /* Jednořádkové tipy pro uživatele tabulky; klíč = id v src/features/tips.js. */
+    list: {
+      sort: "Klik na z\xE1hlavie st\u013Apca zorad\xED vzostupne, druh\xFD klik zostupne, tret\xED zoradenie zru\u0161\xED.",
+      sortMulti: "Shift + klik na \u010Fal\u0161\xED st\u013Apec prid\xE1 druh\xE9 krit\xE9rium zoradenia \u2014 pri st\u013Apcoch sa uk\xE1\u017Ee poradie 1, 2, \u2026",
+      sortDefault: "Predvolen\xE9 zoradenie po otvoren\xED nastav\xED\u0161 v Nastaveniach tabu\u013Eky \u2192 St\u013Apce a riadky \u2192 \u201EPredvolen\xE9 zoradenie\u201C.",
+      moveColumn: "St\u013Apec presunie\u0161 \u0165ahan\xEDm za jeho n\xE1zov; modr\xE1 \u010Diara ukazuje, kam zapadne.",
+      moveColumnDialog: "Poradie st\u013Apcov sa d\xE1 meni\u0165 aj v dial\xF3gu \u201ESt\u013Apce\u201C \u2014 \u0165ahan\xEDm riadku za \xFAchyt \u22EE\u22EE.",
+      resize: "\u0160\xEDrku st\u013Apca zmen\xED\u0161 \u0165ahan\xEDm za prav\xFD okraj z\xE1hlavia; dvojklik ju prisp\xF4sob\xED obsahu.",
+      fitWidth: "Tla\u010Didlo \u201EPrisp\xF4sobi\u0165 \u0161\xEDrku st\u013Apcov obsahu\u201C v dial\xF3gu \u201ESt\u013Apce\u201C zrovn\xE1 \u0161\xEDrky v\u0161etk\xFDch st\u013Apcov naraz.",
+      freeze: "\u0160pendl\xEDkom \u{1F4CC} v dial\xF3gu \u201ESt\u013Apce\u201C ukotv\xED\u0161 st\u013Apec v\u013Eavo alebo vpravo \u2014 zostane vidie\u0165 aj pri pos\xFAvan\xED.",
+      hideColumn: "Nepotrebn\xE9 st\u013Apce skryje\u0161 za\u0161krt\xE1vac\xEDm pol\xED\u010Dkom v dial\xF3gu \u201ESt\u013Apce\u201C (ikona \u229F vpravo hore).",
+      searchColumn: "Ve\u013Ea st\u013Apcov? V dial\xF3gu \u201ESt\u013Apce\u201C nap\xED\u0161 \u010Das\u0165 n\xE1zvu do \u201EH\u013Eada\u0165 st\u013Apec\u2026\u201C a zoznam sa z\xFA\u017Ei.",
+      renameColumn: "Dvojklik na n\xE1zov st\u013Apca v dial\xF3gu \u201ESt\u013Apce\u201C ho premenuje \u2014 Enter ulo\u017E\xED, Esc zru\u0161\xED.",
+      filterType: "Ikona lievika pri filtri prepne jeho typ \u2014 text, v\xFDber, viac hodn\xF4t, vyl\xFA\u010Di\u0165 viac\u2026",
+      filterNegate: "V\xFDkri\u010Dn\xEDk na za\u010Diatku textov\xE9ho filtra ho obr\xE1ti: !Bannery zobraz\xED v\u0161etko okrem \u201EBannery\u201C.",
+      filterNumber: "Pri \u010D\xEDseln\xFDch st\u013Apcoch funguje vo filtri aj porovnanie: >70, <10, =5.",
+      filterRange: "Typ filtra \u201ERozsah\u201C pon\xFAkne dve polia Od\u2013Do; hod\xED sa pri \u010D\xEDslach aj d\xE1tumoch.",
+      filterDateTwo: "\u201ED\xE1tum (Od / Do)\u201C sta\u010D\xED vyplni\u0165 z jednej strany \u2014 samotn\xE9 \u201EOd\u201C znamen\xE1 v\u0161etko od toho d\xE1tumu.",
+      filterDynamic: "Dynamick\xFD d\xE1tumov\xFD filter po\u010D\xEDta s relat\xEDvnymi d\xE1tumami: >today-14 AND <today+14 plat\xED aj zajtra.",
+      filterDynamicHelp: "Syntax pozna\u0165 nemus\xED\u0161 \u2014 tla\u010Didlo \u201E?\u201C pri poli pon\xFAkne hotov\xE9 obdobia.",
+      filterDynamicRange: "V kalend\xE1ri zapni \u201Edynamick\xE9 obdobie\u201C a \u201EMinul\xFD t\xFD\u017Ede\u0148\u201C zostane minul\xFDm t\xFD\u017Ed\u0148om aj o mesiac.",
+      filterClear: "Lievik s \u010Derven\xFDm kr\xED\u017Eikom vpravo hore zru\u0161\xED v\u0161etky filtre naraz.",
+      filterToggleColumn: "Lievik pri st\u013Apci v dial\xF3gu \u201ESt\u013Apce\u201C skryje jeho filtrovacie pole, ke\u010F tam filtrova\u0165 nechce\u0161.",
+      filterCount: "P\xE4ti\u010Dka prizn\xE1, ko\u013Eko riadkov zostalo po filtroch \u2014 \u201E(filtrovan\xE9 z celkom N)\u201C odhal\xED zabudnut\xFD filter.",
+      filterLayout: "Filtre m\xF4\u017Ee\u0161 ma\u0165 v z\xE1hlav\xED, v paneli nad tabu\u013Ekou alebo ako jeden univerz\xE1lny \u2014 Nastavenia tabu\u013Eky.",
+      advanced: "Roz\u0161\xEDren\xFD filter (lievik s plusom) sklad\xE1 podmienky do stromu \u201EA z\xE1rove\u0148\u201C / \u201EAlebo\u201C.",
+      advancedGroup: "V roz\u0161\xEDrenom filtri vnor\xED \u201E+ Skupina\u201C vlastn\xFA logiku \u2014 napr\xEDklad (A alebo B) a z\xE1rove\u0148 (C alebo D).",
+      advancedRelative: "V roz\u0161\xEDrenom filtri zad\xE1\u0161 aj relat\xEDvny d\xE1tum: today, today+14, today-7, sow, eom\u2026",
+      saveFilter: "Filtre, ktor\xE9 klik\xE1\u0161 st\xE1le dokola, si ulo\u017E \u2014 lievik s disketou, n\xE1zov, Ulo\u017Ei\u0165.",
+      saveFilterWhere: "Pri ulo\u017Eenom filtri si vol\xED\u0161, kde sa pon\xFAkne: ako tla\u010Didlo nad ikonami a/alebo vo v\xFDbere.",
+      saveFilterGroup: "Ulo\u017Een\xE9 filtre aj poh\u013Eady sa daj\xFA zaradi\u0165 do skup\xEDn (\u201EPredaje\u201C, \u201EFakt\xFAry\u201C) \u2014 vo v\xFDbere sa zl\xFA\u010Dia pod nadpis.",
+      saveFilterOverwrite: "Ulo\u017Een\xFD filter prep\xED\u0161e\u0161 tak, \u017Ee tabu\u013Eku prefiltruje\u0161 nanovo a v paneli pri \u0148om klikne\u0161 na disketu.",
+      quickbarMenu: "Prav\xFD klik na tla\u010Didlo filtra alebo poh\u013Eadu otvor\xED menu: upravi\u0165, kde zobrazi\u0165, zmaza\u0165.",
+      globalShared: "Polo\u017Eky s gl\xF3busom \u{1F310} s\xFA zdie\u013Ean\xE9 v\u0161etk\xFDm \u2014 ich \xFAprava \u010Di zmazanie sa prejav\xED aj ostatn\xFDm.",
+      presets: "Poh\u013Ead je pomenovan\xE9 nastavenie tabu\u013Eky \u2014 ulo\u017E\xED\u0161 ho v dial\xF3gu \u201ESt\u013Apce\u201C ikonou z\xE1lo\u017Eky.",
+      presetParts: "Pri ukladan\xED poh\u013Eadu si vyberie\u0161, \u010Do ponesie: st\u013Apce, filtre a zoradenie, nastavenia tabu\u013Eky.",
+      presetToggle: "Klik na tla\u010Didlo poh\u013Eadu ho pou\u017Eije, druh\xFD klik vr\xE1ti predvolen\xE9 zobrazenie \u2014 filtre zostan\xFA.",
+      groupRows: "Riadky zoskup\xED\u0161 ikonou zoskupenia pri st\u013Apci v dial\xF3gu \u201ESt\u013Apce\u201C \u2014 pokojne aj viac\xFArov\u0148ovo.",
+      groupDate: "D\xE1tumov\xFD st\u013Apec sa d\xE1 zoskupi\u0165 pod\u013Ea roka, kvart\xE1lu, mesiaca \u010Di t\xFD\u017Ed\u0148a \u2014 aj viac \xFArovn\xED naraz.",
+      groupDisplay: "Podobu skup\xEDn (ved\xFAce st\u013Apce vs. zbalite\u013En\xE9 li\u0161ty) prepne\u0161 v Nastaveniach tabu\u013Eky \u2192 St\u013Apce a riadky.",
+      groupSort: "\u0160\xEDpka \u21C5 v li\u0161te skupiny zorad\xED skupiny; riadky vn\xFAtri zorad\xED\u0161 klikom na z\xE1hlavie st\u013Apca.",
+      summary: "S\xFAhrn st\u013Apca (s\xFA\u010Det, priemer, min, max, po\u010Det) zapne\u0161 ikonou \u03A3 pri st\u013Apci v dial\xF3gu \u201ESt\u013Apce\u201C.",
+      summaryScope: "Prep\xEDna\u010D pri s\xFAhrnnom riadku ur\u010Duje, \u010Di po\u010D\xEDta zo zobrazenej strany, alebo zo v\u0161etk\xFDch z\xE1znamov.",
+      subtotals: "Pri zoskupen\xFDch riadkoch si zapni medzis\xFA\u010Dty za ka\u017Ed\xFA skupinu \u2014 Nastavenia tabu\u013Eky \u2192 St\u013Apce a riadky.",
+      columnGroup: "Susedn\xE9 st\u013Apce spoj\xED\u0161 pod spolo\u010Dn\xE9 z\xE1hlavie ikonou skupiny; skupina sa d\xE1 v z\xE1hlav\xED zbali\u0165 do pr\xFA\u017Eku.",
+      headerColor: "Ikona A zafarb\xED z\xE1hlavie st\u013Apca, ikona \xB6 nastav\xED form\xE1t bunky \u2014 zarovnanie, rez p\xEDsma aj farby.",
+      computed: "Potrebuje\u0161 st\u013Apec, ktor\xFD v d\xE1tach nie je? Dial\xF3g \u201ESt\u013Apce\u201C \u2192 \u201E\uFF0B Prida\u0165 po\u010D\xEDtan\xFD st\u013Apec\u201C.",
+      computedHelp: "V editore vzorca je sekcia \u201E\u0192 Funkcie\u201C s vyh\u013Ead\xE1van\xEDm \u2014 klikom funkciu rovno vlo\u017E\xED\u0161.",
+      rowNumbers: "\u010C\xEDslovanie riadkov (priebe\u017En\xE9 alebo od 1 na ka\u017Edej strane) zapne\u0161 v Nastaveniach tabu\u013Eky \u2192 St\u013Apce a riadky.",
+      theme: "Mot\xEDv, ve\u013Ekos\u0165 p\xEDsma aj hustotu riadkov si nastav\xED\u0161 v Nastaveniach tabu\u013Eky \u2192 Vzh\u013Ead.",
+      wrap: "Dlh\xE9 texty sa orez\xE1vaj\xFA \u2014 zalamovanie buniek aj n\xE1zvov st\u013Apcov zapne\u0161 v Nastaveniach tabu\u013Eky \u2192 Rozlo\u017Eenie.",
+      scale: "Farebn\xFA \u0161k\xE1lu (\u201Esemafor\u201C) pri \u010D\xEDselnom st\u013Apci zapne\u0161 ikonou 0.0 v dial\xF3gu \u201ESt\u013Apce\u201C.",
+      format: "Desatinn\xE9 miesta, odde\u013Eova\u010D tis\xEDcov aj menu nastav\xED\u0161 v Nastaveniach tabu\u013Eky \u2192 Form\xE1t hodn\xF4t.",
+      reset: "\u201EObnovi\u0165 predvolen\xE9\u201C v dial\xF3gu \u201ESt\u013Apce\u201C vr\xE1ti st\u013Apce do p\xF4vodn\xE9ho stavu a zru\u0161\xED zoskupenie.",
+      persistence: "V\u0161etko, \u010Do si naklik\xE1\u0161 \u2014 st\u013Apce, \u0161\xEDrky, filtre, zoradenie \u2014 si prehliada\u010D pam\xE4t\xE1 aj po zavret\xED str\xE1nky.",
+      pageSize: "Ve\u013Ekos\u0165 strany (aj \u201EV\u0161etko\u201C) prepne\u0161 dole pri str\xE1nkovan\xED.",
+      keyboard: "V tabu\u013Eke sa pohybuje\u0161 \u0161\xEDpkami; Home/End sk\xE1\u010De na kraj riadku, Ctrl+Home/End na za\u010Diatok a koniec.",
+      quickSearch: "Pole h\u013Eadania hore preh\u013Ead\xE1 v\u0161etky st\u013Apce naraz \u2014 r\xFDchlej\u0161ie ne\u017E filtrova\u0165 po st\u013Apcoch.",
+      range: "Bunky ozna\u010D\xED\u0161 \u0165ahan\xEDm ako v tabu\u013Ekovom procesore; dole sa uk\xE1\u017Ee po\u010Det, s\xFA\u010Det, priemer, min aj max.",
+      rangeCopy: "Ozna\u010Den\xFD rozsah buniek skop\xEDruje\u0161 cez Ctrl/\u2318 + C a vlo\u017E\xED\u0161 hoci do Excelu.",
+      edit: "Dvojklik do bunky (alebo Enter na vybranej) spust\xED \xFApravu \u2014 Enter ulo\u017E\xED, Esc zru\u0161\xED.",
+      selection: "\u0160\xEDpka pri z\xE1hlavnom checkboxe pon\xFAkne \u201EStrana\u201C aj \u201EV\u0161etky z\xE1znamy\u201C \u2014 vr\xE1tane riadkov na \u010Fal\u0161\xEDch stran\xE1ch.",
+      selectionFilter: "\u201EV\u0161etky z\xE1znamy\u201C znamen\xE1 v\u0161etky zodpovedaj\xFAce filtru; pri zmene filtra sa v\xFDber zru\u0161\xED.",
+      tree: "V strome rozbal\xED\u0161 vetvu \u0161\xEDpkou; hore s\xFA Zbali\u0165 v\u0161etko / Rozbali\u0165 v\u0161etko a vo\u013Eba \xFArovne.",
+      rowMove: "Riadky pres\xFAva\u0161 \u0165ahan\xEDm za \xFAchyt \u283F v\u013Eavo; v strome sa uzol presunie aj so svojimi podriaden\xFDmi.",
+      history: "Ctrl/\u2318 + Z vr\xE1ti posledn\xFA zmenu sp\xE4\u0165, Ctrl+Y (alebo Ctrl+Shift+Z) ju vykon\xE1 znova.",
+      detail: "\u0160\xEDpka \u25B8 na za\u010Diatku riadku rozbal\xED detail s \xFAdajmi, ktor\xE9 sa do st\u013Apcov nezmestili.",
+      contextMenu: "Prav\xFD klik na riadok alebo bunku pon\xFAkne akcie \u2014 napr\xEDklad otvori\u0165 detail alebo kop\xEDrova\u0165 hodnotu.",
+      help: "Ikona \u201E?\u201C vpravo hore otvor\xED pou\u017E\xEDvate\u013Esk\xFA pr\xEDru\u010Dku s podrobn\xFDm popisom tabu\u013Eky.",
+      about: "Nastavenia tabu\u013Eky \u2192 \u201EO Lattice\u201C uk\xE1\u017Eu verziu, odkazy aj preh\u013Ead toho, \u010Do ktor\xE1 verzia priniesla.",
+      tipsOff: "Tipy vypne\u0161 kr\xED\u017Eikom vpravo v tomto pruhu; sp\xE4\u0165 ich zapne\u0161 v Nastaveniach tabu\u013Eky \u2192 Vzh\u013Ead."
+    }
+  }
 };
 
 // src/i18n/index.js
@@ -8420,6 +8741,126 @@ function clearGroupIndicators(grid) {
   }
 }
 
+// src/features/tips.js
+var feat = (grid, key) => (grid.options.features || {})[key] !== false;
+var TIPS = [
+  /* --- sloupce: řazení, pořadí, šířka, viditelnost --- */
+  { id: "sort" },
+  { id: "sortMulti" },
+  { id: "sortDefault", when: (g) => feat(g, "instanceSettings") },
+  { id: "moveColumn" },
+  { id: "moveColumnDialog", when: (g) => feat(g, "gear") },
+  { id: "resize" },
+  { id: "fitWidth", when: (g) => feat(g, "gear") },
+  { id: "freeze", when: (g) => feat(g, "gear") },
+  { id: "hideColumn", when: (g) => feat(g, "gear") },
+  { id: "searchColumn", when: (g) => feat(g, "gear") },
+  { id: "renameColumn", when: (g) => feat(g, "gear") },
+  /* --- filtry v hlavičce --- */
+  { id: "filterType", when: hasFilters },
+  { id: "filterNegate", when: hasFilters },
+  { id: "filterNumber", when: hasFilters },
+  { id: "filterRange", when: hasFilters },
+  { id: "filterDateTwo", when: (g) => hasFilters(g) && hasType(g, "date") },
+  { id: "filterDynamic", when: (g) => hasFilters(g) && hasType(g, "date") },
+  { id: "filterDynamicHelp", when: (g) => hasFilters(g) && hasType(g, "date") },
+  { id: "filterDynamicRange", when: (g) => hasFilters(g) && hasType(g, "date") },
+  { id: "filterClear", when: hasFilters },
+  { id: "filterToggleColumn", when: (g) => hasFilters(g) && feat(g, "gear") },
+  { id: "filterCount", when: hasFilters },
+  { id: "filterLayout", when: (g) => hasFilters(g) && feat(g, "instanceSettings") },
+  /* --- rozšířený filtr a ukládání filtrů --- */
+  { id: "advanced", when: (g) => feat(g, "advancedFilter") },
+  { id: "advancedGroup", when: (g) => feat(g, "advancedFilter") },
+  { id: "advancedRelative", when: (g) => feat(g, "advancedFilter") && hasType(g, "date") },
+  { id: "saveFilter", when: (g) => feat(g, "advancedFilter") && hasFilters(g) },
+  { id: "saveFilterWhere", when: (g) => feat(g, "advancedFilter") },
+  { id: "saveFilterGroup", when: (g) => feat(g, "advancedFilter") },
+  { id: "saveFilterOverwrite", when: (g) => feat(g, "advancedFilter") && hasFilters(g) },
+  { id: "quickbarMenu", when: (g) => feat(g, "advancedFilter") || feat(g, "gear") },
+  { id: "globalShared", when: (g) => typeof g.options.onSaveGlobalPreset === "function" || typeof g.options.onSaveGlobalAdvancedFilter === "function" },
+  /* --- pohledy (presety) --- */
+  { id: "presets", when: (g) => feat(g, "gear") },
+  { id: "presetParts", when: (g) => feat(g, "gear") },
+  { id: "presetToggle", when: (g) => feat(g, "gear") },
+  /* --- seskupení, souhrny --- */
+  { id: "groupRows", when: (g) => feat(g, "gear") },
+  { id: "groupDate", when: (g) => feat(g, "gear") && hasType(g, "date") },
+  { id: "groupDisplay", when: (g) => feat(g, "instanceSettings") },
+  { id: "groupSort", when: (g) => feat(g, "gear") },
+  { id: "summary", when: (g) => feat(g, "gear") },
+  { id: "summaryScope", when: (g) => feat(g, "instanceSettings") },
+  { id: "subtotals", when: (g) => feat(g, "instanceSettings") },
+  /* --- vzhled sloupců a tabulky --- */
+  { id: "columnGroup", when: (g) => feat(g, "gear") },
+  { id: "headerColor", when: (g) => feat(g, "gear") },
+  { id: "computed", when: (g) => feat(g, "gear") },
+  { id: "computedHelp", when: (g) => feat(g, "gear") },
+  { id: "rowNumbers", when: (g) => feat(g, "instanceSettings") },
+  { id: "theme", when: (g) => feat(g, "instanceSettings") },
+  { id: "wrap", when: (g) => feat(g, "instanceSettings") },
+  { id: "scale", when: (g) => feat(g, "gear") },
+  { id: "format", when: (g) => feat(g, "instanceSettings") },
+  { id: "reset", when: (g) => feat(g, "gear") },
+  /* --- práce s daty --- */
+  { id: "persistence" },
+  { id: "pageSize", when: (g) => g.paginationEnabled && g.paginationEnabled() },
+  { id: "keyboard" },
+  { id: "quickSearch", when: (g) => !!g.options.quickSearch },
+  { id: "range", when: (g) => !!g.range },
+  { id: "rangeCopy", when: (g) => !!g.range },
+  { id: "edit", when: (g) => g.options.editable === true || g.columns.some((c) => c.editable) },
+  { id: "selection", when: (g) => !!(g.selectable && g.selectable.enabled) },
+  { id: "selectionFilter", when: (g) => !!(g.selectable && g.selectable.enabled) },
+  { id: "tree", when: (g) => !!g.tree },
+  { id: "rowMove", when: (g) => !!g.movable },
+  { id: "history", when: (g) => !!g.history },
+  { id: "detail", when: (g) => !!g.detailFn },
+  { id: "contextMenu", when: (g) => typeof g.options.rowContextMenu === "function" || typeof g.options.onRowContext === "function" },
+  { id: "help", when: (g) => feat(g, "help") && g.options.helpUrl !== null },
+  { id: "about", when: (g) => feat(g, "instanceSettings") },
+  { id: "tipsOff" }
+];
+function hasFilters(grid) {
+  if (grid.instance && grid.instance.filterLayout === "none") return false;
+  return (grid.columns || []).some((c) => c.filter);
+}
+function hasType(grid, type) {
+  return (grid.columns || []).some((c) => String(c.type || "").startsWith(type));
+}
+function normalizeTips(opt) {
+  if (opt === true) return { enabled: true, builtin: true, extra: [] };
+  if (!opt || typeof opt !== "object") return { enabled: false, builtin: true, extra: [] };
+  const extra = (Array.isArray(opt.extra) ? opt.extra : []).map((x) => String(x || "").trim()).filter(Boolean);
+  return {
+    enabled: opt.enabled !== false,
+    builtin: opt.builtin !== false,
+    extra
+  };
+}
+function availableTips(grid) {
+  const cfg = grid.tips || normalizeTips(grid.options.tips);
+  if (!cfg.enabled) return [];
+  const out = [];
+  if (cfg.builtin) {
+    const t = grid.i18n.t.bind(grid.i18n);
+    for (const tip of TIPS) {
+      if (tip.when && !tip.when(grid)) continue;
+      const key = "tips.list." + tip.id;
+      const text = t(key);
+      if (!text || text === key) continue;
+      out.push(text);
+    }
+  }
+  return out.concat(cfg.extra);
+}
+function pickTip(grid, avoid) {
+  const list = availableTips(grid);
+  if (!list.length) return "";
+  const pool = list.length > 1 && avoid ? list.filter((x) => x !== avoid) : list;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 // src/features/popup.js
 function openPopup(anchor, builder, opts = {}) {
   document.querySelectorAll(".lattice-popup").forEach((p) => p._close ? p._close() : p.remove());
@@ -8601,8 +9042,9 @@ var Renderer = class {
     table.append(header, body, pinnedBottom);
     viewport.append(table);
     const rangeStatus = el("div.lattice-range-status");
-    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
-    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
+    const tips = el("div.lattice-tips");
+    root.append(tips, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
+    this.nodes = { root, tips, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
     let syncing = false;
     topScroll.addEventListener("scroll", () => {
       if (syncing) return;
@@ -8628,6 +9070,7 @@ var Renderer = class {
         this._ro.observe(viewport);
       }
     }
+    this.renderTips();
     this.renderToolbar();
     this.applyInstanceStyles();
     if (this.grid.range) this.grid.range.attach(root, body);
@@ -10704,6 +11147,36 @@ var Renderer = class {
     });
     this.nodes.toolbar.appendChild(sel);
   }
+  /**
+   * Info pruh s tipem nad tabulkou — jeden řádek: ikona, popisek „Tip", text a vpravo
+   * „další tip" + křížek. Vykreslí se, jen když tipy zapnula aplikace (`options.tips`)
+   * a uživatel je nevypnul (`instance.showTips`); jinak zůstane uzel prázdný a schovaný.
+   */
+  renderTips() {
+    const grid = this.grid;
+    const box = this.nodes.tips;
+    if (!box) return;
+    clear(box);
+    box.classList.toggle("is-visible", grid.tipsVisible());
+    if (!grid.tipsVisible()) return;
+    const t = grid.i18n.t.bind(grid.i18n);
+    if (!grid.tip) grid.tip = pickTip(grid, "");
+    if (!grid.tip) {
+      box.classList.remove("is-visible");
+      return;
+    }
+    box.append(
+      el("span.lattice-tips-ico", { html: BULB_SVG }),
+      el("span.lattice-tips-label", { text: t("tips.label") }),
+      // jednořádkový text; celý se ukáže v tooltipu, kdyby se do šířky nevešel
+      el("span.lattice-tips-text", { text: grid.tip, title: grid.tip })
+    );
+    const next = el("button.lattice-tips-btn", { type: "button", title: t("tips.next"), html: NEXT_TIP_SVG });
+    next.addEventListener("click", () => grid.nextTip());
+    const hide = el("button.lattice-tips-btn.lattice-tips-hide", { type: "button", title: t("tips.hide"), text: "\xD7" });
+    hide.addEventListener("click", () => grid.hideTips());
+    box.append(next, hide);
+  }
   renderToolbar() {
     const { toolbar } = this.nodes;
     clear(toolbar);
@@ -10926,6 +11399,8 @@ var ACTION_DEFAULTS = {
   delete: { icon: TRASH_SVG, danger: true }
 };
 var COG_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg>';
+var BULB_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1a4.5 4.5 0 0 0-2.7 8.1c.4.3.6.7.7 1.1l.1.3h3.8l.1-.3c.1-.4.3-.8.7-1.1A4.5 4.5 0 0 0 8 1z"/><path d="M6.2 11.6h3.6v1H6.2zM6.7 13.5h2.6c-.2.6-.7 1-1.3 1s-1.1-.4-1.3-1z"/></svg>';
+var NEXT_TIP_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M13.5 8a5.5 5.5 0 1 1-1.7-4"/><path fill="currentColor" d="M13.6 1.6 13.9 5l-3.3-.6z"/></svg>';
 var HELP_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>';
 var DEFAULT_HELP_URL = HELP_URL;
 
@@ -13183,6 +13658,8 @@ var INSTANCE_DEFAULTS = {
   // pruhované řádky
   showVersion: true,
   // verze knihovny vpravo v patičce (kontrola, s jakou verzí uživatel pracuje)
+  showTips: true,
+  // pruh s tipy nad tabulkou (jen když je aplikace zapnula přes options.tips)
   wrapText: false,
   // zalamovat text v buňkách (jinak … ořez)
   wrapHeader: false,
@@ -13277,6 +13754,8 @@ var Lattice = class {
     this.lastPage = 1;
     this._readUrl();
     this._activePresetId = null;
+    this.tips = normalizeTips(options.tips);
+    this.tip = "";
     this.presets = new PresetStore(this);
     this.gear = new Gear(this);
     this.instanceSettings = new InstanceSettings(this);
@@ -15518,6 +15997,7 @@ var Lattice = class {
       this.renderer.applyLayout();
     }
     if ("showVersion" in patch) this.renderer.renderFooter();
+    if ("showTips" in patch) this.renderer.renderTips();
     if ("paginationPosition" in patch || "pageSize" in patch) {
       if ("pageSize" in patch) this.pageSize = this.instance.pageSize;
       this.page = 1;
@@ -15526,9 +16006,26 @@ var Lattice = class {
       this.renderer.applyLayout();
     }
   }
+  /* =================== tipy =================== */
+  /** Ukazuje se pruh s tipy? (aplikace ho zapnula a uživatel ho nevypnul) `@v1.20.0` */
+  tipsVisible() {
+    return !!(this.tips && this.tips.enabled) && this.instance.showTips !== false;
+  }
+  /** Vylosuje další tip a překreslí pruh (tlačítko „Další tip"). `@v1.20.0` */
+  nextTip() {
+    this.tip = pickTip(this, this.tip);
+    this.renderer.renderTips();
+    return this.tip;
+  }
+  /** Skryje pruh s tipy (uživatelská volba, persistuje se; zpět v Nastavení tabulky). `@v1.20.0` */
+  hideTips() {
+    this.setInstance({ showTips: false });
+  }
   /* =================== ostatní =================== */
   setLanguage(lang) {
     this.i18n.setLang(lang);
+    this.tip = "";
+    this.renderer.renderTips();
     this.renderer.renderToolbar();
     this.renderer.renderHeader();
     this.renderer.renderFooter();

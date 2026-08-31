@@ -26,6 +26,7 @@ import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
 import { partsSummary } from '../features/gear.js';
 import { fillGroupedSelect } from '../util/groups.js';
+import { pickTip } from '../features/tips.js';
 import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
 import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
@@ -73,9 +74,10 @@ export class Renderer {
     table.append(header, body, pinnedBottom);
     viewport.append(table);
     const rangeStatus = el('div.lattice-range-status');
-    root.append(toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
+    const tips = el('div.lattice-tips');
+    root.append(tips, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, viewport, summaryBar, footer, rangeStatus, overlay);
 
-    this.nodes = { root, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
+    this.nodes = { root, tips, toolbar, selectionBar, topPager, universalBar, externalFilters, topScroll, topScrollInner, viewport, table, header, groupRow, headerRow, filterRow, pinnedTop, pinnedBottom, body, summaryBar, footer, rangeStatus, overlay };
 
     // Horní vodorovný scrollbar synchronizovaný s viewportem (obousměrně).
     let syncing = false;
@@ -99,6 +101,7 @@ export class Renderer {
       }
     }
 
+    this.renderTips();
     this.renderToolbar();
     this.applyInstanceStyles();
     if (this.grid.range) this.grid.range.attach(root, body);
@@ -2210,6 +2213,35 @@ export class Renderer {
     this.nodes.toolbar.appendChild(sel);
   }
 
+  /**
+   * Info pruh s tipem nad tabulkou — jeden řádek: ikona, popisek „Tip", text a vpravo
+   * „další tip" + křížek. Vykreslí se, jen když tipy zapnula aplikace (`options.tips`)
+   * a uživatel je nevypnul (`instance.showTips`); jinak zůstane uzel prázdný a schovaný.
+   */
+  renderTips() {
+    const grid = this.grid;
+    const box = this.nodes.tips;
+    if (!box) return;
+    clear(box);
+    box.classList.toggle('is-visible', grid.tipsVisible());
+    if (!grid.tipsVisible()) return;
+    const t = grid.i18n.t.bind(grid.i18n);
+    if (!grid.tip) grid.tip = pickTip(grid, '');
+    if (!grid.tip) { box.classList.remove('is-visible'); return; } // není z čeho vybírat
+
+    box.append(
+      el('span.lattice-tips-ico', { html: BULB_SVG }),
+      el('span.lattice-tips-label', { text: t('tips.label') }),
+      // jednořádkový text; celý se ukáže v tooltipu, kdyby se do šířky nevešel
+      el('span.lattice-tips-text', { text: grid.tip, title: grid.tip }),
+    );
+    const next = el('button.lattice-tips-btn', { type: 'button', title: t('tips.next'), html: NEXT_TIP_SVG });
+    next.addEventListener('click', () => grid.nextTip());
+    const hide = el('button.lattice-tips-btn.lattice-tips-hide', { type: 'button', title: t('tips.hide'), text: '×' });
+    hide.addEventListener('click', () => grid.hideTips());
+    box.append(next, hide);
+  }
+
   renderToolbar() {
     const { toolbar } = this.nodes;
     clear(toolbar);
@@ -2477,5 +2509,8 @@ const ACTION_DEFAULTS = {
 };
 // Obrysové ozubené kolo (Bootstrap Icons „bi-gear", MIT) — bezzávislostní inline SVG.
 const COG_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg>';
+/* žárovka a „další tip" (šipka v kroužku) pro info pruh s tipy */
+const BULB_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 1a4.5 4.5 0 0 0-2.7 8.1c.4.3.6.7.7 1.1l.1.3h3.8l.1-.3c.1-.4.3-.8.7-1.1A4.5 4.5 0 0 0 8 1z"/><path d="M6.2 11.6h3.6v1H6.2zM6.7 13.5h2.6c-.2.6-.7 1-1.3 1s-1.1-.4-1.3-1z"/></svg>';
+const NEXT_TIP_SVG = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M13.5 8a5.5 5.5 0 1 1-1.7-4"/><path fill="currentColor" d="M13.6 1.6 13.9 5l-3.3-.6z"/></svg>';
 const HELP_SVG = '<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>';
 const DEFAULT_HELP_URL = HELP_URL;
