@@ -174,6 +174,54 @@ test('loadMore: opožděná odpověď přebitá refreshem se zahodí', async () 
   assert.equal(ctx.loadedPage, 0, 'cursor se neposune');
 });
 
+/* ---- sbalování skupin řádků ---- */
+
+// Minimální kontext pro toggleGroup — bez DOM (saveState i renderBody stubneme).
+function groupCtx() {
+  const ctx = Object.create(Lattice.prototype);
+  ctx.groupsCollapsed = new Set();
+  ctx.saveState = () => {};
+  ctx.renderer = { renderBody() {} };
+  return ctx;
+}
+
+// Strom skupin: A → [A/x → [A/x/1], A/y]
+function groupTree() {
+  const S = '\u0000';
+  return {
+    key: 'A',
+    groups: [
+      { key: 'A' + S + 'x', groups: [{ key: 'A' + S + 'x' + S + '1', rows: [] }] },
+      { key: 'A' + S + 'y', rows: [] },
+    ],
+  };
+}
+
+test('toggleGroup: sbalení skupiny sbalí natrvalo i celý její podstrom', () => {
+  const S = '\u0000';
+  const ctx = groupCtx();
+  const node = groupTree();
+
+  ctx.toggleGroup('A', node);
+  assert.deepEqual([...ctx.groupsCollapsed].sort(), ['A', 'A' + S + 'x', 'A' + S + 'x' + S + '1', 'A' + S + 'y'].sort());
+
+  ctx.toggleGroup('A', node); // rozbalení nadřazené — podskupiny zůstávají sbalené
+  assert.equal(ctx.isGroupCollapsed('A'), false);
+  assert.deepEqual([...ctx.groupsCollapsed].sort(), ['A' + S + 'x', 'A' + S + 'x' + S + '1', 'A' + S + 'y'].sort());
+
+  ctx.toggleGroup('A' + S + 'x', node.groups[0]); // klik na podskupinu ji rozbalí
+  assert.equal(ctx.isGroupCollapsed('A' + S + 'x'), false);
+  assert.equal(ctx.isGroupCollapsed('A' + S + 'x' + S + '1'), true, 'její vlastní podskupiny zůstávají sbalené');
+});
+
+test('toggleGroup: bez uzlu stromu přepne jen samotnou skupinu', () => {
+  const ctx = groupCtx();
+  ctx.toggleGroup('A');
+  assert.deepEqual([...ctx.groupsCollapsed], ['A']);
+  ctx.toggleGroup('A');
+  assert.deepEqual([...ctx.groupsCollapsed], []);
+});
+
 /* ---- verze knihovny ---- */
 
 test('VERSION odpovídá package.json (patička i CDN pin ukazují totéž)', async () => {

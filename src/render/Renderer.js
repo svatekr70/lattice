@@ -1471,7 +1471,7 @@ export class Renderer {
       sortBtn,
     ]);
     row.appendChild(inner);
-    const toggle = () => grid.toggleGroup(node.key);
+    const toggle = () => grid.toggleGroup(node.key, node); // sbalení sbalí i podskupiny
     row.addEventListener('click', toggle);
     row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
     // Přesun mezi skupinami — hlavička skupiny je cíl přetažení řádku.
