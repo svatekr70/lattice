@@ -322,6 +322,26 @@
   background: var(--lattice-bg); color: var(--lattice-text); font: inherit;
 }
 .lattice-savefilters-rename:focus { outline: none; box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
+/* název + skupina vedle sebe při úpravě položky na místě */
+.lattice-savefilters-edit { flex: 1 1 auto; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.lattice-savefilters-edit .lattice-savefilters-rename { flex: 2 1 0; }
+.lattice-savefilters-edit .lattice-group-field { flex: 1 1 0; }
+/* ---------- skupiny uložených položek (filtry i pohledy) ---------- */
+/* Nadpis skupiny v seznamu — protějšek <optgroup> v rozbalovacím výběru. */
+.lattice-saved-group {
+  margin-top: 4px; padding: 2px 2px 0;
+  font-size: 0.78em; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--lattice-muted);
+}
+.lattice-saved-group:first-child { margin-top: 0; }
+/* Políčko „skupina" v ukládacích řádcích (název + skupina + kde zobrazit + uložit). */
+.lattice-group-field { display: inline-flex; flex: 1 1 90px; min-width: 0; }
+.lattice-group-input {
+  width: 100%; min-width: 0; padding: 5px 8px;
+  border: 1px dashed var(--lattice-border); border-radius: var(--lattice-control-radius);
+  background: var(--lattice-bg); color: var(--lattice-text); font: inherit; font-size: 0.95em;
+}
+.lattice-group-input:focus { outline: none; border-style: solid; border-color: var(--lattice-accent); box-shadow: 0 0 0 2px var(--lattice-accent-soft); }
 .lattice-tool-btn {
   display: inline-flex;
   align-items: center;

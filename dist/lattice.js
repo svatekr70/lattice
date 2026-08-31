@@ -3303,6 +3303,52 @@ function rowScaleColors(labelText, colors, onChange, t) {
   return field(labelText, wrap);
 }
 
+// src/util/groups.js
+function normalizeGroup(group) {
+  return String(group == null ? "" : group).trim();
+}
+function listGroups(items) {
+  const out = [];
+  for (const it of items || []) {
+    const g = normalizeGroup(it && it.group);
+    if (g && !out.includes(g)) out.push(g);
+  }
+  return out;
+}
+function groupItems(items) {
+  const plain = { group: "", items: [] };
+  const buckets = [plain];
+  const byName = /* @__PURE__ */ new Map([["", plain]]);
+  for (const it of items || []) {
+    const g = normalizeGroup(it && it.group);
+    let bucket = byName.get(g);
+    if (!bucket) {
+      bucket = { group: g, items: [] };
+      byName.set(g, bucket);
+      buckets.push(bucket);
+    }
+    bucket.items.push(it);
+  }
+  return buckets.filter((b) => b.items.length);
+}
+function fillGroupedSelect(sel, items, optionOf) {
+  for (const bucket of groupItems(items)) {
+    const target = bucket.group ? el("optgroup", { label: bucket.group }) : sel;
+    for (const item of bucket.items) target.appendChild(optionOf(item));
+    if (bucket.group) sel.appendChild(target);
+  }
+  return sel;
+}
+var dlSeq = 0;
+function groupField(existing, { value = "", placeholder = "", title = "" } = {}) {
+  const id = "lattice-groups-" + ++dlSeq;
+  const input = el("input.lattice-group-input", { type: "text", value, placeholder, title });
+  input.setAttribute("list", id);
+  const dl = el("datalist", { id });
+  for (const g of listGroups(existing)) dl.appendChild(el("option", { value: g }));
+  return { el: el("span.lattice-group-field", {}, [input, dl]), input };
+}
+
 // src/features/gear.js
 var PRESET_PARTS = ["columns", "filters", "instance"];
 var cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
@@ -3397,7 +3443,10 @@ var Gear = class {
       wrap.appendChild(el("div.lattice-preset-empty", { text: t("presets.none") }));
     } else {
       const list = el("div.lattice-preset-list");
-      for (const p of presets) list.appendChild(this.buildPresetRow(p));
+      for (const bucket of groupItems(presets)) {
+        if (bucket.group) list.appendChild(el("div.lattice-saved-group", { text: bucket.group }));
+        for (const p of bucket.items) list.appendChild(this.buildPresetRow(p));
+      }
       wrap.appendChild(list);
     }
     const parts = this._presetParts || (this._presetParts = { columns: true, filters: true, instance: true });
@@ -3438,6 +3487,11 @@ var Gear = class {
       asSelInput,
       el("span", { text: t("presets.asSelect") })
     ]);
+    const grp = groupField(presets, {
+      value: prefill ? prefill.group || "" : "",
+      placeholder: t("presets.groupPlaceholder"),
+      title: t("presets.groupHint")
+    });
     const saveBtn = el("button.lattice-icon-btn", { type: "button", title: t("presets.saveLocal"), html: BOOKMARK_SVG });
     const doSaveLocal = () => {
       const name = input.value.trim();
@@ -3445,7 +3499,7 @@ var Gear = class {
         input.focus();
         return;
       }
-      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
+      grid.presets.saveLocal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       input.value = "";
       this._prefill = null;
       this.refresh();
@@ -3454,7 +3508,7 @@ var Gear = class {
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doSaveLocal();
     });
-    const rowEls = [input, asBtnLabel, asSelLabel, saveBtn];
+    const rowEls = [input, grp.el, asBtnLabel, asSelLabel, saveBtn];
     let globeBtn = null;
     if (grid.presets.canSaveGlobal()) {
       globeBtn = el("button.lattice-icon-btn.is-success", { type: "button", title: t("presets.saveGlobal"), html: GLOBE_SVG });
@@ -3464,7 +3518,7 @@ var Gear = class {
           input.focus();
           return;
         }
-        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked });
+        grid.presets.saveGlobal(name, parts, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
         input.value = "";
         this._prefill = null;
         this.refresh();
@@ -5670,7 +5724,9 @@ var cs_default = {
     asButton: "tla\u010D\xEDtko",
     asButtonHint: "Zobrazit tento pohled jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = pou\u017E\xEDt).",
     asSelect: "v\xFDb\u011Br",
-    asSelectHint: "Nab\xEDdnout tento pohled v rozbalovac\xEDm v\xFDb\u011Bru pohled\u016F v z\xE1hlav\xED tabulky."
+    asSelectHint: "Nab\xEDdnout tento pohled v rozbalovac\xEDm v\xFDb\u011Bru pohled\u016F v z\xE1hlav\xED tabulky.",
+    groupPlaceholder: "Skupina\u2026",
+    groupHint: "Voliteln\xE1 skupina ve v\xFDb\u011Bru (\u201EProdeje\u201C, \u201EFaktury\u201C\u2026) \u2014 pohledy se stejnou skupinou se ve v\xFDb\u011Bru sdru\u017E\xED pod spole\u010Dn\xFD nadpis."
   },
   quickbar: {
     presets: "Pohledy",
@@ -5940,6 +5996,8 @@ var cs_default = {
     asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko vlevo od filtra\u010Dn\xEDch ikon (klik = zapnout/vypnout).",
     asSelect: "v\xFDb\u011Br",
     asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F v z\xE1hlav\xED tabulky.",
+    groupPlaceholder: "Skupina ve v\xFDb\u011Bru\u2026",
+    groupHint: "Voliteln\xE1 skupina ve v\xFDb\u011Bru (\u201EProdeje\u201C, \u201EFaktury\u201C\u2026) \u2014 filtry se stejnou skupinou se ve v\xFDb\u011Bru sdru\u017E\xED pod spole\u010Dn\xFD nadpis. (S AND/OR skupinami podm\xEDnek nesouvis\xED.)",
     remove: "Odebrat",
     delete: "Smazat ulo\u017Een\xFD filtr",
     ops: {
@@ -5972,6 +6030,8 @@ var cs_default = {
     asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko vlevo od filtra\u010Dn\xEDch ikon (klik = zapnout/vypnout).",
     asSelect: "v\xFDb\u011Br",
     asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F v z\xE1hlav\xED tabulky.",
+    groupPlaceholder: "Skupina\u2026",
+    groupHint: "Voliteln\xE1 skupina ve v\xFDb\u011Bru (\u201EProdeje\u201C, \u201EFaktury\u201C\u2026) \u2014 filtry se stejnou skupinou se ve v\xFDb\u011Bru sdru\u017E\xED pod spole\u010Dn\xFD nadpis.",
     save: "Ulo\u017Eit",
     saveGlobal: "Ulo\u017Eit glob\xE1ln\u011B",
     none: "Zat\xEDm \u017E\xE1dn\xE9 ulo\u017Een\xE9",
@@ -6209,7 +6269,9 @@ var en_default = {
     asButton: "button",
     asButtonHint: "Show this view as a button in the row above the icons (click to apply).",
     asSelect: "select",
-    asSelectHint: "Offer this view in the views dropdown in the table header."
+    asSelectHint: "Offer this view in the views dropdown in the table header.",
+    groupPlaceholder: "Group\u2026",
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"\u2026) \u2014 views sharing a group are listed under one heading.'
   },
   quickbar: {
     presets: "Views",
@@ -6479,6 +6541,8 @@ var en_default = {
     asButtonHint: "Show this saved filter as a button left of the filter icons (click to toggle on/off).",
     asSelect: "select",
     asSelectHint: "Offer this filter in the saved-filters dropdown in the table header.",
+    groupPlaceholder: "Group in the dropdown\u2026",
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"\u2026) \u2014 filters sharing a group are listed under one heading. (Unrelated to AND/OR condition groups.)',
     remove: "Remove",
     delete: "Delete saved filter",
     ops: {
@@ -6511,6 +6575,8 @@ var en_default = {
     asButtonHint: "Show this saved filter as a button left of the filter icons (click to toggle on/off).",
     asSelect: "select",
     asSelectHint: "Offer this filter in the saved-filters dropdown in the table header.",
+    groupPlaceholder: "Group\u2026",
+    groupHint: 'Optional group in the dropdown ("Sales", "Invoices"\u2026) \u2014 filters sharing a group are listed under one heading.',
     save: "Save",
     saveGlobal: "Save globally",
     none: "Nothing saved yet",
@@ -6748,7 +6814,9 @@ var pl_default = {
     asButton: "przycisk",
     asButtonHint: "Poka\u017C ten widok jako przycisk w rz\u0119dzie nad ikonami (klikni\u0119cie = zastosuj).",
     asSelect: "lista",
-    asSelectHint: "Udost\u0119pnij ten widok na rozwijanej li\u015Bcie widok\xF3w w nag\u0142\xF3wku tabeli."
+    asSelectHint: "Udost\u0119pnij ten widok na rozwijanej li\u015Bcie widok\xF3w w nag\u0142\xF3wku tabeli.",
+    groupPlaceholder: "Grupa\u2026",
+    groupHint: "Opcjonalna grupa na li\u015Bcie wyboru (\u201ESprzeda\u017C\u201C, \u201EFaktury\u201C\u2026) \u2014 widoki z t\u0105 sam\u0105 grup\u0105 pojawi\u0105 si\u0119 pod wsp\xF3lnym nag\u0142\xF3wkiem."
   },
   quickbar: {
     presets: "Widoki",
@@ -7018,6 +7086,8 @@ var pl_default = {
     asButtonHint: "Poka\u017C ten zapisany filtr jako przycisk po lewej od ikon filtr\xF3w (klikni\u0119cie = w\u0142\u0105cz/wy\u0142\u0105cz).",
     asSelect: "lista",
     asSelectHint: "Udost\u0119pnij ten filtr na rozwijanej li\u015Bcie zapisanych filtr\xF3w w nag\u0142\xF3wku tabeli.",
+    groupPlaceholder: "Grupa na li\u015Bcie wyboru\u2026",
+    groupHint: "Opcjonalna grupa na li\u015Bcie wyboru (\u201ESprzeda\u017C\u201C, \u201EFaktury\u201C\u2026) \u2014 filtry z t\u0105 sam\u0105 grup\u0105 pojawi\u0105 si\u0119 pod wsp\xF3lnym nag\u0142\xF3wkiem. (Nie ma zwi\u0105zku z grupami warunk\xF3w AND/OR.)",
     remove: "Usu\u0144",
     delete: "Usu\u0144 zapisany filtr",
     ops: {
@@ -7050,6 +7120,8 @@ var pl_default = {
     asButtonHint: "Poka\u017C ten zapisany filtr jako przycisk po lewej od ikon filtr\xF3w (klikni\u0119cie = w\u0142\u0105cz/wy\u0142\u0105cz).",
     asSelect: "lista",
     asSelectHint: "Udost\u0119pnij ten filtr na rozwijanej li\u015Bcie zapisanych filtr\xF3w w nag\u0142\xF3wku tabeli.",
+    groupPlaceholder: "Grupa\u2026",
+    groupHint: "Opcjonalna grupa na li\u015Bcie wyboru (\u201ESprzeda\u017C\u201C, \u201EFaktury\u201C\u2026) \u2014 filtry z t\u0105 sam\u0105 grup\u0105 pojawi\u0105 si\u0119 pod wsp\xF3lnym nag\u0142\xF3wkiem.",
     save: "Zapisz",
     saveGlobal: "Zapisz globalnie",
     none: "Nic jeszcze nie zapisano",
@@ -7287,7 +7359,9 @@ var sk_default = {
     asButton: "tla\u010Didlo",
     asButtonHint: "Zobrazi\u0165 tento poh\u013Ead ako tla\u010Didlo v rade nad ikonami (klik = pou\u017Ei\u0165).",
     asSelect: "v\xFDber",
-    asSelectHint: "Pon\xFAknu\u0165 tento poh\u013Ead v rozba\u013Eovacom v\xFDbere poh\u013Eadov v z\xE1hlav\xED tabu\u013Eky."
+    asSelectHint: "Pon\xFAknu\u0165 tento poh\u013Ead v rozba\u013Eovacom v\xFDbere poh\u013Eadov v z\xE1hlav\xED tabu\u013Eky.",
+    groupPlaceholder: "Skupina\u2026",
+    groupHint: "Volite\u013En\xE1 skupina vo v\xFDbere (\u201EPredaje\u201C, \u201EFakt\xFAry\u201C\u2026) \u2014 poh\u013Eady s rovnakou skupinou sa vo v\xFDbere zl\xFA\u010Dia pod spolo\u010Dn\xFD nadpis."
   },
   quickbar: {
     presets: "Poh\u013Eady",
@@ -7557,6 +7631,8 @@ var sk_default = {
     asButtonHint: "Zobrazi\u0165 tento ulo\u017Een\xFD filter ako tla\u010Didlo v\u013Eavo od filtra\u010Dn\xFDch ikon (klik = zapn\xFA\u0165/vypn\xFA\u0165).",
     asSelect: "v\xFDber",
     asSelectHint: "Pon\xFAknu\u0165 tento filter v rozba\u013Eovacom v\xFDbere ulo\u017Een\xFDch filtrov v z\xE1hlav\xED tabu\u013Eky.",
+    groupPlaceholder: "Skupina vo v\xFDbere\u2026",
+    groupHint: "Volite\u013En\xE1 skupina vo v\xFDbere (\u201EPredaje\u201C, \u201EFakt\xFAry\u201C\u2026) \u2014 filtre s rovnakou skupinou sa vo v\xFDbere zl\xFA\u010Dia pod spolo\u010Dn\xFD nadpis. (S AND/OR skupinami podmienok nes\xFAvis\xED.)",
     remove: "Odobra\u0165",
     delete: "Zmaza\u0165 ulo\u017Een\xFD filter",
     ops: {
@@ -7589,6 +7665,8 @@ var sk_default = {
     asButtonHint: "Zobrazi\u0165 tento ulo\u017Een\xFD filter ako tla\u010Didlo v\u013Eavo od filtra\u010Dn\xFDch ikon (klik = zapn\xFA\u0165/vypn\xFA\u0165).",
     asSelect: "v\xFDber",
     asSelectHint: "Pon\xFAknu\u0165 tento filter v rozba\u013Eovacom v\xFDbere ulo\u017Een\xFDch filtrov v z\xE1hlav\xED tabu\u013Eky.",
+    groupPlaceholder: "Skupina\u2026",
+    groupHint: "Volite\u013En\xE1 skupina vo v\xFDbere (\u201EPredaje\u201C, \u201EFakt\xFAry\u201C\u2026) \u2014 filtre s rovnakou skupinou sa vo v\xFDbere zl\xFA\u010Dia pod spolo\u010Dn\xFD nadpis.",
     save: "Ulo\u017Ei\u0165",
     saveGlobal: "Ulo\u017Ei\u0165 glob\xE1lne",
     none: "Zatia\u013E \u017Eiadne ulo\u017Een\xE9",
@@ -10578,7 +10656,7 @@ var Renderer = class {
   /**
    * Rozbalovací výběr **uložených filtrů** (těch označených „jako výběr"). Stojí hned
    * za filtračními ikonami; globální položky nesou prefix globusu (v `<option>` nejde
-   * SVG ikona).
+   * SVG ikona). Filtry se skupinou se sdruží do `<optgroup>` pod její název.
    */
   buildFilterSelect(f) {
     const grid = this.grid;
@@ -10588,7 +10666,7 @@ var Renderer = class {
     if (!filters.length) return;
     const sel = el("select.lattice-adv-quick", { title: t("quickbar.filters") });
     sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
-    for (const x of filters) sel.appendChild(el("option", { value: x.id, text: (x.scope === "global" ? "\u{1F310} " : "") + x.name }));
+    fillGroupedSelect(sel, filters, (x) => el("option", { value: x.id, text: (x.scope === "global" ? "\u{1F310} " : "") + x.name }));
     const activeId = grid.activeSavedId();
     sel.value = filters.some((x) => x.id === activeId) ? activeId : "";
     sel.addEventListener("change", () => {
@@ -10608,6 +10686,7 @@ var Renderer = class {
   /**
    * Rozbalovací výběr **presetů** (těch označených „jako výběr") — vpravo vedle výběru
    * filtrů, ať je vidět, že jde o jiný druh. Vyprázdnění vrátí výchozí zobrazení.
+   * Pohledy se skupinou se sdruží do `<optgroup>` pod její název.
    */
   buildPresetSelect() {
     const grid = this.grid;
@@ -10616,7 +10695,7 @@ var Renderer = class {
     if (!presets.length) return;
     const sel = el("select.lattice-adv-quick.is-presets", { title: t("quickbar.presets") });
     sel.appendChild(el("option", { value: "", text: t("quickbar.presetsPlaceholder") }));
-    for (const p of presets) sel.appendChild(el("option", { value: p.id, text: (p.scope === "global" ? "\u{1F310} " : "") + p.name }));
+    fillGroupedSelect(sel, presets, (p) => el("option", { value: p.id, text: (p.scope === "global" ? "\u{1F310} " : "") + p.name }));
     sel.value = presets.some((p) => p.id === grid._activePresetId) ? grid._activePresetId : "";
     sel.addEventListener("change", () => {
       if (!sel.value) return grid.resetView();
@@ -11019,13 +11098,15 @@ var PresetStore = class {
    * vybírá, co preset ponese (`{columns, filters, instance}`) — nezadáno = vše.
    * `display` = kde se preset ukáže v toolbaru: `{ button, select }` (nebo legacy
    * boolean = jen tlačítko). Nezadáno → nikde, preset žije jen v panelu „Sloupce".
+   * `group` = volitelný štítek skupiny („Prodeje", „Faktury"…); pohledy se stejnou
+   * skupinou se v rozbalovacím výběru sdruží pod jeden nadpis. `@v1.20.0`
    */
-  saveLocal(name, parts, display) {
+  saveLocal(name, parts, display, group = "") {
     const nm = String(name).trim();
     if (!nm) return null;
     const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
     const prev = this.local().find((p) => p.name === nm);
-    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, ...groupField2(group), state: this.grid.captureState(parts) };
     const list = this.local().filter((p) => p.name !== preset.name);
     list.push(preset);
     this.grid.state.presets = list;
@@ -11038,19 +11119,19 @@ var PresetStore = class {
    * v seznamu a předá aplikaci přes callback onSaveGlobalPreset(preset) — ta si
    * poradí s perzistencí (DB, sdílení mezi uživateli). Vrací sestavený preset.
    * `parts` vybírá, co preset ponese (viz `saveLocal`), `display` určuje jeho
-   * zobrazení v toolbaru (tlačítko / výběr).
+   * zobrazení v toolbaru (tlačítko / výběr) a `group` skupinu ve výběru.
    */
-  saveGlobal(name, parts, display) {
+  saveGlobal(name, parts, display, group = "") {
     const nm = String(name).trim();
     if (!nm) return null;
     const d = normalizeDisplay(display, PRESET_DISPLAY_DEFAULT);
     const prev = this.globals.find((p) => p.name === nm);
-    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, state: this.grid.captureState(parts) };
+    const preset = { id: prev ? prev.id : uid(), name: nm, ...d, ...groupField2(group), state: this.grid.captureState(parts) };
     this.globals = this.globals.filter((p) => p.name !== preset.name);
     const norm5 = { ...preset, scope: "global" };
     this.globals.push(norm5);
     const cb = this.grid.options.onSaveGlobalPreset;
-    if (typeof cb === "function") cb({ id: preset.id, name: preset.name, asButton: preset.asButton, asSelect: preset.asSelect, state: preset.state });
+    if (typeof cb === "function") cb({ id: preset.id, name: preset.name, asButton: preset.asButton, asSelect: preset.asSelect, group: preset.group || "", state: preset.state });
     else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(preset)).catch(() => {
     });
     this.grid.renderer?.renderToolbar();
@@ -11068,7 +11149,7 @@ var PresetStore = class {
       if (!p2) return null;
       p2[key] = !!on;
       const cb = this.grid.options.onSaveGlobalPreset;
-      if (typeof cb === "function") cb({ id: p2.id, name: p2.name, asButton: !!p2.asButton, asSelect: !!p2.asSelect, state: p2.state });
+      if (typeof cb === "function") cb({ id: p2.id, name: p2.name, asButton: !!p2.asButton, asSelect: !!p2.asSelect, group: p2.group || "", state: p2.state });
       else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(p2)).catch(() => {
       });
       this.grid.renderer?.renderToolbar();
@@ -11078,6 +11159,37 @@ var PresetStore = class {
     const p = list.find((x) => x.id === preset.id);
     if (!p) return null;
     p[key] = !!on;
+    this.grid.state.presets = list;
+    this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
+    return p;
+  }
+  /**
+   * Nastaví (nebo zruší prázdným řetězcem) skupinu presetu — štítek, pod kterým se
+   * pohled sdruží v rozbalovacím výběru. U globálního presetu pošle změnu aplikaci
+   * stejným callbackem jako uložení. `@v1.20.0`
+   */
+  setGroup(preset, group) {
+    const grp = normalizeGroup(group);
+    const apply = (p2) => {
+      if (grp) p2.group = grp;
+      else delete p2.group;
+    };
+    if (preset.scope === "global") {
+      const p2 = this.globals.find((x) => x.id === preset.id);
+      if (!p2) return null;
+      apply(p2);
+      const cb = this.grid.options.onSaveGlobalPreset;
+      if (typeof cb === "function") cb({ id: p2.id, name: p2.name, asButton: !!p2.asButton, asSelect: !!p2.asSelect, group: p2.group || "", state: p2.state });
+      else if (this.adapter && this.adapter.save) Promise.resolve(this.adapter.save(p2)).catch(() => {
+      });
+      this.grid.renderer?.renderToolbar();
+      return p2;
+    }
+    const list = this.local();
+    const p = list.find((x) => x.id === preset.id);
+    if (!p) return null;
+    apply(p);
     this.grid.state.presets = list;
     this.grid.saveState();
     this.grid.renderer?.renderToolbar();
@@ -11097,6 +11209,10 @@ var PresetStore = class {
     this.grid.renderer?.renderToolbar();
   }
 };
+function groupField2(group) {
+  const g = normalizeGroup(group);
+  return g ? { group: g } : {};
+}
 function uid() {
   const c = globalThis.crypto;
   if (c && typeof c.randomUUID === "function") return c.randomUUID();
@@ -11181,6 +11297,15 @@ var AdvancedFilter = class {
       asSelInput,
       el("span", { text: t("advanced.asSelect") })
     ]);
+    const grp = groupField(this.grid.listAdvanced(), {
+      placeholder: t("advanced.groupPlaceholder"),
+      title: t("advanced.groupHint")
+    });
+    this.groupInput = grp.input;
+    if (this.selectedId) {
+      const cur = this.grid.listAdvanced().find((x) => x.id === this.selectedId);
+      if (cur) grp.input.value = cur.group || "";
+    }
     const saveBtn = el("button.lattice-dr-btn", { type: "button", text: t("advanced.save") });
     const saveWithScope = (scope) => {
       const name = nameInput.value.trim();
@@ -11188,15 +11313,16 @@ var AdvancedFilter = class {
         nameInput.focus();
         return;
       }
-      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked });
+      const item = this.grid.saveAdvanced(name, this.tree, scope, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       nameInput.value = "";
+      grp.input.value = "";
       asBtnInput.checked = false;
       asSelInput.checked = true;
       this.selectedId = item ? item.id : this.selectedId;
       this.refreshSavedRow();
     };
     saveBtn.addEventListener("click", () => saveWithScope("local"));
-    const saveRowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
+    const saveRowEls = [nameInput, grp.el, asBtnLabel, asSelLabel, saveBtn];
     if (this.grid.canSaveGlobalAdvanced()) {
       const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("advanced.saveGlobal") });
       globeBtn.addEventListener("click", () => saveWithScope("global"));
@@ -11223,7 +11349,7 @@ var AdvancedFilter = class {
     const saved = grid.listAdvanced().filter((f) => f.kind !== "columns");
     const sel = el("select.lattice-adv-saved");
     sel.appendChild(el("option", { value: "", text: t("advanced.savedPlaceholder") }));
-    for (const f of saved) sel.appendChild(el("option", { value: f.id, text: (f.scope === "global" ? "\u{1F310} " : "") + f.name }));
+    fillGroupedSelect(sel, saved, (f) => el("option", { value: f.id, text: (f.scope === "global" ? "\u{1F310} " : "") + f.name }));
     sel.value = this.selectedId || "";
     sel.addEventListener("change", () => {
       this.selectedId = sel.value;
@@ -11233,6 +11359,7 @@ var AdvancedFilter = class {
       if (this.nameInput) this.nameInput.value = f.name;
       if (this.asBtnInput) this.asBtnInput.checked = !!f.asButton;
       if (this.asSelInput) this.asSelInput.checked = f.asSelect === void 0 ? !f.asButton : !!f.asSelect;
+      if (this.groupInput) this.groupInput.value = f.group || "";
       this.renderBuilder();
       grid.applyAdvanced(this.tree);
     });
@@ -11400,6 +11527,7 @@ var SaveFiltersPanel = class {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const nameInput = el("input.lattice-adv-name", { type: "text", placeholder: t("saveFilters.namePlaceholder"), value: prefillName });
+    const grp = groupField(grid.listAdvanced(), { placeholder: t("saveFilters.groupPlaceholder"), title: t("saveFilters.groupHint") });
     const asBtnInput = el("input", { type: "checkbox" });
     const asBtnLabel = el("label.lattice-adv-asbtn", { title: t("saveFilters.asButtonHint") }, [
       asBtnInput,
@@ -11416,6 +11544,7 @@ var SaveFiltersPanel = class {
       if (cur) {
         asBtnInput.checked = !!cur.asButton;
         asSelInput.checked = cur.asSelect === void 0 ? !cur.asButton : !!cur.asSelect;
+        grp.input.value = cur.group || "";
       }
     }
     const saveWithScope = (scope) => {
@@ -11424,9 +11553,10 @@ var SaveFiltersPanel = class {
         nameInput.focus();
         return;
       }
-      const item = grid.saveFilterSnapshot(name, scope, { button: asBtnInput.checked, select: asSelInput.checked });
+      const item = grid.saveFilterSnapshot(name, scope, { button: asBtnInput.checked, select: asSelInput.checked }, grp.input.value);
       if (!item) return;
       nameInput.value = "";
+      grp.input.value = "";
       asBtnInput.checked = false;
       asSelInput.checked = true;
       this.renderList();
@@ -11436,7 +11566,7 @@ var SaveFiltersPanel = class {
     nameInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") saveWithScope("local");
     });
-    const rowEls = [nameInput, asBtnLabel, asSelLabel, saveBtn];
+    const rowEls = [nameInput, grp.el, asBtnLabel, asSelLabel, saveBtn];
     if (grid.canSaveGlobalAdvanced()) {
       const globeBtn = el("button.lattice-dr-btn.is-success", { type: "button", text: t("saveFilters.saveGlobal") });
       globeBtn.addEventListener("click", () => saveWithScope("global"));
@@ -11457,64 +11587,71 @@ var SaveFiltersPanel = class {
     }
     const activeId = grid.activeSavedId();
     this._rows = [];
-    for (const item of saved) {
-      const row = el("div.lattice-savefilters-row");
-      const apply = el("button.lattice-savefilters-name" + (item.id === activeId ? ".is-active" : ""), {
-        type: "button",
-        text: (item.scope === "global" ? "\u{1F310} " : "") + item.name,
-        title: (item.id === activeId ? t("quickbar.clearFilter") : t("quickbar.applyFilter")) + " \xB7 " + t("saveFilters.rename")
-      });
-      apply.addEventListener("click", () => {
-        grid.toggleSavedAdvanced(item.id);
-        this.syncActive();
-      });
-      apply.addEventListener("dblclick", () => this.renameInline(row, apply, item));
-      row.appendChild(apply);
-      this._rows.push({ item, apply });
-      const ren = el("button.lattice-preset-pin", { type: "button", title: t("saveFilters.rename"), html: PENCIL_SVG2 });
-      ren.addEventListener("click", () => this.renameInline(row, apply, item));
-      row.appendChild(ren);
-      if (item.kind === "columns") {
-        const over = el("button.lattice-preset-pin.lattice-savefilters-overwrite", {
-          type: "button",
-          html: DISK_SVG,
-          title: grid.hasColumnFilters() ? t("saveFilters.overwrite") : t("saveFilters.overwriteDisabled")
-        });
-        over.disabled = !grid.hasColumnFilters();
-        over.addEventListener("click", () => {
-          grid.overwriteSavedFilter(item.id);
-          this.renderList();
-        });
-        row.appendChild(over);
-      } else {
-        const edit = el("button.lattice-preset-pin", { type: "button", title: t("saveFilters.edit"), html: BUILDER_SVG });
-        edit.addEventListener("click", () => {
-          this.close();
-          grid.renderer.editSavedItem(item, "filter");
-        });
-        row.appendChild(edit);
-      }
-      const asSelect = item.asSelect === void 0 ? !item.asButton : !!item.asSelect;
-      for (const [key, on, icon, hint] of [
-        ["asButton", !!item.asButton, PILL_SVG, "saveFilters.asButtonHint"],
-        ["asSelect", asSelect, SELECT_SVG2, "saveFilters.asSelectHint"]
-      ]) {
-        const tog = el("button.lattice-preset-pin" + (on ? ".is-on" : ""), { type: "button", title: t(hint), html: icon });
-        tog.addEventListener("click", () => {
-          grid.setAdvancedDisplay(item.id, key, !on);
-          this.renderList();
-        });
-        row.appendChild(tog);
-      }
-      const del = el("button.lattice-icon-btn.is-danger", { type: "button", title: t("saveFilters.delete"), text: "\xD7" });
-      del.addEventListener("click", () => {
-        grid.deleteAdvanced(item.id);
-        this.renderList();
-      });
-      row.appendChild(del);
-      list.appendChild(row);
+    for (const bucket of groupItems(saved)) {
+      if (bucket.group) list.appendChild(el("div.lattice-saved-group", { text: bucket.group }));
+      for (const item of bucket.items) list.appendChild(this.buildRow(item, activeId));
     }
     if (this.panel) positionUnder(this.panel, this.anchor);
+  }
+  /** Jeden řádek seznamu uložených filtrů (název + akce). */
+  buildRow(item, activeId) {
+    const grid = this.grid;
+    const t = grid.i18n.t.bind(grid.i18n);
+    const row = el("div.lattice-savefilters-row");
+    const apply = el("button.lattice-savefilters-name" + (item.id === activeId ? ".is-active" : ""), {
+      type: "button",
+      text: (item.scope === "global" ? "\u{1F310} " : "") + item.name,
+      title: (item.id === activeId ? t("quickbar.clearFilter") : t("quickbar.applyFilter")) + " \xB7 " + t("saveFilters.rename")
+    });
+    apply.addEventListener("click", () => {
+      grid.toggleSavedAdvanced(item.id);
+      this.syncActive();
+    });
+    apply.addEventListener("dblclick", () => this.renameInline(row, apply, item));
+    row.appendChild(apply);
+    this._rows.push({ item, apply });
+    const ren = el("button.lattice-preset-pin", { type: "button", title: t("saveFilters.rename"), html: PENCIL_SVG2 });
+    ren.addEventListener("click", () => this.renameInline(row, apply, item));
+    row.appendChild(ren);
+    if (item.kind === "columns") {
+      const over = el("button.lattice-preset-pin.lattice-savefilters-overwrite", {
+        type: "button",
+        html: DISK_SVG,
+        title: grid.hasColumnFilters() ? t("saveFilters.overwrite") : t("saveFilters.overwriteDisabled")
+      });
+      over.disabled = !grid.hasColumnFilters();
+      over.addEventListener("click", () => {
+        grid.overwriteSavedFilter(item.id);
+        this.renderList();
+      });
+      row.appendChild(over);
+    } else {
+      const edit = el("button.lattice-preset-pin", { type: "button", title: t("saveFilters.edit"), html: BUILDER_SVG });
+      edit.addEventListener("click", () => {
+        this.close();
+        grid.renderer.editSavedItem(item, "filter");
+      });
+      row.appendChild(edit);
+    }
+    const asSelect = item.asSelect === void 0 ? !item.asButton : !!item.asSelect;
+    for (const [key, on, icon, hint] of [
+      ["asButton", !!item.asButton, PILL_SVG, "saveFilters.asButtonHint"],
+      ["asSelect", asSelect, SELECT_SVG2, "saveFilters.asSelectHint"]
+    ]) {
+      const tog = el("button.lattice-preset-pin" + (on ? ".is-on" : ""), { type: "button", title: t(hint), html: icon });
+      tog.addEventListener("click", () => {
+        grid.setAdvancedDisplay(item.id, key, !on);
+        this.renderList();
+      });
+      row.appendChild(tog);
+    }
+    const del = el("button.lattice-icon-btn.is-danger", { type: "button", title: t("saveFilters.delete"), text: "\xD7" });
+    del.addEventListener("click", () => {
+      grid.deleteAdvanced(item.id);
+      this.renderList();
+    });
+    row.appendChild(del);
+    return row;
   }
   /** Přebarví zvýraznění aktivní položky bez překreslení seznamu (viz klik na název). */
   syncActive() {
@@ -11526,24 +11663,38 @@ var SaveFiltersPanel = class {
       apply.title = (on ? t("quickbar.clearFilter") : t("quickbar.applyFilter")) + " \xB7 " + t("saveFilters.rename");
     }
   }
-  /** Přejmenování na místě: název se změní v políčku, Enter uloží, Escape zruší. */
+  /**
+   * Úprava na místě: název a skupina se změní v políčkách, Enter uloží, Escape zruší.
+   * Skupina se dá i vyprázdnit (filtr pak stojí ve výběru samostatně nahoře).
+   */
   renameInline(row, nameBtn, item) {
+    const t = this.grid.i18n.t.bind(this.grid.i18n);
     const input = el("input.lattice-savefilters-rename", { type: "text", value: item.name });
-    row.replaceChild(input, nameBtn);
+    const grp = groupField(this.grid.listAdvanced(), {
+      value: item.group || "",
+      placeholder: t("saveFilters.groupPlaceholder"),
+      title: t("saveFilters.groupHint")
+    });
+    const wrap = el("span.lattice-savefilters-edit", {}, [input, grp.el]);
+    row.replaceChild(wrap, nameBtn);
     input.focus();
     input.select();
     let done = false;
     const finish = (save) => {
       if (done) return;
       done = true;
-      if (save) this.grid.renameSavedFilter(item.id, input.value);
+      if (save) this.grid.renameSavedFilter(item.id, input.value, grp.input.value);
       this.renderList();
     };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") finish(true);
-      else if (e.key === "Escape") finish(false);
+    for (const inp of [input, grp.input]) {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(true);
+        else if (e.key === "Escape") finish(false);
+      });
+    }
+    wrap.addEventListener("focusout", (e) => {
+      if (!wrap.contains(e.relatedTarget)) finish(true);
     });
-    input.addEventListener("blur", () => finish(true));
   }
 };
 var DISK_SVG = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M4 3h13l3 3v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path fill="var(--lattice-bg, #fff)" d="M7 4h8v5H7zM6 14h12v7H6z"/></svg>';
@@ -13760,13 +13911,17 @@ var Lattice = class {
    *  - scope 'global' — knihovna filtr jen sestaví, ukáže v seznamu a předá aplikaci
    *    přes callback onSaveGlobalAdvancedFilter({ id, name, tree }); ta zajistí
    *    perzistenci a sdílení mezi uživateli (DB). Vrací sestavenou položku.
+   *
+   * `group` je volitelný štítek skupiny („Prodeje", „Faktury"…) — filtry se stejnou
+   * skupinou se v rozbalovacím výběru sdruží pod jeden nadpis (`<optgroup>`). `@v1.20.0`
    */
-  saveAdvanced(name, tree, scope = "local", display = false) {
-    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)) });
+  saveAdvanced(name, tree, scope = "local", display = false, group = "") {
+    return this._saveNamedFilter(name, scope, display, { tree: JSON.parse(JSON.stringify(tree)), group });
   }
   /**
    * Společná perzistence pojmenovaného uloženého filtru (rozšířený strom NEBO snímek
-   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes }).
+   * sloupcových filtrů). `fields` nese specifika druhu ({ tree } | { kind, filters, filterTypes })
+   * a volitelnou `group` (štítek skupiny ve výběru).
    * Stejný název ve stejném scope přepíše (zachová id → downstream INSERT … ON DUPLICATE KEY).
    *  - local  → do localStorage blobu (state.advancedFilters), kompletně v knihovně.
    *  - global → knihovna položku sestaví a předá aplikaci přes onSaveGlobalAdvancedFilter;
@@ -13776,6 +13931,9 @@ var Lattice = class {
     name = String(name || "").trim();
     if (!name) return null;
     const core = { name, ...normalizeDisplay(display), ...fields };
+    const grp = normalizeGroup(core.group);
+    if (grp) core.group = grp;
+    else delete core.group;
     if (scope === "global") {
       const existing2 = this.globalAdvanced.find((f) => f.name === name);
       const id = existing2 ? existing2.id : uid2();
@@ -13821,6 +13979,15 @@ var Lattice = class {
     this.store.save(this.state);
     this.renderer.renderToolbar();
     return item;
+  }
+  /**
+   * Nastaví (nebo zruší prázdným řetězcem) skupinu uloženého filtru — štítek, pod
+   * kterým se filtr sdruží v rozbalovacím výběru. `@v1.20.0`
+   */
+  setAdvancedGroup(id, group) {
+    const item = this.listAdvanced().find((f) => f.id === id);
+    if (!item) return null;
+    return this.renameSavedFilter(id, item.name, group);
   }
   /** Smaže uložený rozšířený filtr (lokální z blobu; globální z UI + callback aplikace). */
   deleteAdvanced(id) {
@@ -13914,14 +14081,18 @@ var Lattice = class {
     }
     return { filters: JSON.parse(JSON.stringify(filters)), filterTypes };
   }
-  /** Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko). */
-  saveFilterSnapshot(name, scope = "local", display = false) {
+  /**
+   * Uloží aktuální sloupcové filtry pod názvem (local/global, volitelně jako tlačítko).
+   * `group` je volitelný štítek skupiny ve výběru (viz `saveAdvanced`). `@v1.20.0`
+   */
+  saveFilterSnapshot(name, scope = "local", display = false, group = "") {
     const snap = this._captureColumnFilters();
     if (!snap) return null;
     return this._saveNamedFilter(name, scope, display, {
       kind: "columns",
       filters: snap.filters,
-      filterTypes: snap.filterTypes
+      filterTypes: snap.filterTypes,
+      group
     });
   }
   /* ------- úprava uloženého filtru (přepsání hodnot, přejmenování) ------- */
@@ -13937,21 +14108,29 @@ var Lattice = class {
     return this.saveFilterSnapshot(item.name, item.scope || "local", {
       button: !!item.asButton,
       select: item.asSelect === void 0 ? !item.asButton : !!item.asSelect
-    });
+    }, item.group);
   }
   /**
-   * Přejmenuje uložený filtr (snímek i strom) — mění jen název, `id` a obsah zůstávají.
-   * Případná jiná položka téhož názvu ustoupí, ať nevznikne dvojice. `@v1.14.0`
+   * Přejmenuje uložený filtr (snímek i strom) — mění jen název (a volitelně skupinu),
+   * `id` a obsah zůstávají. Případná jiná položka téhož názvu ustoupí, ať nevznikne
+   * dvojice. `group` nezadaná = skupina zůstává, prázdný řetězec ji zruší. `@v1.14.0`
+   * (skupina `@v1.20.0`)
    */
-  renameSavedFilter(id, name) {
+  renameSavedFilter(id, name, group) {
     const nm = String(name || "").trim();
     if (!nm) return null;
     const g = this.globalAdvanced.find((f) => f.id === id);
     const target = g || (this.state.advancedFilters || []).find((f) => f.id === id);
-    if (!target || target.name === nm) return null;
+    if (!target) return null;
+    const grp = group === void 0 ? void 0 : normalizeGroup(group);
+    if (target.name === nm && (grp === void 0 || grp === normalizeGroup(target.group))) return null;
     if (g) this.globalAdvanced = this.globalAdvanced.filter((f) => f.id === id || f.name !== nm);
     else this.state.advancedFilters = (this.state.advancedFilters || []).filter((f) => f.id === id || f.name !== nm);
     target.name = nm;
+    if (grp !== void 0) {
+      if (grp) target.group = grp;
+      else delete target.group;
+    }
     if (g) {
       const cb = this.options.onSaveGlobalAdvancedFilter;
       if (typeof cb === "function") {
