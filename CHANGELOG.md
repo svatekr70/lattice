@@ -4,6 +4,21 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.20.1] – 2026-08-31
+
+Drobnost pro práci s víceúrovňovým seskupením: **sbalení skupiny sbalí i její podskupiny**,
+takže po rozbalení nadřazené skupiny máš před sebou přehledný seznam podskupin místo záplavy
+řádků. Bez breaking changes.
+
+### Změněno
+- **Sbalení skupiny řádků sbalí natrvalo i celý její podstrom.** Když v režimu „vnořené
+  hlavičky" sbalíš třeba měsíc, sbalí se s ním i všechny dny pod ním — a zůstanou sbalené.
+  Po opětovném rozbalení měsíce tedy uvidíš jen lišty jednotlivých dnů; každý z nich rozbalíš
+  až vlastním klikem (a jeho vlastní podúrovně zase zůstanou sbalené). Rozbalení skupiny se
+  týká vždy jen jí samotné. Sbalený stav se persistuje a nese v pohledu jako dosud.
+- `toggleGroup(key, node?)` přijímá volitelný uzel stromu skupin, ze kterého se podstrom
+  vyčte; volání `grid.toggleGroup(key)` bez uzlu se chová jako dřív (přepne jen tu skupinu).
+
 ## [1.20.0] – 2026-08-31
 
 Dvě věci pro uživatele tabulky: **tipy nad tabulkou** (jednořádkový info pruh, opt-in přes

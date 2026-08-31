@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.20.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.20.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.20.0
+npm i github:svatekr70/lattice#v1.20.1
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.20.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.20.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -303,7 +303,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `headerRotate` | `'none'` \| `'90'` \| `'270'` |
 | `summaryRow` | `'none'` \| `'page'` (zobrazená stránka) \| `'all'`. **Server-side:** `'all'` agreguje jen z **aktuálně načtených řádků** (grid nemá celý dataset) — souhrn „přes vše" musí spočítat server. |
 | `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |
-| `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. **Sbalení skupiny sbalí i všechny její podskupiny** — po opětovném rozbalení nadřazené skupiny zůstanou podskupiny sbalené a rozbalí je až vlastní klik. |
+| `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. **Sbalení skupiny sbalí i všechny její podskupiny** — po opětovném rozbalení nadřazené skupiny zůstanou podskupiny sbalené a rozbalí je až vlastní klik (`@v1.20.1`). |
 | `groupRepeat` | v režimu `'headers'`: opakovat hodnotu seskupení v každém řádku (`true`, výchozí) \| nechat vedoucí sloupce prázdné a hodnotu jen v liště skupiny (`false`). |
 | `groupSubtotals` | `true` = mezisoučty za skupiny |
 | `groupColWidths` | Šířky **vedoucích sloupců seskupení** (`{ '<groupId>': px }`). Ty sloupce jsou syntetické (vznikají znovu při každém překreslení), takže šířka žije tady — díky tomu se persistuje i nese v uloženém pohledu. Nastavuje ji tažení okraje hlavičky, dvojklik = auto-fit; „Obnovit výchozí" v dialogu Sloupce ji vynuluje. `@v1.16.1` |
@@ -366,7 +366,7 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setFilter(field, value)` / `clearFilters()` | Filtry. |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
-| `saveAdvanced(name, tree, scope?, display?, group?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. `group` (`@v1.20.0`) = štítek skupiny ve výběru (viz *Skupiny ve výběru*). |
+| `saveAdvanced(name, tree, scope?, display?, group?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. `group` (`@v1.20.1`) = štítek skupiny ve výběru (viz *Skupiny ve výběru*). |
 | `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
 | `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
 | `selectAdvanced()` | Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez `asSelect` (uložená před `v1.14.0`) se řídí postaru — co není tlačítko, je ve výběru. `@v1.14.0` |
@@ -638,7 +638,7 @@ Programově totéž: `grid.captureState({ columns: true, filters: false, instanc
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?,group?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do řady tlačítek presetů (vlastní řádek nad ikonami), resp. do výběru „— pohledy —" v toolbaru. `group` (`@v1.20.0`) sdruží pohledy ve výběru pod nadpis (viz *Skupiny ve výběru*). |
+| `globalPresets` | `Array<{id,name,state,asButton?,asSelect?,group?}>` | Presety načtené aplikací z DB (`WHERE grid_id = options.id`). Zobrazí se v nabídce s odznakem globusu; `asButton` / `asSelect` (`@v1.14.0`) je navíc propíšou do řady tlačítek presetů (vlastní řádek nad ikonami), resp. do výběru „— pohledy —" v toolbaru. `group` (`@v1.20.1`) sdruží pohledy ve výběru pod nadpis (viz *Skupiny ve výběru*). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 
@@ -776,7 +776,7 @@ je odliší podle přítomnosti `kind: 'columns'` (jinak stačí uložit celý o
 
 | Option | Typ | Popis |
 |---|---|---|
-| `globalAdvancedFilters` | `Array<{id,name,tree,asButton?,asSelect?,group?}>` \| `Array<{id,name,kind:'columns',filters,filterTypes,asButton?,asSelect?,group?}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). `group` (`@v1.20.0`) sdruží filtry ve výběru pod nadpis (viz *Skupiny ve výběru*). |
+| `globalAdvancedFilters` | `Array<{id,name,tree,asButton?,asSelect?,group?}>` \| `Array<{id,name,kind:'columns',filters,filterTypes,asButton?,asSelect?,group?}>` | Filtry načtené aplikací z DB (`WHERE grid_id = options.id`) — stromy i snímky sloupcových filtrů. V nabídce (panel i quick-select v toolbaru) se odlišují glóbem (🌐). `group` (`@v1.20.1`) sdruží filtry ve výběru pod nadpis (viz *Skupiny ve výběru*). |
 
 **Výstup** (knihovna → aplikace) — callbacky, které si aplikace uloží do DB:
 

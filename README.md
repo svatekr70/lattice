@@ -34,17 +34,17 @@ Název sedí hned na několika rovinách:
 </script>
 ```
 
-Pro produkci připni verzi místo `@main` (tag `@v1.20.0` nebo konkrétní commit).
+Pro produkci připni verzi místo `@main` (tag `@v1.20.1` nebo konkrétní commit).
 Celá knihovna je jeden sbalený ESM soubor — načte se **jedním requestem**.
 
 **Přes npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 
 ```bash
-npm i github:svatekr70/lattice#v1.20.0
+npm i github:svatekr70/lattice#v1.20.1
 ```
 
 Importy zůstávají stejné (`from 'lattice'`), `dist/` je v repu, takže se nic nebuilduje.
-Bez `#v1.20.0` se nainstaluje aktuální `main`.
+Bez `#v1.20.1` se nainstaluje aktuální `main`.
 
 > ⚠️ **`npm i lattice` nainstaluje cizí balíček** stejného jména z npm registru — ne tuhle
 > knihovnu. Vždycky používej `github:svatekr70/lattice`.

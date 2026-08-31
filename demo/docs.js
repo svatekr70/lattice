@@ -593,6 +593,7 @@ function docData(root, ctx) {
     code(`new Lattice('#grid', { columns, data,
   instance: { groupBy: ['region', 'owner'] },   // víceúrovňově
 });`),
+    p('Sbalení skupiny sbalí i <b>všechny její podskupiny</b> (v1.20.1) — po opětovném rozbalení nadřazené skupiny zůstanou podskupiny sbalené a rozbalí je až vlastní klik.'),
     p('Vedoucí sloupce úrovní seskupení jsou <b>syntetické</b> (vznikají znovu při každém překreslení), takže jejich šířka žije v <code>instance.groupColWidths</code> — <code>{ \'&lt;groupId&gt;\': px }</code>, u datumových úrovní je id <code>pole@part</code>. Tažením okraje se uloží a nese se i v pohledu; dvojklik = auto-fit.'),
     live(ctx, {
       label: 'Seskupeno podle regionu:',

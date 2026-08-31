@@ -4,6 +4,15 @@
  */
 export const RELEASES = [
   {
+    "version": "1.20.1",
+    "date": "2026-08-31",
+    "text": "Drobnost pro práci s víceúrovňovým seskupením: sbalení skupiny sbalí i její podskupiny, takže po rozbalení nadřazené skupiny máš před sebou přehledný seznam podskupin místo záplavy řádků. Bez breaking changes.",
+    "items": [
+      "Sbalení skupiny řádků sbalí natrvalo i celý její podstrom. Když v režimu „vnořené hlavičky\" sbalíš třeba měsíc, sbalí se s ním i všechny dny pod ním — a zůstanou sbalené. Po opětovném rozbalení…",
+      "toggleGroup(key, node?) přijímá volitelný uzel stromu skupin, ze kterého se podstrom vyčte; volání grid.toggleGroup(key) bez uzlu se chová jako dřív (přepne jen tu skupinu)."
+    ]
+  },
+  {
     "version": "1.20.0",
     "date": "2026-08-31",
     "text": "Dvě věci pro uživatele tabulky: tipy nad tabulkou (jednořádkový info pruh, opt-in přes tips) a skupiny ve výběru uložených filtrů a pohledů (<optgroup> podle štítku group). Bez breaking changes — obojí je volitelné a starší data fungují beze změny.",
@@ -231,14 +240,6 @@ export const RELEASES = [
       "Server-side režim posílá rozšířený filtr (advanced) na backend nativně — stejně jako už posílá sort/filter/search. Doteď se advanced (strom AND/OR pravidel) v server-side neposílal a aplikace to…",
       "Důsledek: globální uložené rozšířené filtry na server-side gridech „prostě fungují\" — jejich výběr jen nastaví grid.advanced a spustí refetch, který teď nese parametr advanced.",
       "docs/API.md — sekce *Server-side režim* doplněna o parametr advanced (formát JSON, GET/POST, rozvinuté tokeny, resolveTokens, příklad payloadu a doporučené zpracování na serveru); opravena dřívější…"
-    ]
-  },
-  {
-    "version": "1.6.2",
-    "date": "2026-08-05",
-    "text": "Rychlý select uložených filtrů v toolbaru (.lattice-adv-quick) ořezával název a nativní chevron překrýval poslední znaky",
-    "items": [
-      "Rychlý select uložených filtrů v toolbaru (.lattice-adv-quick) ořezával název a nativní chevron překrýval poslední znaky. Pravý padding byl jen 6px, což je méně než šířka chevronu → text se plazil…"
     ]
   }
 ];

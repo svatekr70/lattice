@@ -2510,7 +2510,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.20.0";
+var VERSION = "1.20.1";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2520,15 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.20.1",
+    "date": "2026-08-31",
+    "text": "Drobnost pro pr\xE1ci s v\xEDce\xFArov\u0148ov\xFDm seskupen\xEDm: sbalen\xED skupiny sbal\xED i jej\xED podskupiny, tak\u017Ee po rozbalen\xED nad\u0159azen\xE9 skupiny m\xE1\u0161 p\u0159ed sebou p\u0159ehledn\xFD seznam podskupin m\xEDsto z\xE1plavy \u0159\xE1dk\u016F. Bez breaking changes.",
+    "items": [
+      'Sbalen\xED skupiny \u0159\xE1dk\u016F sbal\xED natrvalo i cel\xFD jej\xED podstrom. Kdy\u017E v re\u017Eimu \u201Evno\u0159en\xE9 hlavi\u010Dky" sbal\xED\u0161 t\u0159eba m\u011Bs\xEDc, sbal\xED se s n\xEDm i v\u0161echny dny pod n\xEDm \u2014 a z\u016Fstanou sbalen\xE9. Po op\u011Btovn\xE9m rozbalen\xED\u2026',
+      "toggleGroup(key, node?) p\u0159ij\xEDm\xE1 voliteln\xFD uzel stromu skupin, ze kter\xE9ho se podstrom vy\u010Dte; vol\xE1n\xED grid.toggleGroup(key) bez uzlu se chov\xE1 jako d\u0159\xEDv (p\u0159epne jen tu skupinu)."
+    ]
+  },
   {
     "version": "1.20.0",
     "date": "2026-08-31",
@@ -2748,14 +2757,6 @@ var RELEASES = [
       "Server-side re\u017Eim pos\xEDl\xE1 roz\u0161\xED\u0159en\xFD filtr (advanced) na backend nativn\u011B \u2014 stejn\u011B jako u\u017E pos\xEDl\xE1 sort/filter/search. Dote\u010F se advanced (strom AND/OR pravidel) v server-side nepos\xEDlal a aplikace to\u2026",
       'D\u016Fsledek: glob\xE1ln\xED ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry na server-side gridech \u201Eprost\u011B funguj\xED" \u2014 jejich v\xFDb\u011Br jen nastav\xED grid.advanced a spust\xED refetch, kter\xFD te\u010F nese parametr advanced.',
       "docs/API.md \u2014 sekce *Server-side re\u017Eim* dopln\u011Bna o parametr advanced (form\xE1t JSON, GET/POST, rozvinut\xE9 tokeny, resolveTokens, p\u0159\xEDklad payloadu a doporu\u010Den\xE9 zpracov\xE1n\xED na serveru); opravena d\u0159\xEDv\u011Bj\u0161\xED\u2026"
-    ]
-  },
-  {
-    "version": "1.6.2",
-    "date": "2026-08-05",
-    "text": "Rychl\xFD select ulo\u017Een\xFDch filtr\u016F v toolbaru (.lattice-adv-quick) o\u0159ez\xE1val n\xE1zev a nativn\xED chevron p\u0159ekr\xFDval posledn\xED znaky",
-    "items": [
-      "Rychl\xFD select ulo\u017Een\xFDch filtr\u016F v toolbaru (.lattice-adv-quick) o\u0159ez\xE1val n\xE1zev a nativn\xED chevron p\u0159ekr\xFDval posledn\xED znaky. Prav\xFD padding byl jen 6px, co\u017E je m\xE9n\u011B ne\u017E \u0161\xED\u0159ka chevronu \u2192 text se plazil\u2026"
     ]
   }
 ];
