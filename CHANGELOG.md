@@ -4,6 +4,47 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.21.0] – 2026-09-01
+
+Výběrové filtry (**Výběr**, **Více hodnot**, **Vyloučit více**) nově umí filtrovat na **prázdné
+hodnoty**. Aditivní změna s novým veřejným exportem `EMPTY_FILTER_VALUE`; bez breaking changes —
+sloupec bez prázdných buněk i statický `filterValues` vypadají a chovají se přesně jako dosud.
+
+### Přidáno
+- **Volba „(prázdné)" ve výběrových filtrech.** Sloupec, který má vyplněnou jen část řádků, se
+  nedal profiltrovat na to, co v něm *chybí* — v nabídce byly jen skutečné hodnoty a k prázdným
+  řádkům se uživatel nedostal, i když jich byla většina. Nabídka teď obsahuje zvláštní volbu
+  `(prázdné)`, která projde řádky s buňkou `null`, `undefined` nebo `''`. U nabídky **odvozené
+  z dat** se přidá **jen když sloupec prázdnou buňku opravdu má** (volba, která nikdy nic nevrátí,
+  je horší než žádná), stojí **vždy první** (neúčastní se abecedního řazení) a při hledání v panelu
+  nemizí, dokud uživatel nic nepíše.
+- **Nový veřejný export `EMPTY_FILTER_VALUE`** (`'__LATTICE_EMPTY__'`, i jako statická vlastnost
+  `Lattice.EMPTY_FILTER_VALUE`) — hodnota filtru pro prázdné buňky. Prázdný řetězec pro tenhle účel
+  použít nešlo: u `select` znamená `isEmpty` „filtr není nastaven", takže by se volba chovala jako
+  „Vše". Token je čitelný schválně — putuje do URL server-side dotazu, do `localStorage`
+  (uložené filtry i pohledy) i do `onFilter` callbacku. Buňka s přesně tímhle obsahem s volbou
+  splyne (přijaté riziko, popsané v dokumentaci).
+- **Nová volba sloupce `filterEmptyOption`** — `true` volbu připne i statickému `filterValues`
+  nebo `filterUrl` (kde si číselník určuje aplikace a knihovna do něj sama nesahá), `false` ji
+  potlačí i u odvozené nabídky. Nezadáno = automaticky podle dat. Aplikace si volbu může vložit
+  do číselníku i sama jako hodnotu `Lattice.EMPTY_FILTER_VALUE` — popisek doplní knihovna.
+- **Nový i18n klíč `filters.empty`** ve všech čtyřech jazycích: cs `(prázdné)`, sk `(prázdne)`,
+  pl `(puste)`, en `(empty)`. Závorky odlišují volbu od skutečné hodnoty.
+- **Editor buňky token přeskočí.** Číselník `filterValues`/`filterUrl` sdílí s filtrem i editor
+  (`editor: 'select'`/`'multiselect'`); token se v nabídce editoru nenabízí, protože je to hodnota
+  *filtru*, ne buňky — jinak by šel zapsat do dat.
+
+### Změněno
+- **Porovnání s vybranou volbou „(prázdné)":** `select` vrátí právě prázdné řádky; `multiselect`
+  ji spojuje s ostatními hodnotami přes **OR** („SK **nebo** prázdné"); `multiselect-exclude`
+  prázdné buňky **skryje**. Dokud volba vybraná není, chová se všechno jako dřív — u
+  `multiselect-exclude` tedy prázdné buňky dál procházejí (dosavadní zdokumentované chování).
+- **Server-side:** tvar požadavku se **nemění**, token jde jako obyčejná hodnota
+  (`{ field, type:'=', value:'__LATTICE_EMPTY__' }`, resp. `in`/`notIn` s tokenem v poli). Backend
+  ho má přeložit na `col IS NULL OR col = ''`; u `in` musí vzniknout `col IN (…) OR col IS NULL`
+  jako **jedna** podmínka z jednoho záznamu ve `filter[]`. Backend, který token nezná, ho vezme
+  jako neznámou hodnotu (vrátí prázdno), ne jako rozbitý dotaz.
+
 ## [1.20.1] – 2026-08-31
 
 Drobnost pro práci s víceúrovňovým seskupením: **sbalení skupiny sbalí i její podskupiny**,

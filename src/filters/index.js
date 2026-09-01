@@ -14,6 +14,7 @@
  * Registr je otevřený — registerFilter() přidá vlastní typ bez zásahu do jádra.
  */
 import { el, clear, debounce, onOutside } from '../util/dom.js';
+import { cellValue } from '../core/cellValue.js';
 import { buildDateRangePicker } from './dateRangePicker.js';
 import { resolveToken } from './advancedEval.js';
 import { positionUnder } from '../features/gear.js';
@@ -25,6 +26,24 @@ export function registerFilter(name, def) {
 }
 export function getFilter(name) {
   return registry.get(name) || null;
+}
+
+/**
+ * Vyhrazená hodnota filtru pro PRÁZDNÉ buňky (`null`, `undefined`, `''`).
+ *
+ * Prázdný řetězec pro tenhle účel použít nejde: u `select` znamená `isEmpty`
+ * „filtr není nastaven", takže by se volba chovala jako „Vše". Token je čitelný
+ * schválně — putuje do URL server-side dotazu, do `localStorage` (`lattice:<id>`,
+ * uložené filtry a pohledy) i do `onFilter` callbacku aplikace, takže musí jít
+ * přečíst v logu i v devtools. Buňka, která by obsahovala přesně tenhle řetězec,
+ * s volbou splyne — přijaté riziko.
+ */
+export const EMPTY_FILTER_VALUE = '__LATTICE_EMPTY__';
+const EMPTY_NORM = EMPTY_FILTER_VALUE.toLowerCase();
+
+/** Je buňka prázdná (a patří tedy pod volbu „(prázdné)")? */
+function isBlank(v) {
+  return v == null || v === '';
 }
 
 /* ---- pomocné ----------------------------------------------------------- */
@@ -68,16 +87,54 @@ function sortOptions(opts, column, ctx) {
   return opts.slice().sort((a, b) => a.label.localeCompare(b.label, locale, { numeric: true }));
 }
 
+/**
+ * Zařadí volbu „(prázdné)". Token do surové nabídky přidá `distinctFilterValues()`
+ * (jen když sloupec opravdu prázdné buňky má), nebo si ho aplikace vloží sama do
+ * `filterValues`; `column.filterEmptyOption` ho vynutí (`true`) nebo potlačí
+ * (`false`). Popisek doplní knihovna a volba patří VŽDY první — je to zvláštní
+ * položka, ne hodnota mezi hodnotami, takže se neúčastní abecedního řazení.
+ */
+function applyEmptyOption(opts, column, ctx) {
+  const rest = opts.filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  const present = rest.length !== opts.length;
+  const want = column.filterEmptyOption === false ? false : (column.filterEmptyOption === true || present);
+  if (!want) return rest;
+  return [{ value: EMPTY_FILTER_VALUE, label: ctx.i18n.t('filters.empty') }, ...rest];
+}
+
+/** Surové hodnoty → hotová nabídka: normalizace, řazení, volba „(prázdné)" první. */
+export function buildFilterOptions(raw, column, ctx) {
+  return applyEmptyOption(sortOptions((raw || []).map(normOption), column, ctx), column, ctx);
+}
+
+/**
+ * Distinktní hodnoty sloupce pro nabídku odvozenou z dat. Prázdné buňky se do
+ * nabídky nedávají jako položka bez popisku — místo toho, a jen když nějaká
+ * prázdná buňka existuje, přibude token EMPTY_FILTER_VALUE. Nabízet volbu
+ * „(prázdné)" u sloupce, kde nikdy nic nevrátí, je horší než ji nemít.
+ */
+export function distinctFilterValues(rows, col) {
+  const seen = new Set(), out = [];
+  let hasEmpty = false;
+  for (const r of rows || []) {
+    const v = cellValue(r, col);
+    if (isBlank(v)) { hasEmpty = true; continue; }
+    if (!seen.has(v)) { seen.add(v); out.push(v); }
+  }
+  if (hasEmpty) out.push(EMPTY_FILTER_VALUE);
+  return out;
+}
+
 /** Načte options (statické z filterValues nebo async z filterUrl) → [{value,label}], seřazené. */
 function fetchOptions(column, ctx) {
-  if (Array.isArray(column.filterValues)) return Promise.resolve(sortOptions(column.filterValues.map(normOption), column, ctx));
+  if (Array.isArray(column.filterValues)) return Promise.resolve(buildFilterOptions(column.filterValues, column, ctx));
   if (column.filterUrl && ctx.fetchJson) {
     return ctx.fetchJson(column.filterUrl)
-      .then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx))
+      .then((d) => buildFilterOptions(Array.isArray(d) ? d : d && d.data ? d.data : [], column, ctx))
       .catch(() => []);
   }
   // Bez filterValues/filterUrl: odvoď hodnoty z dat (distinktní hodnoty sloupce).
-  if (typeof ctx.distinctValues === 'function') return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
+  if (typeof ctx.distinctValues === 'function') return Promise.resolve(buildFilterOptions(ctx.distinctValues(), column, ctx));
   return Promise.resolve([]);
 }
 
@@ -91,7 +148,7 @@ function fetchOptions(column, ctx) {
 function derivedOptions(column, ctx) {
   if (Array.isArray(column.filterValues) || column.filterUrl) return null;
   if (typeof ctx.distinctValues !== 'function') return null;
-  return sortOptions(ctx.distinctValues().map(normOption), column, ctx);
+  return buildFilterOptions(ctx.distinctValues(), column, ctx);
 }
 
 /* ---- TEXT (s podporou negace !výraz) ----------------------------------- */
@@ -379,7 +436,9 @@ registerFilter('select', {
     return buildSelect(column, ctx);
   },
   isEmpty: (v) => v == null || v === '',
-  match: (value, cell) => norm(cell) === norm(value),
+  // Test na prázdno musí sáhnout na SYROVOU buňku — norm(null) === norm('') === '',
+  // takže po normalizaci se prázdno od hodnoty '' už nedá odlišit.
+  match: (value, cell) => (value === EMPTY_FILTER_VALUE ? isBlank(cell) : norm(cell) === norm(value)),
   toServer: (field, value) => [{ field, type: '=', value }],
 });
 
@@ -498,6 +557,8 @@ registerFilter('multiselect', {
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
   match(value, cell) {
     const set = value.map(norm);
+    // Token se s ostatními volbami spojuje přes OR („SK nebo prázdné").
+    if (isBlank(cell)) return set.includes(EMPTY_NORM) || set.includes('');
     return set.includes(norm(cell));
   },
   toServer: (field, value) => [{ field, type: 'in', value }],
@@ -505,7 +566,8 @@ registerFilter('multiselect', {
 
 /* ---- MULTISELECT-EXCLUDE (vyloučit více) -------------------------------- */
 /* Inverze multiselectu: zaškrtnuté hodnoty se SKRYJÍ, zobrazí se všechno
- * ostatní (včetně prázdných buněk). Prázdný výběr nic nevylučuje → nefiltruje. */
+ * ostatní (včetně prázdných buněk — ty skryje až vybraná volba „(prázdné)",
+ * EMPTY_FILTER_VALUE). Prázdný výběr nic nevylučuje → nefiltruje. */
 
 registerFilter('multiselect-exclude', {
   build(column, ctx) {
@@ -514,6 +576,8 @@ registerFilter('multiselect-exclude', {
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
   match(value, cell) {
     const set = value.map(norm);
+    // Prázdné buňky projdou, dokud není vybraný token „(prázdné)" — teprve ten je skryje.
+    if (isBlank(cell)) return !(set.includes(EMPTY_NORM) || set.includes(''));
     return !set.includes(norm(cell));
   },
   toServer: (field, value) => [{ field, type: 'notIn', value }],

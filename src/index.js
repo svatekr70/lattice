@@ -12,7 +12,7 @@
  */
 export { Lattice } from './Lattice.js';
 export { registerType, getFormatter } from './types/columnTypes.js';
-export { registerFilter, getFilter } from './filters/index.js';
+export { registerFilter, getFilter, EMPTY_FILTER_VALUE } from './filters/index.js';
 export { I18n, registerLanguage, availableLanguages } from './i18n/index.js';
 export { Store } from './core/Store.js';
 export { buildColumns, serializeColumns } from './core/ColumnModel.js';

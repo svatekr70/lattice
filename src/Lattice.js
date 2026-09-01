@@ -17,7 +17,7 @@ import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImp
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
 import { printTable } from './features/print.js';
 import { ClientData, ServerData, rowMatches, encodeParams } from './core/DataSource.js';
-import { getFilter } from './filters/index.js';
+import { getFilter, EMPTY_FILTER_VALUE } from './filters/index.js';
 import { I18n } from './i18n/index.js';
 import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
@@ -100,6 +100,12 @@ function isPlainObject(v) {
 }
 
 export class Lattice {
+  /**
+   * Vyhrazená hodnota filtru pro prázdné buňky — do `filterValues`
+   * (`['CZ', 'SK', Lattice.EMPTY_FILTER_VALUE]`) i jako hodnota ve `setFilters()`.
+   */
+  static EMPTY_FILTER_VALUE = EMPTY_FILTER_VALUE;
+
   constructor(mount, options = {}) {
     this.el = typeof mount === 'string' ? document.querySelector(mount) : mount;
     if (!this.el) throw new Error(`Lattice: mount element nenalezen (${mount}).`);

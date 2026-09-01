@@ -20,7 +20,7 @@
  */
 import { el, clear, debounce } from '../util/dom.js';
 import { getFormatter } from '../types/columnTypes.js';
-import { getFilter } from '../filters/index.js';
+import { getFilter, distinctFilterValues } from '../filters/index.js';
 import { attachResize, attachRowNumberResize, attachGroupResize } from '../features/resize.js';
 import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
@@ -852,12 +852,11 @@ export class Renderer {
       // Z CELÉHO datasetu (`rawRows`), ne z vyfiltrovaného: jinak by si uživatel
       // výběrem zúžil vlastní nabídku a k ostatním hodnotám by se nedostal.
       // ServerData `rawRows` nemá (celou sadu nezná) → zůstává dosavadní chování.
+      // Prázdné buňky se vrací jako token EMPTY_FILTER_VALUE (volba „(prázdné)").
       distinctValues: () => {
         const ds = this.grid.dataSource;
         const src = (ds.rawRows && ds.rawRows()) || (ds.allRows && ds.allRows()) || this.grid.rows || [];
-        const seen = new Set(), out = [];
-        for (const r of src) { const v = cellValue(r, col); if (v != null && v !== '' && !seen.has(v)) { seen.add(v); out.push(v); } }
-        return out;
+        return distinctFilterValues(src, col);
       },
     };
     const control = def.build(col, ctx);

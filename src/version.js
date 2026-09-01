@@ -3,7 +3,7 @@
  * package.json; hlídá to test). Re-exportuje se z `index.js`; verze se ukazuje v patičce
  * gridu i v nastavení (záložka „O Lattice"), odkazy vedou z téže záložky a z ikony „?".
  */
-export const VERSION = '1.20.1';
+export const VERSION = '1.21.0';
 
 export const HOMEPAGE = 'https://lattice.rudolfsvatek.cz/';
 export const HELP_URL = HOMEPAGE + 'prirucka/';

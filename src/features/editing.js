@@ -13,6 +13,7 @@
  */
 import { el, clear, onOutside } from '../util/dom.js';
 import { positionUnder } from './gear.js';
+import { EMPTY_FILTER_VALUE } from '../filters/index.js';
 
 export class EditManager {
   constructor(grid) {
@@ -443,8 +444,11 @@ function multiselectEditor(cell, col, rowData, done) {
 
 function loadOptions(col) {
   const norm = (o) => (o != null && typeof o === 'object' ? { value: String(o.value), label: String(o.label != null ? o.label : o.value) } : { value: String(o), label: String(o) });
-  if (Array.isArray(col.filterValues)) return Promise.resolve(col.filterValues.map(norm));
-  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => (Array.isArray(d) ? d : d.data || []).map(norm)).catch(() => []);
+  // Číselník je sdílený s filtrem, takže může obsahovat token volby „(prázdné)".
+  // Do editoru nepatří — je to hodnota FILTRU, ne buňky (zapsal by se do dat).
+  const usable = (list) => list.map(norm).filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues));
+  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [])).catch(() => []);
   return Promise.resolve([]);
 }
 

@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.20.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.20.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.21.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.20.1
+npm i github:svatekr70/lattice#v1.21.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.20.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.21.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -145,6 +145,7 @@ new Lattice('#grid', {
 | `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI **sbalit** do úzkého proužku (ikona −/+ v záhlaví skupiny). Alternativně nested definice: `{ title, columns:[…] }`. |
 | `filter` | string | Typ filtru; když se vynechá, odvodí se z typu. |
 | `filterValues` | array | Hodnoty pro `select`/`multiselect`/`multiselect-exclude` filtr (jinak `filterUrl`). |
+| `filterEmptyOption` | boolean | Volba **„(prázdné)"** ve `select`/`multiselect`/`multiselect-exclude`: `true` = nabídnout vždy (i u statického `filterValues`), `false` = nikdy. Nezadáno = automaticky, jen když se nabídka odvozuje z dat a sloupec prázdné buňky opravdu má. `@v1.21.0` |
 | `editable` | boolean | Povolí inline editaci buňky. |
 | `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
@@ -196,8 +197,8 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 | `number-range` | number/money/… | Rozsah Od–Do. |
 | `date-range` / `date-two` | date/datetime | Kalendářní rozsah / dvě pole Od / Do. |
 | `dynamic` | date/datetime | Vlastní výraz: operátory `>` `<` `>=` `<=` `=`, spojky `AND`/`OR` (AND váže těsněji), pevné datum i relativní tokeny (`today±N[dwmy]`, `now` — viz tabulka u rozšířeného filtru). Např. `>today-14 AND <today+14`; chybný výraz se tiše ignoruje. `@v1.11.0` |
-| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (`filterValues`, `filterUrl`, jinak **odvozeno z dat** — viz níže). |
-| `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní (i prázdné buňky). Prázdný výběr nefiltruje. `@v1.18.0` |
+| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (`filterValues`, `filterUrl`, jinak **odvozeno z dat** — viz níže). Nabízejí i volbu **„(prázdné)"** — viz níže. `@v1.21.0` |
+| `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní. Prázdné buňky projdou, dokud nevybereš volbu **„(prázdné)"** — teprve ta je skryje (`@v1.21.0`). Prázdný výběr nefiltruje. `@v1.18.0` |
 | `boolean` | boolean | Ano / Ne / Vše. |
 
 **Odkud se berou možnosti** u `select` / `multiselect` / `multiselect-exclude`: z `col.filterValues`
@@ -207,6 +208,39 @@ výběru (jinak by si uživatel výběrem zúžil vlastní nabídku a už by se 
 Nabídka se přenačte při každém otevření panelu, takže drží krok se `setData()`/`addRow()`/`deleteRow()`.
 V režimu **`serverSide`** grid celou sadu nezná — odvodí ji jen z právě načtené stránky, takže tam
 `filterValues`/`filterUrl` zadej. `@v1.18.2`
+
+**Volba „(prázdné)"** — `@v1.21.0`. Sloupec s nevyplněnými buňkami se dřív nedal profiltrovat na to,
+co v něm *chybí*: v nabídce byly jen skutečné hodnoty, takže se k prázdným řádkům nešlo dostat.
+Nově se v nabídce objeví zvláštní volba `(prázdné)` (`(empty)` / `(puste)` / `(prázdne)`, i18n klíč
+`filters.empty`), která projde řádky s buňkou `null`, `undefined` nebo `''`.
+
+- **Odvozená nabídka** ji přidá **jen když sloupec prázdnou buňku opravdu má** — volba, která nikdy
+  nic nevrátí, je horší než žádná. `col.filterEmptyOption: false` ji potlačí.
+- **Statický `filterValues` / `filterUrl`** si číselník určuje sám, takže knihovna do něj sama nic
+  nepřidává. Buď si volbu vlož jako hodnotu `Lattice.EMPTY_FILTER_VALUE`
+  (`filterValues: ['CZ', 'SK', Lattice.EMPTY_FILTER_VALUE]` — popisek doplní knihovna), nebo ji
+  připni přes `col.filterEmptyOption: true`.
+- Volba je v panelu **vždy první** (neúčastní se abecedního řazení) a nemizí, dokud uživatel nic
+  nehledá.
+- Číselník `filterValues`/`filterUrl` je sdílený s **editorem** buňky (`editor: 'select'`) — token
+  se tam ale nenabízí: je to hodnota *filtru*, ne buňky, takže by se jinak zapsal do dat.
+- **Porovnání:** u `select` projdou právě prázdné buňky; u `multiselect` se volba spojuje
+  s ostatními přes **OR** („SK **nebo** prázdné"); u `multiselect-exclude` prázdné buňky **skryje**
+  (bez ní projdou jako dosud).
+
+Hodnotou filtru je vyhrazený token `EMPTY_FILTER_VALUE` = `'__LATTICE_EMPTY__'` (pojmenovaný export
+knihovny i statická vlastnost `Lattice.EMPTY_FILTER_VALUE`). Prázdný řetězec pro tenhle účel použít
+nešlo — u `select` znamená „filtr není nastaven", takže by se volba chovala jako „Vše". Token je
+čitelný schválně: vidíš ho v URL server-side dotazu, v `localStorage` (`lattice:<id>`, uložené filtry
+i pohledy) a v `onFilter` callbacku. Buňka, která by obsahovala přesně řetězec `__LATTICE_EMPTY__`,
+s volbou splyne — přijaté riziko.
+
+```js
+{ field: 'zeme', title: 'Země', filter: 'select' }              // volba se přidá sama, když je co
+{ field: 'zeme', filter: 'select', filterEmptyOption: false }   // …a takhle se potlačí
+{ field: 'tarif', filter: 'multiselect',
+  filterValues: ['Basic', 'Pro', Lattice.EMPTY_FILTER_VALUE] }  // statický číselník s prázdnou volbou
+```
 
 **Umístění filtrů** řídí `instance.filterLayout`: `'header'` (v záhlaví) \| `'external'` (panel nad
 tabulkou) \| `'universal'` (jedno pole Pole/Typ/Hodnota) \| `'none'`. Navíc **rozšířený filtr**
@@ -476,6 +510,7 @@ Je to **jediný** způsob, jak poslat na server stav mimo grid (externí filtry)
   - **date-range**: JEDEN záznam `type:'dateRange'`, `value: "from|to"`.
   - **multiselect**: `type:'in'`, `value` je **pole** → `filter[0][value][0]`, `filter[0][value][1]`, … (ne spojené `'|'`).
   - **multiselect-exclude**: `type:'notIn'`, `value` je **pole** (stejná serializace jako `in`) — backend má vrátit řádky, které v seznamu **nejsou** (`NOT IN`). `@v1.18.0`
+  - **prázdné hodnoty** (`@v1.21.0`): volba „(prázdné)" se posílá jako **obyčejná hodnota** — token `'__LATTICE_EMPTY__'` (`EMPTY_FILTER_VALUE`). Tvar `filter[]` se tím nemění: `select` → `{ field, type:'=', value:'__LATTICE_EMPTY__' }`, `multiselect` → `{ field, type:'in', value:['SK','__LATTICE_EMPTY__'] }`, `multiselect-exclude` → `{ field, type:'notIn', value:[…] }`. **Backend token rozpozná** a přeloží na `col IS NULL OR col = ''`; u `in` musí vzniknout `col IN (…) OR col IS NULL` — tedy **jedna** podmínka z jednoho záznamu ve `filter[]`, ne dvě spojené přes AND. Backend, který token nezná, ho vezme jako neznámou hodnotu (vrátí prázdno) — dotaz se nerozbije.
 - `search` (quick search) — trimovaný řetězec, výchozí klíč `search`.
 - `advanced` (rozšířený filtr, strom AND/OR pravidel) — **jen když je neprázdný**; formát viz níže (`@v1.7.0`).
 
@@ -999,6 +1034,7 @@ import {
   Lattice,                       // hlavní třída
   registerType, getFormatter,    // vlastní datové typy
   registerFilter, getFilter,     // vlastní filtry
+  EMPTY_FILTER_VALUE,            // hodnota filtru pro prázdné buňky (@v1.21.0)
   registerLanguage, availableLanguages, I18n,
   Store,                         // per-grid persistence
   buildColumns, serializeColumns,

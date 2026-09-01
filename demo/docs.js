@@ -258,6 +258,8 @@ function docFiltry(root, ctx) {
 
     p('Možnosti <code>select</code>/<code>multiselect</code>/<code>multiselect-exclude</code> se berou z <code>filterValues</code>, jinak z <code>filterUrl</code>, a když není ani jedno, <b>odvodí se z dat</b> — z distinktních hodnot sloupce v <b>celém datasetu</b>, ne z aktuálního výběru (jinak by si uživatel výběrem zúžil vlastní nabídku). V režimu <code>serverSide</code> grid celou sadu nezná, takže tam číselník zadej.'),
 
+    p('<b>Volba „(prázdné)" (v1.21.0)</b> — nabídka umí i filtrování na <b>nevyplněné</b> buňky (<code>null</code>, <code>undefined</code>, <code>\'\'</code>). U nabídky odvozené z dat se volba přidá sama, ale <b>jen když sloupec prázdnou buňku opravdu má</b>; je vždy první a <code>col.filterEmptyOption: false</code> ji potlačí. Statickému <code>filterValues</code> knihovna nic nepřidává — buď si do něj vlož <code>Lattice.EMPTY_FILTER_VALUE</code>, nebo volbu připni přes <code>filterEmptyOption: true</code>. Ve <code>multiselect</code> se spojuje s ostatními přes <b>OR</b>, ve <code>multiselect-exclude</code> prázdné buňky naopak <b>skryje</b>. Hodnotou filtru je token <code>\'__LATTICE_EMPTY__\'</code> (prázdný řetězec by u <code>select</code> znamenal „filtr není nastaven"), takže ho vidíš i v server-side dotazu a backend si ho přeloží na <code>IS NULL OR = \'\'</code>.'),
+
     h3('Odvození z typu'),
     p('Pokud <code>filter</code> nezadáš, číselné/datumové/textové sloupce jsou <b>filtrovatelné rovnou</b> — filtr je dostupný (zapneš ho v dialogu „Sloupce"), jen ve výchozím stavu vypnutý. Explicitní <code>filter</code>/<code>filterTypes</code> je zapnutý hned.'),
     code(`{ field: 'budget', type: 'money' }                    // filtr dostupný (vypnutý)

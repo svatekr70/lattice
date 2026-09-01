@@ -776,6 +776,9 @@ function resolveColumn(def, saved) {
     filterValues: def.filterValues || null,
     filterUrl: def.filterUrl || null,
     // pro select/multiselect z API
+    // Volba „(prázdné)" v select/multiselect: true = připnout vždy, false = nikdy,
+    // undefined = automaticky (jen když odvozená nabídka na prázdnou buňku narazí).
+    filterEmptyOption: def.filterEmptyOption,
     formatter: def.formatter || null,
     // vlastní formátor buňky
     value,
@@ -2510,7 +2513,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.20.1";
+var VERSION = "1.21.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2520,6 +2523,20 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.21.0",
+    "date": "2026-09-01",
+    "text": "V\xFDb\u011Brov\xE9 filtry (V\xFDb\u011Br, V\xEDce hodnot, Vylou\u010Dit v\xEDce) nov\u011B um\xED filtrovat na pr\xE1zdn\xE9 hodnoty. Aditivn\xED zm\u011Bna s nov\xFDm ve\u0159ejn\xFDm exportem EMPTY_FILTER_VALUE; bez breaking changes \u2014 sloupec bez pr\xE1zdn\xFDch bun\u011Bk i statick\xFD filterValues vypadaj\xED a chovaj\xED se p\u0159esn\u011B\u2026",
+    "items": [
+      'Volba \u201E(pr\xE1zdn\xE9)" ve v\xFDb\u011Brov\xFDch filtrech. Sloupec, kter\xFD m\xE1 vypln\u011Bnou jen \u010D\xE1st \u0159\xE1dk\u016F, se nedal profiltrovat na to, co v n\u011Bm *chyb\xED* \u2014 v nab\xEDdce byly jen skute\u010Dn\xE9 hodnoty a k pr\xE1zdn\xFDm \u0159\xE1dk\u016Fm se\u2026',
+      "Nov\xFD ve\u0159ejn\xFD export EMPTY_FILTER_VALUE ('__LATTICE_EMPTY__', i jako statick\xE1 vlastnost Lattice.EMPTY_FILTER_VALUE) \u2014 hodnota filtru pro pr\xE1zdn\xE9 bu\u0148ky. Pr\xE1zdn\xFD \u0159et\u011Bzec pro tenhle \xFA\u010Del pou\u017E\xEDt ne\u0161lo: u\u2026",
+      "Nov\xE1 volba sloupce filterEmptyOption \u2014 true volbu p\u0159ipne i statick\xE9mu filterValues nebo filterUrl (kde si \u010D\xEDseln\xEDk ur\u010Duje aplikace a knihovna do n\u011Bj sama nesah\xE1), false ji potla\u010D\xED i u odvozen\xE9\u2026",
+      "Nov\xFD i18n kl\xED\u010D filters.empty ve v\u0161ech \u010Dty\u0159ech jazyc\xEDch: cs (pr\xE1zdn\xE9), sk (pr\xE1zdne), pl (puste), en (empty). Z\xE1vorky odli\u0161uj\xED volbu od skute\u010Dn\xE9 hodnoty.",
+      "Editor bu\u0148ky token p\u0159esko\u010D\xED. \u010C\xEDseln\xEDk filterValues/filterUrl sd\xEDl\xED s filtrem i editor (editor: 'select'/'multiselect'); token se v nab\xEDdce editoru nenab\xEDz\xED, proto\u017Ee je to hodnota *filtru*, ne bu\u0148ky\u2026",
+      'Porovn\xE1n\xED s vybranou volbou \u201E(pr\xE1zdn\xE9)": select vr\xE1t\xED pr\xE1v\u011B pr\xE1zdn\xE9 \u0159\xE1dky; multiselect ji spojuje s ostatn\xEDmi hodnotami p\u0159es OR (\u201ESK nebo pr\xE1zdn\xE9"); multiselect-exclude pr\xE1zdn\xE9 bu\u0148ky skryje. Dokud\u2026',
+      "Server-side: tvar po\u017Eadavku se nem\u011Bn\xED, token jde jako oby\u010Dejn\xE1 hodnota ({ field, type:'=', value:'__LATTICE_EMPTY__' }, resp. in/notIn s tokenem v poli). Backend ho m\xE1 p\u0159elo\u017Eit na col IS NULL OR col\u2026"
+    ]
+  },
   {
     "version": "1.20.1",
     "date": "2026-08-31",
@@ -2747,16 +2764,6 @@ var RELEASES = [
       "Zv\xFDrazn\u011Bn\xED (podbarven\xED) \u0159\xE1dk\u016F \u2014 nativn\xED feature + API. \u017Dlut\xE9 (themeovateln\xE9) podbarven\xED \u0159\xE1dk\u016F nez\xE1visl\xE9 na v\xFDb\u011Bru checkboxy: - API: grid.highlightRow(id, on?), grid.toggleRowHighlight(id),\u2026",
       "Server-side: expozice aktu\xE1ln\xEDch serverov\xFDch parametr\u016F \u2014 grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }). Vr\xE1t\xED filtr/sort/search/advanced (dle paramNames, tokeny\u2026",
       'docs/API.md \u2014 col.wrap, sekce *Zv\xFDrazn\u011Bn\xED \u0159\xE1dk\u016F* (API, instance.rowHighlight, CSS prom\u011Bnn\xE9, UI picker), metody getServerParams/getServerQuery + p\u0159\xEDklad \u201Ev\u0161e filtrovan\xE9" / export.'
-    ]
-  },
-  {
-    "version": "1.7.0",
-    "date": "2026-08-05",
-    "text": 'Server-side re\u017Eim pos\xEDl\xE1 roz\u0161\xED\u0159en\xFD filtr (advanced) na backend nativn\u011B \u2014 stejn\u011B jako u\u017E pos\xEDl\xE1 sort/filter/search \xB7 D\u016Fsledek: glob\xE1ln\xED ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry na server-side gridech \u201Eprost\u011B funguj\xED" \u2014 jejich v\xFDb\u011Br jen nastav\xED grid.advanced a spust\xED refetch,\u2026',
-    "items": [
-      "Server-side re\u017Eim pos\xEDl\xE1 roz\u0161\xED\u0159en\xFD filtr (advanced) na backend nativn\u011B \u2014 stejn\u011B jako u\u017E pos\xEDl\xE1 sort/filter/search. Dote\u010F se advanced (strom AND/OR pravidel) v server-side nepos\xEDlal a aplikace to\u2026",
-      'D\u016Fsledek: glob\xE1ln\xED ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry na server-side gridech \u201Eprost\u011B funguj\xED" \u2014 jejich v\xFDb\u011Br jen nastav\xED grid.advanced a spust\xED refetch, kter\xFD te\u010F nese parametr advanced.',
-      "docs/API.md \u2014 sekce *Server-side re\u017Eim* dopln\u011Bna o parametr advanced (form\xE1t JSON, GET/POST, rozvinut\xE9 tokeny, resolveTokens, p\u0159\xEDklad payloadu a doporu\u010Den\xE9 zpracov\xE1n\xED na serveru); opravena d\u0159\xEDv\u011Bj\u0161\xED\u2026"
     ]
   }
 ];
@@ -4562,6 +4569,11 @@ function registerFilter(name, def) {
 function getFilter(name) {
   return registry.get(name) || null;
 }
+var EMPTY_FILTER_VALUE = "__LATTICE_EMPTY__";
+var EMPTY_NORM = EMPTY_FILTER_VALUE.toLowerCase();
+function isBlank(v) {
+  return v == null || v === "";
+}
 function toNumber(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
@@ -4592,18 +4604,45 @@ function sortOptions(opts, column, ctx) {
   const locale = ctx.i18n && ctx.i18n.locale;
   return opts.slice().sort((a, b) => a.label.localeCompare(b.label, locale, { numeric: true }));
 }
-function fetchOptions(column, ctx) {
-  if (Array.isArray(column.filterValues)) return Promise.resolve(sortOptions(column.filterValues.map(normOption), column, ctx));
-  if (column.filterUrl && ctx.fetchJson) {
-    return ctx.fetchJson(column.filterUrl).then((d) => sortOptions((Array.isArray(d) ? d : d && d.data ? d.data : []).map(normOption), column, ctx)).catch(() => []);
+function applyEmptyOption(opts, column, ctx) {
+  const rest = opts.filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  const present = rest.length !== opts.length;
+  const want = column.filterEmptyOption === false ? false : column.filterEmptyOption === true || present;
+  if (!want) return rest;
+  return [{ value: EMPTY_FILTER_VALUE, label: ctx.i18n.t("filters.empty") }, ...rest];
+}
+function buildFilterOptions(raw, column, ctx) {
+  return applyEmptyOption(sortOptions((raw || []).map(normOption), column, ctx), column, ctx);
+}
+function distinctFilterValues(rows, col) {
+  const seen = /* @__PURE__ */ new Set(), out = [];
+  let hasEmpty = false;
+  for (const r of rows || []) {
+    const v = cellValue(r, col);
+    if (isBlank(v)) {
+      hasEmpty = true;
+      continue;
+    }
+    if (!seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
   }
-  if (typeof ctx.distinctValues === "function") return Promise.resolve(sortOptions(ctx.distinctValues().map(normOption), column, ctx));
+  if (hasEmpty) out.push(EMPTY_FILTER_VALUE);
+  return out;
+}
+function fetchOptions(column, ctx) {
+  if (Array.isArray(column.filterValues)) return Promise.resolve(buildFilterOptions(column.filterValues, column, ctx));
+  if (column.filterUrl && ctx.fetchJson) {
+    return ctx.fetchJson(column.filterUrl).then((d) => buildFilterOptions(Array.isArray(d) ? d : d && d.data ? d.data : [], column, ctx)).catch(() => []);
+  }
+  if (typeof ctx.distinctValues === "function") return Promise.resolve(buildFilterOptions(ctx.distinctValues(), column, ctx));
   return Promise.resolve([]);
 }
 function derivedOptions(column, ctx) {
   if (Array.isArray(column.filterValues) || column.filterUrl) return null;
   if (typeof ctx.distinctValues !== "function") return null;
-  return sortOptions(ctx.distinctValues().map(normOption), column, ctx);
+  return buildFilterOptions(ctx.distinctValues(), column, ctx);
 }
 registerFilter("text", {
   build(column, ctx) {
@@ -4881,7 +4920,9 @@ registerFilter("select", {
     return buildSelect(column, ctx);
   },
   isEmpty: (v) => v == null || v === "",
-  match: (value, cell) => norm2(cell) === norm2(value),
+  // Test na prázdno musí sáhnout na SYROVOU buňku — norm(null) === norm('') === '',
+  // takže po normalizaci se prázdno od hodnoty '' už nedá odlišit.
+  match: (value, cell) => value === EMPTY_FILTER_VALUE ? isBlank(cell) : norm2(cell) === norm2(value),
   toServer: (field2, value) => [{ field: field2, type: "=", value }]
 });
 function buildSelect(column, ctx) {
@@ -4990,6 +5031,7 @@ registerFilter("multiselect", {
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
   match(value, cell) {
     const set = value.map(norm2);
+    if (isBlank(cell)) return set.includes(EMPTY_NORM) || set.includes("");
     return set.includes(norm2(cell));
   },
   toServer: (field2, value) => [{ field: field2, type: "in", value }]
@@ -5001,6 +5043,7 @@ registerFilter("multiselect-exclude", {
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
   match(value, cell) {
     const set = value.map(norm2);
+    if (isBlank(cell)) return !(set.includes(EMPTY_NORM) || set.includes(""));
     return !set.includes(norm2(cell));
   },
   toServer: (field2, value) => [{ field: field2, type: "notIn", value }]
@@ -5912,6 +5955,7 @@ var cs_default = {
   },
   filters: {
     all: "V\u0161e",
+    empty: "(pr\xE1zdn\xE9)",
     excludePlaceholder: "Vylou\u010Dit\u2026",
     yes: "Ano",
     no: "Ne",
@@ -6535,6 +6579,7 @@ var en_default = {
   },
   filters: {
     all: "All",
+    empty: "(empty)",
     excludePlaceholder: "Exclude\u2026",
     yes: "Yes",
     no: "No",
@@ -7158,6 +7203,7 @@ var pl_default = {
   },
   filters: {
     all: "Wszystko",
+    empty: "(puste)",
     excludePlaceholder: "Wyklucz\u2026",
     yes: "Tak",
     no: "Nie",
@@ -7781,6 +7827,7 @@ var sk_default = {
   },
   filters: {
     all: "V\u0161etko",
+    empty: "(pr\xE1zdne)",
     excludePlaceholder: "Vyl\xFA\u010Di\u0165\u2026",
     yes: "\xC1no",
     no: "Nie",
@@ -9846,18 +9893,11 @@ var Renderer = class {
       // Z CELÉHO datasetu (`rawRows`), ne z vyfiltrovaného: jinak by si uživatel
       // výběrem zúžil vlastní nabídku a k ostatním hodnotám by se nedostal.
       // ServerData `rawRows` nemá (celou sadu nezná) → zůstává dosavadní chování.
+      // Prázdné buňky se vrací jako token EMPTY_FILTER_VALUE (volba „(prázdné)").
       distinctValues: () => {
         const ds = this.grid.dataSource;
         const src = ds.rawRows && ds.rawRows() || ds.allRows && ds.allRows() || this.grid.rows || [];
-        const seen = /* @__PURE__ */ new Set(), out = [];
-        for (const r of src) {
-          const v = cellValue(r, col);
-          if (v != null && v !== "" && !seen.has(v)) {
-            seen.add(v);
-            out.push(v);
-          }
-        }
-        return out;
+        return distinctFilterValues(src, col);
       }
     };
     const control = def.build(col, ctx);
@@ -12701,8 +12741,9 @@ function multiselectEditor(cell, col, rowData, done) {
 }
 function loadOptions(col) {
   const norm5 = (o) => o != null && typeof o === "object" ? { value: String(o.value), label: String(o.label != null ? o.label : o.value) } : { value: String(o), label: String(o) };
-  if (Array.isArray(col.filterValues)) return Promise.resolve(col.filterValues.map(norm5));
-  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => (Array.isArray(d) ? d : d.data || []).map(norm5)).catch(() => []);
+  const usable = (list) => list.map(norm5).filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues));
+  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [])).catch(() => []);
   return Promise.resolve([]);
 }
 function swapCell(cell, node) {
@@ -13688,6 +13729,11 @@ function isPlainObject(v) {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
 var Lattice = class {
+  /**
+   * Vyhrazená hodnota filtru pro prázdné buňky — do `filterValues`
+   * (`['CZ', 'SK', Lattice.EMPTY_FILTER_VALUE]`) i jako hodnota ve `setFilters()`.
+   */
+  static EMPTY_FILTER_VALUE = EMPTY_FILTER_VALUE;
   constructor(mount, options = {}) {
     this.el = typeof mount === "string" ? document.querySelector(mount) : mount;
     if (!this.el) throw new Error(`Lattice: mount element nenalezen (${mount}).`);
@@ -16076,6 +16122,7 @@ function resolveAjax(options) {
 }
 export {
   ClientData,
+  EMPTY_FILTER_VALUE,
   HEADER_COLOR_PRESETS,
   I18n,
   Lattice,

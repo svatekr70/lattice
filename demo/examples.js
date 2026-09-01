@@ -11,6 +11,22 @@ import { i18nStudioExample } from './i18nStudio.js';
 
 const ADV_SAMPLE_NAME = 'Ukázka: PPC/Bannery ≥ 100k';
 
+/**
+ * Malý dataset pro příklad „Prázdné hodnoty ve filtru" — schválně děravý:
+ * `null`, `''` i úplně chybějící klíč, ať je vidět, že se všechny tři případy
+ * chovají stejně. Kampaňová data se pro tohle nehodí (jsou vyplněná).
+ */
+const EMPTY_DEMO_ROWS = [
+  { id: 1, firma: 'Alfa Media',   zeme: 'CZ', obor: 'IT',            tarif: 'Pro',   stav: 'Aktivní' },
+  { id: 2, firma: 'Beta Trade',   zeme: null, obor: null,            tarif: null,    stav: null },
+  { id: 3, firma: 'Cedr Group',   zeme: '',   obor: 'IT',            tarif: '',      stav: 'Archiv' },
+  { id: 4, firma: 'Delta s.r.o.', zeme: 'SK', obor: null,            tarif: 'Basic', stav: '' },
+  { id: 5, firma: 'Enigma a.s.',  zeme: 'CZ', obor: 'Stavebnictví',  tarif: 'Pro',   stav: 'Aktivní' },
+  { id: 6, firma: 'Fenix plus',                                      tarif: 'Basic', stav: 'Archiv' },
+  { id: 7, firma: 'Gama servis',  zeme: 'PL', obor: 'Doprava',       tarif: null,    stav: 'Aktivní' },
+  { id: 8, firma: 'Hydra tech',   zeme: null, obor: 'IT',            tarif: 'Pro',   stav: null },
+];
+
 /** Společné volby (jazyk + callbacky) pro všechny příklady. */
 function base(ctx, extra) {
   const id = extra && extra.id;
@@ -158,6 +174,42 @@ const RAW_GROUPS = [
         mount: (el, ctx) => new Lattice(el, base(ctx, {
           id: 'ex-filter-header', columns: campaignColumns(), data: ctx.data, pageSize: 25,
           instance: { filterLayout: 'header' },
+        })),
+      },
+      {
+        id: 'ex-filter-empty',
+        title: 'Prázdné hodnoty ve filtru',
+        blurb: 'Sloupec vyplněný jen u části řádků jde profiltrovat i na to, co v něm <b>chybí</b> — v nabídce je navíc volba <b>(prázdné)</b>, která projde buňky <code>null</code>, <code>undefined</code> i <code>\'\'</code>. Zkus <b>Země</b> (Výběr) a <b>Obor</b> (Více hodnot — volba se s ostatními spojí přes <b>NEBO</b>: „IT nebo prázdné"). U <b>Stavu</b> je <i>Vyloučit více</i>: prázdné řádky procházejí, dokud volbu nezaškrtneš — pak se skryjí. Volba se nabídne, <b>jen když sloupec prázdnou buňku opravdu má</b>, a stojí vždy první. Sloupec <b>Tarif</b> má statický <code>filterValues</code>, kam knihovna nesahá — volba tam chybí; <b>Stav</b> ukazuje opt-in přes <code>Lattice.EMPTY_FILTER_VALUE</code> v číselníku (potlačit jde i <code>filterEmptyOption: false</code>). Hodnotou filtru je token <code>__LATTICE_EMPTY__</code>, takže ho uvidíš i v server-side dotazu.',
+        code: `columns = [
+  // nabídka odvozená z dat → volba „(prázdné)" se přidá sama, když je co
+  { field: 'zeme',  title: 'Země', filter: 'select' },
+  { field: 'obor',  title: 'Obor', filter: 'multiselect' },
+
+  // statický číselník → knihovna do něj nesahá, volba se NEnabídne
+  { field: 'tarif', title: 'Tarif', filter: 'select',
+    filterValues: ['Basic', 'Pro'] },
+
+  // …leda si ji vložíš sám (popisek doplní knihovna)
+  { field: 'stav',  title: 'Stav', filter: 'multiselect-exclude',
+    filterValues: ['Aktivní', 'Archiv', Lattice.EMPTY_FILTER_VALUE] },
+
+  // { …, filterEmptyOption: true }   // připnout vždy
+  // { …, filterEmptyOption: false }  // potlačit i u odvozené nabídky
+]
+
+// Hodnota filtru = vyhrazený token (import { EMPTY_FILTER_VALUE } from 'lattice')
+grid.setFilter('zeme', Lattice.EMPTY_FILTER_VALUE)          // jen prázdné
+grid.setFilter('obor', ['IT', Lattice.EMPTY_FILTER_VALUE])  // IT NEBO prázdné`,
+        mount: (el, ctx) => new Lattice(el, base(ctx, {
+          id: 'ex-filter-empty', pageSize: 25, data: EMPTY_DEMO_ROWS.map((r) => ({ ...r })),
+          columns: [
+            { field: 'id',    title: 'ID',    type: 'number', width: 70, align: 'right' },
+            { field: 'firma', title: 'Firma', type: 'text',   width: 160, filter: 'text' },
+            { field: 'zeme',  title: 'Země',  type: 'text',   width: 150, filter: 'select' },
+            { field: 'obor',  title: 'Obor',  type: 'text',   width: 190, filter: 'multiselect' },
+            { field: 'tarif', title: 'Tarif', type: 'text',   width: 150, filter: 'select', filterValues: ['Basic', 'Pro'] },
+            { field: 'stav',  title: 'Stav',  type: 'text',   width: 190, filter: 'multiselect-exclude', filterValues: ['Aktivní', 'Archiv', Lattice.EMPTY_FILTER_VALUE] },
+          ],
         })),
       },
       {
@@ -863,10 +915,10 @@ columns = [
  * příkladů zůstávají výše; tady je jen roztřídíme podle id.
  */
 const CATS = {
-  'Novinky': ['ex-tips', 'ex-highlight', 'ex-groups', 'ex-computed', 'ex-summary'],
+  'Novinky': ['ex-filter-empty', 'ex-tips', 'ex-highlight', 'ex-groups', 'ex-computed', 'ex-summary'],
   'Rozvržení': ['ex-datatypes', 'ex-format', 'ex-conditional', 'ex-themes', 'ex-frozen', 'ex-groups', 'ex-rotate', 'ex-rownumbers', 'ex-layout', 'ex-resize',
     'ex-sparkline', 'ex-responsive'],
-  'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
+  'Data': ['ex-client', 'ex-server', 'ex-sort', 'ex-search', 'ex-filter-header', 'ex-filter-empty', 'ex-filter-external', 'ex-filter-universal', 'ex-filter-advanced',
     'ex-pagination', 'ex-grouping', 'ex-date-group', 'ex-summary', 'ex-tree-nested', 'ex-tree-flat', 'ex-tree-nestedset',
     'ex-file', 'ex-web', 'ex-progressive', 'ex-virtual', 'ex-export', 'ex-computed'],
   'Interakce': ['ex-editing', 'ex-a11y', 'ex-callbacks', 'ex-select', 'ex-range', 'ex-popup', 'ex-menu', 'ex-history', 'ex-actions', 'ex-move-flat',

@@ -362,6 +362,7 @@ export default {
   },
   filters: {
     all: 'Wszystko',
+    empty: '(puste)',
     excludePlaceholder: 'Wyklucz…',
     yes: 'Tak',
     no: 'Nie',

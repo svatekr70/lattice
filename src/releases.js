@@ -4,6 +4,20 @@
  */
 export const RELEASES = [
   {
+    "version": "1.21.0",
+    "date": "2026-09-01",
+    "text": "Výběrové filtry (Výběr, Více hodnot, Vyloučit více) nově umí filtrovat na prázdné hodnoty. Aditivní změna s novým veřejným exportem EMPTY_FILTER_VALUE; bez breaking changes — sloupec bez prázdných buněk i statický filterValues vypadají a chovají se přesně…",
+    "items": [
+      "Volba „(prázdné)\" ve výběrových filtrech. Sloupec, který má vyplněnou jen část řádků, se nedal profiltrovat na to, co v něm *chybí* — v nabídce byly jen skutečné hodnoty a k prázdným řádkům se…",
+      "Nový veřejný export EMPTY_FILTER_VALUE ('__LATTICE_EMPTY__', i jako statická vlastnost Lattice.EMPTY_FILTER_VALUE) — hodnota filtru pro prázdné buňky. Prázdný řetězec pro tenhle účel použít nešlo: u…",
+      "Nová volba sloupce filterEmptyOption — true volbu připne i statickému filterValues nebo filterUrl (kde si číselník určuje aplikace a knihovna do něj sama nesahá), false ji potlačí i u odvozené…",
+      "Nový i18n klíč filters.empty ve všech čtyřech jazycích: cs (prázdné), sk (prázdne), pl (puste), en (empty). Závorky odlišují volbu od skutečné hodnoty.",
+      "Editor buňky token přeskočí. Číselník filterValues/filterUrl sdílí s filtrem i editor (editor: 'select'/'multiselect'); token se v nabídce editoru nenabízí, protože je to hodnota *filtru*, ne buňky…",
+      "Porovnání s vybranou volbou „(prázdné)\": select vrátí právě prázdné řádky; multiselect ji spojuje s ostatními hodnotami přes OR („SK nebo prázdné\"); multiselect-exclude prázdné buňky skryje. Dokud…",
+      "Server-side: tvar požadavku se nemění, token jde jako obyčejná hodnota ({ field, type:'=', value:'__LATTICE_EMPTY__' }, resp. in/notIn s tokenem v poli). Backend ho má přeložit na col IS NULL OR col…"
+    ]
+  },
+  {
     "version": "1.20.1",
     "date": "2026-08-31",
     "text": "Drobnost pro práci s víceúrovňovým seskupením: sbalení skupiny sbalí i její podskupiny, takže po rozbalení nadřazené skupiny máš před sebou přehledný seznam podskupin místo záplavy řádků. Bez breaking changes.",
@@ -230,16 +244,6 @@ export const RELEASES = [
       "Zvýraznění (podbarvení) řádků — nativní feature + API. Žluté (themeovatelné) podbarvení řádků nezávislé na výběru checkboxy: - API: grid.highlightRow(id, on?), grid.toggleRowHighlight(id),…",
       "Server-side: expozice aktuálních serverových parametrů — grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }). Vrátí filtr/sort/search/advanced (dle paramNames, tokeny…",
       "docs/API.md — col.wrap, sekce *Zvýraznění řádků* (API, instance.rowHighlight, CSS proměnné, UI picker), metody getServerParams/getServerQuery + příklad „vše filtrované\" / export."
-    ]
-  },
-  {
-    "version": "1.7.0",
-    "date": "2026-08-05",
-    "text": "Server-side režim posílá rozšířený filtr (advanced) na backend nativně — stejně jako už posílá sort/filter/search · Důsledek: globální uložené rozšířené filtry na server-side gridech „prostě fungují\" — jejich výběr jen nastaví grid.advanced a spustí refetch,…",
-    "items": [
-      "Server-side režim posílá rozšířený filtr (advanced) na backend nativně — stejně jako už posílá sort/filter/search. Doteď se advanced (strom AND/OR pravidel) v server-side neposílal a aplikace to…",
-      "Důsledek: globální uložené rozšířené filtry na server-side gridech „prostě fungují\" — jejich výběr jen nastaví grid.advanced a spustí refetch, který teď nese parametr advanced.",
-      "docs/API.md — sekce *Server-side režim* doplněna o parametr advanced (formát JSON, GET/POST, rozvinuté tokeny, resolveTokens, příklad payloadu a doporučené zpracování na serveru); opravena dřívější…"
     ]
   }
 ];

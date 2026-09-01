@@ -124,6 +124,9 @@ export function resolveColumn(def, saved) {
     availableFilters,                    // mezi čím lze přepínat
     filterValues: def.filterValues || null,
     filterUrl: def.filterUrl || null,    // pro select/multiselect z API
+    // Volba „(prázdné)" v select/multiselect: true = připnout vždy, false = nikdy,
+    // undefined = automaticky (jen když odvozená nabídka na prázdnou buňku narazí).
+    filterEmptyOption: def.filterEmptyOption,
     formatter: def.formatter || null,    // vlastní formátor buňky
     value,                               // odvozená (computed) hodnota z celého řádku (funkce nebo null)
     formula,                             // vzorec počítaného sloupce (řetězec) — jen u sloupců z UI; jinak null

@@ -362,6 +362,7 @@ export default {
   },
   filters: {
     all: 'Všetko',
+    empty: '(prázdne)',
     excludePlaceholder: 'Vylúčiť…',
     yes: 'Áno',
     no: 'Nie',
