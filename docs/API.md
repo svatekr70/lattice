@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.1/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.1/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.21.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.21.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.21.0
+npm i github:svatekr70/lattice#v1.21.1
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.21.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.21.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -144,7 +144,7 @@ new Lattice('#grid', {
 | `visible` | boolean | Výchozí viditelnost (výchozí `true`). **`false` = skrytý po startu, ale zapnutelný** uživatelem v dialogu Sloupce (☰). Uživatelská viditelnost se persistuje (`lattice:<id>`) a má přednost před touto výchozí hodnotou. |
 | `group` | string | Skupina sloupců (spojí sousední sloupce pod společné záhlaví). Skupinu lze v UI **sbalit** do úzkého proužku (ikona −/+ v záhlaví skupiny). Alternativně nested definice: `{ title, columns:[…] }`. |
 | `filter` | string | Typ filtru; když se vynechá, odvodí se z typu. |
-| `filterValues` | array | Hodnoty pro `select`/`multiselect`/`multiselect-exclude` filtr (jinak `filterUrl`). |
+| `filterValues` | array | Hodnoty pro `select`/`multiselect`/`multiselect-exclude` filtr (jinak `filterUrl`). Když v režimu `serverSide` chybí obojí, nabídka se odvodí jen z načtené stránky a Lattice na to **upozorní v konzoli** (`console.warn`, jednou na sloupec) — viz *Odkud se berou možnosti*. `@v1.21.1` |
 | `filterEmptyOption` | boolean | Volba **„(prázdné)"** ve `select`/`multiselect`/`multiselect-exclude`: `true` = nabídnout vždy (i u statického `filterValues`), `false` = nikdy. Nezadáno = automaticky, jen když se nabídka odvozuje z dat a sloupec prázdné buňky opravdu má. `@v1.21.0` |
 | `editable` | boolean | Povolí inline editaci buňky. |
 | `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
@@ -208,6 +208,15 @@ výběru (jinak by si uživatel výběrem zúžil vlastní nabídku a už by se 
 Nabídka se přenačte při každém otevření panelu, takže drží krok se `setData()`/`addRow()`/`deleteRow()`.
 V režimu **`serverSide`** grid celou sadu nezná — odvodí ji jen z právě načtené stránky, takže tam
 `filterValues`/`filterUrl` zadej. `@v1.18.2`
+
+Že je nabídka neúplná, se dřív poznalo jen tím, že si někdo všiml chybějící hodnoty. Výběrový filtr
+v režimu `serverSide` bez `filterValues` i bez `filterUrl` proto **upozorní v konzoli**
+(`console.warn` s názvem sloupce, jednou na sloupec a instanci — nabídka se přenačítá při každém
+otevření panelu a opakovaná hláška by konzoli zahltila). Platí i pro `progressiveLoad`: ten na
+dotažení zbytku dat nečeká, takže nabídka vzniká z dosud načtených stránek. Client-side režim
+nevaruje (tam je odvození z celého datasetu úplné) a sloupec s vlastním číselníkem taky ne.
+U `multiselect-exclude` je hláška důraznější — filtr je inverzní, takže z neúplné nabídky uživatel
+vyloučí míň, než čeká, a přebývající řádky vypadají jako chyba filtru. `@v1.21.1`
 
 **Volba „(prázdné)"** — `@v1.21.0`. Sloupec s nevyplněnými buňkami se dřív nedal profiltrovat na to,
 co v něm *chybí*: v nabídce byly jen skutečné hodnoty, takže se k prázdným řádkům nešlo dostat.

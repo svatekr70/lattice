@@ -20,7 +20,7 @@
  */
 import { el, clear, debounce } from '../util/dom.js';
 import { getFormatter } from '../types/columnTypes.js';
-import { getFilter, distinctFilterValues } from '../filters/index.js';
+import { getFilter, distinctFilterValues, warnDerivedOptions } from '../filters/index.js';
 import { attachResize, attachRowNumberResize, attachGroupResize } from '../features/resize.js';
 import { attachHeaderDrag, attachGroupDrag } from '../features/columnDrag.js';
 import { openMenu, openMenuAt } from '../features/menu.js';
@@ -841,6 +841,9 @@ export class Renderer {
     if (!col.filter || !col.filterEnabled) return null;
     const def = getFilter(col.filter);
     if (!def) return null;
+    // Server-side + výběrový filtr bez číselníku = nabídka jen z načtené stránky.
+    // Tiché a snadno přehlédnutelné — jednou na sloupec to řekni do konzole.
+    warnDerivedOptions(this.grid, col);
 
     const ctx = {
       i18n: this.grid.i18n,

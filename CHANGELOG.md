@@ -4,6 +4,28 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.21.1] – 2026-09-09
+
+Diagnostická drobnost: výběrový filtr, kterému v **server-side** režimu nikdo nedal číselník, si
+nabídku odvodí jen z načtené stránky — nově na to **upozorní v konzoli**. Chování filtru se nemění,
+jde čistě o hlášku pro toho, kdo Lattice implementuje.
+
+### Přidáno
+- **Varování na neúplnou nabídku výběrového filtru.** Grid nad 51 tisíci klienty v režimu
+  `serverSide`, sloupec „Země" přepnutý uživatelem z `text` na **Výběr** — a v roletce svítí jediná
+  hodnota, protože jiné v načtené stránce nejsou. Nic nespadlo, v konzoli nic nebylo a uživatel byl
+  přesvědčený, že jiné země v databázi nemá. Sloupec s filtrem `select`, `multiselect` nebo
+  `multiselect-exclude`, který v režimu `serverSide` nemá ani `filterValues`, ani `filterUrl`, proto
+  vypíše `console.warn` s názvem sloupce a s tím, co s tím dělat. Vztahuje se i na `progressiveLoad`
+  — ten na dotažení zbytku dat nečeká, takže nabídka vzniká z dosud načtených stránek.
+- **U `multiselect-exclude` je hláška důraznější.** Filtr je inverzní: z neúplné nabídky uživatel
+  vyloučí míň, než čeká, a přebývající řádky pak vypadají jako chyba filtru, ne jako chybějící
+  položka v roletce.
+- Varuje se **jednou na sloupec a instanci** — nabídka se přenačítá při každém otevření panelu
+  a opakovaná hláška by v konzoli přebila všechno ostatní.
+- **Client-side režim nevaruje** (odvození z celého datasetu je tam úplné), stejně jako sloupec
+  s vlastním číselníkem a filtry mimo rodinu `select`.
+
 ## [1.21.0] – 2026-09-01
 
 Výběrové filtry (**Výběr**, **Více hodnot**, **Vyloučit více**) nově umí filtrovat na **prázdné

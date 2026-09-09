@@ -2513,7 +2513,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.21.0";
+var VERSION = "1.21.1";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2523,6 +2523,17 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.21.1",
+    "date": "2026-09-09",
+    "text": "Diagnostick\xE1 drobnost: v\xFDb\u011Brov\xFD filtr, kter\xE9mu v server-side re\u017Eimu nikdo nedal \u010D\xEDseln\xEDk, si nab\xEDdku odvod\xED jen z na\u010Dten\xE9 str\xE1nky \u2014 nov\u011B na to upozorn\xED v konzoli. Chov\xE1n\xED filtru se nem\u011Bn\xED, jde \u010Dist\u011B o hl\xE1\u0161ku pro toho, kdo Lattice implementuje.",
+    "items": [
+      'Varov\xE1n\xED na ne\xFAplnou nab\xEDdku v\xFDb\u011Brov\xE9ho filtru. Grid nad 51 tis\xEDci klienty v re\u017Eimu serverSide, sloupec \u201EZem\u011B" p\u0159epnut\xFD u\u017Eivatelem z text na V\xFDb\u011Br \u2014 a v roletce sv\xEDt\xED jedin\xE1 hodnota, proto\u017Ee jin\xE9 v\u2026',
+      "U multiselect-exclude je hl\xE1\u0161ka d\u016Frazn\u011Bj\u0161\xED. Filtr je inverzn\xED: z ne\xFApln\xE9 nab\xEDdky u\u017Eivatel vylou\u010D\xED m\xED\u0148, ne\u017E \u010Dek\xE1, a p\u0159eb\xFDvaj\xEDc\xED \u0159\xE1dky pak vypadaj\xED jako chyba filtru, ne jako chyb\u011Bj\xEDc\xED polo\u017Eka v\u2026",
+      "Varuje se jednou na sloupec a instanci \u2014 nab\xEDdka se p\u0159ena\u010D\xEDt\xE1 p\u0159i ka\u017Ed\xE9m otev\u0159en\xED panelu a opakovan\xE1 hl\xE1\u0161ka by v konzoli p\u0159ebila v\u0161echno ostatn\xED.",
+      "Client-side re\u017Eim nevaruje (odvozen\xED z cel\xE9ho datasetu je tam \xFApln\xE9), stejn\u011B jako sloupec s vlastn\xEDm \u010D\xEDseln\xEDkem a filtry mimo rodinu select."
+    ]
+  },
   {
     "version": "1.21.0",
     "date": "2026-09-01",
@@ -2753,17 +2764,6 @@ var RELEASES = [
     "text": 'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem',
     "items": [
       'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem. Nov\u011B ho u\u017Eivatel zapne/vypne p\u0159\xEDmo z dialogu\u2026'
-    ]
-  },
-  {
-    "version": "1.8.0",
-    "date": "2026-08-05",
-    "text": "Per-sloupcov\xE9 zalamov\xE1n\xED textu \u2014 column.wrap \xB7 Zv\xFDrazn\u011Bn\xED (podbarven\xED) \u0159\xE1dk\u016F \u2014 nativn\xED feature + API \xB7 Server-side: expozice aktu\xE1ln\xEDch serverov\xFDch parametr\u016F \u2014 grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }) \xB7 docs/API.md \u2014 col.wrap,\u2026",
-    "items": [
-      "Per-sloupcov\xE9 zalamov\xE1n\xED textu \u2014 column.wrap. Dote\u010F \u0161lo zalamovat jen glob\xE1ln\u011B (instance.wrapText). Nov\u011B col.wrap: true zalom\xED jen dan\xFD sloupec (i p\u0159i vypnut\xE9m glob\xE1lu), col.wrap: false naopak\u2026",
-      "Zv\xFDrazn\u011Bn\xED (podbarven\xED) \u0159\xE1dk\u016F \u2014 nativn\xED feature + API. \u017Dlut\xE9 (themeovateln\xE9) podbarven\xED \u0159\xE1dk\u016F nez\xE1visl\xE9 na v\xFDb\u011Bru checkboxy: - API: grid.highlightRow(id, on?), grid.toggleRowHighlight(id),\u2026",
-      "Server-side: expozice aktu\xE1ln\xEDch serverov\xFDch parametr\u016F \u2014 grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }). Vr\xE1t\xED filtr/sort/search/advanced (dle paramNames, tokeny\u2026",
-      'docs/API.md \u2014 col.wrap, sekce *Zv\xFDrazn\u011Bn\xED \u0159\xE1dk\u016F* (API, instance.rowHighlight, CSS prom\u011Bnn\xE9, UI picker), metody getServerParams/getServerQuery + p\u0159\xEDklad \u201Ev\u0161e filtrovan\xE9" / export.'
     ]
   }
 ];
@@ -4643,6 +4643,21 @@ function derivedOptions(column, ctx) {
   if (Array.isArray(column.filterValues) || column.filterUrl) return null;
   if (typeof ctx.distinctValues !== "function") return null;
   return buildFilterOptions(ctx.distinctValues(), column, ctx);
+}
+var SELECT_FILTERS = ["select", "multiselect", "multiselect-exclude"];
+function hasOwnOptions(column) {
+  return Array.isArray(column.filterValues) || !!column.filterUrl;
+}
+function warnDerivedOptions(grid, column) {
+  if (!grid || !grid.serverSide || !column) return false;
+  if (!SELECT_FILTERS.includes(column.filter) || hasOwnOptions(column)) return false;
+  const seen = grid._derivedOptionsWarned || (grid._derivedOptionsWarned = /* @__PURE__ */ new Set());
+  if (seen.has(column.field)) return false;
+  seen.add(column.field);
+  const title = column.title && column.title !== column.field ? ` (${column.title})` : "";
+  const impact = column.filter === "multiselect-exclude" ? " Filtr je inverzn\xED, tak\u017Ee u\u017Eivatel vylou\u010D\xED m\xED\u0148, ne\u017E \u010Dek\xE1, a p\u0159eb\xFDvaj\xEDc\xED \u0159\xE1dky vypadaj\xED jako chyba filtru." : "";
+  console.warn(`[Lattice] sloupec \u201E${column.field}\u201C${title}: nab\xEDdka filtru '${column.filter}' se v server-side re\u017Eimu odvodila jen z na\u010Dten\xE9 str\xE1nky, ne z cel\xE9 sady.${impact} Dopl\u0148 sloupci filterValues nebo filterUrl.`);
+  return true;
 }
 registerFilter("text", {
   build(column, ctx) {
@@ -9883,6 +9898,7 @@ var Renderer = class {
     if (!col.filter || !col.filterEnabled) return null;
     const def = getFilter(col.filter);
     if (!def) return null;
+    warnDerivedOptions(this.grid, col);
     const ctx = {
       i18n: this.grid.i18n,
       value: this.grid.filters[col.field],

@@ -4,6 +4,17 @@
  */
 export const RELEASES = [
   {
+    "version": "1.21.1",
+    "date": "2026-09-09",
+    "text": "Diagnostická drobnost: výběrový filtr, kterému v server-side režimu nikdo nedal číselník, si nabídku odvodí jen z načtené stránky — nově na to upozorní v konzoli. Chování filtru se nemění, jde čistě o hlášku pro toho, kdo Lattice implementuje.",
+    "items": [
+      "Varování na neúplnou nabídku výběrového filtru. Grid nad 51 tisíci klienty v režimu serverSide, sloupec „Země\" přepnutý uživatelem z text na Výběr — a v roletce svítí jediná hodnota, protože jiné v…",
+      "U multiselect-exclude je hláška důraznější. Filtr je inverzní: z neúplné nabídky uživatel vyloučí míň, než čeká, a přebývající řádky pak vypadají jako chyba filtru, ne jako chybějící položka v…",
+      "Varuje se jednou na sloupec a instanci — nabídka se přenačítá při každém otevření panelu a opakovaná hláška by v konzoli přebila všechno ostatní.",
+      "Client-side režim nevaruje (odvození z celého datasetu je tam úplné), stejně jako sloupec s vlastním číselníkem a filtry mimo rodinu select."
+    ]
+  },
+  {
     "version": "1.21.0",
     "date": "2026-09-01",
     "text": "Výběrové filtry (Výběr, Více hodnot, Vyloučit více) nově umí filtrovat na prázdné hodnoty. Aditivní změna s novým veřejným exportem EMPTY_FILTER_VALUE; bez breaking changes — sloupec bez prázdných buněk i statický filterValues vypadají a chovají se přesně…",
@@ -233,17 +244,6 @@ export const RELEASES = [
     "text": "Přepínač „Zvýraznění řádku klikem\" v UI (Nastavení tabulky ⚙ → *Sloupce a řádky*) — instance.rowHighlight (z v1.8.0) šel doteď zapnout jen kódem",
     "items": [
       "Přepínač „Zvýraznění řádku klikem\" v UI (Nastavení tabulky ⚙ → *Sloupce a řádky*) — instance.rowHighlight (z v1.8.0) šel doteď zapnout jen kódem. Nově ho uživatel zapne/vypne přímo z dialogu…"
-    ]
-  },
-  {
-    "version": "1.8.0",
-    "date": "2026-08-05",
-    "text": "Per-sloupcové zalamování textu — column.wrap · Zvýraznění (podbarvení) řádků — nativní feature + API · Server-side: expozice aktuálních serverových parametrů — grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }) · docs/API.md — col.wrap,…",
-    "items": [
-      "Per-sloupcové zalamování textu — column.wrap. Doteď šlo zalamovat jen globálně (instance.wrapText). Nově col.wrap: true zalomí jen daný sloupec (i při vypnutém globálu), col.wrap: false naopak…",
-      "Zvýraznění (podbarvení) řádků — nativní feature + API. Žluté (themeovatelné) podbarvení řádků nezávislé na výběru checkboxy: - API: grid.highlightRow(id, on?), grid.toggleRowHighlight(id),…",
-      "Server-side: expozice aktuálních serverových parametrů — grid.getServerParams({ paginate? }) a grid.getServerQuery({ paginate? }). Vrátí filtr/sort/search/advanced (dle paramNames, tokeny…",
-      "docs/API.md — col.wrap, sekce *Zvýraznění řádků* (API, instance.rowHighlight, CSS proměnné, UI picker), metody getServerParams/getServerQuery + příklad „vše filtrované\" / export."
     ]
   }
 ];

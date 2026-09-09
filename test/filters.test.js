@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { getFilter, EMPTY_FILTER_VALUE, buildFilterOptions, distinctFilterValues } from '../src/filters/index.js';
+import { getFilter, EMPTY_FILTER_VALUE, buildFilterOptions, distinctFilterValues, warnDerivedOptions } from '../src/filters/index.js';
 import { ClientData, ServerData, encodeParams } from '../src/core/DataSource.js';
 import { Store, emptyState } from '../src/core/Store.js';
 import { I18n } from '../src/i18n/index.js';
@@ -233,4 +233,91 @@ test('uložený filtr s tokenem přežije localStorage round-trip', () => {
   assert.equal(snap.filters.zeme, EMPTY_FILTER_VALUE);
   assert.deepEqual(snap.filters.obor, ['IT', EMPTY_FILTER_VALUE]);
   assert.equal(snap.filterTypes.obor, 'multiselect'); // odchylka od výchozího typu
+});
+
+/* ---- varování na neúplnou nabídku výběrového filtru (server-side) ------- */
+
+/** Odchytí console.warn po dobu volání fn a vrátí vypsané hlášky. */
+function captureWarn(fn) {
+  const orig = console.warn;
+  const out = [];
+  console.warn = (...a) => out.push(a.join(' '));
+  try { fn(); } finally { console.warn = orig; }
+  return out;
+}
+
+const serverGrid = (extra = {}) => ({ serverSide: true, ...extra });
+
+test('server-side: výběrový filtr bez filterValues/filterUrl varuje do konzole', () => {
+  for (const filter of ['select', 'multiselect', 'multiselect-exclude']) {
+    const grid = serverGrid();
+    const warns = captureWarn(() => {
+      assert.equal(warnDerivedOptions(grid, { field: 'zeme', title: 'Země', filter }), true);
+    });
+    assert.equal(warns.length, 1);
+    assert.match(warns[0], /^\[Lattice\] /);
+    assert.match(warns[0], /zeme/);
+    assert.match(warns[0], /Země/);          // titulek sloupce pomůže hláškou trefit správný sloupec
+    assert.match(warns[0], new RegExp(`'${filter}'`));
+    assert.match(warns[0], /jen z načtené stránky/);
+    assert.match(warns[0], /filterValues nebo filterUrl/);
+  }
+});
+
+test('server-side: u multiselect-exclude je hláška důraznější (inverzní filtr)', () => {
+  const say = (filter) => captureWarn(() => warnDerivedOptions(serverGrid(), { field: 'zeme', filter }))[0];
+  const exclude = say('multiselect-exclude');
+  assert.match(exclude, /inverzní/);
+  assert.match(exclude, /vyloučí míň/);
+  assert.ok(!/inverzní/.test(say('multiselect')), 'u běžného multiselectu se o inverzi nemluví');
+  assert.ok(exclude.length > say('select').length, 'exclude dostane text navíc');
+});
+
+test('client-side režim nevaruje (nabídka z dat je tam úplná)', () => {
+  const warns = captureWarn(() => {
+    assert.equal(warnDerivedOptions({ serverSide: false }, { field: 'zeme', filter: 'select' }), false);
+    assert.equal(warnDerivedOptions({}, { field: 'zeme', filter: 'multiselect-exclude' }), false);
+  });
+  assert.deepEqual(warns, []);
+});
+
+test('sloupec s vlastním číselníkem nevaruje ani server-side', () => {
+  const warns = captureWarn(() => {
+    assert.equal(warnDerivedOptions(serverGrid(), { field: 'a', filter: 'select', filterValues: ['CZ', 'SK'] }), false);
+    assert.equal(warnDerivedOptions(serverGrid(), { field: 'b', filter: 'multiselect', filterValues: [] }), false, 'prázdné pole je taky číselník — bere ho i fetchOptions');
+    assert.equal(warnDerivedOptions(serverGrid(), { field: 'c', filter: 'multiselect-exclude', filterUrl: '/api/zeme' }), false);
+  });
+  assert.deepEqual(warns, []);
+});
+
+test('filtry mimo rodinu select nevarují', () => {
+  const warns = captureWarn(() => {
+    for (const filter of ['text', 'number', 'number-range', 'date-range', 'date-two', 'dynamic', 'boolean']) {
+      assert.equal(warnDerivedOptions(serverGrid(), { field: 'x', filter }), false, filter);
+    }
+    assert.equal(warnDerivedOptions(serverGrid(), { field: 'x', filter: null }), false, 'sloupec bez filtru');
+  });
+  assert.deepEqual(warns, []);
+});
+
+test('varuje jednou na sloupec a instanci, ne při každém otevření panelu', () => {
+  const grid = serverGrid();
+  const warns = captureWarn(() => {
+    for (let i = 0; i < 5; i++) warnDerivedOptions(grid, { field: 'zeme', filter: 'select' });
+    warnDerivedOptions(grid, { field: 'obor', filter: 'multiselect' }); // jiný sloupec = vlastní hláška
+  });
+  assert.equal(warns.length, 2);
+  assert.match(warns[0], /zeme/);
+  assert.match(warns[1], /obor/);
+  // Druhá instance gridu si vede vlastní evidenci.
+  assert.equal(captureWarn(() => warnDerivedOptions(serverGrid(), { field: 'zeme', filter: 'select' })).length, 1);
+});
+
+test('progresivní načítání varuje taky — na dotažení zbytku se nečeká', () => {
+  // progressiveLoad je jen server-side (Lattice: options.serverSide && progressiveLoad),
+  // takže dosud načtené stránky nejsou celá sada úplně stejně jako u stránkování.
+  const warns = captureWarn(() => {
+    assert.equal(warnDerivedOptions(serverGrid({ progressive: 'scroll' }), { field: 'zeme', filter: 'select' }), true);
+  });
+  assert.equal(warns.length, 1);
 });

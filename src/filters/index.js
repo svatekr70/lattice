@@ -151,6 +151,46 @@ function derivedOptions(column, ctx) {
   return buildFilterOptions(ctx.distinctValues(), column, ctx);
 }
 
+/**
+ * Rodina výběrových filtrů — nabídku hodnot berou ze statického `filterValues`,
+ * z `filterUrl`, a když není ani jedno, odvodí si ji z dat gridu.
+ */
+export const SELECT_FILTERS = ['select', 'multiselect', 'multiselect-exclude'];
+
+/** Má sloupec vlastní číselník? (Stejná podmínka, jakou používá fetchOptions.) */
+function hasOwnOptions(column) {
+  return Array.isArray(column.filterValues) || !!column.filterUrl;
+}
+
+/**
+ * Upozorní v konzoli na výběrový filtr, jehož nabídka je v server-side režimu
+ * NEÚPLNÁ. Grid tam celou sadu nezná, takže hodnoty odvodí jen z právě načtené
+ * stránky (v progresivním režimu z dosud načtených stránek — ten na dotažení
+ * zbytku nečeká, takže platí totéž). Chování je správné a zdokumentované, jenže
+ * se pozná až tím, že si někdo všimne chybějící hodnoty: v roletce svítí jediná
+ * země a uživatel věří, že jiné v databázi nejsou.
+ *
+ * Varuje se jednou na sloupec a instanci — nabídka se přenačítá při každém
+ * otevření panelu a opakovaná hláška by v konzoli přebila všechno ostatní.
+ * Vrací true, když hláška padla.
+ */
+export function warnDerivedOptions(grid, column) {
+  if (!grid || !grid.serverSide || !column) return false;
+  if (!SELECT_FILTERS.includes(column.filter) || hasOwnOptions(column)) return false;
+  const seen = grid._derivedOptionsWarned || (grid._derivedOptionsWarned = new Set());
+  if (seen.has(column.field)) return false;
+  seen.add(column.field);
+
+  const title = column.title && column.title !== column.field ? ` (${column.title})` : '';
+  // Inverzní filtr bolí víc: neúplná nabídka znamená, že uživatel vyloučí míň,
+  // než čeká, a řádky, které měly zmizet, vypadají jako chyba filtru.
+  const impact = column.filter === 'multiselect-exclude'
+    ? ' Filtr je inverzní, takže uživatel vyloučí míň, než čeká, a přebývající řádky vypadají jako chyba filtru.'
+    : '';
+  console.warn(`[Lattice] sloupec „${column.field}“${title}: nabídka filtru '${column.filter}' se v server-side režimu odvodila jen z načtené stránky, ne z celé sady.${impact} Doplň sloupci filterValues nebo filterUrl.`);
+  return true;
+}
+
 /* ---- TEXT (s podporou negace !výraz) ----------------------------------- */
 
 registerFilter('text', {
