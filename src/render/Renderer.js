@@ -29,7 +29,7 @@ import { fillGroupedSelect } from '../util/groups.js';
 import { pickTip } from '../features/tips.js';
 import { openPopup } from '../features/popup.js';
 import { attachMoveHandle, attachDropZone, attachGroupDropZone, attachExternalDrop } from '../features/rowMove.js';
-import { isNumericType, computeSummary, computeRowSummary, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
+import { isNumericType, computeSummary, computeRowSummary, formatSummaryValue, SUMMARY_SYMBOL, SUMMARY_ORDER } from '../features/summary.js';
 import { compileAggregate } from '../core/formula.js';
 import { levelColor, levelIndex, DEFAULT_SCALE_COLORS } from '../core/colorScale.js';
 import { dateBucket } from '../core/dateParts.js';
@@ -1663,11 +1663,11 @@ export class Renderer {
           let val = null;
           try { val = compileAggregate(col.summaryFormula)(srcRows); } catch { val = null; }
           cell.appendChild(el('span.lattice-summary-sym.is-formula', { text: 'ƒ', title: col.summaryFormula }));
-          cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue('formula', val, col) }));
+          cell.appendChild(el('span.lattice-summary-val', { text: formatSummaryValue('formula', val, col) }));
         } else if (rowSpec.fn && (col.summary || []).includes(rowSpec.fn) && (rowSpec.fn === 'count' || isNumericType(col.type))) {
           const val = computeSummary(rowSpec.fn, col, srcRows);
           cell.appendChild(el('span.lattice-summary-sym', { text: SUMMARY_SYMBOL[rowSpec.fn], title: t('summary.name.' + rowSpec.fn) }));
-          cell.appendChild(el('span.lattice-summary-val', { text: this.formatSummaryValue(rowSpec.fn, val, col) }));
+          cell.appendChild(el('span.lattice-summary-val', { text: formatSummaryValue(rowSpec.fn, val, col) }));
         }
       }
       row.appendChild(cell);
@@ -1697,15 +1697,6 @@ export class Renderer {
     });
     toggle.addEventListener('click', () => grid.toggleSummaryScope());
     bar.append(label, toggle);
-  }
-
-  formatSummaryValue(fn, val, col) {
-    if (val == null || (typeof val === 'number' && !Number.isFinite(val))) return '';
-    if (fn === 'count') return String(val);
-    if (col.type === 'money') return getFormatter(col)(val, col, {});
-    // vzorec (vážený souhrn) i průměr ukazujeme s desetinami (poměry), zbytek celé.
-    const maxdec = (fn === 'avg' || fn === 'formula') ? 2 : 0;
-    return Number(val).toLocaleString(undefined, { maximumFractionDigits: maxdec });
   }
 
   /** Aplikuje uživatelský „formát buňky" (zarovnání, řez písma, barvy) na buňku. */
@@ -1800,7 +1791,7 @@ export class Renderer {
       const val = computeRowSummary(col._fn, col._cols, rowData);
       const cell = el('div.lattice-cell.lattice-rowsum-cell', { dataset: { field: col.field }, class: 'is-right' });
       cell.appendChild(el('span.lattice-summary-val', {
-        text: this.formatSummaryValue(col._fn, val, col._cols[0] || col),
+        text: formatSummaryValue(col._fn, val, col._cols[0] || col),
       }));
       return cell;
     }

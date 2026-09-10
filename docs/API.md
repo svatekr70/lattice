@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.22.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.21.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.22.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.21.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.22.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.21.1
+npm i github:svatekr70/lattice#v1.22.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.21.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.22.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -150,9 +150,9 @@ new Lattice('#grid', {
 | `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
 | `wrap` | boolean | Per-sloupcové zalamování textu v buňkách (`@v1.8.0`). `true` = zalomit i při vypnutém globálním `instance.wrapText`; `false` = nezalamovat i když je globál zapnutý; nezadáno = řídí se globálem. |
-| `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). |
+| `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). **Používá se i pro souhrn** peněžního sloupce — viz *Souhrny a formátovač*. `@v1.22.0` |
 | `formatterParams` | object | Parametry formátovače daného typu. |
-| `summary` / `rowSummary` | string[] | Souhrnné funkce sloupce (dole) / řádku (vpravo): `['sum','avg','min','max','count']`. |
+| `summary` / `rowSummary` | string[] | Souhrnné funkce sloupce (dole) / řádku (vpravo): `['sum','avg','min','max','count']`. U `type: 'money'` projde výsledek **týmž `formatter`em jako buňky** — viz *Souhrny a formátovač*. `@v1.22.0` |
 | `summaryFormula` (+ `summaryFormulaLabel`) | string | **Vážený / poolovaný souhrn** vzorcem z agregací jiných sloupců — např. `sum(spojeno) / sum(vytoceno) * 100`. Viz *Počítané sloupce → agregační funkce*. `summaryFormulaLabel` = název řádku vlevo (sloupce se stejným názvem sdílejí řádek). |
 | `condFormat` | object | Barevná škála („semafor"): `{ on:true, levels:3\|5\|7, reverse?, colors?, mode?, thresholds? }`. |
 | `cellClass` / `cellStyle` | function | Podmíněné třídy / inline styl buňky dle hodnoty. |
@@ -344,7 +344,7 @@ Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabu
 | `rowNumbers` | `'none'` \| `'continuous'` \| `'perPage'` |
 | `rowNumberWidth` | Šířka číslovacího (`#`) sloupce v px; `null` (výchozí) = **automatická** — spočítá se z délky nejdelšího čísla (tj. z počtu řádků) a z hustoty/velikosti písma, takže se sloupec přizpůsobí sám. Tažení okraje hlavičky sem uloží pevnou šířku (ta má přednost), **dvojklik** na okraj ji vrátí na `null`. `@v1.18.1` |
 | `headerRotate` | `'none'` \| `'90'` \| `'270'` |
-| `summaryRow` | `'none'` \| `'page'` (zobrazená stránka) \| `'all'`. **Server-side:** `'all'` agreguje jen z **aktuálně načtených řádků** (grid nemá celý dataset) — souhrn „přes vše" musí spočítat server. |
+| `summaryRow` | `'none'` \| `'page'` (zobrazená stránka) \| `'all'`. **Server-side:** `'all'` agreguje jen z **aktuálně načtených řádků** (grid nemá celý dataset) — souhrn „přes vše" musí spočítat server. Formátování hodnot viz *Souhrny a formátovač*. `@v1.22.0` |
 | `groupBy` | seskupení řádků (víceúrovňové): `null`, `field`, nebo pole. Položka je buď název pole (`'region'`), nebo `{ field, part }` pro **datumové úrovně** — `part` ∈ `year, quarter, month, week, weekday, day, hour, minute`. Víc úrovní se zanoří (`[{field:'createdAt',part:'year'},{field:'createdAt',part:'quarter'}]`); datumové skupiny se řadí chronologicky. |
 | `groupDisplay` | jak zobrazit úrovně: `'headers'` (vnořené sbalitelné hlavičky, výchozí) \| `'columns'` (ploché řádky). V OBOU režimech se seskupené úrovně vykreslí jako **ukotvené vedoucí sloupce vlevo** (při horizontálním scrollu zůstanou stát, reálné sloupce odjedou za nimi); `'headers'` k tomu navíc přidá sbalitelné lišty skupin. **Sbalení skupiny sbalí i všechny její podskupiny** — po opětovném rozbalení nadřazené skupiny zůstanou podskupiny sbalené a rozbalí je až vlastní klik (`@v1.20.1`). |
 | `groupRepeat` | v režimu `'headers'`: opakovat hodnotu seskupení v každém řádku (`true`, výchozí) \| nechat vedoucí sloupce prázdné a hodnotu jen v liště skupiny (`false`). |
@@ -1009,6 +1009,40 @@ od prostého průměru poměrů):
 Pravidla: **pole musí být uvnitř agregace** (`sum(spojeno)`, ne holé `spojeno`); agregace se
 **nevnořují**. Skalární funkce (`round`, `abs`…) lze použít nad výsledkem: `round(avg(x), 2)`.
 
+### Souhrny a formátovač — `@v1.22.0`
+
+Sloupec `type: 'money'` posílá hodnotu souhrnu (`sum`, `avg`, `min`, `max`, i vzorec) **týmž
+formátovačem jako buňky** — tedy `col.formatter`, když ho sloupec má, jinak vestavěný formátovač
+typu. Souhrn tak nese měnu i počet desetin. Ostatní typy se formátují jen podle locale: `avg`
+a vzorec s dvěma desetinami (jsou to poměry), zbytek celé; `count` je vždy holé číslo a
+formátovačem neprochází.
+
+Formátovač smí podle smlouvy vrátit **`string` i `Node`** a souhrn obojí unese — z uzlu si vezme
+jeho `textContent`. Vlastní barevnost se do souhrnu nepřenáší, číslo ano. Týká se to i vestavěného
+`money`: s formátem `negative: 'red'` vrací záporná částka `<span>`, ne řetězec.
+
+Třetí argument je **`row`, který u souhrnu neexistuje**. Chodí tam sdílený zmrazený objekt
+`SUMMARY_ROW` s příznakem `__latticeSummary: true`, takže:
+
+- čtení `row.cokoli` je bezpečné (vrátí `undefined`, nespadne — proto ne `null`),
+- souhrn jde poznat **schválně**, ne odvozením z chybějícího řádku.
+
+```js
+import { isSummaryRow } from 'lattice';
+
+formatter: (value, col, row) => {
+  if (isSummaryRow(row)) return `${value} Kč`;   // souhrn: bez obarvení, jen číslo
+  const span = document.createElement('span');
+  span.textContent = `${value} Kč`;
+  span.style.color = row.stav === 'dluh' ? 'crimson' : 'inherit';
+  return span;
+}
+```
+
+Formátovač je cizí kód: když v souhrnu **spadne** (sáhne do řádku, který neexistuje) nebo vrátí
+uzel **bez textu** (třeba jen ikonu), souhrn se nevyprázdní ani nerozbije řádek — spadne se na
+obyčejné číslo podle locale. Správná částka je v souhrnu podstatnější než věrnost formátu.
+
 ---
 
 ## Callbacky (options `on…`)
@@ -1044,6 +1078,7 @@ import {
   registerType, getFormatter,    // vlastní datové typy
   registerFilter, getFilter,     // vlastní filtry
   EMPTY_FILTER_VALUE,            // hodnota filtru pro prázdné buňky (@v1.21.0)
+  isSummaryRow, SUMMARY_ROW,     // „řádek", který formátovač dostane v souhrnu (@v1.22.0)
   registerLanguage, availableLanguages, I18n,
   Store,                         // per-grid persistence
   buildColumns, serializeColumns,

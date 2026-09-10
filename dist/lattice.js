@@ -2033,66 +2033,28 @@ function buildMenu(items, close, onPick, opts = {}) {
   return menu;
 }
 
-// src/features/summary.js
-var NUMERIC_TYPES = ["number", "money", "progress", "rating"];
-function isNumericType(type) {
-  return NUMERIC_TYPES.includes(type);
+// src/features/lightbox.js
+function openLightbox(src, alt) {
+  const img = el("img.lattice-lightbox-img", { src, alt: alt || "" });
+  img.addEventListener("click", (e) => e.stopPropagation());
+  const closeBtn = el("button.lattice-lightbox-close", { type: "button", text: "\xD7", title: "Zav\u0159\xEDt" });
+  const overlay = el("div.lattice-lightbox", {}, [img, closeBtn]);
+  const close = () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+  overlay.addEventListener("click", close);
+  closeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    close();
+  });
+  document.body.appendChild(overlay);
+  document.addEventListener("keydown", onKey);
+  return close;
 }
-var SUMMARY_ORDER = ["sum", "avg", "min", "max", "count"];
-function availableSummaries(col) {
-  return isNumericType(col.type) ? SUMMARY_ORDER.slice() : ["count"];
-}
-function toNum(v) {
-  if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function nonNull(v) {
-  return v != null && v !== "";
-}
-function computeSummary(fn, col, rows) {
-  if (fn === "count") return rows.reduce((a, r) => a + (nonNull(cellValue(r, col)) ? 1 : 0), 0);
-  const nums = [];
-  for (const r of rows) {
-    const n = toNum(cellValue(r, col));
-    if (n != null) nums.push(n);
-  }
-  if (!nums.length) return null;
-  switch (fn) {
-    case "min":
-      return Math.min(...nums);
-    case "max":
-      return Math.max(...nums);
-    case "sum":
-      return nums.reduce((a, b) => a + b, 0);
-    case "avg":
-      return nums.reduce((a, b) => a + b, 0) / nums.length;
-    default:
-      return null;
-  }
-}
-function computeRowSummary(fn, cols, row) {
-  if (fn === "count") return cols.reduce((a, c) => a + (nonNull(cellValue(row, c)) ? 1 : 0), 0);
-  const nums = [];
-  for (const c of cols) {
-    const n = toNum(cellValue(row, c));
-    if (n != null) nums.push(n);
-  }
-  if (!nums.length) return null;
-  switch (fn) {
-    case "min":
-      return Math.min(...nums);
-    case "max":
-      return Math.max(...nums);
-    case "sum":
-      return nums.reduce((a, b) => a + b, 0);
-    case "avg":
-      return nums.reduce((a, b) => a + b, 0) / nums.length;
-    default:
-      return null;
-  }
-}
-var SUMMARY_SYMBOL = { sum: "\u03A3", avg: "\u2300", min: "min", max: "max", count: "#" };
 
 // src/core/format.js
 var DEFAULT_FORMATS = {
@@ -2201,6 +2163,340 @@ function formatDate(d, pattern, i18n) {
     const v = map[tok];
     return v == null ? tok : String(v);
   });
+}
+
+// src/types/columnTypes.js
+function effFmt(col, kind) {
+  if (col._fmt) return col._fmt;
+  return { ...DEFAULT_FORMATS[kind], ...col.formatterParams || {} };
+}
+function negText(r) {
+  if (!r.red) return r.text;
+  const span = document.createElement("span");
+  span.className = "lattice-num-neg";
+  span.textContent = r.text;
+  return span;
+}
+var registry = /* @__PURE__ */ new Map();
+function registerType(name, formatter) {
+  registry.set(name, formatter);
+}
+function getFormatter(column) {
+  if (typeof column.formatter === "function") return column.formatter;
+  return registry.get(column.type) || registry.get("text");
+}
+function toNumber(v) {
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function toDate3(v) {
+  if (v == null || v === "") return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+registerType("text", (v) => v == null ? "" : String(v));
+registerType("id", (v) => v == null ? "" : String(v));
+registerType("number", (v, col) => {
+  const n = toNumber(v);
+  if (n == null) return "";
+  return negText(formatNumber(n, effFmt(col, "number")));
+});
+registerType("money", (v, col) => {
+  const n = toNumber(v);
+  if (n == null) return "";
+  return negText(formatMoney(n, effFmt(col, "money")));
+});
+registerType("date", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
+});
+registerType("datetime", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
+});
+registerType("time", (v, col) => {
+  const d = toDate3(v);
+  return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
+});
+function boolDisplay(col) {
+  const p = col && col.format || col && col.formatterParams || {};
+  return {
+    trueText: p.trueText != null ? p.trueText : "\u2713",
+    falseText: p.falseText != null ? p.falseText : "\u2715",
+    plain: !!p.plain
+  };
+}
+function isTruthy(v) {
+  if (v === true || v === 1) return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "1" || s === "true" || s === "ano" || s === "yes";
+  }
+  return false;
+}
+registerType("boolean", (v, col) => {
+  const truthy = isTruthy(v);
+  const d = boolDisplay(col);
+  const span = document.createElement("span");
+  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false") + (d.plain ? " is-plain" : "");
+  span.textContent = truthy ? d.trueText : d.falseText;
+  return span;
+});
+registerType("progress", (v, col) => {
+  const p = col.formatterParams || {};
+  const max = p.max != null ? p.max : 100;
+  const n = toNumber(v) ?? 0;
+  const pct = Math.max(0, Math.min(100, n / max * 100));
+  const wrap = document.createElement("div");
+  wrap.className = "lattice-progress";
+  wrap.title = max === 100 ? `${Math.round(pct)} %` : `${Math.round(n)} / ${max}`;
+  const bar = document.createElement("div");
+  bar.className = "lattice-progress-bar";
+  bar.style.width = pct + "%";
+  if (p.color) bar.style.background = p.color;
+  wrap.appendChild(bar);
+  if (p.showValue) {
+    const label = document.createElement("span");
+    label.className = "lattice-progress-label";
+    label.textContent = Math.round(pct) + " %";
+    wrap.appendChild(label);
+  }
+  return wrap;
+});
+registerType("sparkline", (v, col) => {
+  const p = col.formatterParams || {};
+  let nums = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;\s]+/) : [];
+  nums = nums.map(toNumber).filter((x) => x != null);
+  if (!nums.length) return "";
+  const NS = "http://www.w3.org/2000/svg";
+  const w = p.width || 80, h = p.height || 22, pad4 = 2;
+  const iw = w - pad4 * 2, ih = h - pad4 * 2;
+  const min = p.min != null ? p.min : Math.min(...nums);
+  const max = p.max != null ? p.max : Math.max(...nums);
+  const span = max - min || 1;
+  const X = (i) => pad4 + (nums.length === 1 ? iw / 2 : i / (nums.length - 1) * iw);
+  const Y = (val) => pad4 + ih - (val - min) / span * ih;
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "lattice-sparkline");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", h);
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  if (p.color) svg.style.color = p.color;
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  if (p.type === "bar") {
+    const bw = iw / nums.length;
+    nums.forEach((val, i) => {
+      const bh = Math.max(0.5, (val - min) / span * ih);
+      svg.appendChild(mk("rect", { x: (pad4 + i * bw + bw * 0.1).toFixed(1), y: (pad4 + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: "currentColor" }));
+    });
+  } else {
+    const d = nums.map((val, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(val).toFixed(1)).join(" ");
+    if (p.fill) svg.appendChild(mk("path", { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad4 + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad4 + ih).toFixed(1)} Z`, fill: "currentColor", opacity: "0.15" }));
+    svg.appendChild(mk("path", { d, fill: "none", stroke: "currentColor", "stroke-width": p.strokeWidth || 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    if (p.dot !== false) svg.appendChild(mk("circle", { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: "1.6", fill: "currentColor" }));
+  }
+  const wrap = document.createElement("span");
+  wrap.className = "lattice-sparkline-wrap";
+  wrap.title = nums.join(", ");
+  wrap.appendChild(svg);
+  return wrap;
+});
+registerType("link", (v, col, row) => {
+  if (v == null || v === "") return "";
+  const p = col.formatterParams || {};
+  const a = document.createElement("a");
+  a.className = "lattice-link";
+  if (typeof p.url === "function") {
+    a.href = String(p.url(v, row, col) ?? "");
+  } else {
+    const base = p.urlField != null && row ? row[p.urlField] : v;
+    a.href = (p.urlPrefix || "") + String(base ?? "") + (p.urlSuffix || "");
+  }
+  a.textContent = p.label != null ? p.label : String(v);
+  let target = p.target;
+  if (target == null) target = col._linkNewTab ? "_blank" : "_self";
+  if (target === "_blank") {
+    a.target = "_blank";
+    a.rel = p.rel || "noopener noreferrer";
+    a.appendChild(extLinkIcon());
+  } else if (target && target !== "_self") {
+    a.target = target;
+  }
+  return a;
+});
+function extLinkIcon() {
+  const s = document.createElement("span");
+  s.className = "lattice-link-ext";
+  s.setAttribute("aria-hidden", "true");
+  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
+  return s;
+}
+registerType("image", (v, col) => {
+  if (v == null || v === "") return "";
+  const p = col.formatterParams || {};
+  const img = document.createElement("img");
+  img.className = "lattice-img";
+  img.src = String(v);
+  img.loading = "lazy";
+  img.alt = p.alt || "";
+  const dim = (x) => typeof x === "number" ? x + "px" : x;
+  if (p.height) img.style.height = dim(p.height);
+  if (p.width) img.style.width = dim(p.width);
+  if (p.lightbox !== false) {
+    img.classList.add("is-zoomable");
+    img.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openLightbox(String(v), p.alt);
+    });
+  }
+  return img;
+});
+registerType("icon", (v, col) => {
+  const p = col.formatterParams || {};
+  let g = v;
+  if (p.icons && v != null && Object.prototype.hasOwnProperty.call(p.icons, v)) g = p.icons[v];
+  if (g == null || g === "") return "";
+  g = String(g);
+  const span = document.createElement("span");
+  span.className = "lattice-icon";
+  if (/^(https?:|data:)/.test(g)) {
+    const img = document.createElement("img");
+    img.className = "lattice-icon-img";
+    img.src = g;
+    img.alt = p.alt || "";
+    span.appendChild(img);
+  } else {
+    span.textContent = g;
+  }
+  if (p.size) span.style.fontSize = typeof p.size === "number" ? p.size + "px" : p.size;
+  if (p.title != null) span.title = String(p.title);
+  return span;
+});
+registerType("color", (v) => {
+  const div = document.createElement("div");
+  div.className = "lattice-color-fill";
+  if (v != null && v !== "") div.style.background = String(v);
+  div.title = v != null ? String(v) : "";
+  return div;
+});
+registerType("tick", (v, col) => {
+  if (!isTruthy(v)) return "";
+  const d = boolDisplay(col);
+  const span = document.createElement("span");
+  span.className = "lattice-bool is-true" + (d.plain ? " is-plain" : "");
+  span.textContent = d.trueText;
+  return span;
+});
+registerType("html", (v) => {
+  const span = document.createElement("span");
+  span.innerHTML = v == null ? "" : String(v);
+  return span;
+});
+registerType("rating", (v, col) => {
+  const p = col.formatterParams || {};
+  const max = p.max != null ? p.max : 5;
+  const n = Math.round(toNumber(v) ?? 0);
+  const wrap = document.createElement("span");
+  wrap.className = "lattice-rating";
+  wrap.title = `${n} / ${max}`;
+  for (let i = 1; i <= max; i++) {
+    const star = document.createElement("span");
+    star.className = "lattice-star " + (i <= n ? "is-on" : "is-off");
+    star.textContent = "\u2605";
+    wrap.appendChild(star);
+  }
+  return wrap;
+});
+
+// src/features/summary.js
+var NUMERIC_TYPES = ["number", "money", "progress", "rating"];
+function isNumericType(type) {
+  return NUMERIC_TYPES.includes(type);
+}
+var SUMMARY_ORDER = ["sum", "avg", "min", "max", "count"];
+function availableSummaries(col) {
+  return isNumericType(col.type) ? SUMMARY_ORDER.slice() : ["count"];
+}
+function toNum(v) {
+  if (v == null || v === "") return null;
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function nonNull(v) {
+  return v != null && v !== "";
+}
+function computeSummary(fn, col, rows) {
+  if (fn === "count") return rows.reduce((a, r) => a + (nonNull(cellValue(r, col)) ? 1 : 0), 0);
+  const nums = [];
+  for (const r of rows) {
+    const n = toNum(cellValue(r, col));
+    if (n != null) nums.push(n);
+  }
+  if (!nums.length) return null;
+  switch (fn) {
+    case "min":
+      return Math.min(...nums);
+    case "max":
+      return Math.max(...nums);
+    case "sum":
+      return nums.reduce((a, b) => a + b, 0);
+    case "avg":
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
+    default:
+      return null;
+  }
+}
+function computeRowSummary(fn, cols, row) {
+  if (fn === "count") return cols.reduce((a, c) => a + (nonNull(cellValue(row, c)) ? 1 : 0), 0);
+  const nums = [];
+  for (const c of cols) {
+    const n = toNum(cellValue(row, c));
+    if (n != null) nums.push(n);
+  }
+  if (!nums.length) return null;
+  switch (fn) {
+    case "min":
+      return Math.min(...nums);
+    case "max":
+      return Math.max(...nums);
+    case "sum":
+      return nums.reduce((a, b) => a + b, 0);
+    case "avg":
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
+    default:
+      return null;
+  }
+}
+var SUMMARY_SYMBOL = { sum: "\u03A3", avg: "\u2300", min: "min", max: "max", count: "#" };
+var SUMMARY_ROW = Object.freeze({ __latticeSummary: true });
+function isSummaryRow(row) {
+  return !!(row && row.__latticeSummary === true);
+}
+function formatterText(out) {
+  if (out == null) return "";
+  if (typeof out === "object" && typeof out.nodeType === "number") return String(out.textContent ?? "");
+  return String(out);
+}
+function formatSummaryValue(fn, val, col) {
+  if (val == null || typeof val === "number" && !Number.isFinite(val)) return "";
+  if (fn === "count") return String(val);
+  if (col.type === "money") {
+    let text = "";
+    try {
+      text = formatterText(getFormatter(col)(val, col, SUMMARY_ROW));
+    } catch {
+      text = "";
+    }
+    if (text.trim() !== "") return text;
+  }
+  const maxdec = fn === "avg" || fn === "formula" ? 2 : 0;
+  return Number(val).toLocaleString(void 0, { maximumFractionDigits: maxdec });
 }
 
 // src/core/colorScale.js
@@ -2513,7 +2809,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.21.1";
+var VERSION = "1.22.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2523,6 +2819,19 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.22.0",
+    "date": "2026-09-10",
+    "text": "Oprava souhrnn\xE9ho \u0159\xE1dku u sloupce, jeho\u017E form\xE1tova\u010D vrac\xED DOM uzel: m\xEDsto \u010D\xE1stky se v sou\u010Dtu i pr\u016Fm\u011Bru objevovalo [object HTMLSpanElement]. Aditivn\u011B p\u0159ibyly dva ve\u0159ejn\xE9 exporty pro form\xE1tova\u010De, kter\xE9 se v souhrnu cht\u011Bj\xED chovat jinak. Bez breaking changes.",
+    "items": [
+      "Souhrn unese form\xE1tova\u010D vracej\xEDc\xED Node. Smlouva form\xE1tova\u010De je (value, col, row) => string | Node a bu\u0148ky ji ct\xED, ale souhrn si v\xFDsledek vkl\xE1dal jako \u010Dist\xFD text, tak\u017Ee se uzel p\u0159etavil na sv\u016Fj\u2026",
+      `T\xFDkalo se to i vestav\u011Bn\xE9ho money. S form\xE1tem negative: 'red' (nastaviteln\xFDm v UI p\u0159es form\xE1t hodnot) vrac\xED z\xE1porn\xE1 \u010D\xE1stka <span class="lattice-num-neg">, ne \u0159et\u011Bzec \u2014 z\xE1porn\xFD sou\u010Det v takov\xE9m\u2026`,
+      "Rozbit\xFD form\xE1tova\u010D u\u017E souhrn nepolo\u017E\xED. Kdy\u017E v souhrnu spadne (s\xE1hne do \u0159\xE1dku, kter\xFD neexistuje) nebo vr\xE1t\xED uzel bez textu (t\u0159eba jen ikonu), spadne se na oby\u010Dejn\xE9 \u010D\xEDslo podle locale m\xEDsto pr\xE1zdn\xE9\u2026",
+      "Form\xE1tova\u010D pozn\xE1 souhrn schv\xE1ln\u011B. T\u0159et\xEDm argumentem b\xFDval pr\xE1zdn\xFD objekt, tak\u017Ee form\xE1tova\u010D, kter\xFD si z \u0159\xE1dku n\u011Bco bere (u obarvov\xE1n\xED b\u011B\u017En\xE9), ti\u0161e spadl do jin\xE9 v\u011Btve a ne\u0161lo poznat pro\u010D. Nov\u011B tam\u2026",
+      "Nov\xE9 ve\u0159ejn\xE9 exporty isSummaryRow a SUMMARY_ROW pro form\xE1tova\u010De, kter\xE9 maj\xED v souhrnu vracet n\u011Bco jin\xE9ho ne\u017E v bu\u0148ce.",
+      "Form\xE1tov\xE1n\xED hodnot souhrnu se p\u0159est\u011Bhovalo z rendereru do features/summary.js jako formatSummaryValue(). Chov\xE1 se stejn\u011B, jen jde otestovat bez DOM."
+    ]
+  },
   {
     "version": "1.21.1",
     "date": "2026-09-09",
@@ -2756,14 +3065,6 @@ var RELEASES = [
       'Preset marker. Sloupcov\xE9 settery (\u0161\xED\u0159ka, barva, form\xE1t, titulek, souhrn, oto\u010Den\xED, filtr\u2026) i autoFit neru\u0161ily \u201Eaktivn\xED preset" \u2192 marker visel i po odchylce. Dopln\u011Bno ru\u0161en\xED presetu.',
       "Nastaven\xED sloupc\u016F (\u2699). Klik na n\xE1zev sloupce skryl/zobrazil sloupec, ale checkbox v panelu se neobnovil (setColumnVisible te\u010F vol\xE1 gear.refresh()).",
       "Responsive. Vypnut\xE9 \u010D\xEDslov\xE1n\xED \u0159\xE1dk\u016F (rowNumbers: 'none', truthy) rezervovalo 44 px nav\xEDc."
-    ]
-  },
-  {
-    "version": "1.8.1",
-    "date": "2026-08-05",
-    "text": 'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem',
-    "items": [
-      'P\u0159ep\xEDna\u010D \u201EZv\xFDrazn\u011Bn\xED \u0159\xE1dku klikem" v UI (Nastaven\xED tabulky \u2699 \u2192 *Sloupce a \u0159\xE1dky*) \u2014 instance.rowHighlight (z v1.8.0) \u0161el dote\u010F zapnout jen k\xF3dem. Nov\u011B ho u\u017Eivatel zapne/vypne p\u0159\xEDmo z dialogu\u2026'
     ]
   }
 ];
@@ -4562,19 +4863,19 @@ var AL_RIGHT_SVG = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden=
 var FX_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M14.5 4.2c-1.6-.3-2.8.5-3.1 2.2L11.1 8h2.2l-.3 1.8h-2.2l-1 5.7c-.4 2.4-1.7 3.6-3.8 3.6-.5 0-1-.1-1.4-.2l.3-1.8c.3.1.6.2.9.2.9 0 1.4-.6 1.6-1.9l1-5.6H7l.3-1.8h1.8l.3-1.9C10.1 3.6 11.8 2.1 14 2.4l.5 1.8zM15.9 12.6l1.6 2.2 1.9-2.2h2l-2.9 3.3 1.8 2.5-.1.1h-1.9l-1.6-2.3-2 2.3h-2l3-3.4-1.8-2.5v-.1h2z"/></svg>';
 
 // src/filters/index.js
-var registry = /* @__PURE__ */ new Map();
+var registry2 = /* @__PURE__ */ new Map();
 function registerFilter(name, def) {
-  registry.set(name, def);
+  registry2.set(name, def);
 }
 function getFilter(name) {
-  return registry.get(name) || null;
+  return registry2.get(name) || null;
 }
 var EMPTY_FILTER_VALUE = "__LATTICE_EMPTY__";
 var EMPTY_NORM = EMPTY_FILTER_VALUE.toLowerCase();
 function isBlank(v) {
   return v == null || v === "";
 }
-function toNumber(v) {
+function toNumber2(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) ? n : null;
@@ -4713,8 +5014,8 @@ registerFilter("number", {
     const m = String(value).trim().match(/^(>=|<=|>|<|=)?\s*(.+)$/);
     if (!m) return true;
     const op = m[1] || "=";
-    const target = toNumber(m[2]);
-    const n = toNumber(cell);
+    const target = toNumber2(m[2]);
+    const n = toNumber2(cell);
     if (target == null || n == null) return false;
     switch (op) {
       case ">":
@@ -4748,10 +5049,10 @@ registerFilter("number-range", {
   },
   isEmpty: (v) => !v || v.min == null && v.max == null,
   match(value, cell) {
-    const n = toNumber(cell);
+    const n = toNumber2(cell);
     if (n == null) return false;
-    const lo = toNumber(value.min);
-    const hi = toNumber(value.max);
+    const lo = toNumber2(value.min);
+    const hi = toNumber2(value.max);
     if (lo != null && n < lo) return false;
     if (hi != null && n > hi) return false;
     return true;
@@ -8170,278 +8471,6 @@ function lookup(obj, path) {
   return typeof cur === "string" ? cur : void 0;
 }
 
-// src/features/lightbox.js
-function openLightbox(src, alt) {
-  const img = el("img.lattice-lightbox-img", { src, alt: alt || "" });
-  img.addEventListener("click", (e) => e.stopPropagation());
-  const closeBtn = el("button.lattice-lightbox-close", { type: "button", text: "\xD7", title: "Zav\u0159\xEDt" });
-  const overlay = el("div.lattice-lightbox", {}, [img, closeBtn]);
-  const close = () => {
-    overlay.remove();
-    document.removeEventListener("keydown", onKey);
-  };
-  const onKey = (e) => {
-    if (e.key === "Escape") close();
-  };
-  overlay.addEventListener("click", close);
-  closeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    close();
-  });
-  document.body.appendChild(overlay);
-  document.addEventListener("keydown", onKey);
-  return close;
-}
-
-// src/types/columnTypes.js
-function effFmt(col, kind) {
-  if (col._fmt) return col._fmt;
-  return { ...DEFAULT_FORMATS[kind], ...col.formatterParams || {} };
-}
-function negText(r) {
-  if (!r.red) return r.text;
-  const span = document.createElement("span");
-  span.className = "lattice-num-neg";
-  span.textContent = r.text;
-  return span;
-}
-var registry2 = /* @__PURE__ */ new Map();
-function registerType(name, formatter) {
-  registry2.set(name, formatter);
-}
-function getFormatter(column) {
-  if (typeof column.formatter === "function") return column.formatter;
-  return registry2.get(column.type) || registry2.get("text");
-}
-function toNumber2(v) {
-  if (v == null || v === "") return null;
-  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function toDate3(v) {
-  if (v == null || v === "") return null;
-  const d = v instanceof Date ? v : new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-registerType("text", (v) => v == null ? "" : String(v));
-registerType("id", (v) => v == null ? "" : String(v));
-registerType("number", (v, col) => {
-  const n = toNumber2(v);
-  if (n == null) return "";
-  return negText(formatNumber(n, effFmt(col, "number")));
-});
-registerType("money", (v, col) => {
-  const n = toNumber2(v);
-  if (n == null) return "";
-  return negText(formatMoney(n, effFmt(col, "money")));
-});
-registerType("date", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "date").pattern, col._i18n) : "";
-});
-registerType("datetime", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "datetime").pattern, col._i18n) : "";
-});
-registerType("time", (v, col) => {
-  const d = toDate3(v);
-  return d ? formatDate(d, effFmt(col, "time").pattern, col._i18n) : "";
-});
-function boolDisplay(col) {
-  const p = col && col.format || col && col.formatterParams || {};
-  return {
-    trueText: p.trueText != null ? p.trueText : "\u2713",
-    falseText: p.falseText != null ? p.falseText : "\u2715",
-    plain: !!p.plain
-  };
-}
-function isTruthy(v) {
-  if (v === true || v === 1) return true;
-  if (typeof v === "string") {
-    const s = v.trim().toLowerCase();
-    return s === "1" || s === "true" || s === "ano" || s === "yes";
-  }
-  return false;
-}
-registerType("boolean", (v, col) => {
-  const truthy = isTruthy(v);
-  const d = boolDisplay(col);
-  const span = document.createElement("span");
-  span.className = "lattice-bool " + (truthy ? "is-true" : "is-false") + (d.plain ? " is-plain" : "");
-  span.textContent = truthy ? d.trueText : d.falseText;
-  return span;
-});
-registerType("progress", (v, col) => {
-  const p = col.formatterParams || {};
-  const max = p.max != null ? p.max : 100;
-  const n = toNumber2(v) ?? 0;
-  const pct = Math.max(0, Math.min(100, n / max * 100));
-  const wrap = document.createElement("div");
-  wrap.className = "lattice-progress";
-  wrap.title = max === 100 ? `${Math.round(pct)} %` : `${Math.round(n)} / ${max}`;
-  const bar = document.createElement("div");
-  bar.className = "lattice-progress-bar";
-  bar.style.width = pct + "%";
-  if (p.color) bar.style.background = p.color;
-  wrap.appendChild(bar);
-  if (p.showValue) {
-    const label = document.createElement("span");
-    label.className = "lattice-progress-label";
-    label.textContent = Math.round(pct) + " %";
-    wrap.appendChild(label);
-  }
-  return wrap;
-});
-registerType("sparkline", (v, col) => {
-  const p = col.formatterParams || {};
-  let nums = Array.isArray(v) ? v : typeof v === "string" ? v.split(/[,;\s]+/) : [];
-  nums = nums.map(toNumber2).filter((x) => x != null);
-  if (!nums.length) return "";
-  const NS = "http://www.w3.org/2000/svg";
-  const w = p.width || 80, h = p.height || 22, pad4 = 2;
-  const iw = w - pad4 * 2, ih = h - pad4 * 2;
-  const min = p.min != null ? p.min : Math.min(...nums);
-  const max = p.max != null ? p.max : Math.max(...nums);
-  const span = max - min || 1;
-  const X = (i) => pad4 + (nums.length === 1 ? iw / 2 : i / (nums.length - 1) * iw);
-  const Y = (val) => pad4 + ih - (val - min) / span * ih;
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("class", "lattice-sparkline");
-  svg.setAttribute("width", w);
-  svg.setAttribute("height", h);
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  svg.setAttribute("preserveAspectRatio", "none");
-  if (p.color) svg.style.color = p.color;
-  const mk = (tag, attrs) => {
-    const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]);
-    return e;
-  };
-  if (p.type === "bar") {
-    const bw = iw / nums.length;
-    nums.forEach((val, i) => {
-      const bh = Math.max(0.5, (val - min) / span * ih);
-      svg.appendChild(mk("rect", { x: (pad4 + i * bw + bw * 0.1).toFixed(1), y: (pad4 + ih - bh).toFixed(1), width: (bw * 0.8).toFixed(1), height: bh.toFixed(1), fill: "currentColor" }));
-    });
-  } else {
-    const d = nums.map((val, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(val).toFixed(1)).join(" ");
-    if (p.fill) svg.appendChild(mk("path", { d: `${d} L${X(nums.length - 1).toFixed(1)} ${(pad4 + ih).toFixed(1)} L${X(0).toFixed(1)} ${(pad4 + ih).toFixed(1)} Z`, fill: "currentColor", opacity: "0.15" }));
-    svg.appendChild(mk("path", { d, fill: "none", stroke: "currentColor", "stroke-width": p.strokeWidth || 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
-    if (p.dot !== false) svg.appendChild(mk("circle", { cx: X(nums.length - 1).toFixed(1), cy: Y(nums[nums.length - 1]).toFixed(1), r: "1.6", fill: "currentColor" }));
-  }
-  const wrap = document.createElement("span");
-  wrap.className = "lattice-sparkline-wrap";
-  wrap.title = nums.join(", ");
-  wrap.appendChild(svg);
-  return wrap;
-});
-registerType("link", (v, col, row) => {
-  if (v == null || v === "") return "";
-  const p = col.formatterParams || {};
-  const a = document.createElement("a");
-  a.className = "lattice-link";
-  if (typeof p.url === "function") {
-    a.href = String(p.url(v, row, col) ?? "");
-  } else {
-    const base = p.urlField != null && row ? row[p.urlField] : v;
-    a.href = (p.urlPrefix || "") + String(base ?? "") + (p.urlSuffix || "");
-  }
-  a.textContent = p.label != null ? p.label : String(v);
-  let target = p.target;
-  if (target == null) target = col._linkNewTab ? "_blank" : "_self";
-  if (target === "_blank") {
-    a.target = "_blank";
-    a.rel = p.rel || "noopener noreferrer";
-    a.appendChild(extLinkIcon());
-  } else if (target && target !== "_self") {
-    a.target = target;
-  }
-  return a;
-});
-function extLinkIcon() {
-  const s = document.createElement("span");
-  s.className = "lattice-link-ext";
-  s.setAttribute("aria-hidden", "true");
-  s.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M6.5 3.5h-3v9h9v-3M9.5 3.5h3v3M12.5 3.5l-5 5"/></svg>';
-  return s;
-}
-registerType("image", (v, col) => {
-  if (v == null || v === "") return "";
-  const p = col.formatterParams || {};
-  const img = document.createElement("img");
-  img.className = "lattice-img";
-  img.src = String(v);
-  img.loading = "lazy";
-  img.alt = p.alt || "";
-  const dim = (x) => typeof x === "number" ? x + "px" : x;
-  if (p.height) img.style.height = dim(p.height);
-  if (p.width) img.style.width = dim(p.width);
-  if (p.lightbox !== false) {
-    img.classList.add("is-zoomable");
-    img.addEventListener("click", (e) => {
-      e.stopPropagation();
-      openLightbox(String(v), p.alt);
-    });
-  }
-  return img;
-});
-registerType("icon", (v, col) => {
-  const p = col.formatterParams || {};
-  let g = v;
-  if (p.icons && v != null && Object.prototype.hasOwnProperty.call(p.icons, v)) g = p.icons[v];
-  if (g == null || g === "") return "";
-  g = String(g);
-  const span = document.createElement("span");
-  span.className = "lattice-icon";
-  if (/^(https?:|data:)/.test(g)) {
-    const img = document.createElement("img");
-    img.className = "lattice-icon-img";
-    img.src = g;
-    img.alt = p.alt || "";
-    span.appendChild(img);
-  } else {
-    span.textContent = g;
-  }
-  if (p.size) span.style.fontSize = typeof p.size === "number" ? p.size + "px" : p.size;
-  if (p.title != null) span.title = String(p.title);
-  return span;
-});
-registerType("color", (v) => {
-  const div = document.createElement("div");
-  div.className = "lattice-color-fill";
-  if (v != null && v !== "") div.style.background = String(v);
-  div.title = v != null ? String(v) : "";
-  return div;
-});
-registerType("tick", (v, col) => {
-  if (!isTruthy(v)) return "";
-  const d = boolDisplay(col);
-  const span = document.createElement("span");
-  span.className = "lattice-bool is-true" + (d.plain ? " is-plain" : "");
-  span.textContent = d.trueText;
-  return span;
-});
-registerType("html", (v) => {
-  const span = document.createElement("span");
-  span.innerHTML = v == null ? "" : String(v);
-  return span;
-});
-registerType("rating", (v, col) => {
-  const p = col.formatterParams || {};
-  const max = p.max != null ? p.max : 5;
-  const n = Math.round(toNumber2(v) ?? 0);
-  const wrap = document.createElement("span");
-  wrap.className = "lattice-rating";
-  wrap.title = `${n} / ${max}`;
-  for (let i = 1; i <= max; i++) {
-    const star = document.createElement("span");
-    star.className = "lattice-star " + (i <= n ? "is-on" : "is-off");
-    star.textContent = "\u2605";
-    wrap.appendChild(star);
-  }
-  return wrap;
-});
-
 // src/features/resize.js
 function attachResize(handle, col, grid) {
   let startX = 0, startWidth = 0, dragging = false, pending = 0, guide = null, tableLeft = 0;
@@ -10680,11 +10709,11 @@ var Renderer = class {
             val = null;
           }
           cell.appendChild(el("span.lattice-summary-sym.is-formula", { text: "\u0192", title: col.summaryFormula }));
-          cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue("formula", val, col) }));
+          cell.appendChild(el("span.lattice-summary-val", { text: formatSummaryValue("formula", val, col) }));
         } else if (rowSpec.fn && (col.summary || []).includes(rowSpec.fn) && (rowSpec.fn === "count" || isNumericType(col.type))) {
           const val = computeSummary(rowSpec.fn, col, srcRows);
           cell.appendChild(el("span.lattice-summary-sym", { text: SUMMARY_SYMBOL[rowSpec.fn], title: t("summary.name." + rowSpec.fn) }));
-          cell.appendChild(el("span.lattice-summary-val", { text: this.formatSummaryValue(rowSpec.fn, val, col) }));
+          cell.appendChild(el("span.lattice-summary-val", { text: formatSummaryValue(rowSpec.fn, val, col) }));
         }
       }
       row.appendChild(cell);
@@ -10716,13 +10745,6 @@ var Renderer = class {
     });
     toggle.addEventListener("click", () => grid.toggleSummaryScope());
     bar.append(label, toggle);
-  }
-  formatSummaryValue(fn, val, col) {
-    if (val == null || typeof val === "number" && !Number.isFinite(val)) return "";
-    if (fn === "count") return String(val);
-    if (col.type === "money") return getFormatter(col)(val, col, {});
-    const maxdec = fn === "avg" || fn === "formula" ? 2 : 0;
-    return Number(val).toLocaleString(void 0, { maximumFractionDigits: maxdec });
   }
   /** Aplikuje uživatelský „formát buňky" (zarovnání, řez písma, barvy) na buňku. */
   applyCellFormat(cell, col) {
@@ -10801,7 +10823,7 @@ var Renderer = class {
       const val = computeRowSummary(col._fn, col._cols, rowData);
       const cell2 = el("div.lattice-cell.lattice-rowsum-cell", { dataset: { field: col.field }, class: "is-right" });
       cell2.appendChild(el("span.lattice-summary-val", {
-        text: this.formatSummaryValue(col._fn, val, col._cols[0] || col)
+        text: formatSummaryValue(col._fn, val, col._cols[0] || col)
       }));
       return cell2;
     }
@@ -16142,6 +16164,7 @@ export {
   HEADER_COLOR_PRESETS,
   I18n,
   Lattice,
+  SUMMARY_ROW,
   ServerData,
   Store,
   VERSION,
@@ -16150,6 +16173,7 @@ export {
   encodeParams,
   getFilter,
   getFormatter,
+  isSummaryRow,
   openColorPicker,
   openHeaderColorPicker,
   registerFilter,

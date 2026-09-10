@@ -4,6 +4,19 @@
  */
 export const RELEASES = [
   {
+    "version": "1.22.0",
+    "date": "2026-09-10",
+    "text": "Oprava souhrnného řádku u sloupce, jehož formátovač vrací DOM uzel: místo částky se v součtu i průměru objevovalo [object HTMLSpanElement]. Aditivně přibyly dva veřejné exporty pro formátovače, které se v souhrnu chtějí chovat jinak. Bez breaking changes.",
+    "items": [
+      "Souhrn unese formátovač vracející Node. Smlouva formátovače je (value, col, row) => string | Node a buňky ji ctí, ale souhrn si výsledek vkládal jako čistý text, takže se uzel přetavil na svůj…",
+      "Týkalo se to i vestavěného money. S formátem negative: 'red' (nastavitelným v UI přes formát hodnot) vrací záporná částka <span class=\"lattice-num-neg\">, ne řetězec — záporný součet v takovém…",
+      "Rozbitý formátovač už souhrn nepoloží. Když v souhrnu spadne (sáhne do řádku, který neexistuje) nebo vrátí uzel bez textu (třeba jen ikonu), spadne se na obyčejné číslo podle locale místo prázdné…",
+      "Formátovač pozná souhrn schválně. Třetím argumentem býval prázdný objekt, takže formátovač, který si z řádku něco bere (u obarvování běžné), tiše spadl do jiné větve a nešlo poznat proč. Nově tam…",
+      "Nové veřejné exporty isSummaryRow a SUMMARY_ROW pro formátovače, které mají v souhrnu vracet něco jiného než v buňce.",
+      "Formátování hodnot souhrnu se přestěhovalo z rendereru do features/summary.js jako formatSummaryValue(). Chová se stejně, jen jde otestovat bez DOM."
+    ]
+  },
+  {
     "version": "1.21.1",
     "date": "2026-09-09",
     "text": "Diagnostická drobnost: výběrový filtr, kterému v server-side režimu nikdo nedal číselník, si nabídku odvodí jen z načtené stránky — nově na to upozorní v konzoli. Chování filtru se nemění, jde čistě o hlášku pro toho, kdo Lattice implementuje.",
@@ -236,14 +249,6 @@ export const RELEASES = [
       "Preset marker. Sloupcové settery (šířka, barva, formát, titulek, souhrn, otočení, filtr…) i autoFit nerušily „aktivní preset\" → marker visel i po odchylce. Doplněno rušení presetu.",
       "Nastavení sloupců (⚙). Klik na název sloupce skryl/zobrazil sloupec, ale checkbox v panelu se neobnovil (setColumnVisible teď volá gear.refresh()).",
       "Responsive. Vypnuté číslování řádků (rowNumbers: 'none', truthy) rezervovalo 44 px navíc."
-    ]
-  },
-  {
-    "version": "1.8.1",
-    "date": "2026-08-05",
-    "text": "Přepínač „Zvýraznění řádku klikem\" v UI (Nastavení tabulky ⚙ → *Sloupce a řádky*) — instance.rowHighlight (z v1.8.0) šel doteď zapnout jen kódem",
-    "items": [
-      "Přepínač „Zvýraznění řádku klikem\" v UI (Nastavení tabulky ⚙ → *Sloupce a řádky*) — instance.rowHighlight (z v1.8.0) šel doteď zapnout jen kódem. Nově ho uživatel zapne/vypne přímo z dialogu…"
     ]
   }
 ];

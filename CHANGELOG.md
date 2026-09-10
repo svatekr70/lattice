@@ -4,6 +4,37 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.22.0] – 2026-09-10
+
+Oprava souhrnného řádku u sloupce, jehož formátovač vrací **DOM uzel**: místo částky se v součtu
+i průměru objevovalo `[object HTMLSpanElement]`. Aditivně přibyly dva veřejné exporty pro
+formátovače, které se v souhrnu chtějí chovat jinak. Bez breaking changes.
+
+### Opraveno
+- **Souhrn unese formátovač vracející `Node`.** Smlouva formátovače je `(value, col, row) =>
+  string | Node` a buňky ji ctí, ale souhrn si výsledek vkládal jako čistý text, takže se uzel
+  přetavil na svůj popis. Nově si z uzlu vezme `textContent`. Vlastní barevnost se do souhrnu
+  nepřenáší, správné číslo ano.
+- **Týkalo se to i vestavěného `money`.** S formátem `negative: 'red'` (nastavitelným v UI přes
+  formát hodnot) vrací záporná částka `<span class="lattice-num-neg">`, ne řetězec — záporný
+  součet v takovém sloupci tedy hlásil `[object HTMLSpanElement]` i bez vlastního formátovače.
+- **Rozbitý formátovač už souhrn nepoloží.** Když v souhrnu spadne (sáhne do řádku, který
+  neexistuje) nebo vrátí uzel bez textu (třeba jen ikonu), spadne se na obyčejné číslo podle
+  locale místo prázdné nebo rozbité buňky.
+
+### Přidáno
+- **Formátovač pozná souhrn schválně.** Třetím argumentem býval prázdný objekt, takže formátovač,
+  který si z řádku něco bere (u obarvování běžné), tiše spadl do jiné větve a nešlo poznat proč.
+  Nově tam chodí sdílený zmrazený `SUMMARY_ROW` s příznakem `__latticeSummary: true`. `null` to
+  být nemohl — `row.cokoli` by na něm rovnou vyhodilo výjimku, kdežto takhle se čte stejně
+  bezpečně jako dosud.
+- **Nové veřejné exporty `isSummaryRow` a `SUMMARY_ROW`** pro formátovače, které mají v souhrnu
+  vracet něco jiného než v buňce.
+
+### Změněno
+- **Formátování hodnot souhrnu se přestěhovalo z rendereru do `features/summary.js`** jako
+  `formatSummaryValue()`. Chová se stejně, jen jde otestovat bez DOM.
+
 ## [1.21.1] – 2026-09-09
 
 Diagnostická drobnost: výběrový filtr, kterému v **server-side** režimu nikdo nedal číselník, si

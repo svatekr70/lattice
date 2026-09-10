@@ -132,9 +132,9 @@ function docSloupce(root, ctx) {
       ['<code>filter</code>', 'string', "Typ filtru; když se vynechá, odvodí se z typu (viz <i>Filtry</i>)."],
       ['<code>editable</code>', 'boolean', 'Povolí inline editaci buňky.'],
       ['<code>headerSort</code>', 'boolean', 'Řazení klikem na hlavičku (výchozí true).'],
-      ['<code>formatter</code>', 'function', '<code>(value, col, row) ⇒ string|Node</code> — vlastní vykreslení buňky.'],
+      ['<code>formatter</code>', 'function', '<code>(value, col, row) ⇒ string|Node</code> — vlastní vykreslení buňky. U <code>type: \'money\'</code> se týmž formátovačem formátuje i <b>souhrn</b> (v1.22.0); z uzlu si souhrn vezme text a třetí argument je <code>SUMMARY_ROW</code>, poznatelný přes <code>isSummaryRow(row)</code>.'],
       ['<code>formatterParams</code>', 'object', 'Parametry formátovače daného typu.'],
-      ['<code>summary</code> / <code>rowSummary</code>', 'string[]', 'Souhrnné funkce sloupce (dole) / řádku (vpravo). Viz <i>Data & rozvržení</i>.'],
+      ['<code>summary</code> / <code>rowSummary</code>', 'string[]', 'Souhrnné funkce sloupce (dole) / řádku (vpravo). Viz <i>Data & rozvržení</i>. U <code>type: \'money\'</code> projde výsledek stejným <code>formatter</code>em jako buňky, takže souhrn nese měnu i desetiny (v1.22.0).'],
       ['<code>responsive</code>', 'number|false', 'Pořadí skládání při <code>responsive: true</code> (vyšší = schová se dřív). <code>false</code> = nikdy neschovat.'],
     ]),
 

@@ -6,6 +6,7 @@
  */
 
 import { cellValue } from '../core/cellValue.js';
+import { getFormatter } from '../types/columnTypes.js';
 
 export const NUMERIC_TYPES = ['number', 'money', 'progress', 'rating'];
 export function isNumericType(type) {
@@ -65,3 +66,55 @@ export function computeRowSummary(fn, cols, row) {
 
 /** Krátký symbol funkce (u hodnot, když není zobrazen číslovací sloupec). */
 export const SUMMARY_SYMBOL = { sum: 'Σ', avg: '⌀', min: 'min', max: 'max', count: '#' };
+
+/* ---- formátování hodnoty souhrnu -------------------------------------- */
+
+/**
+ * „Řádek“, který formátovač dostane při formátování souhrnu. Souhrn žádný řádek
+ * nemá — dřív sem chodil prázdný objekt, takže formátovač, který si z řádku něco
+ * bere (a to je u obarvování běžné), tiše spadl do jiné větve a nešlo poznat proč.
+ * `null` poslat nejde: `row.cokoli` by na něm rovnou vyhodilo výjimku. Zmrazený
+ * objekt s příznakem se čte stejně bezpečně jako prázdný a souhrn jde poznat
+ * schválně — `isSummaryRow(row)`, nebo `row.__latticeSummary`. `@v1.22.0`
+ */
+export const SUMMARY_ROW = Object.freeze({ __latticeSummary: true });
+
+/** Je tohle „řádek“ souhrnu? Pro formátovače, které se v souhrnu chovají jinak. */
+export function isSummaryRow(row) {
+  return !!(row && row.__latticeSummary === true);
+}
+
+/**
+ * Text z toho, co vrátil formátovač. Smlouva formátovače je `string | Node`
+ * (viz types/columnTypes.js) — a Node vrací i vestavěný `money`/`number`, když
+ * má formát `negative: 'red'` a hodnota je záporná. Souhrn se vkládá jako text,
+ * takže z uzlu vezmeme jeho `textContent`; bez toho by v buňce svítilo
+ * „[object HTMLSpanElement]“. `instanceof Node` použít nejde — mimo prohlížeč
+ * ten globál není, kdežto `nodeType` je spolehlivý a levný.
+ */
+export function formatterText(out) {
+  if (out == null) return '';
+  if (typeof out === 'object' && typeof out.nodeType === 'number') return String(out.textContent ?? '');
+  return String(out);
+}
+
+/**
+ * Agregovaná hodnota → text do buňky souhrnu. Peníze projdou TÝMŽ formátovačem
+ * jako buňky (aby souhrn nesl měnu i počet desetin), zbytek se naformátuje jen
+ * podle locale — průměr a vzorec s desetinami (jsou to poměry), ostatní celé.
+ *
+ * Formátovač je cizí kód: může spadnout (sáhne do řádku, který souhrn nemá) nebo
+ * vrátit uzel bez textu (třeba jen ikonu). V obou případech spadneme na obyčejné
+ * číslo — správná částka je v souhrnu podstatnější než věrnost formátu.
+ */
+export function formatSummaryValue(fn, val, col) {
+  if (val == null || (typeof val === 'number' && !Number.isFinite(val))) return '';
+  if (fn === 'count') return String(val);
+  if (col.type === 'money') {
+    let text = '';
+    try { text = formatterText(getFormatter(col)(val, col, SUMMARY_ROW)); } catch { text = ''; }
+    if (text.trim() !== '') return text;
+  }
+  const maxdec = (fn === 'avg' || fn === 'formula') ? 2 : 0;
+  return Number(val).toLocaleString(undefined, { maximumFractionDigits: maxdec });
+}
