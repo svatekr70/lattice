@@ -244,6 +244,38 @@ function sortKind(type) {
 }
 
 /**
+ * Klíč k řazení z vlastního `col.sortValue(row)`. Typ si určuje funkce sama:
+ * číslo se porovná číselně, `Date` časem, cokoli jiného textem. Kdyby v jednom
+ * sloupci vracela jednou číslo a jednou text, porovnávaly by se nesrovnatelné
+ * klíče — proto se pak celý sloupec sjednotí na text (viz `unifyKeys`).
+ * `@v1.23.0`
+ */
+function sortValueKey(row, col) {
+  let v;
+  try { v = col.sortValue(row); } catch { return null; }
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (v instanceof Date) { const t = v.getTime(); return Number.isNaN(t) ? null : t; }
+  if (typeof v === 'boolean') return v ? 1 : 0;
+  return String(v);
+}
+
+/**
+ * Sjednotí klíče jednoho řazeného sloupce, když `sortValue` vrátila mix čísel
+ * a textů — všechno na text, ať je porovnání deterministické.
+ */
+function unifyKeys(decorated, s) {
+  let numeric = 0, textual = 0;
+  for (const d of decorated) {
+    const k = d.keys[s];
+    if (k == null) continue;
+    if (typeof k === 'number') numeric++; else textual++;
+  }
+  if (!numeric || !textual) return;
+  for (const d of decorated) if (d.keys[s] != null) d.keys[s] = String(d.keys[s]);
+}
+
+/**
  * Řazení metodou „decorate–sort–undecorate": klíče (číslo/čas/text) se z každého
  * řádku vytáhnou JEDNOU dopředu (ne O(n·log n)×), řetězce se porovnávají sdíleným
  * collatorem. Na velkých datasetech násobně rychlejší než localeCompare v cyklu.
@@ -257,6 +289,8 @@ function applySort(rows, sort, colByField) {
   });
   const decorated = rows.map((row, i) => {
     const keys = specs.map((s) => {
+      // Vlastní komparační hodnota sloupce má přednost před hodnotou buňky.
+      if (typeof s.col.sortValue === 'function') return sortValueKey(row, s.col);
       const v = cellValue(row, s.col);
       if (v == null || v === '') return null;
       if (s.kind === 'num') return num(v);
@@ -266,6 +300,7 @@ function applySort(rows, sort, colByField) {
     });
     return { row, keys, i };
   });
+  specs.forEach((s, i) => { if (typeof s.col.sortValue === 'function') unifyKeys(decorated, i); });
   decorated.sort((A, B) => {
     for (let s = 0; s < specs.length; s++) {
       const a = A.keys[s], b = B.keys[s];

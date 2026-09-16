@@ -99,9 +99,33 @@ export function formatterText(out) {
 }
 
 /**
- * Agregovaná hodnota → text do buňky souhrnu. Peníze projdou TÝMŽ formátovačem
- * jako buňky (aby souhrn nesl měnu i počet desetin), zbytek se naformátuje jen
+ * Má souhrn sloupce projít formátovačem buňky?
+ *
+ *  - `col.summaryFormatted` (true/false) rozhoduje, když je zadané.
+ *  - jinak ano, má-li sloupec VLASTNÍ `formatter`: dřív se pouštěl jen u
+ *    `type: 'money'`, takže časový sloupec (sekundy zobrazené jako `h:mm:ss`)
+ *    měl v patičce `2 419 200` místo `672:00:00` — a jediné obejití bylo lhát
+ *    sloupci `type: 'money'`. Vlastní formátovač na sloupci je dost jasný
+ *    signál, že syrové číslo v souhrnu není to, co chce autor vidět.
+ *  - jinak jen u `money`, ať peníze v souhrnu dál nesou měnu i počet desetin.
+ *
+ * `@v1.23.0`
+ */
+function useFormatter(col) {
+  if (col.summaryFormatted === true) return true;
+  if (col.summaryFormatted === false) return false;
+  return typeof col.formatter === 'function' || col.type === 'money';
+}
+
+/**
+ * Agregovaná hodnota → text do buňky souhrnu. Sloupec s vlastním formátovačem
+ * (a peníze vždy) projde TÝMŽ formátovačem jako buňky; zbytek se naformátuje jen
  * podle locale — průměr a vzorec s desetinami (jsou to poměry), ostatní celé.
+ * `col.summaryFormatted` to vynutí (`true`) i u vestavěných typů, nebo potlačí
+ * (`false`).
+ *
+ * POČET (`count`) formátovačem nikdy neprojde: není to hodnota sloupce, ale počet
+ * buněk — `h:mm:ss` ani měna k němu nepatří.
  *
  * Formátovač je cizí kód: může spadnout (sáhne do řádku, který souhrn nemá) nebo
  * vrátit uzel bez textu (třeba jen ikonu). V obou případech spadneme na obyčejné
@@ -110,7 +134,7 @@ export function formatterText(out) {
 export function formatSummaryValue(fn, val, col) {
   if (val == null || (typeof val === 'number' && !Number.isFinite(val))) return '';
   if (fn === 'count') return String(val);
-  if (col.type === 'money') {
+  if (useFormatter(col)) {
     let text = '';
     try { text = formatterText(getFormatter(col)(val, col, SUMMARY_ROW)); } catch { text = ''; }
     if (text.trim() !== '') return text;

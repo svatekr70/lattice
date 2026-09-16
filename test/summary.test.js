@@ -88,3 +88,35 @@ test('nepeněžní sloupce se formátují podle locale (regrese)', () => {
   assert.equal(formatSummaryValue('avg', 1.5, col), (1.5).toLocaleString(undefined, { maximumFractionDigits: 2 }));
   assert.equal(formatSummaryValue('formula', 53.64, col), (53.64).toLocaleString(undefined, { maximumFractionDigits: 2 }));
 });
+
+/* ---- souhrn prochází formátovačem u všech typů (`@v1.23.0`) ---- */
+
+test('vlastní formátovač se pustí i u nepeněžního typu', () => {
+  // Časový sloupec: hodnota jsou sekundy, v buňce h:mm:ss. Dřív šel do souhrnu
+  // jen u type:'money' — sloupci se proto muselo lhát, že jsou to peníze.
+  const hms = (v) => {
+    const s = Math.round(Number(v));
+    return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const col = { type: 'number', field: 'seconds', formatter: hms };
+  assert.equal(formatSummaryValue('sum', 2419200, col), '672:00:00');
+  assert.equal(formatSummaryValue('avg', 3600, col), '1:00:00');
+  assert.equal(formatSummaryValue('formula', 90, col), '0:01:30');
+  // POČET zůstává počtem — h:mm:ss k němu nepatří.
+  assert.equal(formatSummaryValue('count', 51, col), '51');
+});
+
+test('summaryFormatted: true vynutí formát i bez vlastního formátovače', () => {
+  const col = { type: 'number', field: 'n', summaryFormatted: true, _fmt: { decimals: 1, suffix: ' ks' } };
+  assert.match(formatSummaryValue('sum', 1234, col), /ks$/);
+});
+
+test('summaryFormatted: false nechá souhrn na locale i u peněz', () => {
+  const col = { type: 'money', field: 'cena', summaryFormatted: false, formatter: (v) => `${v} Kč` };
+  assert.equal(formatSummaryValue('sum', 1234, col), (1234).toLocaleString(undefined, { maximumFractionDigits: 0 }));
+});
+
+test('sloupec bez formátovače i bez summaryFormatted se nemění (regrese)', () => {
+  const col = { type: 'number', field: 'skore' };
+  assert.equal(formatSummaryValue('sum', 1234, col), (1234).toLocaleString(undefined, { maximumFractionDigits: 0 }));
+});

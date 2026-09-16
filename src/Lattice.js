@@ -17,7 +17,7 @@ import { parseFile, parseHTMLTable, tableToRows, parseXML } from './core/fileImp
 import { buildExport, downloadFile, EXPORT_META } from './core/exporter.js';
 import { printTable } from './features/print.js';
 import { ClientData, ServerData, rowMatches, encodeParams } from './core/DataSource.js';
-import { getFilter, EMPTY_FILTER_VALUE } from './filters/index.js';
+import { getFilter, EMPTY_FILTER_VALUE, normalizeFilterValue } from './filters/index.js';
 import { I18n } from './i18n/index.js';
 import { Renderer } from './render/Renderer.js';
 import { Gear } from './features/gear.js';
@@ -643,8 +643,19 @@ export class Lattice {
 
   /* =================== filtry =================== */
 
+  /**
+   * Nastaví hodnotu sloupcového filtru (`null` / `''` / `[]` ho zruší).
+   *
+   * Hodnota se nejdřív normalizuje na tvar, kterému daný filtr rozumí — rozsah
+   * tedy přijme `{from,to}` i serializované `"od|do"`, multiselect skalár i pole,
+   * boolean `true` i `'true'`. Tvar, který se přeložit nedá, se NEnastaví a
+   * ohlásí v konzoli: dřív se uložil, `isEmpty` ho zahodila a v tabulce zůstaly
+   * všechny řádky, což vypadá jako „filtr nefiltruje". `@v1.23.0`
+   */
   setFilter(field, value) {
     this._clearActivePreset();
+    const col = this.columns.find((c) => c.field === field);
+    if (col) value = normalizeFilterValue(col, value);
     if (value == null || value === '' || (Array.isArray(value) && value.length === 0)) {
       delete this.filters[field];
     } else {
@@ -654,6 +665,49 @@ export class Lattice {
     this.saveState();
     this.refresh();
     this._emitFilter();
+  }
+
+  /**
+   * Hodnota filtru jednoho sloupce ve stejném tvaru, jaký přijímá `setFilter`
+   * (`undefined` = filtr není nastaven). Opačný směr k `setFilter`, aby si
+   * aplikace nemusela vést vlastní evidenci toho, co sama nastavila — bez něj
+   * nejde napsat přepínací tlačítko („druhý klik filtr zruší"). `@v1.23.0`
+   */
+  getFilter(field) {
+    const value = this.filters[field];
+    if (value === undefined) return undefined;
+    const col = this.columns.find((c) => c.field === field);
+    const def = col && col.filter ? getFilter(col.filter) : null;
+    if (def && def.isEmpty(value)) return undefined; // uložená, ale neúčinná hodnota
+    return value;
+  }
+
+  /**
+   * Všechny APLIKOVANÉ sloupcové filtry jako mapa `{field: value}` — jen ty
+   * s účinnou hodnotou (`isEmpty` dle typu filtru). Univerzální a rozšířený
+   * filtr v mapě nejsou, ty mají `universal` / `advanced`. `@v1.23.0`
+   */
+  getFilters() {
+    return this._activeColumnFilters();
+  }
+
+  /**
+   * Aktuální datová sada podle rozsahu:
+   *   'filtered' (výchozí) — celá filtrovaná a seřazená sada. Client-side všechny
+   *       záznamy, server-side jen načtená stránka (víc grid nezná).
+   *   'page' — řádky právě zobrazené stránky.
+   *   'all'  — celý dataset bez ohledu na filtry (client-side; server-side = stránka).
+   * Vrací kopii pole; řádky jsou ŽIVÉ objekty (zápis do nich mění data gridu).
+   * `@v1.23.0`
+   */
+  getData(scope = 'filtered') {
+    if (scope === 'page') return (this.rows || []).slice();
+    if (scope === 'all') {
+      const raw = this.dataSource.rawRows && this.dataSource.rawRows();
+      return Array.isArray(raw) ? raw.slice() : (this.rows || []).slice();
+    }
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    return Array.isArray(all) ? all.slice() : (this.rows || []).slice();
   }
 
   /** Rychlé hledání přes všechny viditelné sloupce (transientní). */
@@ -1325,6 +1379,28 @@ export class Lattice {
     this.rerenderColumns();
     this.gear?.refresh(); // sync checkboxu v panelu (klik na název sloupce ho jinak nechá viset)
     this._emitColumnLayout('visibility', { field, visible: col.visible });
+  }
+
+  /**
+   * Viditelnost VÍC sloupců najednou: `{ field: bool, … }`. Jedno překreslení na
+   * celou dávku — přepnutí presetu sloupců („Vše" ↔ „Rychlý pohled") tak nemusí
+   * grid zahodit a postavit znovu, takže zůstane řazení i stránka a nic nebliká.
+   * Sloupce, které v mapě nejsou, se nemění. `@v1.23.0`
+   */
+  setColumnsVisible(map = {}) {
+    const changed = [];
+    for (const [field, visible] of Object.entries(map)) {
+      const col = this.columns.find((c) => c.field === field);
+      if (!col || col.visible === !!visible) continue;
+      col.visible = !!visible;
+      changed.push({ field, visible: col.visible });
+    }
+    if (!changed.length) return;
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+    this.gear?.refresh();
+    this._emitColumnLayout('visibility', { columns: changed });
   }
 
   setColumnWidth(field, width) {

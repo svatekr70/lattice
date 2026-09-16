@@ -4,6 +4,25 @@
  */
 export const RELEASES = [
   {
+    "version": "1.23.0",
+    "date": "2026-09-16",
+    "text": "Sedm mezer, na které se narazilo při převodu 60 gridů EverFLOW z Tabulatoru na Lattice 1.22.0 (zadání „Co chybělo při převodu\"). Tři z nich nutily aplikaci duplikovat stav, který má znát grid; zbytek byly nedotažené detaily a nekonzistence v API. Vše…",
+    "items": [
+      "Gettery k filtrům — getFilter(field) a getFilters(). setFilter neměl opačný směr, takže přepínací tlačítko nad tabulkou („Otevřené\", „Po termínu\"… druhý klik filtr zruší) si muselo vést vlastní…",
+      "getData(scope?) — aktuální datová sada: 'filtered' (výchozí; celá filtrovaná a seřazená, server-side jen načtená stránka), 'page', 'all' (bez ohledu na filtry). Kopie pole, živé řádky.",
+      "setColumnsVisible({field: bool, …}) — viditelnost víc sloupců jedním překreslením. Presety sloupců („Vše\" / „Rychlý pohled\" / „Trychtýř\") se tak nemusí řešit zahozením a přestavbou gridu nad užší…",
+      "col.sortValue(row) — hodnota k řazení místo hodnoty ve field, bez pomocného sloupce v datech: buňka drží pole (řadit podle počtu), v buňce je 2m 30s (řadit podle sekund), datum v českém tvaru. Vrací…",
+      "col.editorParams.values — vlastní číselník editoru nezávislý na filterValues, jehož hodnoty se nepřevádějí na řetězec. Tříhodnotový sloupec (true / false / „neuvedeno\") se tak edituje napřímo, místo…",
+      "col.summaryFormatted — vynutí (true) nebo potlačí (false), že souhrn sloupce projde formátovačem buňky.",
+      "Výběrové filtry rozumí buňce s POLEM hodnot. multiselect porovnával buňku na rovnost, takže nad polem (missingFields: ['Číslo účtu', 'Datum narození']) tiše propustil všechny řádky — vypadalo to…",
+      "Souhrn prochází formátovačem u všech typů, ne jen u money. Časový sloupec (hodnota v sekundách, v buňce h:mm:ss) hlásil v patičce 2 419 200 místo 672:00:00 a jediné obejití bylo lhát sloupci type:…",
+      "setFilter normalizuje hodnotu a nerozpoznaný tvar ohlásí. date-range se serializuje jako \"od|do\", ale setFilter přijímal jen objekt — a špatný tvar selhal tiše: hodnota se uložila, isEmpty ji…",
+      "Objekt v buňce se ohlásí místo tichého selhání. Filtr by porovnával jeho textový popis, takže by nenašel nic — teď na to výběrové filtry upozorní v konzoli (jednou na sloupec).",
+      "Nové sekce v docs/API.md: „Vlastní řazení sloupce (sortValue)\", „Buňka s víc hodnotami (pole)\", „Tvar hodnoty v setFilter\" a „Editor select a vlastní číselník\"; přepsané „Souhrny a formátovač\".…",
+      "Souhrnný řádek se nezobrazuje? Doplněno, že souhrny (včetně vzorcových) se kreslí jen při zapnutém instance.summaryRow — ve výchozím stavu je 'none'. summaryFormulaLabel je naopak nepovinný: bez něj…"
+    ]
+  },
+  {
     "version": "1.22.0",
     "date": "2026-09-10",
     "text": "Oprava souhrnného řádku u sloupce, jehož formátovač vrací DOM uzel: místo částky se v součtu i průměru objevovalo [object HTMLSpanElement]. Aditivně přibyly dva veřejné exporty pro formátovače, které se v souhrnu chtějí chovat jinak. Bez breaking changes.",
@@ -230,25 +249,6 @@ export const RELEASES = [
     "text": "Uložené rozšířené filtry lze zobrazit jako tlačítka. Bez breaking changes.",
     "items": [
       "Rozšířený filtr – „jako tlačítko\". U uloženého filtru (lokálního i globálního) lze zaškrtnout, že se má vykreslit jako tlačítko v řadě nad ikonami v pravém záhlaví tabulky, místo položky v…"
-    ]
-  },
-  {
-    "version": "1.9.0",
-    "date": "2026-08-08",
-    "text": "Opravný release z hloubkového auditu — správnost napříč vzorci, filtry, výběrem, řazením a exportem. Bez breaking changes.",
-    "items": [
-      "Vzorce – porovnání datumů. num() parsovalo \"2024-03-15\" přes parseFloat na 2024 (rok) a today()/now() vrací epoch ms → [termin] < today() bylo vždy pravda a [start] < [konec] porovnávalo jen roky.…",
-      "Rozšířený filtr – prázdná podskupina pod OR. Prázdná/nedokončená podskupina vracela true a pod OR rodičem propustila všechny řádky. Nyní se neúčinné podskupiny a podmínky bez operátoru ignorují…",
-      "Rozšířený filtr – prázdné pole a lt/lte/gt/gte. Prázdné/chybějící pole se řadilo jako „menší než cokoli\" a splnilo lt/lte. Nově prázdné pole žádné ordering nesplní.",
-      "Rozšířený filtr – relativní tokeny today±Nm/y. Přetékaly na konci měsíce (31.1 + 1m → 3.3. místo 28.2.). Nově se den ořízne na poslední den cílového měsíce.",
-      "Progresivní načítání – race. loadMore() neměl request-id guard; opožděná odpověď mohla přisypat staré řádky na akumulátor resetovaný souběžným refresh(). Doplněn stejný token jako v refresh().",
-      "Nastavení – pageSize přes setInstance(). setInstance({ pageSize }) nesynchronizoval this.pageSize (čte ho refresh()/pager) → změna se projevila až po reloadu. Nyní synchronizuje.",
-      "Výběr rozsahu vs. připnuté řádky. Připnuté řádky mají string index ('pt0'); klik na ně ukládal do _lastSelIdx string a rozbil následný shift-výběr na normálních řádcích. Ošetřeno (mimo výběr…",
-      "Fulltext hledání. Pole se spojovala bez oddělovače (join('')) → hledaný výraz přes hranici dvou polí falešně matchoval. Vloženo oddělení polí.",
-      "Datumové seskupení / date-only. YYYY-MM-DD se parsovalo jako UTC a lokální getter posunul den v záporném UTC pásmu; nově se parsuje lokálně.",
-      "Preset marker. Sloupcové settery (šířka, barva, formát, titulek, souhrn, otočení, filtr…) i autoFit nerušily „aktivní preset\" → marker visel i po odchylce. Doplněno rušení presetu.",
-      "Nastavení sloupců (⚙). Klik na název sloupce skryl/zobrazil sloupec, ale checkbox v panelu se neobnovil (setColumnVisible teď volá gear.refresh()).",
-      "Responsive. Vypnuté číslování řádků (rowNumbers: 'none', truthy) rezervovalo 44 px navíc."
     ]
   }
 ];

@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.22.0/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.23.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.22.0/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.23.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.22.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.23.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.22.0
+npm i github:svatekr70/lattice#v1.23.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.22.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.23.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -147,12 +147,14 @@ new Lattice('#grid', {
 | `filterValues` | array | Hodnoty pro `select`/`multiselect`/`multiselect-exclude` filtr (jinak `filterUrl`). Když v režimu `serverSide` chybí obojí, nabídka se odvodí jen z načtené stránky a Lattice na to **upozorní v konzoli** (`console.warn`, jednou na sloupec) — viz *Odkud se berou možnosti*. `@v1.21.1` |
 | `filterEmptyOption` | boolean | Volba **„(prázdné)"** ve `select`/`multiselect`/`multiselect-exclude`: `true` = nabídnout vždy (i u statického `filterValues`), `false` = nikdy. Nezadáno = automaticky, jen když se nabídka odvozuje z dat a sloupec prázdné buňky opravdu má. `@v1.21.0` |
 | `editable` | boolean | Povolí inline editaci buňky. |
-| `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). **Možnosti `select`/`multiselect` editoru se berou z `col.filterValues`** (sdílené s filtrem), nebo asynchronně z `col.filterUrl` — ne z `editorParams`. |
+| `editor` / `editorParams` | string/object | Vlastní editor (`'select'`, `'multiselect'`, …). Číselník: **`editorParams.values`** (vlastní, hodnoty se nepřevádějí na řetězec — jde tak editovat `null`/`true`/`false`; zapne i sám `select` editor), jinak sdílený s filtrem — `col.filterValues`, nebo asynchronně `col.filterUrl`. Viz *Editor `select` a vlastní číselník*. `@v1.23.0` |
 | `headerSort` | boolean | Řazení klikem na hlavičku (výchozí `true`). |
+| `sortValue` | function | `(row) => number \| string \| Date \| boolean` — **hodnota k řazení** místo hodnoty ve `field`. Pro sloupce, které se podle svého obsahu řadit nedají: buňka drží pole (řadit podle počtu), formátovaný text (`2m 30s` → sekundy), datum v českém tvaru. Ušetří pomocný sloupec v datech. Client-side only (server-side řadí server). Viz *Vlastní řazení sloupce*. `@v1.23.0` |
 | `wrap` | boolean | Per-sloupcové zalamování textu v buňkách (`@v1.8.0`). `true` = zalomit i při vypnutém globálním `instance.wrapText`; `false` = nezalamovat i když je globál zapnutý; nezadáno = řídí se globálem. |
-| `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). **Používá se i pro souhrn** peněžního sloupce — viz *Souhrny a formátovač*. `@v1.22.0` |
+| `formatter` | function | `(value, col, row) => string \| Node` — vlastní vykreslení buňky (má přednost před `type`). **Používá se i pro souhrn** sloupce (u kteréhokoli typu) — viz *Souhrny a formátovač*. `@v1.23.0` |
 | `formatterParams` | object | Parametry formátovače daného typu. |
-| `summary` / `rowSummary` | string[] | Souhrnné funkce sloupce (dole) / řádku (vpravo): `['sum','avg','min','max','count']`. U `type: 'money'` projde výsledek **týmž `formatter`em jako buňky** — viz *Souhrny a formátovač*. `@v1.22.0` |
+| `summary` / `rowSummary` | string[] | Souhrnné funkce sloupce (dole) / řádku (vpravo): `['sum','avg','min','max','count']`. Má-li sloupec vlastní `formatter` (nebo je `type: 'money'`), projde výsledek **týmž formátovačem jako buňky** — viz *Souhrny a formátovač*. `@v1.23.0` |
+| `summaryFormatted` | boolean | Vynutí (`true`) nebo potlačí (`false`), že souhrn sloupce projde **formátovačem**. Nezadáno = automaticky (projde, když má sloupec vlastní `formatter`, a u `money`). `@v1.23.0` |
 | `summaryFormula` (+ `summaryFormulaLabel`) | string | **Vážený / poolovaný souhrn** vzorcem z agregací jiných sloupců — např. `sum(spojeno) / sum(vytoceno) * 100`. Viz *Počítané sloupce → agregační funkce*. `summaryFormulaLabel` = název řádku vlevo (sloupce se stejným názvem sdílejí řádek). |
 | `condFormat` | object | Barevná škála („semafor"): `{ on:true, levels:3\|5\|7, reverse?, colors?, mode?, thresholds? }`. |
 | `cellClass` / `cellStyle` | function | Podmíněné třídy / inline styl buňky dle hodnoty. |
@@ -188,6 +190,36 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 
 ---
 
+## Vlastní řazení sloupce (`sortValue`) — `@v1.23.0`
+
+Sloupec se standardně řadí podle hodnoty ve `field`. Když se podle ní řadit nedá, dodá `sortValue`
+hodnotu, podle které se má řadit — **aniž by se musela ukládat do dat**:
+
+```js
+// buňka drží pole → řadit podle počtu položek
+{ field: 'missingFields', sortValue: (row) => (row.missingFields || []).length }
+
+// v buňce je '2m 30s', řadit podle sekund
+{ field: 'duration', sortValue: (row) => secondsOf(row.duration) }
+
+// datum v českém tvaru
+{ field: 'callTime', sortValue: (row) => parseCzDate(row.callTime) }
+```
+
+- Vrací **číslo, `string`, `Date` nebo `boolean`**. Typ si určuje funkce: číslo se porovná číselně,
+  `Date` časem, zbytek textem (locale-aware collator). Kdyby jeden sloupec vracel jednou číslo
+  a jednou text, sjednotí se celý na text — pořadí je vždy deterministické.
+- `null` / `undefined` / `''` = **chybějící hodnota** (řadí se jako prázdná buňka). Funkce, která
+  spadne, řazení nepoloží — řádek se chová jako s chybějící hodnotou.
+- Řazení je **stabilní**: řádky se shodným klíčem si drží původní pořadí.
+- Platí **client-side**. V režimu `serverSide` řadí server, takže `sortValue` se neuplatní — tam patří
+  řazení podle sloupce, který backend zná (běžný vzor: ISO hodnota jako `field`, lidský text ve
+  `formatter`u).
+- `sortValue` mění **jen řazení**. Filtrování, hledání, export a seskupení dál pracují s hodnotou
+  buňky (u odvozených sloupců s `value`).
+
+---
+
 ## Filtry (`col.filter`)
 
 | Filtr | Pro typy | Popis |
@@ -197,8 +229,8 @@ Vlastní typ: `registerType(name, (value, col, row) => string | Node)`.
 | `number-range` | number/money/… | Rozsah Od–Do. |
 | `date-range` / `date-two` | date/datetime | Kalendářní rozsah / dvě pole Od / Do. |
 | `dynamic` | date/datetime | Vlastní výraz: operátory `>` `<` `>=` `<=` `=`, spojky `AND`/`OR` (AND váže těsněji), pevné datum i relativní tokeny (`today±N[dwmy]`, `now` — viz tabulka u rozšířeného filtru). Např. `>today-14 AND <today+14`; chybný výraz se tiše ignoruje. `@v1.11.0` |
-| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (`filterValues`, `filterUrl`, jinak **odvozeno z dat** — viz níže). Nabízejí i volbu **„(prázdné)"** — viz níže. `@v1.21.0` |
-| `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní. Prázdné buňky projdou, dokud nevybereš volbu **„(prázdné)"** — teprve ta je skryje (`@v1.21.0`). Prázdný výběr nefiltruje. `@v1.18.0` |
+| `select` / `multiselect` | kdykoli | Výběr jedné / více hodnot (`filterValues`, `filterUrl`, jinak **odvozeno z dat** — viz níže). Nabízejí i volbu **„(prázdné)"** — viz níže (`@v1.21.0`). Rozumí i buňce, která drží **pole hodnot** — viz *Buňka s víc hodnotami* (`@v1.23.0`). |
+| `multiselect-exclude` | kdykoli | **Vyloučit více** — inverze `multiselect`: zaškrtnuté hodnoty se **skryjí**, zobrazí se všechno ostatní. Prázdné buňky projdou, dokud nevybereš volbu **„(prázdné)"** — teprve ta je skryje (`@v1.21.0`). Prázdný výběr nefiltruje. Nad buňkou s **polem hodnot** řádek zmizí, je-li vyloučená kterákoli z nich (`@v1.23.0`). `@v1.18.0` |
 | `boolean` | boolean | Ano / Ne / Vše. |
 
 **Odkud se berou možnosti** u `select` / `multiselect` / `multiselect-exclude`: z `col.filterValues`
@@ -250,6 +282,62 @@ s volbou splyne — přijaté riziko.
 { field: 'tarif', filter: 'multiselect',
   filterValues: ['Basic', 'Pro', Lattice.EMPTY_FILTER_VALUE] }  // statický číselník s prázdnou volbou
 ```
+
+### Buňka s víc hodnotami (pole) — `@v1.23.0`
+
+Buňka smí místo jedné hodnoty držet **pole hodnot**: kandidát s víc chybějícími údaji
+(`missingFields: ['Číslo účtu', 'Datum narození']`), požadavek s víc kategoriemi, pohovor s víc stavy
+pipeline. Výběrové filtry (`select`, `multiselect`, `multiselect-exclude`) takové buňce rozumí:
+
+- **Shoda = průnik není prázdný** („obsahuje kteroukoli z vybraných hodnot"), ne rovnost. Dřív se
+  buňka porovnávala celá, takže pole nenašlo nic a `multiselect` **tiše propustil všechny řádky** —
+  vypadalo to jako „filtr se neaplikoval", ne jako chyba.
+- **Nabídka odvozená z dat** se rozpadne na jednotlivé hodnoty: v roletce svítí `Číslo účtu`
+  a `Datum narození`, ne jedna položka `Číslo účtu,Datum narození`.
+- **Prázdné pole** (`[]`, i pole samých prázdných hodnot) je totéž co prázdná buňka → patří pod volbu
+  **„(prázdné)"**.
+- `multiselect-exclude` řádek skryje, je-li vyloučená **kterákoli** z jeho hodnot (přesná inverze).
+- Není potřeba hodnoty spojovat do textu a dávat sloupci `filter: 'text'` — uživatel tím přicházel
+  o rozbalovací výběr a musel psát.
+
+```js
+{ field: 'missingFields', title: 'Chybí', filter: 'multiselect',
+  formatter: (v) => (v || []).join(' · '),
+  sortValue: (row) => (row.missingFields || []).length }   // řadit podle POČTU
+```
+
+Objekt v buňce (ne pole, ne datum) filtr porovnat neumí — porovnával by se jeho textový popis, takže
+by filtr nenašel nic. Lattice na to **upozorní v konzoli** (jednou na sloupec) místo tichého selhání.
+Na objekt použij odvozený sloupec (`value: (row) => …`).
+
+> **Pozor:** pole rozumí *sloupcové* filtry v hlavičce. **Rozšířený filtr** (strom pravidel)
+> a univerzální filtr porovnávají buňku jako text (`'a,b'`) — `contains` tam funguje, `eq` a `in` ne.
+
+### Tvar hodnoty v `setFilter` — `@v1.23.0`
+
+`setFilter(field, value)` hodnotu **normalizuje** na tvar, kterému daný filtr rozumí, takže projde
+i to, v čem filtr přirozeně putuje na server, do uložených filtrů a do URL. Tvar, který se přeložit
+nedá, se **NEnastaví** a ohlásí se v konzoli (jednou na sloupec): dřív se uložil, `isEmpty` ho
+zahodila a v tabulce zůstaly **všechny řádky**.
+
+| Filtr | Přijímané tvary |
+|---|---|
+| `date-range` / `date-two` | `{from, to}` · `"od\|do"` (serializovaný tvar) · `[od, do]` · `{min, max}` |
+| `number-range` | `{min, max}` · `"min\|max"` · `[min, max]` · `{from, to}` |
+| `multiselect` / `multiselect-exclude` | pole hodnot · jedna hodnota (zabalí se do pole) |
+| `select` | jedna hodnota · jednoprvkové pole |
+| `boolean` | `'true'` / `'false'` · `true` / `false` · `1` / `0` |
+| `text` / `number` / `dynamic` | řetězec nebo číslo |
+
+```js
+grid.setFilter('date', '2026-08-01|2026-08-31');   // stejný účinek jako {from, to}
+grid.setFilter('state', 'open');                   // multiselect: → ['open']
+grid.setFilter('active', true);                    // boolean: → 'true'
+grid.setFilter('date', '15. 8. 2026');             // ⚠ konzole: nerozpoznaný tvar, filtr se nenastaví
+```
+
+`null`, `''` a `[]` filtr vždy **zruší**. Zpětné čtení je `getFilter(field)` — vrací hodnotu už
+normalizovanou, takže ji lze bez úprav poslat zpátky do `setFilter`.
 
 **Umístění filtrů** řídí `instance.filterLayout`: `'header'` (v záhlaví) \| `'external'` (panel nad
 tabulkou) \| `'universal'` (jedno pole Pole/Typ/Hodnota) \| `'none'`. Navíc **rozšířený filtr**
@@ -330,6 +418,45 @@ filtr (`advanced`)*), takže backend dostane hotové ISO datum a nemusí tokeny 
 
 ---
 
+## Editor `select` a vlastní číselník — `@v1.23.0`
+
+Inline editace se zapíná `col.editable: true` (nebo globálně `options.editable`). Editor se vybere
+podle `col.editor`, jinak podle typu; `select`/`multiselect` filtr na sloupci znamená editaci
+výběrem.
+
+Číselník editoru se bere v tomto pořadí:
+
+1. **`editorParams.values`** — vlastní číselník editoru, nezávislý na filtru. Hodnoty se **nepřevádějí
+   na řetězec**, takže jde editovat `null` / `true` / `false` napřímo. Přítomnost `editorParams.values`
+   sama zapne `select` editor (sloupec nemusí mít výběrový filtr).
+2. **`col.filterValues`** — číselník sdílený s filtrem (hodnoty jsou řetězce). Token volby
+   „(prázdné)" se do editoru nenabízí: je to hodnota *filtru*, ne buňky.
+3. **`col.filterUrl`** — totéž asynchronně z API.
+
+**Tři stavy v jednom sloupci** (`true` / `false` / „neuvedeno") se dřív musely v datech držet jako
+textový protějšek (`completedLabel`), editovat ten a při ukládání převádět zpět na boolean — tedy dva
+zdroje pravdy v jednom řádku. Nově:
+
+```js
+{
+  field: 'completed', title: 'Proběhl', type: 'boolean', editable: true,
+  editorParams: { values: [
+    { value: true,  label: 'Ano' },
+    { value: false, label: 'Ne' },
+    { value: null,  label: 'Neuvedeno' },
+  ] },
+}
+```
+
+- `null` je **vlastní stav** a nesplývá s `''` ani s `false` — v roletce je zaškrtnutá ta volba, která
+  v buňce opravdu je. Chybějící klíč (`undefined`) se bere jako `null`.
+- Volby lze psát i jako holé hodnoty (`values: [1, 2, 3]`); popisek je pak `String(value)`.
+- Shoda volby s buňkou je tolerantní na číslo vs. řetězec a velikost písmen (`2` = `'2'`,
+  `'Open'` = `'open'`) — číselník z API nemusí typem přesně odpovídat datům.
+- `onCellEdit` dostane v `newValue` **hodnotu volby**, ne popisek.
+
+---
+
 ## Nastavení instance (`options.instance` / `setInstance`)
 
 Vše se persistuje a projeví ihned. Uživatel to mění v UI „Nastavení tabulky" (ozubené kolo).
@@ -406,7 +533,9 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `addRow(row, atStart?)` / `updateRow(key, patch)` / `deleteRow(key)` | Granulární mutace (emitují `onDataChange`, historie). |
 | `moveRow(...)` / `receiveExternalRow(...)` | Přesun / příjem řádku. |
 | `sortColumn(field, dir)` / `toggleSort(field, append?)` | Řazení (append = víceúrovňové). |
-| `setFilter(field, value)` / `clearFilters()` | Filtry. |
+| `setFilter(field, value)` / `clearFilters()` | Filtry. Hodnota se **normalizuje** na tvar daného filtru (rozsah přijme i `"od\|do"`, multiselect i skalár, boolean i `true`); nerozpoznaný tvar se nenastaví a ohlásí se v konzoli — viz *Tvar hodnoty v `setFilter`*. `null`/`''`/`[]` filtr zruší. `@v1.23.0` |
+| `getFilter(field)` / `getFilters()` | **Opačný směr k `setFilter`.** Hodnota filtru jednoho sloupce (`undefined` = nenastaven) ve **stejném tvaru, jaký `setFilter` přijímá** / mapa `{field: value}` všech aplikovaných sloupcových filtrů. Vrací jen filtry s účinnou hodnotou. Díky tomu jde napsat přepínací tlačítko („druhý klik filtr zruší") bez vlastní evidence toho, co aplikace sama nastavila. `@v1.23.0` |
+| `getData(scope?)` | Aktuální datová sada: `'filtered'` (výchozí) = celá filtrovaná a seřazená (server-side jen načtená stránka), `'page'` = řádky zobrazené stránky, `'all'` = celý dataset bez ohledu na filtry. Vrací **kopii pole** s **živými** řádky (zápis do řádku mění data gridu). `@v1.23.0` |
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
 | `saveAdvanced(name, tree, scope?, display?, group?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. `group` (`@v1.20.1`) = štítek skupiny ve výběru (viz *Skupiny ve výběru*). |
@@ -429,6 +558,7 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setColumnSummary(field, summary)` / `setColumnRowSummary(field, fns)` | Souhrny sloupce (dole) / řádku (vpravo) — pole funkcí `['sum','avg','min','max','count']`. |
 | `setColumnSummaryFormula(field, formula, label?)` | Vážený souhrn sloupce vzorcem (`null` zruší). `label` = název řádku. |
 | `setColumnTitle(field, title)` | Přejmenuje sloupec (prázdné = zpět na výchozí). |
+| `setColumnVisible(field, bool)` / `setColumnsVisible({field: bool, …})` | Skryje/zobrazí sloupec za běhu; dávková varianta přepne víc sloupců **jedním překreslením** (`@v1.23.0`). Pro **presety sloupců** („Vše" / „Rychlý pohled" / …) — grid se nemusí zahodit a postavit znovu, takže zůstane řazení i stránka a nic nebliká. Viditelnost se persistuje (`lattice:<id>`) a sloupce, které v mapě nejsou, se nemění. |
 | `toggleColGroup(title)` / `isColGroupCollapsed(title)` | Sbalí/rozbalí skupinu sloupců / je sbalená? |
 | `setColumnHeaderColor(field, {background, color})` | Barva záhlaví sloupce (prázdné zruší). |
 | `setColGroupHeaderColor(title, {background, color})` | Barva záhlaví celé skupiny (nastaví všem členům). |
@@ -1009,13 +1139,38 @@ od prostého průměru poměrů):
 Pravidla: **pole musí být uvnitř agregace** (`sum(spojeno)`, ne holé `spojeno`); agregace se
 **nevnořují**. Skalární funkce (`round`, `abs`…) lze použít nad výsledkem: `round(avg(x), 2)`.
 
-### Souhrny a formátovač — `@v1.22.0`
+> **Souhrnný řádek se nezobrazuje?** Souhrny (standardní i vzorcové) se kreslí jen při zapnutém
+> `instance.summaryRow` — a ten je ve výchozím stavu **`'none'`**. Nastav ho v `options.instance`
+> (`summaryRow: 'page'` nebo `'all'`), nebo ho uživatel zapne v *Nastavení tabulky*. Samotný
+> `summaryFormula` na sloupci k zobrazení nestačí.
+>
+> `summaryFormulaLabel` je **nepovinný** — bez něj se řádek pojmenuje obecně („Vzorec" /
+> `summary.formulaLabel`). Slouží k tomu, aby šlo mít víc vzorcových řádků a pojmenovat je; sloupce
+> se stejným názvem sdílejí jeden řádek a vzorec pojmenovaný jako standardní funkce (např. „Průměr")
+> se do jejího řádku sloučí.
 
-Sloupec `type: 'money'` posílá hodnotu souhrnu (`sum`, `avg`, `min`, `max`, i vzorec) **týmž
-formátovačem jako buňky** — tedy `col.formatter`, když ho sloupec má, jinak vestavěný formátovač
-typu. Souhrn tak nese měnu i počet desetin. Ostatní typy se formátují jen podle locale: `avg`
-a vzorec s dvěma desetinami (jsou to poměry), zbytek celé; `count` je vždy holé číslo a
-formátovačem neprochází.
+### Souhrny a formátovač — `@v1.23.0`
+
+Hodnota souhrnu (`sum`, `avg`, `min`, `max`, i vzorec) projde **týmž formátovačem jako buňky**, když
+sloupec má vlastní **`col.formatter`** — u kteréhokoli typu — nebo je `type: 'money'` (tam se použije
+i vestavěný formátovač, ať souhrn nese měnu a počet desetin).
+
+Do `v1.22.0` to platilo **jen** pro `type: 'money'`, takže časový sloupec (hodnota v sekundách,
+v buňce `h:mm:ss`) hlásil v patičce `2 419 200` místo `672:00:00` a jediné obejití bylo lhát sloupci
+`type: 'money'`. Vlastní formátovač je dost jasný signál, že syrové číslo v souhrnu autor vidět
+nechce.
+
+Zbytek se formátuje jen podle locale: `avg` a vzorec s dvěma desetinami (jsou to poměry), ostatní
+celé. **`count` formátovačem nikdy neprojde** — není to hodnota sloupce, ale počet buněk.
+
+Rozhodnutí lze přebít per-sloupec přes **`summaryFormatted`**:
+
+```js
+{ field: 'seconds', type: 'number', summary: ['sum', 'avg'],
+  formatter: (v) => hms(v) }                       // souhrn: 672:00:00 (automaticky)
+{ field: 'n', type: 'number', summaryFormatted: true }    // vynutit formát i bez vlastního formátovače
+{ field: 'cena', type: 'money', summaryFormatted: false } // souhrn nechat na locale (bez měny)
+```
 
 Formátovač smí podle smlouvy vrátit **`string` i `Node`** a souhrn obojí unese — z uzlu si vezme
 jeho `textContent`. Vlastní barevnost se do souhrnu nepřenáší, číslo ano. Týká se to i vestavěného

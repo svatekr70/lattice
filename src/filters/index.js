@@ -46,6 +46,43 @@ function isBlank(v) {
   return v == null || v === '';
 }
 
+/**
+ * Je buňka prázdná z pohledu VÝBĚROVÉHO filtru? Buňka smí držet pole hodnot —
+ * prázdné pole (a pole samých prázdných hodnot) je pro filtr totéž co prázdná
+ * buňka, takže patří pod volbu „(prázdné)".
+ */
+function isBlankCell(cell) {
+  if (Array.isArray(cell)) return cell.length === 0 || cell.every(isBlank);
+  return isBlank(cell);
+}
+
+/**
+ * Hodnoty buňky k porovnání s výběrovým filtrem. Buňka může držet POLE hodnot
+ * (kandidát s víc chybějícími údaji, požadavek s víc kategoriemi, pohovor s víc
+ * stavy pipeline) — shoda pak znamená „průnik není prázdný", ne rovnost.
+ * Skalár se zabalí do jednoprvkového pole, ať obě varianty projdou jedním kódem.
+ * Prázdné položky pole se zahodí: prázdno řeší `isBlankCell` a volba „(prázdné)".
+ * `@v1.23.0`
+ */
+function cellValues(cell) {
+  if (Array.isArray(cell)) return cell.filter((v) => !isBlank(v));
+  return [cell];
+}
+
+/**
+ * Upozorní, že filtr dostal v buňce hodnotu, se kterou neumí pracovat — objekt,
+ * který není pole ani datum. Porovnával by se jeho textový popis
+ * („[object Object]"), takže filtr tiše nenajde nic a vypadá to jako chyba dat.
+ * Varuje se jednou na sloupec (match se volá pro každý řádek). `@v1.23.0`
+ */
+function warnCellType(column, cell) {
+  if (cell == null || typeof cell !== 'object') return;
+  if (Array.isArray(cell) || cell instanceof Date) return;
+  if (!column || column._cellTypeWarned) return;
+  column._cellTypeWarned = true;
+  console.warn(`[Lattice] sloupec „${column.field}“: filtr '${column.filter}' dostal v buňce objekt, ne hodnotu — porovnává se jeho textový popis, takže filtr nenajde nic. Buňka smí držet skalár nebo POLE hodnot; na objekt použij odvozený sloupec (\`value: (row) => …\`).`);
+}
+
 /* ---- pomocné ----------------------------------------------------------- */
 
 function toNumber(v) {
@@ -112,14 +149,20 @@ export function buildFilterOptions(raw, column, ctx) {
  * nabídky nedávají jako položka bez popisku — místo toho, a jen když nějaká
  * prázdná buňka existuje, přibude token EMPTY_FILTER_VALUE. Nabízet volbu
  * „(prázdné)" u sloupce, kde nikdy nic nevrátí, je horší než ji nemít.
+ *
+ * Buňka s POLEM hodnot se rozpadne na jednotlivé volby — v nabídce má svítit
+ * „Číslo účtu" a „Datum narození", ne jedna položka „Číslo účtu,Datum narození".
+ * `@v1.23.0`
  */
 export function distinctFilterValues(rows, col) {
   const seen = new Set(), out = [];
   let hasEmpty = false;
   for (const r of rows || []) {
     const v = cellValue(r, col);
-    if (isBlank(v)) { hasEmpty = true; continue; }
-    if (!seen.has(v)) { seen.add(v); out.push(v); }
+    if (isBlankCell(v)) { hasEmpty = true; continue; }
+    for (const one of cellValues(v)) {
+      if (!seen.has(one)) { seen.add(one); out.push(one); }
+    }
   }
   if (hasEmpty) out.push(EMPTY_FILTER_VALUE);
   return out;
@@ -191,6 +234,83 @@ export function warnDerivedOptions(grid, column) {
   return true;
 }
 
+/* ---- normalizace hodnoty filtru (programové setFilter) ------------------ */
+
+/**
+ * Rozsahový filtr přijme každý tvar, ve kterém se dá rozumně myslet: objekt
+ * `{from,to}` i `{min,max}`, pole `[od, do]` a serializovaný řetězec `"od|do"`.
+ * Ten poslední je zrádný: přesně takhle rozsah putuje na server, do uložených
+ * filtrů i do URL, takže ho aplikace přirozeně zkusí poslat zpátky do
+ * `setFilter` — a dřív to tiše neudělalo nic. Vrací `undefined` = nerozpoznáno.
+ * `@v1.23.0`
+ */
+function parseRange(v, fromKey, toKey) {
+  if (Array.isArray(v)) {
+    if (v.length > 2) return undefined;
+    return { [fromKey]: v[0] ?? null, [toKey]: v[1] ?? null };
+  }
+  if (typeof v === 'object') {
+    const from = v.from !== undefined ? v.from : v.min;
+    const to = v.to !== undefined ? v.to : v.max;
+    if (from === undefined && to === undefined) return undefined;
+    return { [fromKey]: from ?? null, [toKey]: to ?? null };
+  }
+  const s = String(v);
+  if (!s.includes('|')) return undefined;
+  const [from, to] = s.split('|');
+  return { [fromKey]: from || null, [toKey]: to || null };
+}
+
+/** Skalární hodnota (text/číslo/boolean) → řetězec; objekt = nerozpoznáno. */
+function parseScalar(v) {
+  return typeof v === 'object' ? undefined : String(v);
+}
+
+/** Jedna hodnota nebo jednoprvkové pole → řetězec; víc hodnot = nerozpoznáno. */
+function parseOne(v) {
+  if (Array.isArray(v)) return v.length === 1 ? String(v[0]) : undefined;
+  return parseScalar(v);
+}
+
+/** Pole hodnot; skalár se zabalí (`setFilter(f, 'SK')` je čitelný zápis). */
+function parseList(v) {
+  if (Array.isArray(v)) return v.filter((x) => x != null && x !== '').map(String);
+  if (typeof v === 'object') return undefined;
+  return [String(v)];
+}
+
+/**
+ * Nerozpoznaný tvar hodnoty filtru — nahlas. Dřív se hodnota uložila, `isEmpty`
+ * ji zahodila a v tabulce zůstaly VŠECHNY řádky: vypadá to jako „filtr
+ * nefiltruje", ne jako chybné volání. Varuje se jednou na sloupec a filtr.
+ * `@v1.23.0`
+ */
+function warnFilterValue(column, value, hint) {
+  const seen = column._filterValueWarned || (column._filterValueWarned = new Set());
+  if (seen.has(column.filter)) return;
+  seen.add(column.filter);
+  let shape;
+  try { shape = typeof value === 'object' ? JSON.stringify(value) : `'${value}'`; } catch { shape = String(value); }
+  console.warn(`[Lattice] setFilter('${column.field}', …): filtr '${column.filter}' nerozumí hodnotě ${shape}. Čekaný tvar: ${hint}. Filtr se NEnastavil — dřív se tiše neaplikoval a v tabulce zůstaly všechny řádky.`);
+}
+
+/**
+ * Hodnota z `setFilter` → tvar, kterému daný filtr rozumí. Filtr si normalizaci
+ * řeší přes `parseValue(value)` (vrátí `undefined`, když tvar nepozná) a hlásí
+ * `valueHint` do varování. Filtr bez `parseValue` dostane hodnotu, jak přišla.
+ * `@v1.23.0`
+ */
+export function normalizeFilterValue(column, value) {
+  if (!column || !column.filter) return value;
+  if (value == null || value === '') return value; // vyprázdnění řeší volající
+  const def = getFilter(column.filter);
+  if (!def || typeof def.parseValue !== 'function') return value;
+  const out = def.parseValue(value);
+  if (out !== undefined) return out;
+  warnFilterValue(column, value, def.valueHint || '');
+  return null;
+}
+
 /* ---- TEXT (s podporou negace !výraz) ----------------------------------- */
 
 registerFilter('text', {
@@ -221,6 +341,8 @@ registerFilter('text', {
     return negate ? !has : has;
   },
   toServer: (field, value) => [{ field, type: 'like', value }],
+  parseValue: parseScalar,
+  valueHint: 'text',
 });
 
 /* ---- NUMBER (podporuje >, <, >=, <=, = prefix; jinak rovná se) ---------- */
@@ -258,6 +380,8 @@ registerFilter('number', {
     const val = m ? m[2] : value;
     return [{ field, type: op, value: val }];
   },
+  parseValue: parseScalar,
+  valueHint: "číslo nebo výraz s operátorem, např. 42 | '>=5'",
 });
 
 /* ---- NUMBER-RANGE (min–max) -------------------------------------------- */
@@ -288,6 +412,8 @@ registerFilter('number-range', {
     if (value.max != null && value.max !== '') out.push({ field, type: '<=', value: value.max });
     return out;
   },
+  parseValue: (v) => parseRange(v, 'min', 'max'),
+  valueHint: '{min, max} | [min, max] | "min|max"',
 });
 
 /* ---- DATE-RANGE (Od–Do v JEDNOM poli: value "from|to", 1 server param) -- */
@@ -322,6 +448,10 @@ registerFilter('date-range', {
   },
   // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to" (tokeny rozvinuté na konkrétní datum)
   toServer: (field, value) => [{ field, type: 'dateRange', value: `${resolveToken(value.from) || ''}|${resolveToken(value.to) || ''}` }],
+  // Přijme i tvar, ve kterém se rozsah serializuje na server a do uložených
+  // filtrů (`"od|do"`) — ten aplikace posílá zpátky nejčastěji. `@v1.23.0`
+  parseValue: (v) => parseRange(v, 'from', 'to'),
+  valueHint: '{from, to} | [od, do] | "od|do"',
 });
 
 /* ---- DATE-TWO (dvě samostatná pole → 2 server params, jedno nepovinné) -- */
@@ -351,6 +481,8 @@ registerFilter('date-two', {
     if (value.to) out.push({ field, type: '<=', value: value.to });
     return out;
   },
+  parseValue: (v) => parseRange(v, 'from', 'to'),
+  valueHint: '{from, to} | [od, do] | "od|do"',
 });
 
 /* ---- DYNAMIC (výraz s operátory + AND/OR, relativní datumy) ------------- */
@@ -467,6 +599,8 @@ registerFilter('dynamic', {
     });
     return out;
   },
+  parseValue: parseScalar,
+  valueHint: "výraz, např. '>=today-7 AND <=today'",
 });
 
 /* ---- SELECT (jedna hodnota) -------------------------------------------- */
@@ -478,8 +612,17 @@ registerFilter('select', {
   isEmpty: (v) => v == null || v === '',
   // Test na prázdno musí sáhnout na SYROVOU buňku — norm(null) === norm('') === '',
   // takže po normalizaci se prázdno od hodnoty '' už nedá odlišit.
-  match: (value, cell) => (value === EMPTY_FILTER_VALUE ? isBlank(cell) : norm(cell) === norm(value)),
+  match(value, cell, row, column) {
+    if (isBlankCell(cell)) return value === EMPTY_FILTER_VALUE;
+    if (value === EMPTY_FILTER_VALUE) return false;
+    warnCellType(column, cell);
+    // Buňka smí držet pole hodnot → shoda = hodnota je mezi nimi. `@v1.23.0`
+    const v = norm(value);
+    return cellValues(cell).some((c) => norm(c) === v);
+  },
   toServer: (field, value) => [{ field, type: '=', value }],
+  parseValue: parseOne,
+  valueHint: "jedna hodnota (na víc hodnot použij filter: 'multiselect')",
 });
 
 /**
@@ -595,13 +738,18 @@ registerFilter('multiselect', {
     return buildMultiselect(column, ctx);
   },
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
-  match(value, cell) {
+  match(value, cell, row, column) {
     const set = value.map(norm);
     // Token se s ostatními volbami spojuje přes OR („SK nebo prázdné").
-    if (isBlank(cell)) return set.includes(EMPTY_NORM) || set.includes('');
-    return set.includes(norm(cell));
+    if (isBlankCell(cell)) return set.includes(EMPTY_NORM) || set.includes('');
+    warnCellType(column, cell);
+    // Buňka s POLEM hodnot: shoda = průnik s výběrem není prázdný („obsahuje
+    // kteroukoli z vybraných hodnot"). Skalár se chová jako dřív. `@v1.23.0`
+    return cellValues(cell).some((c) => set.includes(norm(c)));
   },
   toServer: (field, value) => [{ field, type: 'in', value }],
+  parseValue: parseList,
+  valueHint: 'pole hodnot, např. [\'SK\', \'CZ\']',
 });
 
 /* ---- MULTISELECT-EXCLUDE (vyloučit více) -------------------------------- */
@@ -614,13 +762,18 @@ registerFilter('multiselect-exclude', {
     return buildMultiselect(column, ctx, { exclude: true });
   },
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
-  match(value, cell) {
+  match(value, cell, row, column) {
     const set = value.map(norm);
     // Prázdné buňky projdou, dokud není vybraný token „(prázdné)" — teprve ten je skryje.
-    if (isBlank(cell)) return !(set.includes(EMPTY_NORM) || set.includes(''));
-    return !set.includes(norm(cell));
+    if (isBlankCell(cell)) return !(set.includes(EMPTY_NORM) || set.includes(''));
+    warnCellType(column, cell);
+    // Buňka s POLEM hodnot: řádek zmizí, je-li vyloučená KTERÁKOLI z jeho hodnot
+    // (přesná inverze multiselectu). `@v1.23.0`
+    return !cellValues(cell).some((c) => set.includes(norm(c)));
   },
   toServer: (field, value) => [{ field, type: 'notIn', value }],
+  parseValue: parseList,
+  valueHint: 'pole hodnot, např. [\'SK\', \'CZ\']',
 });
 
 /**
@@ -824,4 +977,12 @@ registerFilter('boolean', {
     return value === 'true' ? truthy : !truthy;
   },
   toServer: (field, value) => [{ field, type: '=', value: value === 'true' }],
+  // Ovládací prvek je <select>, takže hodnota filtru je řetězec. `setFilter(f, true)`
+  // by se dřív porovnal s 'true' jako nerovný a filtroval NAOPAK. `@v1.23.0`
+  parseValue(v) {
+    if (v === true || v === 1 || v === '1' || v === 'true') return 'true';
+    if (v === false || v === 0 || v === '0' || v === 'false') return 'false';
+    return undefined;
+  },
+  valueHint: "'true' | 'false' (nebo true/false)",
 });

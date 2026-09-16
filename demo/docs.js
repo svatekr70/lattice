@@ -132,9 +132,12 @@ function docSloupce(root, ctx) {
       ['<code>filter</code>', 'string', "Typ filtru; když se vynechá, odvodí se z typu (viz <i>Filtry</i>)."],
       ['<code>editable</code>', 'boolean', 'Povolí inline editaci buňky.'],
       ['<code>headerSort</code>', 'boolean', 'Řazení klikem na hlavičku (výchozí true).'],
-      ['<code>formatter</code>', 'function', '<code>(value, col, row) ⇒ string|Node</code> — vlastní vykreslení buňky. U <code>type: \'money\'</code> se týmž formátovačem formátuje i <b>souhrn</b> (v1.22.0); z uzlu si souhrn vezme text a třetí argument je <code>SUMMARY_ROW</code>, poznatelný přes <code>isSummaryRow(row)</code>.'],
+      ['<code>sortValue</code>', 'function', '<code>(row) ⇒ number|string|Date</code> — hodnota k <b>řazení</b> místo hodnoty ve <code>field</code>: buňka drží pole (řadit podle počtu), text <code>2m 30s</code> (podle sekund), datum v českém tvaru. Ušetří pomocný sloupec v datech. Client-side only. (v1.23.0)'],
+      ['<code>editorParams</code>', 'object', "Vlastní číselník editoru: <code>{ values: [{value, label}] }</code> — hodnoty se <b>nepřevádějí na řetězec</b>, takže jde editovat <code>null</code>/<code>true</code>/<code>false</code> napřímo, nezávisle na <code>filterValues</code>. (v1.23.0)"],
+      ['<code>formatter</code>', 'function', '<code>(value, col, row) ⇒ string|Node</code> — vlastní vykreslení buňky. Týmž formátovačem se formátuje i <b>souhrn</b> sloupce, u kteréhokoli typu (v1.23.0); z uzlu si souhrn vezme text a třetí argument je <code>SUMMARY_ROW</code>, poznatelný přes <code>isSummaryRow(row)</code>.'],
       ['<code>formatterParams</code>', 'object', 'Parametry formátovače daného typu.'],
-      ['<code>summary</code> / <code>rowSummary</code>', 'string[]', 'Souhrnné funkce sloupce (dole) / řádku (vpravo). Viz <i>Data & rozvržení</i>. U <code>type: \'money\'</code> projde výsledek stejným <code>formatter</code>em jako buňky, takže souhrn nese měnu i desetiny (v1.22.0).'],
+      ['<code>summary</code> / <code>rowSummary</code>', 'string[]', 'Souhrnné funkce sloupce (dole) / řádku (vpravo). Viz <i>Data & rozvržení</i>. Má-li sloupec vlastní <code>formatter</code> (nebo je <code>type: \'money\'</code>), projde výsledek stejným formátovačem jako buňky (v1.23.0).'],
+      ['<code>summaryFormatted</code>', 'boolean', 'Vynutí (<code>true</code>) nebo potlačí (<code>false</code>), že souhrn projde formátovačem. Nezadáno = automaticky. (v1.23.0)'],
       ['<code>responsive</code>', 'number|false', 'Pořadí skládání při <code>responsive: true</code> (vyšší = schová se dřív). <code>false</code> = nikdy neschovat.'],
     ]),
 
@@ -160,6 +163,18 @@ function docSloupce(root, ctx) {
 
     h3('Řazení'),
     p('Klik na hlavičku cyklí <b>vzestupně → sestupně → zrušit</b>. <b>Shift+klik</b> přidá sloupec do <b>víceúrovňového řazení</b> (odznak pořadí 1,2,3…). Programově <code>grid.sortColumn(field, dir)</code> / <code>grid.toggleSort(field, append)</code>.'),
+    p('<b>Vlastní řazení sloupce (v1.23.0)</b> — když se sloupec podle svého obsahu řadit nedá, dodá <code>sortValue(row)</code> hodnotu, podle které se řadit má, a <b>nemusí se kvůli tomu dopočítávat pomocný sloupec do dat</b>. Vrací číslo, text, <code>Date</code> nebo boolean; <code>null</code> se chová jako chybějící hodnota a funkce, která spadne, řazení nepoloží. Mění <b>jen řazení</b> — filtr, hledání a export dál pracují s hodnotou buňky. V režimu <code>serverSide</code> řadí server, takže se neuplatní.'),
+    code(`{ field: 'missingFields', sortValue: (row) => row.missingFields.length }   // podle počtu
+{ field: 'duration',      sortValue: (row) => secondsOf(row.duration) }     // '2m 30s' → 150
+{ field: 'callTime',      sortValue: (row) => parseCzDate(row.callTime) }   // Date`),
+
+    h3('Viditelnost sloupců za běhu'),
+    p('<code>grid.setColumnVisible(field, bool)</code> přepne jeden sloupec, <code>grid.setColumnsVisible({ field: bool, … })</code> celou dávku <b>jedním překreslením</b> (v1.23.0). Přesně pro <b>presety sloupců</b> („Vše" / „Rychlý pohled" / „Trychtýř"): grid se nemusí zahodit a postavit znovu nad užší definicí, takže zůstane <b>řazení i stránka</b>, na které uživatel byl, a nic nebliká. Viditelnost se persistuje a sloupce, které v mapě nejsou, se nemění.'),
+    code(`const PRESETY = {
+  vse:   { totalCalls: true,  connected: true,  revenue: true,  margin: true },
+  rychly: { totalCalls: true, connected: true,  revenue: false, margin: false },
+};
+function pouzij(name) { grid.setColumnsVisible(PRESETY[name]); }   // jedno překreslení`),
 
     h3('Automatické sloupce'),
     p('Když <code>columns</code> nevyplníš (nebo <code>autoColumns: true</code>), odvodí se z klíčů dat — typy se uhodnou z hodnot. Praktické pro import CSV/JSON.'),
@@ -262,6 +277,23 @@ function docFiltry(root, ctx) {
 
     p('<b>Volba „(prázdné)" (v1.21.0)</b> — nabídka umí i filtrování na <b>nevyplněné</b> buňky (<code>null</code>, <code>undefined</code>, <code>\'\'</code>). U nabídky odvozené z dat se volba přidá sama, ale <b>jen když sloupec prázdnou buňku opravdu má</b>; je vždy první a <code>col.filterEmptyOption: false</code> ji potlačí. Statickému <code>filterValues</code> knihovna nic nepřidává — buď si do něj vlož <code>Lattice.EMPTY_FILTER_VALUE</code>, nebo volbu připni přes <code>filterEmptyOption: true</code>. Ve <code>multiselect</code> se spojuje s ostatními přes <b>OR</b>, ve <code>multiselect-exclude</code> prázdné buňky naopak <b>skryje</b>. Hodnotou filtru je token <code>\'__LATTICE_EMPTY__\'</code> (prázdný řetězec by u <code>select</code> znamenal „filtr není nastaven"), takže ho vidíš i v server-side dotazu a backend si ho přeloží na <code>IS NULL OR = \'\'</code>.'),
 
+    h3('Buňka s víc hodnotami (v1.23.0)'),
+    p('Buňka smí místo jedné hodnoty držet <b>pole hodnot</b> (<code>missingFields: [\'Číslo účtu\', \'Datum narození\']</code>). Výběrové filtry jí rozumí: shoda je <b>průnik není prázdný</b> („obsahuje kteroukoli z vybraných hodnot"), ne rovnost, a nabídka odvozená z dat se rozpadne na jednotlivé hodnoty. Dřív se buňka porovnávala celá, takže <code>multiselect</code> nad polem <b>tiše propustil všechny řádky</b> — vypadalo to jako „filtr se neaplikoval", ne jako chyba, a jediné obejití bylo hodnoty spojit do textu a přijít o rozbalovací výběr. Prázdné pole patří pod volbu „(prázdné)"; <code>multiselect-exclude</code> řádek skryje, je-li vyloučená kterákoli z jeho hodnot. Objekt (ne pole) filtr porovnat neumí — na to se teď ozve <code>console.warn</code> místo tichého selhání.'),
+    code(`{ field: 'missingFields', title: 'Chybí', filter: 'multiselect',
+  formatter: (v) => (v || []).join(' · '),
+  sortValue: (row) => (row.missingFields || []).length }   // řadit podle POČTU`),
+    note('Pole rozumí <b>sloupcové</b> filtry v hlavičce. Rozšířený a univerzální filtr porovnávají buňku jako text (<code>\'a,b\'</code>) — <code>contains</code> tam funguje, <code>eq</code>/<code>in</code> ne.'),
+
+    h3('Tvar hodnoty v setFilter (v1.23.0)'),
+    p('<code>setFilter(field, value)</code> hodnotu <b>normalizuje</b> na tvar, kterému daný filtr rozumí — rozsah přijme i serializované <code>"od|do"</code> (přesně to, co jde na server a do uložených filtrů), multiselect i skalár, boolean i <code>true</code>. Tvar, který přeložit nejde, se <b>nenastaví</b> a ohlásí se v konzoli: dřív se uložil, <code>isEmpty</code> ho zahodila a v tabulce zůstaly <b>všechny řádky</b>, což vypadá jako „filtr nefiltruje". Zpětné čtení je <code>getFilter(field)</code> a vrací už normalizovaný tvar, takže se dá poslat rovnou zpátky.'),
+    code(`grid.setFilter('date', '2026-08-01|2026-08-31');   // = {from, to}
+grid.setFilter('state', 'open');                   // multiselect → ['open']
+grid.setFilter('active', true);                    // boolean → 'true'
+grid.setFilter('date', '15. 8. 2026');             // ⚠ konzole: nerozpoznaný tvar
+
+grid.getFilter('date');    // { from: '2026-08-01', to: '2026-08-31' }
+grid.getFilters();         // { date: {…}, state: ['open'] }`),
+
     h3('Odvození z typu'),
     p('Pokud <code>filter</code> nezadáš, číselné/datumové/textové sloupce jsou <b>filtrovatelné rovnou</b> — filtr je dostupný (zapneš ho v dialogu „Sloupce"), jen ve výchozím stavu vypnutý. Explicitní <code>filter</code>/<code>filterTypes</code> je zapnutý hned.'),
     code(`{ field: 'budget', type: 'money' }                    // filtr dostupný (vypnutý)
@@ -302,6 +334,18 @@ function docInterakce(root, ctx) {
       config: { id: 'doc-edit', columns: withEditing(campaignColumns()), data: ctx.data.slice(0, 30), pageSize: 6,
         onCellValidate: ({ field, newValue }) => field !== 'name' || !!String(newValue).trim() },
     }),
+
+    h3('Číselník editoru a tři stavy (v1.23.0)'),
+    p('Číselník výběrového editoru se bere z <code>editorParams.values</code>, jinak se sdílí s filtrem (<code>filterValues</code> / <code>filterUrl</code>). <code>editorParams.values</code> hodnoty <b>nepřevádí na řetězec</b>, takže sloupec se třemi stavy (<code>true</code> / <code>false</code> / „neuvedeno") jde editovat napřímo — bez textového protějšku v datech, který se při ukládání musel převádět zpět na boolean (dva zdroje pravdy v jednom řádku). Přítomnost <code>editorParams.values</code> sama zapne <code>select</code> editor.'),
+    code(`{
+  field: 'completed', title: 'Proběhl', type: 'boolean', editable: true,
+  editorParams: { values: [
+    { value: true,  label: 'Ano' },
+    { value: false, label: 'Ne' },
+    { value: null,  label: 'Neuvedeno' },
+  ] },
+}`),
+    note('<code>null</code> je vlastní stav a nesplývá s <code>\'\'</code> ani s <code>false</code> — zaškrtnutá je ta volba, která v buňce opravdu je (chybějící klíč se bere jako <code>null</code>). <code>onCellEdit</code> dostane v <code>newValue</code> hodnotu volby, ne popisek.'),
 
     h3('Výběr řádků'),
     code(`new Lattice('#grid', {
@@ -559,7 +603,10 @@ function docApi(root) {
       ['<code>addRow / updateRow / deleteRow(s)</code>', 'Mutace řádků (emitují onDataChange, historie).'],
       ['<code>moveRow / receiveExternalRow</code>', 'Přesun / příjem řádku.'],
       ['<code>sortColumn(field, dir)</code> / <code>toggleSort(field)</code>', 'Řazení.'],
-      ['<code>setFilter(field, value)</code> / <code>clearFilters()</code>', 'Filtry.'],
+      ['<code>setFilter(field, value)</code> / <code>clearFilters()</code>', 'Filtry. Hodnota se normalizuje na tvar daného filtru; nerozpoznaný tvar se nenastaví a ohlásí v konzoli. (v1.23.0)'],
+      ['<code>getFilter(field)</code> / <code>getFilters()</code>', 'Hodnota filtru sloupce (ve tvaru, jaký přijímá <code>setFilter</code>) / mapa všech aplikovaných sloupcových filtrů. Umožní přepínací tlačítko bez vlastní evidence stavu. (v1.23.0)'],
+      ['<code>getData(scope?)</code>', "Aktuální data: 'filtered' (výchozí) | 'page' | 'all'. Kopie pole, živé řádky. (v1.23.0)"],
+      ['<code>setColumnVisible(field, bool)</code> / <code>setColumnsVisible(map)</code>', 'Viditelnost sloupce / dávky (jedno překreslení) — pro presety sloupců bez přestavby gridu. (v1.23.0)'],
       ['<code>setPage(n)</code> / <code>setPageSize(n)</code>', 'Stránkování.'],
       ['<code>setInstance(patch)</code>', 'Nastavení tabulky (theme, layout, …).'],
       ['<code>setFormat(kind, patch)</code> / <code>setColumnFormat(field, patch)</code>', 'Formát globálně / per-sloupec.'],
@@ -611,6 +658,14 @@ function docData(root, ctx) {
       '<code>column.rowSummary: [\'sum\',\'avg\',…]</code> — souhrnný <b>sloupec vpravo</b> (agreguje řádek přes zapojené sloupce).',
     ]),
     p('Funkce: <code>sum</code> (Σ), <code>avg</code> (⌀), <code>min</code>, <code>max</code>, <code>count</code>. Rozsah dolního souhrnu (zobrazená stránka / všechny záznamy) přepíná Nastavení tabulky → „Souhrnný řádek".'),
+    note('Souhrny se kreslí jen při zapnutém <code>instance.summaryRow</code> — ve výchozím stavu je <code>\'none\'</code>. Samotné <code>summary</code>/<code>summaryFormula</code> na sloupci k zobrazení nestačí. (<code>summaryFormulaLabel</code> je naopak nepovinný — bez něj se řádek pojmenuje „Vzorec".)'),
+
+    h4('Souhrn a formátovač (v1.23.0)'),
+    p('Hodnota souhrnu projde <b>týmž formátovačem jako buňky</b>, když má sloupec vlastní <code>formatter</code> (u kteréhokoli typu), nebo je <code>type: \'money\'</code>. Do v1.22.0 to platilo <b>jen</b> pro <code>money</code>, takže časový sloupec (sekundy zobrazené jako <code>h:mm:ss</code>) hlásil v patičce <code>2 419 200</code> místo <code>672:00:00</code> — a jediné obejití bylo lhát sloupci <code>type: \'money\'</code>. <code>count</code> formátovačem nikdy neprojde (je to počet buněk, ne hodnota sloupce); zbytek bez formátovače zůstává na locale.'),
+    code(`{ field: 'seconds', type: 'number', summary: ['sum', 'avg'],
+  formatter: (v) => hms(v) }                       // souhrn: 672:00:00 (automaticky)
+{ field: 'n',    type: 'number', summaryFormatted: true }   // vynutit i bez formátovače
+{ field: 'cena', type: 'money',  summaryFormatted: false }  // nechat na locale`),
 
     h3('Mezisoučty skupin'),
     p('Když jsou řádky seskupené a sloupce mají souhrnné funkce, zapni <b>Nastavení tabulky → „Mezisoučty skupin"</b> (<code>instance.groupSubtotals: true</code>) a za každou skupinou (na každé úrovni seskupení) se zobrazí mezisoučtový řádek.'),

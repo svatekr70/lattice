@@ -4,6 +4,72 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.23.0] – 2026-09-16
+
+Sedm mezer, na které se narazilo při **převodu 60 gridů EverFLOW z Tabulatoru** na Lattice 1.22.0
+(zadání „Co chybělo při převodu"). Tři z nich nutily aplikaci duplikovat stav, který má znát grid;
+zbytek byly nedotažené detaily a nekonzistence v API. Vše aditivní, bez breaking changes.
+
+### Přidáno
+- **Gettery k filtrům — `getFilter(field)` a `getFilters()`.** `setFilter` neměl opačný směr, takže
+  přepínací tlačítko nad tabulkou („Otevřené", „Po termínu"… druhý klik filtr zruší) si muselo vést
+  vlastní evidenci toho, co samo nastavilo. `getFilter` vrací hodnotu ve **stejném tvaru, jaký
+  `setFilter` přijímá** (a už normalizovanou), `getFilters()` mapu `{field: value}` všech aplikovaných
+  sloupcových filtrů. Obojí vrací jen filtry s účinnou hodnotou.
+- **`getData(scope?)`** — aktuální datová sada: `'filtered'` (výchozí; celá filtrovaná a seřazená,
+  server-side jen načtená stránka), `'page'`, `'all'` (bez ohledu na filtry). Kopie pole, živé řádky.
+- **`setColumnsVisible({field: bool, …})`** — viditelnost víc sloupců **jedním překreslením**.
+  Presety sloupců („Vše" / „Rychlý pohled" / „Trychtýř") se tak nemusí řešit zahozením a přestavbou
+  gridu nad užší definicí: zůstane **řazení i stránka**, na které uživatel byl, a nic nebliká.
+  (`setColumnVisible` existoval, ale nebyl v dokumentaci — doplněn.)
+- **`col.sortValue(row)`** — hodnota k **řazení** místo hodnoty ve `field`, bez pomocného sloupce
+  v datech: buňka drží pole (řadit podle počtu), v buňce je `2m 30s` (řadit podle sekund), datum
+  v českém tvaru. Vrací číslo / text / `Date` / boolean; `null` = chybějící hodnota, výjimka
+  v funkci řazení nepoloží, mix typů se sjednotí na text (pořadí je vždy deterministické). Mění jen
+  řazení — filtr, hledání a export dál pracují s hodnotou buňky. Client-side (server-side řadí server).
+- **`col.editorParams.values`** — vlastní číselník editoru nezávislý na `filterValues`, jehož hodnoty
+  se **nepřevádějí na řetězec**. Tříhodnotový sloupec (`true` / `false` / „neuvedeno") se tak edituje
+  napřímo, místo textového protějšku v datech, který se při ukládání převáděl zpět na boolean — dvou
+  zdrojů pravdy v jednom řádku. `null` je vlastní stav a nesplývá s `''` ani s `false`; přítomnost
+  `editorParams.values` sama zapne `select` editor.
+- **`col.summaryFormatted`** — vynutí (`true`) nebo potlačí (`false`), že souhrn sloupce projde
+  formátovačem buňky.
+
+### Opraveno
+- **Výběrové filtry rozumí buňce s POLEM hodnot.** `multiselect` porovnával buňku na rovnost, takže
+  nad polem (`missingFields: ['Číslo účtu', 'Datum narození']`) **tiše propustil všechny řádky** —
+  vypadalo to jako „filtr se neaplikoval", ne jako chyba. Nově je shoda **průnik není prázdný**
+  („obsahuje kteroukoli z vybraných hodnot"), `multiselect-exclude` řádek skryje, je-li vyloučená
+  kterákoli z jeho hodnot, a `select` najde hodnotu mezi hodnotami buňky. **Nabídka odvozená z dat**
+  se rozpadne na jednotlivé hodnoty, takže v roletce svítí `Číslo účtu` a `Datum narození`, ne jedna
+  položka `Číslo účtu,Datum narození`. Prázdné pole patří pod volbu „(prázdné)". Hodnoty už není
+  potřeba spojovat do textu a dávat sloupci `filter: 'text'` (uživatel tím přicházel o rozbalovací
+  výběr a musel psát).
+- **Souhrn prochází formátovačem u všech typů, ne jen u `money`.** Časový sloupec (hodnota
+  v sekundách, v buňce `h:mm:ss`) hlásil v patičce `2 419 200` místo `672:00:00` a jediné obejití
+  bylo lhát sloupci `type: 'money'`. Vlastní `col.formatter` je dost jasný signál, že syrové číslo
+  v souhrnu autor vidět nechce. `count` formátovačem dál neprochází (je to počet buněk, ne hodnota
+  sloupce) a sloupec bez vlastního formátovače zůstává na formátu podle locale.
+- **`setFilter` normalizuje hodnotu a nerozpoznaný tvar ohlásí.** `date-range` se serializuje jako
+  `"od|do"`, ale `setFilter` přijímal jen objekt — a špatný tvar **selhal tiše**: hodnota se uložila,
+  `isEmpty` ji zahodila a v tabulce zůstaly všechny řádky. Nově každý filtr hodnotu normalizuje
+  (`date-range`/`date-two`: `{from,to}` · `"od|do"` · `[od,do]` · `{min,max}`; `number-range` obdobně;
+  `multiselect`: skalár se zabalí do pole; `select`: jednoprvkové pole; `boolean`: `true`/`1` →
+  `'true'`) a tvar, který přeložit nejde, se **nenastaví** a vypíše se `console.warn` s očekávaným
+  tvarem (jednou na sloupec).
+- **Objekt v buňce se ohlásí místo tichého selhání.** Filtr by porovnával jeho textový popis, takže
+  by nenašel nic — teď na to výběrové filtry upozorní v konzoli (jednou na sloupec).
+
+### Dokumentace
+- Nové sekce v `docs/API.md`: „Vlastní řazení sloupce (`sortValue`)", „Buňka s víc hodnotami (pole)",
+  „Tvar hodnoty v `setFilter`" a „Editor `select` a vlastní číselník"; přepsané „Souhrny a formátovač".
+  Totéž v dokumentaci dema a v uživatelské příručce.
+- **Souhrnný řádek se nezobrazuje?** Doplněno, že souhrny (včetně vzorcových) se kreslí jen při
+  zapnutém `instance.summaryRow` — ve výchozím stavu je `'none'`. `summaryFormulaLabel` je naopak
+  **nepovinný**: bez něj se řádek pojmenuje obecně „Vzorec".
+- Zdokumentováno, že pole v buňce rozumí **sloupcové** filtry v hlavičce; rozšířený a univerzální
+  filtr porovnávají buňku jako text.
+
 ## [1.22.0] – 2026-09-10
 
 Oprava souhrnného řádku u sloupce, jehož formátovač vrací **DOM uzel**: místo částky se v součtu

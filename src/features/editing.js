@@ -158,6 +158,10 @@ function resolveEditor(col) {
   // Explicitní editor má přednost (např. editor:'multiselect' pro buňku s polem hodnot).
   if (col.editor === 'multiselect') return multiselectEditor;
   if (col.editor === 'select') return selectEditor;
+  // Vlastní číselník editoru → select, i když sloupec žádný výběrový filtr nemá.
+  // Tím se edituje `null`/`true`/`false` napřímo, bez textového protějšku v datech.
+  // `@v1.23.0`
+  if (col.editorParams && Array.isArray(col.editorParams.values)) return selectEditor;
   // Filtr 'select' i 'multiselect' → editace je VŽDY jednohodnotový select.
   // (Buňka drží jednu hodnotu; multiselect slouží jen k filtrování.)
   if (col.filter === 'select' || col.filter === 'multiselect') return selectEditor;
@@ -403,10 +407,12 @@ function dateEditor(withTime) {
 function selectEditor(cell, col, rowData, done) {
   loadOptions(col).then((opts) => {
     const menu = el('div.lattice-menu.lattice-edit-popup.lattice-edit-select');
-    const cur = str(rowData[col.field]);
+    const cur = rowData[col.field];
     for (const o of opts) {
-      const item = el('div.lattice-menu-item' + (norm(o.value) === norm(cur) ? '.is-active' : ''), { text: o.label });
-      item.addEventListener('mousedown', (e) => { e.preventDefault(); close(); done(o.value); });
+      const item = el('div.lattice-menu-item' + (sameOptionValue(o.value, cur) ? '.is-active' : ''), { text: o.label });
+      // `undefined` znamená v `finish()` ZRUŠENÍ editace, takže se nikdy nesmí
+      // dostat z volby do dat — volba bez hodnoty zapíše `null`.
+      item.addEventListener('mousedown', (e) => { e.preventDefault(); close(); done(o.value === undefined ? null : o.value); });
       menu.appendChild(item);
     }
     openPopup(cell, menu, () => done(undefined));
@@ -417,24 +423,28 @@ function selectEditor(cell, col, rowData, done) {
 
 function multiselectEditor(cell, col, rowData, done) {
   loadOptions(col).then((opts) => {
-    const cur = Array.isArray(rowData[col.field]) ? rowData[col.field].map(String) : (rowData[col.field] != null && rowData[col.field] !== '' ? [String(rowData[col.field])] : []);
-    const sel = new Set(cur.map(norm));
+    const raw = rowData[col.field];
+    const cur = Array.isArray(raw) ? raw : (raw != null && raw !== '' ? [raw] : []);
+    // Výběr držíme po INDEXECH voleb, ne po normalizovaných hodnotách: číselník
+    // z `editorParams.values` smí nést i nestringové hodnoty, kde by `null` a `''`
+    // po normalizaci splynuly. `@v1.23.0`
+    const sel = new Set(opts.map((o, i) => i).filter((i) => cur.some((c) => sameOptionValue(opts[i].value, c))));
     const menu = el('div.lattice-menu.lattice-edit-popup.lattice-edit-select');
     const list = el('div.lattice-ms-list');
     const render = () => {
       clear(list);
-      for (const o of opts) {
-        const on = sel.has(norm(o.value));
+      opts.forEach((o, i) => {
+        const on = sel.has(i);
         const item = el('div.lattice-menu-item' + (on ? '.is-selected' : ''), {}, [
           el('span.lattice-ms-check', { text: on ? '✓' : '' }), el('span', { text: o.label }),
         ]);
-        item.addEventListener('mousedown', (e) => { e.preventDefault(); if (sel.has(norm(o.value))) sel.delete(norm(o.value)); else sel.add(norm(o.value)); render(); });
+        item.addEventListener('mousedown', (e) => { e.preventDefault(); if (sel.has(i)) sel.delete(i); else sel.add(i); render(); });
         list.appendChild(item);
-      }
+      });
     };
     render();
     const ok = el('button.lattice-dr-btn.is-primary', { type: 'button', text: '✓' });
-    ok.addEventListener('click', () => { close(); done(opts.filter((o) => sel.has(norm(o.value))).map((o) => o.value)); });
+    ok.addEventListener('click', () => { close(); done(opts.filter((o, i) => sel.has(i)).map((o) => o.value)); });
     menu.append(list, el('div.lattice-edit-popup-foot', {}, [ok]));
     openPopup(cell, menu, () => done(undefined));
     const off = onOutside(menu, (e) => { if (!menu.contains(e.target)) { close(); done(undefined); } });
@@ -442,13 +452,39 @@ function multiselectEditor(cell, col, rowData, done) {
   });
 }
 
-function loadOptions(col) {
-  const norm = (o) => (o != null && typeof o === 'object' ? { value: String(o.value), label: String(o.label != null ? o.label : o.value) } : { value: String(o), label: String(o) });
-  // Číselník je sdílený s filtrem, takže může obsahovat token volby „(prázdné)".
-  // Do editoru nepatří — je to hodnota FILTRU, ne buňky (zapsal by se do dat).
-  const usable = (list) => list.map(norm).filter((o) => o.value !== EMPTY_FILTER_VALUE);
-  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues));
-  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [])).catch(() => []);
+/**
+ * Shoda hodnoty volby s hodnotou buňky. Tolerantní na číslo vs. řetězec
+ * (`1` a `'1'` je táž volba), ale `null` je vlastní stav a nesplývá s `''`
+ * ani s `false` — bez toho by tříhodnotový sloupec (`null`/`true`/`false`)
+ * neukázal, co v buňce opravdu je. `null` a chybějící klíč (`undefined`) jsou
+ * naopak týž stav „nevyplněno". `@v1.23.0`
+ */
+export function sameOptionValue(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  return norm(a) === norm(b);
+}
+
+/**
+ * Číselník editoru. `editorParams.values` má přednost před `filterValues` a
+ * hodnotu NEPŘEVÁDÍ na řetězec — jen tak jde editovat `null` / `true` / `false`
+ * napřímo, místo textového protějšku v datech (dvou zdrojů pravdy v řádku).
+ * Volby lze psát jako `[{ value, label }]` i jako holé hodnoty. `@v1.23.0`
+ *
+ * Bez `editorParams.values` se číselník sdílí s filtrem (`filterValues` /
+ * `filterUrl`), kde jsou hodnoty řetězce a může mezi nimi být token volby
+ * „(prázdné)" — do editoru nepatří, je to hodnota FILTRU, ne buňky (zapsal by
+ * se do dat).
+ */
+export function loadOptions(col) {
+  const asOption = (o, raw) => (o != null && typeof o === 'object'
+    ? { value: raw ? o.value : String(o.value), label: String(o.label != null ? o.label : o.value) }
+    : { value: raw ? o : String(o), label: String(o) });
+  const usable = (list, raw) => list.map((o) => asOption(o, raw)).filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  const ep = col.editorParams;
+  if (ep && Array.isArray(ep.values)) return Promise.resolve(usable(ep.values, true));
+  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues, false));
+  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [], false)).catch(() => []);
   return Promise.resolve([]);
 }
 

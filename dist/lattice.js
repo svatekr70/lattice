@@ -781,6 +781,14 @@ function resolveColumn(def, saved) {
     filterEmptyOption: def.filterEmptyOption,
     formatter: def.formatter || null,
     // vlastní formátor buňky
+    // Hodnota k ŘAZENÍ z celého řádku — když se sloupec nedá řadit podle toho, co
+    // je ve `field` (buňka drží pole, formátovaný text, datum v českém tvaru).
+    // Nemusí se kvůli tomu dopočítávat pomocný sloupec do dat. `@v1.23.0`
+    sortValue: typeof def.sortValue === "function" ? def.sortValue : null,
+    // Pustit `formatter` i do souhrnného řádku? undefined = automaticky (pustí se,
+    // když sloupec vlastní formátovač má), true = vynutit i u vestavěných typů,
+    // false = nikdy (souhrn zůstane u formátu podle locale). `@v1.23.0`
+    summaryFormatted: def.summaryFormatted,
     value,
     // odvozená (computed) hodnota z celého řádku (funkce nebo null)
     formula,
@@ -2483,10 +2491,15 @@ function formatterText(out) {
   if (typeof out === "object" && typeof out.nodeType === "number") return String(out.textContent ?? "");
   return String(out);
 }
+function useFormatter(col) {
+  if (col.summaryFormatted === true) return true;
+  if (col.summaryFormatted === false) return false;
+  return typeof col.formatter === "function" || col.type === "money";
+}
 function formatSummaryValue(fn, val, col) {
   if (val == null || typeof val === "number" && !Number.isFinite(val)) return "";
   if (fn === "count") return String(val);
-  if (col.type === "money") {
+  if (useFormatter(col)) {
     let text = "";
     try {
       text = formatterText(getFormatter(col)(val, col, SUMMARY_ROW));
@@ -2809,7 +2822,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.22.0";
+var VERSION = "1.23.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2819,6 +2832,25 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.23.0",
+    "date": "2026-09-16",
+    "text": 'Sedm mezer, na kter\xE9 se narazilo p\u0159i p\u0159evodu 60 grid\u016F EverFLOW z Tabulatoru na Lattice 1.22.0 (zad\xE1n\xED \u201ECo chyb\u011Blo p\u0159i p\u0159evodu"). T\u0159i z nich nutily aplikaci duplikovat stav, kter\xFD m\xE1 zn\xE1t grid; zbytek byly nedota\u017Een\xE9 detaily a nekonzistence v API. V\u0161e\u2026',
+    "items": [
+      'Gettery k filtr\u016Fm \u2014 getFilter(field) a getFilters(). setFilter nem\u011Bl opa\u010Dn\xFD sm\u011Br, tak\u017Ee p\u0159ep\xEDnac\xED tla\u010D\xEDtko nad tabulkou (\u201EOtev\u0159en\xE9", \u201EPo term\xEDnu"\u2026 druh\xFD klik filtr zru\u0161\xED) si muselo v\xE9st vlastn\xED\u2026',
+      "getData(scope?) \u2014 aktu\xE1ln\xED datov\xE1 sada: 'filtered' (v\xFDchoz\xED; cel\xE1 filtrovan\xE1 a se\u0159azen\xE1, server-side jen na\u010Dten\xE1 str\xE1nka), 'page', 'all' (bez ohledu na filtry). Kopie pole, \u017Eiv\xE9 \u0159\xE1dky.",
+      'setColumnsVisible({field: bool, \u2026}) \u2014 viditelnost v\xEDc sloupc\u016F jedn\xEDm p\u0159ekreslen\xEDm. Presety sloupc\u016F (\u201EV\u0161e" / \u201ERychl\xFD pohled" / \u201ETrycht\xFD\u0159") se tak nemus\xED \u0159e\u0161it zahozen\xEDm a p\u0159estavbou gridu nad u\u017E\u0161\xED\u2026',
+      "col.sortValue(row) \u2014 hodnota k \u0159azen\xED m\xEDsto hodnoty ve field, bez pomocn\xE9ho sloupce v datech: bu\u0148ka dr\u017E\xED pole (\u0159adit podle po\u010Dtu), v bu\u0148ce je 2m 30s (\u0159adit podle sekund), datum v \u010Desk\xE9m tvaru. Vrac\xED\u2026",
+      'col.editorParams.values \u2014 vlastn\xED \u010D\xEDseln\xEDk editoru nez\xE1visl\xFD na filterValues, jeho\u017E hodnoty se nep\u0159ev\xE1d\u011Bj\xED na \u0159et\u011Bzec. T\u0159\xEDhodnotov\xFD sloupec (true / false / \u201Eneuvedeno") se tak edituje nap\u0159\xEDmo, m\xEDsto\u2026',
+      "col.summaryFormatted \u2014 vynut\xED (true) nebo potla\u010D\xED (false), \u017Ee souhrn sloupce projde form\xE1tova\u010Dem bu\u0148ky.",
+      "V\xFDb\u011Brov\xE9 filtry rozum\xED bu\u0148ce s POLEM hodnot. multiselect porovn\xE1val bu\u0148ku na rovnost, tak\u017Ee nad polem (missingFields: ['\u010C\xEDslo \xFA\u010Dtu', 'Datum narozen\xED']) ti\u0161e propustil v\u0161echny \u0159\xE1dky \u2014 vypadalo to\u2026",
+      "Souhrn proch\xE1z\xED form\xE1tova\u010Dem u v\u0161ech typ\u016F, ne jen u money. \u010Casov\xFD sloupec (hodnota v sekund\xE1ch, v bu\u0148ce h:mm:ss) hl\xE1sil v pati\u010Dce 2 419 200 m\xEDsto 672:00:00 a jedin\xE9 obejit\xED bylo lh\xE1t sloupci type:\u2026",
+      'setFilter normalizuje hodnotu a nerozpoznan\xFD tvar ohl\xE1s\xED. date-range se serializuje jako "od|do", ale setFilter p\u0159ij\xEDmal jen objekt \u2014 a \u0161patn\xFD tvar selhal ti\u0161e: hodnota se ulo\u017Eila, isEmpty ji\u2026',
+      "Objekt v bu\u0148ce se ohl\xE1s\xED m\xEDsto tich\xE9ho selh\xE1n\xED. Filtr by porovn\xE1val jeho textov\xFD popis, tak\u017Ee by nena\u0161el nic \u2014 te\u010F na to v\xFDb\u011Brov\xE9 filtry upozorn\xED v konzoli (jednou na sloupec).",
+      'Nov\xE9 sekce v docs/API.md: \u201EVlastn\xED \u0159azen\xED sloupce (sortValue)", \u201EBu\u0148ka s v\xEDc hodnotami (pole)", \u201ETvar hodnoty v setFilter" a \u201EEditor select a vlastn\xED \u010D\xEDseln\xEDk"; p\u0159epsan\xE9 \u201ESouhrny a form\xE1tova\u010D".\u2026',
+      "Souhrnn\xFD \u0159\xE1dek se nezobrazuje? Dopln\u011Bno, \u017Ee souhrny (v\u010Detn\u011B vzorcov\xFDch) se kresl\xED jen p\u0159i zapnut\xE9m instance.summaryRow \u2014 ve v\xFDchoz\xEDm stavu je 'none'. summaryFormulaLabel je naopak nepovinn\xFD: bez n\u011Bj\u2026"
+    ]
+  },
   {
     "version": "1.22.0",
     "date": "2026-09-10",
@@ -3046,25 +3078,6 @@ var RELEASES = [
     "text": "Ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry lze zobrazit jako tla\u010D\xEDtka. Bez breaking changes.",
     "items": [
       'Roz\u0161\xED\u0159en\xFD filtr \u2013 \u201Ejako tla\u010D\xEDtko". U ulo\u017Een\xE9ho filtru (lok\xE1ln\xEDho i glob\xE1ln\xEDho) lze za\u0161krtnout, \u017Ee se m\xE1 vykreslit jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami v prav\xE9m z\xE1hlav\xED tabulky, m\xEDsto polo\u017Eky v\u2026'
-    ]
-  },
-  {
-    "version": "1.9.0",
-    "date": "2026-08-08",
-    "text": "Opravn\xFD release z hloubkov\xE9ho auditu \u2014 spr\xE1vnost nap\u0159\xED\u010D vzorci, filtry, v\xFDb\u011Brem, \u0159azen\xEDm a exportem. Bez breaking changes.",
-    "items": [
-      'Vzorce \u2013 porovn\xE1n\xED datum\u016F. num() parsovalo "2024-03-15" p\u0159es parseFloat na 2024 (rok) a today()/now() vrac\xED epoch ms \u2192 [termin] < today() bylo v\u017Edy pravda a [start] < [konec] porovn\xE1valo jen roky.\u2026',
-      "Roz\u0161\xED\u0159en\xFD filtr \u2013 pr\xE1zdn\xE1 podskupina pod OR. Pr\xE1zdn\xE1/nedokon\u010Den\xE1 podskupina vracela true a pod OR rodi\u010Dem propustila v\u0161echny \u0159\xE1dky. Nyn\xED se ne\xFA\u010Dinn\xE9 podskupiny a podm\xEDnky bez oper\xE1toru ignoruj\xED\u2026",
-      'Roz\u0161\xED\u0159en\xFD filtr \u2013 pr\xE1zdn\xE9 pole a lt/lte/gt/gte. Pr\xE1zdn\xE9/chyb\u011Bj\xEDc\xED pole se \u0159adilo jako \u201Emen\u0161\xED ne\u017E cokoli" a splnilo lt/lte. Nov\u011B pr\xE1zdn\xE9 pole \u017E\xE1dn\xE9 ordering nespln\xED.',
-      "Roz\u0161\xED\u0159en\xFD filtr \u2013 relativn\xED tokeny today\xB1Nm/y. P\u0159et\xE9kaly na konci m\u011Bs\xEDce (31.1 + 1m \u2192 3.3. m\xEDsto 28.2.). Nov\u011B se den o\u0159\xEDzne na posledn\xED den c\xEDlov\xE9ho m\u011Bs\xEDce.",
-      "Progresivn\xED na\u010D\xEDt\xE1n\xED \u2013 race. loadMore() nem\u011Bl request-id guard; opo\u017Ed\u011Bn\xE1 odpov\u011B\u010F mohla p\u0159isypat star\xE9 \u0159\xE1dky na akumul\xE1tor resetovan\xFD soub\u011B\u017En\xFDm refresh(). Dopln\u011Bn stejn\xFD token jako v refresh().",
-      "Nastaven\xED \u2013 pageSize p\u0159es setInstance(). setInstance({ pageSize }) nesynchronizoval this.pageSize (\u010Dte ho refresh()/pager) \u2192 zm\u011Bna se projevila a\u017E po reloadu. Nyn\xED synchronizuje.",
-      "V\xFDb\u011Br rozsahu vs. p\u0159ipnut\xE9 \u0159\xE1dky. P\u0159ipnut\xE9 \u0159\xE1dky maj\xED string index ('pt0'); klik na n\u011B ukl\xE1dal do _lastSelIdx string a rozbil n\xE1sledn\xFD shift-v\xFDb\u011Br na norm\xE1ln\xEDch \u0159\xE1dc\xEDch. O\u0161et\u0159eno (mimo v\xFDb\u011Br\u2026",
-      "Fulltext hled\xE1n\xED. Pole se spojovala bez odd\u011Blova\u010De (join('')) \u2192 hledan\xFD v\xFDraz p\u0159es hranici dvou pol\xED fale\u0161n\u011B matchoval. Vlo\u017Eeno odd\u011Blen\xED pol\xED.",
-      "Datumov\xE9 seskupen\xED / date-only. YYYY-MM-DD se parsovalo jako UTC a lok\xE1ln\xED getter posunul den v z\xE1porn\xE9m UTC p\xE1smu; nov\u011B se parsuje lok\xE1ln\u011B.",
-      'Preset marker. Sloupcov\xE9 settery (\u0161\xED\u0159ka, barva, form\xE1t, titulek, souhrn, oto\u010Den\xED, filtr\u2026) i autoFit neru\u0161ily \u201Eaktivn\xED preset" \u2192 marker visel i po odchylce. Dopln\u011Bno ru\u0161en\xED presetu.',
-      "Nastaven\xED sloupc\u016F (\u2699). Klik na n\xE1zev sloupce skryl/zobrazil sloupec, ale checkbox v panelu se neobnovil (setColumnVisible te\u010F vol\xE1 gear.refresh()).",
-      "Responsive. Vypnut\xE9 \u010D\xEDslov\xE1n\xED \u0159\xE1dk\u016F (rowNumbers: 'none', truthy) rezervovalo 44 px nav\xEDc."
     ]
   }
 ];
@@ -4875,6 +4888,21 @@ var EMPTY_NORM = EMPTY_FILTER_VALUE.toLowerCase();
 function isBlank(v) {
   return v == null || v === "";
 }
+function isBlankCell(cell) {
+  if (Array.isArray(cell)) return cell.length === 0 || cell.every(isBlank);
+  return isBlank(cell);
+}
+function cellValues(cell) {
+  if (Array.isArray(cell)) return cell.filter((v) => !isBlank(v));
+  return [cell];
+}
+function warnCellType(column, cell) {
+  if (cell == null || typeof cell !== "object") return;
+  if (Array.isArray(cell) || cell instanceof Date) return;
+  if (!column || column._cellTypeWarned) return;
+  column._cellTypeWarned = true;
+  console.warn(`[Lattice] sloupec \u201E${column.field}\u201C: filtr '${column.filter}' dostal v bu\u0148ce objekt, ne hodnotu \u2014 porovn\xE1v\xE1 se jeho textov\xFD popis, tak\u017Ee filtr nenajde nic. Bu\u0148ka sm\xED dr\u017Eet skal\xE1r nebo POLE hodnot; na objekt pou\u017Eij odvozen\xFD sloupec (\`value: (row) => \u2026\`).`);
+}
 function toNumber2(v) {
   if (v == null || v === "") return null;
   const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
@@ -4920,13 +4948,15 @@ function distinctFilterValues(rows, col) {
   let hasEmpty = false;
   for (const r of rows || []) {
     const v = cellValue(r, col);
-    if (isBlank(v)) {
+    if (isBlankCell(v)) {
       hasEmpty = true;
       continue;
     }
-    if (!seen.has(v)) {
-      seen.add(v);
-      out.push(v);
+    for (const one of cellValues(v)) {
+      if (!seen.has(one)) {
+        seen.add(one);
+        out.push(one);
+      }
     }
   }
   if (hasEmpty) out.push(EMPTY_FILTER_VALUE);
@@ -4959,6 +4989,56 @@ function warnDerivedOptions(grid, column) {
   const impact = column.filter === "multiselect-exclude" ? " Filtr je inverzn\xED, tak\u017Ee u\u017Eivatel vylou\u010D\xED m\xED\u0148, ne\u017E \u010Dek\xE1, a p\u0159eb\xFDvaj\xEDc\xED \u0159\xE1dky vypadaj\xED jako chyba filtru." : "";
   console.warn(`[Lattice] sloupec \u201E${column.field}\u201C${title}: nab\xEDdka filtru '${column.filter}' se v server-side re\u017Eimu odvodila jen z na\u010Dten\xE9 str\xE1nky, ne z cel\xE9 sady.${impact} Dopl\u0148 sloupci filterValues nebo filterUrl.`);
   return true;
+}
+function parseRange(v, fromKey, toKey) {
+  if (Array.isArray(v)) {
+    if (v.length > 2) return void 0;
+    return { [fromKey]: v[0] ?? null, [toKey]: v[1] ?? null };
+  }
+  if (typeof v === "object") {
+    const from2 = v.from !== void 0 ? v.from : v.min;
+    const to2 = v.to !== void 0 ? v.to : v.max;
+    if (from2 === void 0 && to2 === void 0) return void 0;
+    return { [fromKey]: from2 ?? null, [toKey]: to2 ?? null };
+  }
+  const s = String(v);
+  if (!s.includes("|")) return void 0;
+  const [from, to] = s.split("|");
+  return { [fromKey]: from || null, [toKey]: to || null };
+}
+function parseScalar(v) {
+  return typeof v === "object" ? void 0 : String(v);
+}
+function parseOne(v) {
+  if (Array.isArray(v)) return v.length === 1 ? String(v[0]) : void 0;
+  return parseScalar(v);
+}
+function parseList(v) {
+  if (Array.isArray(v)) return v.filter((x) => x != null && x !== "").map(String);
+  if (typeof v === "object") return void 0;
+  return [String(v)];
+}
+function warnFilterValue(column, value, hint) {
+  const seen = column._filterValueWarned || (column._filterValueWarned = /* @__PURE__ */ new Set());
+  if (seen.has(column.filter)) return;
+  seen.add(column.filter);
+  let shape;
+  try {
+    shape = typeof value === "object" ? JSON.stringify(value) : `'${value}'`;
+  } catch {
+    shape = String(value);
+  }
+  console.warn(`[Lattice] setFilter('${column.field}', \u2026): filtr '${column.filter}' nerozum\xED hodnot\u011B ${shape}. \u010Cekan\xFD tvar: ${hint}. Filtr se NEnastavil \u2014 d\u0159\xEDv se ti\u0161e neaplikoval a v tabulce z\u016Fstaly v\u0161echny \u0159\xE1dky.`);
+}
+function normalizeFilterValue(column, value) {
+  if (!column || !column.filter) return value;
+  if (value == null || value === "") return value;
+  const def = getFilter(column.filter);
+  if (!def || typeof def.parseValue !== "function") return value;
+  const out = def.parseValue(value);
+  if (out !== void 0) return out;
+  warnFilterValue(column, value, def.valueHint || "");
+  return null;
 }
 registerFilter("text", {
   build(column, ctx) {
@@ -4996,7 +5076,9 @@ registerFilter("text", {
     const has = norm2(cell).includes(needle);
     return negate ? !has : has;
   },
-  toServer: (field2, value) => [{ field: field2, type: "like", value }]
+  toServer: (field2, value) => [{ field: field2, type: "like", value }],
+  parseValue: parseScalar,
+  valueHint: "text"
 });
 registerFilter("number", {
   build(column, ctx) {
@@ -5035,7 +5117,9 @@ registerFilter("number", {
     const op = m && m[1] || "=";
     const val = m ? m[2] : value;
     return [{ field: field2, type: op, value: val }];
-  }
+  },
+  parseValue: parseScalar,
+  valueHint: "\u010D\xEDslo nebo v\xFDraz s oper\xE1torem, nap\u0159. 42 | '>=5'"
 });
 registerFilter("number-range", {
   build(column, ctx) {
@@ -5062,7 +5146,9 @@ registerFilter("number-range", {
     if (value.min != null && value.min !== "") out.push({ field: field2, type: ">=", value: value.min });
     if (value.max != null && value.max !== "") out.push({ field: field2, type: "<=", value: value.max });
     return out;
-  }
+  },
+  parseValue: (v) => parseRange(v, "min", "max"),
+  valueHint: '{min, max} | [min, max] | "min|max"'
 });
 function stackedPair(ctx, fromInput, toInput) {
   const row = (label, input) => el("label.lattice-stacked-row", {}, [el("span.lattice-stacked-lbl", { text: label }), input]);
@@ -5089,7 +5175,11 @@ registerFilter("date-range", {
     return true;
   },
   // JEDNO pole: rozsah pošleme jako jednu hodnotu "from|to" (tokeny rozvinuté na konkrétní datum)
-  toServer: (field2, value) => [{ field: field2, type: "dateRange", value: `${resolveToken(value.from) || ""}|${resolveToken(value.to) || ""}` }]
+  toServer: (field2, value) => [{ field: field2, type: "dateRange", value: `${resolveToken(value.from) || ""}|${resolveToken(value.to) || ""}` }],
+  // Přijme i tvar, ve kterém se rozsah serializuje na server a do uložených
+  // filtrů (`"od|do"`) — ten aplikace posílá zpátky nejčastěji. `@v1.23.0`
+  parseValue: (v) => parseRange(v, "from", "to"),
+  valueHint: '{from, to} | [od, do] | "od|do"'
 });
 registerFilter("date-two", {
   build(column, ctx) {
@@ -5115,7 +5205,9 @@ registerFilter("date-two", {
     if (value.from) out.push({ field: field2, type: ">=", value: value.from });
     if (value.to) out.push({ field: field2, type: "<=", value: value.to });
     return out;
-  }
+  },
+  parseValue: (v) => parseRange(v, "from", "to"),
+  valueHint: '{from, to} | [od, do] | "od|do"'
 });
 var DYN_CLAUSE_RE = /^\s*(>=|<=|>|<|=)?\s*(.+)$/;
 function dynClause(str3) {
@@ -5229,7 +5321,9 @@ registerFilter("dynamic", {
       }
     });
     return out;
-  }
+  },
+  parseValue: parseScalar,
+  valueHint: "v\xFDraz, nap\u0159. '>=today-7 AND <=today'"
 });
 registerFilter("select", {
   build(column, ctx) {
@@ -5238,8 +5332,16 @@ registerFilter("select", {
   isEmpty: (v) => v == null || v === "",
   // Test na prázdno musí sáhnout na SYROVOU buňku — norm(null) === norm('') === '',
   // takže po normalizaci se prázdno od hodnoty '' už nedá odlišit.
-  match: (value, cell) => value === EMPTY_FILTER_VALUE ? isBlank(cell) : norm2(cell) === norm2(value),
-  toServer: (field2, value) => [{ field: field2, type: "=", value }]
+  match(value, cell, row, column) {
+    if (isBlankCell(cell)) return value === EMPTY_FILTER_VALUE;
+    if (value === EMPTY_FILTER_VALUE) return false;
+    warnCellType(column, cell);
+    const v = norm2(value);
+    return cellValues(cell).some((c) => norm2(c) === v);
+  },
+  toServer: (field2, value) => [{ field: field2, type: "=", value }],
+  parseValue: parseOne,
+  valueHint: "jedna hodnota (na v\xEDc hodnot pou\u017Eij filter: 'multiselect')"
 });
 function buildSelect(column, ctx) {
   let value = ctx.value != null && ctx.value !== "" ? String(ctx.value) : null;
@@ -5345,24 +5447,30 @@ registerFilter("multiselect", {
     return buildMultiselect(column, ctx);
   },
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
-  match(value, cell) {
+  match(value, cell, row, column) {
     const set = value.map(norm2);
-    if (isBlank(cell)) return set.includes(EMPTY_NORM) || set.includes("");
-    return set.includes(norm2(cell));
+    if (isBlankCell(cell)) return set.includes(EMPTY_NORM) || set.includes("");
+    warnCellType(column, cell);
+    return cellValues(cell).some((c) => set.includes(norm2(c)));
   },
-  toServer: (field2, value) => [{ field: field2, type: "in", value }]
+  toServer: (field2, value) => [{ field: field2, type: "in", value }],
+  parseValue: parseList,
+  valueHint: "pole hodnot, nap\u0159. ['SK', 'CZ']"
 });
 registerFilter("multiselect-exclude", {
   build(column, ctx) {
     return buildMultiselect(column, ctx, { exclude: true });
   },
   isEmpty: (v) => !Array.isArray(v) || v.length === 0,
-  match(value, cell) {
+  match(value, cell, row, column) {
     const set = value.map(norm2);
-    if (isBlank(cell)) return !(set.includes(EMPTY_NORM) || set.includes(""));
-    return !set.includes(norm2(cell));
+    if (isBlankCell(cell)) return !(set.includes(EMPTY_NORM) || set.includes(""));
+    warnCellType(column, cell);
+    return !cellValues(cell).some((c) => set.includes(norm2(c)));
   },
-  toServer: (field2, value) => [{ field: field2, type: "notIn", value }]
+  toServer: (field2, value) => [{ field: field2, type: "notIn", value }],
+  parseValue: parseList,
+  valueHint: "pole hodnot, nap\u0159. ['SK', 'CZ']"
 });
 function buildMultiselect(column, ctx, opts = {}) {
   const exclude = !!opts.exclude;
@@ -5548,7 +5656,15 @@ registerFilter("boolean", {
     const truthy = cell === true || cell === 1 || cell === "1" || cell === "true";
     return value === "true" ? truthy : !truthy;
   },
-  toServer: (field2, value) => [{ field: field2, type: "=", value: value === "true" }]
+  toServer: (field2, value) => [{ field: field2, type: "=", value: value === "true" }],
+  // Ovládací prvek je <select>, takže hodnota filtru je řetězec. `setFilter(f, true)`
+  // by se dřív porovnal s 'true' jako nerovný a filtroval NAOPAK. `@v1.23.0`
+  parseValue(v) {
+    if (v === true || v === 1 || v === "1" || v === "true") return "true";
+    if (v === false || v === 0 || v === "0" || v === "false") return "false";
+    return void 0;
+  },
+  valueHint: "'true' | 'false' (nebo true/false)"
 });
 
 // src/core/DataSource.js
@@ -5772,6 +5888,33 @@ function sortKind(type) {
   if (type === "boolean") return "bool";
   return "text";
 }
+function sortValueKey(row, col) {
+  let v;
+  try {
+    v = col.sortValue(row);
+  } catch {
+    return null;
+  }
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v instanceof Date) {
+    const t = v.getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+  if (typeof v === "boolean") return v ? 1 : 0;
+  return String(v);
+}
+function unifyKeys(decorated, s) {
+  let numeric = 0, textual = 0;
+  for (const d of decorated) {
+    const k = d.keys[s];
+    if (k == null) continue;
+    if (typeof k === "number") numeric++;
+    else textual++;
+  }
+  if (!numeric || !textual) return;
+  for (const d of decorated) if (d.keys[s] != null) d.keys[s] = String(d.keys[s]);
+}
 function applySort(rows, sort, colByField) {
   if (!sort || !sort.length) return rows;
   const specs = sort.map(({ field: field2, dir }) => {
@@ -5780,6 +5923,7 @@ function applySort(rows, sort, colByField) {
   });
   const decorated = rows.map((row, i) => {
     const keys = specs.map((s) => {
+      if (typeof s.col.sortValue === "function") return sortValueKey(row, s.col);
       const v = cellValue(row, s.col);
       if (v == null || v === "") return null;
       if (s.kind === "num") return num3(v);
@@ -5788,6 +5932,9 @@ function applySort(rows, sort, colByField) {
       return String(v);
     });
     return { row, keys, i };
+  });
+  specs.forEach((s, i) => {
+    if (typeof s.col.sortValue === "function") unifyKeys(decorated, i);
   });
   decorated.sort((A, B) => {
     for (let s = 0; s < specs.length; s++) {
@@ -12404,6 +12551,7 @@ function checkRule(rule, value, row, col, i18n) {
 function resolveEditor(col) {
   if (col.editor === "multiselect") return multiselectEditor;
   if (col.editor === "select") return selectEditor;
+  if (col.editorParams && Array.isArray(col.editorParams.values)) return selectEditor;
   if (col.filter === "select" || col.filter === "multiselect") return selectEditor;
   switch (col.type) {
     case "number":
@@ -12711,13 +12859,13 @@ function dateEditor(withTime) {
 function selectEditor(cell, col, rowData, done) {
   loadOptions(col).then((opts) => {
     const menu = el("div.lattice-menu.lattice-edit-popup.lattice-edit-select");
-    const cur = str2(rowData[col.field]);
+    const cur = rowData[col.field];
     for (const o of opts) {
-      const item = el("div.lattice-menu-item" + (norm4(o.value) === norm4(cur) ? ".is-active" : ""), { text: o.label });
+      const item = el("div.lattice-menu-item" + (sameOptionValue(o.value, cur) ? ".is-active" : ""), { text: o.label });
       item.addEventListener("mousedown", (e) => {
         e.preventDefault();
         close();
-        done(o.value);
+        done(o.value === void 0 ? null : o.value);
       });
       menu.appendChild(item);
     }
@@ -12736,32 +12884,33 @@ function selectEditor(cell, col, rowData, done) {
 }
 function multiselectEditor(cell, col, rowData, done) {
   loadOptions(col).then((opts) => {
-    const cur = Array.isArray(rowData[col.field]) ? rowData[col.field].map(String) : rowData[col.field] != null && rowData[col.field] !== "" ? [String(rowData[col.field])] : [];
-    const sel = new Set(cur.map(norm4));
+    const raw = rowData[col.field];
+    const cur = Array.isArray(raw) ? raw : raw != null && raw !== "" ? [raw] : [];
+    const sel = new Set(opts.map((o, i) => i).filter((i) => cur.some((c) => sameOptionValue(opts[i].value, c))));
     const menu = el("div.lattice-menu.lattice-edit-popup.lattice-edit-select");
     const list = el("div.lattice-ms-list");
     const render = () => {
       clear(list);
-      for (const o of opts) {
-        const on = sel.has(norm4(o.value));
+      opts.forEach((o, i) => {
+        const on = sel.has(i);
         const item = el("div.lattice-menu-item" + (on ? ".is-selected" : ""), {}, [
           el("span.lattice-ms-check", { text: on ? "\u2713" : "" }),
           el("span", { text: o.label })
         ]);
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
-          if (sel.has(norm4(o.value))) sel.delete(norm4(o.value));
-          else sel.add(norm4(o.value));
+          if (sel.has(i)) sel.delete(i);
+          else sel.add(i);
           render();
         });
         list.appendChild(item);
-      }
+      });
     };
     render();
     const ok = el("button.lattice-dr-btn.is-primary", { type: "button", text: "\u2713" });
     ok.addEventListener("click", () => {
       close();
-      done(opts.filter((o) => sel.has(norm4(o.value))).map((o) => o.value));
+      done(opts.filter((o, i) => sel.has(i)).map((o) => o.value));
     });
     menu.append(list, el("div.lattice-edit-popup-foot", {}, [ok]));
     openPopup2(cell, menu, () => done(void 0));
@@ -12777,11 +12926,18 @@ function multiselectEditor(cell, col, rowData, done) {
     }
   });
 }
+function sameOptionValue(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a == null && b == null;
+  return norm4(a) === norm4(b);
+}
 function loadOptions(col) {
-  const norm5 = (o) => o != null && typeof o === "object" ? { value: String(o.value), label: String(o.label != null ? o.label : o.value) } : { value: String(o), label: String(o) };
-  const usable = (list) => list.map(norm5).filter((o) => o.value !== EMPTY_FILTER_VALUE);
-  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues));
-  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [])).catch(() => []);
+  const asOption = (o, raw) => o != null && typeof o === "object" ? { value: raw ? o.value : String(o.value), label: String(o.label != null ? o.label : o.value) } : { value: raw ? o : String(o), label: String(o) };
+  const usable = (list, raw) => list.map((o) => asOption(o, raw)).filter((o) => o.value !== EMPTY_FILTER_VALUE);
+  const ep = col.editorParams;
+  if (ep && Array.isArray(ep.values)) return Promise.resolve(usable(ep.values, true));
+  if (Array.isArray(col.filterValues)) return Promise.resolve(usable(col.filterValues, false));
+  if (col.filterUrl) return fetch(col.filterUrl).then((r) => r.json()).then((d) => usable(Array.isArray(d) ? d : d.data || [], false)).catch(() => []);
   return Promise.resolve([]);
 }
 function swapCell(cell, node) {
@@ -14233,8 +14389,19 @@ var Lattice = class {
     }
   }
   /* =================== filtry =================== */
+  /**
+   * Nastaví hodnotu sloupcového filtru (`null` / `''` / `[]` ho zruší).
+   *
+   * Hodnota se nejdřív normalizuje na tvar, kterému daný filtr rozumí — rozsah
+   * tedy přijme `{from,to}` i serializované `"od|do"`, multiselect skalár i pole,
+   * boolean `true` i `'true'`. Tvar, který se přeložit nedá, se NEnastaví a
+   * ohlásí v konzoli: dřív se uložil, `isEmpty` ho zahodila a v tabulce zůstaly
+   * všechny řádky, což vypadá jako „filtr nefiltruje". `@v1.23.0`
+   */
   setFilter(field2, value) {
     this._clearActivePreset();
+    const col = this.columns.find((c) => c.field === field2);
+    if (col) value = normalizeFilterValue(col, value);
     if (value == null || value === "" || Array.isArray(value) && value.length === 0) {
       delete this.filters[field2];
     } else {
@@ -14244,6 +14411,46 @@ var Lattice = class {
     this.saveState();
     this.refresh();
     this._emitFilter();
+  }
+  /**
+   * Hodnota filtru jednoho sloupce ve stejném tvaru, jaký přijímá `setFilter`
+   * (`undefined` = filtr není nastaven). Opačný směr k `setFilter`, aby si
+   * aplikace nemusela vést vlastní evidenci toho, co sama nastavila — bez něj
+   * nejde napsat přepínací tlačítko („druhý klik filtr zruší"). `@v1.23.0`
+   */
+  getFilter(field2) {
+    const value = this.filters[field2];
+    if (value === void 0) return void 0;
+    const col = this.columns.find((c) => c.field === field2);
+    const def = col && col.filter ? getFilter(col.filter) : null;
+    if (def && def.isEmpty(value)) return void 0;
+    return value;
+  }
+  /**
+   * Všechny APLIKOVANÉ sloupcové filtry jako mapa `{field: value}` — jen ty
+   * s účinnou hodnotou (`isEmpty` dle typu filtru). Univerzální a rozšířený
+   * filtr v mapě nejsou, ty mají `universal` / `advanced`. `@v1.23.0`
+   */
+  getFilters() {
+    return this._activeColumnFilters();
+  }
+  /**
+   * Aktuální datová sada podle rozsahu:
+   *   'filtered' (výchozí) — celá filtrovaná a seřazená sada. Client-side všechny
+   *       záznamy, server-side jen načtená stránka (víc grid nezná).
+   *   'page' — řádky právě zobrazené stránky.
+   *   'all'  — celý dataset bez ohledu na filtry (client-side; server-side = stránka).
+   * Vrací kopii pole; řádky jsou ŽIVÉ objekty (zápis do nich mění data gridu).
+   * `@v1.23.0`
+   */
+  getData(scope = "filtered") {
+    if (scope === "page") return (this.rows || []).slice();
+    if (scope === "all") {
+      const raw = this.dataSource.rawRows && this.dataSource.rawRows();
+      return Array.isArray(raw) ? raw.slice() : (this.rows || []).slice();
+    }
+    const all = this.dataSource.allRows && this.dataSource.allRows();
+    return Array.isArray(all) ? all.slice() : (this.rows || []).slice();
   }
   /** Rychlé hledání přes všechny viditelné sloupce (transientní). */
   setQuickSearch(term) {
@@ -14852,6 +15059,27 @@ var Lattice = class {
     this.rerenderColumns();
     this.gear?.refresh();
     this._emitColumnLayout("visibility", { field: field2, visible: col.visible });
+  }
+  /**
+   * Viditelnost VÍC sloupců najednou: `{ field: bool, … }`. Jedno překreslení na
+   * celou dávku — přepnutí presetu sloupců („Vše" ↔ „Rychlý pohled") tak nemusí
+   * grid zahodit a postavit znovu, takže zůstane řazení i stránka a nic nebliká.
+   * Sloupce, které v mapě nejsou, se nemění. `@v1.23.0`
+   */
+  setColumnsVisible(map = {}) {
+    const changed = [];
+    for (const [field2, visible] of Object.entries(map)) {
+      const col = this.columns.find((c) => c.field === field2);
+      if (!col || col.visible === !!visible) continue;
+      col.visible = !!visible;
+      changed.push({ field: field2, visible: col.visible });
+    }
+    if (!changed.length) return;
+    this._clearActivePreset();
+    this.saveState();
+    this.rerenderColumns();
+    this.gear?.refresh();
+    this._emitColumnLayout("visibility", { columns: changed });
   }
   setColumnWidth(field2, width) {
     const col = this.columns.find((c) => c.field === field2);

@@ -128,6 +128,14 @@ export function resolveColumn(def, saved) {
     // undefined = automaticky (jen když odvozená nabídka na prázdnou buňku narazí).
     filterEmptyOption: def.filterEmptyOption,
     formatter: def.formatter || null,    // vlastní formátor buňky
+    // Hodnota k ŘAZENÍ z celého řádku — když se sloupec nedá řadit podle toho, co
+    // je ve `field` (buňka drží pole, formátovaný text, datum v českém tvaru).
+    // Nemusí se kvůli tomu dopočítávat pomocný sloupec do dat. `@v1.23.0`
+    sortValue: typeof def.sortValue === 'function' ? def.sortValue : null,
+    // Pustit `formatter` i do souhrnného řádku? undefined = automaticky (pustí se,
+    // když sloupec vlastní formátovač má), true = vynutit i u vestavěných typů,
+    // false = nikdy (souhrn zůstane u formátu podle locale). `@v1.23.0`
+    summaryFormatted: def.summaryFormatted,
     value,                               // odvozená (computed) hodnota z celého řádku (funkce nebo null)
     formula,                             // vzorec počítaného sloupce (řetězec) — jen u sloupců z UI; jinak null
     validator: def.validator != null ? def.validator : null,     // deklarativní validace editace
