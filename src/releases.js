@@ -4,6 +4,14 @@
  */
 export const RELEASES = [
   {
+    "version": "1.23.1",
+    "date": "2026-09-22",
+    "text": "Oprava prázdného stavu: závoj „Žádné záznamy\" (i „Načítám…\" a chybová hláška) ležel přes celý grid a ovládací prvky pod ním vypadaly zakázaně — zrovna když je uživatel potřebuje, aby se z prázdného výsledku dostal ven. Bez změny API.",
+    "items": [
+      "Závoj prázdného stavu kryje jen datovou oblast. .lattice-overlay měl pevné inset: 40px 0 0 0 vůči kořeni gridu, takže vybledl i toolbar (rychlé hledání, ikony filtrů, nastavení), horní i spodní…"
+    ]
+  },
+  {
     "version": "1.23.0",
     "date": "2026-09-16",
     "text": "Sedm mezer, na které se narazilo při převodu 60 gridů EverFLOW z Tabulatoru na Lattice 1.22.0 (zadání „Co chybělo při převodu\"). Tři z nich nutily aplikaci duplikovat stav, který má znát grid; zbytek byly nedotažené detaily a nekonzistence v API. Vše…",
@@ -241,14 +249,6 @@ export const RELEASES = [
       "Uložení „naklikaných\" sloupcových filtrů (snímek). Nová ikona v toolbaru (trychtýř + disketa, viditelná jen když nějaký sloupcový filtr platí) uloží aktuální filtry z hlavičky pod názvem — lokálně…",
       "Sjednocení velikosti filtr ikon. Trychtýře „uložit filtry\" a „rozšířený filtr\" měly menší tvar; srovnány na stejný jako „zrušit filtry\".",
       "Demo + příručka + API dokumentace doplněny o obě novinky (dynamický filtr, snímky) a o uživatelské globální presety."
-    ]
-  },
-  {
-    "version": "1.10.0",
-    "date": "2026-08-12",
-    "text": "Uložené rozšířené filtry lze zobrazit jako tlačítka. Bez breaking changes.",
-    "items": [
-      "Rozšířený filtr – „jako tlačítko\". U uloženého filtru (lokálního i globálního) lze zaškrtnout, že se má vykreslit jako tlačítko v řadě nad ikonami v pravém záhlaví tabulky, místo položky v…"
     ]
   }
 ];

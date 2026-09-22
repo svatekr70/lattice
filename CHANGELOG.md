@@ -4,6 +4,22 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.23.1] – 2026-09-22
+
+Oprava prázdného stavu: závoj „Žádné záznamy" (i „Načítám…" a chybová hláška) ležel přes
+**celý grid** a ovládací prvky pod ním vypadaly zakázaně — zrovna když je uživatel potřebuje, aby
+se z prázdného výsledku dostal ven. Bez změny API.
+
+### Opraveno
+- **Závoj prázdného stavu kryje jen datovou oblast.** `.lattice-overlay` měl pevné
+  `inset: 40px 0 0 0` vůči kořeni gridu, takže vybledl i **toolbar** (rychlé hledání, ikony filtrů,
+  nastavení), **horní i spodní pager** a část hlavičky. Nově se umístí přesně na viditelnou část
+  viewportu **pod sticky hlavičkou** — toolbar, hlavička s filtry i pagery zůstanou v plné sytosti.
+  Poloha se přepočítává při každé změně rozměrů (zalomená dvouřádková hlavička, přibývající toolbar,
+  resize okna) a při vodorovném scrollu se závoj od těla neodlepí. Prázdné tělo dostane minimální
+  výšku (72 px), aby hláška měla kam. Obcházet to v aplikaci vlastním CSS (`z-index` hlavičky apod.)
+  už není potřeba.
+
 ## [1.23.0] – 2026-09-16
 
 Sedm mezer, na které se narazilo při **převodu 60 gridů EverFLOW z Tabulatoru** na Lattice 1.22.0

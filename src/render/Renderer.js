@@ -129,6 +129,7 @@ export class Renderer {
   destroy() {
     window.removeEventListener('resize', this._onResize);
     this._ro?.disconnect();
+    this._overlayRo?.disconnect();
     this.grid.range?.destroy();
     clear(this.grid.el);
     this.grid.el.classList.remove('lattice');
@@ -2355,9 +2356,32 @@ export class Renderer {
     o.className = 'lattice-overlay is-' + kind;
     o.textContent = text;
     o.style.display = 'flex';
+    this.nodes.root.classList.add('has-overlay');
+    this._placeOverlay();
+    // Závoj kryje jen datovou oblast (viewport pod hlavičkou) — toolbar, hlavička
+    // s filtry i pagery zůstanou v plné sytosti. Hlídej změny rozměrů (zalomená
+    // hlavička, přibývající toolbar, resize), ať se od těla neodlepí.
+    if (!this._overlayRo && typeof ResizeObserver !== 'undefined') {
+      const { root, viewport, header } = this.nodes;
+      this._overlayRo = new ResizeObserver(() => this._placeOverlay());
+      for (const n of [root, viewport, header]) this._overlayRo.observe(n);
+    }
   }
   hideOverlay() {
     this.nodes.overlay.style.display = 'none';
+    this.nodes.root.classList.remove('has-overlay');
+    this._overlayRo?.disconnect();
+    this._overlayRo = null;
+  }
+  /** Umístí závoj přesně na viditelnou část viewportu pod sticky hlavičkou. */
+  _placeOverlay() {
+    const { overlay, viewport, header } = this.nodes;
+    if (overlay.style.display === 'none') return;
+    const h = header.offsetHeight;
+    overlay.style.top = (viewport.offsetTop + h) + 'px';
+    overlay.style.left = viewport.offsetLeft + 'px';
+    overlay.style.width = viewport.clientWidth + 'px';
+    overlay.style.height = Math.max(0, viewport.clientHeight - h) + 'px';
   }
 
   /* -------- vzhled instance (density/font/layout) -------- */

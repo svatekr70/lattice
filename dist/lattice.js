@@ -2822,7 +2822,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.23.0";
+var VERSION = "1.23.1";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2832,6 +2832,14 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.23.1",
+    "date": "2026-09-22",
+    "text": 'Oprava pr\xE1zdn\xE9ho stavu: z\xE1voj \u201E\u017D\xE1dn\xE9 z\xE1znamy" (i \u201ENa\u010D\xEDt\xE1m\u2026" a chybov\xE1 hl\xE1\u0161ka) le\u017Eel p\u0159es cel\xFD grid a ovl\xE1dac\xED prvky pod n\xEDm vypadaly zak\xE1zan\u011B \u2014 zrovna kdy\u017E je u\u017Eivatel pot\u0159ebuje, aby se z pr\xE1zdn\xE9ho v\xFDsledku dostal ven. Bez zm\u011Bny API.',
+    "items": [
+      "Z\xE1voj pr\xE1zdn\xE9ho stavu kryje jen datovou oblast. .lattice-overlay m\u011Bl pevn\xE9 inset: 40px 0 0 0 v\u016F\u010Di ko\u0159eni gridu, tak\u017Ee vybledl i toolbar (rychl\xE9 hled\xE1n\xED, ikony filtr\u016F, nastaven\xED), horn\xED i spodn\xED\u2026"
+    ]
+  },
   {
     "version": "1.23.0",
     "date": "2026-09-16",
@@ -3070,14 +3078,6 @@ var RELEASES = [
       'Ulo\u017Een\xED \u201Enaklikan\xFDch" sloupcov\xFDch filtr\u016F (sn\xEDmek). Nov\xE1 ikona v toolbaru (trycht\xFD\u0159 + disketa, viditeln\xE1 jen kdy\u017E n\u011Bjak\xFD sloupcov\xFD filtr plat\xED) ulo\u017E\xED aktu\xE1ln\xED filtry z hlavi\u010Dky pod n\xE1zvem \u2014 lok\xE1ln\u011B\u2026',
       'Sjednocen\xED velikosti filtr ikon. Trycht\xFD\u0159e \u201Eulo\u017Eit filtry" a \u201Eroz\u0161\xED\u0159en\xFD filtr" m\u011Bly men\u0161\xED tvar; srovn\xE1ny na stejn\xFD jako \u201Ezru\u0161it filtry".',
       "Demo + p\u0159\xEDru\u010Dka + API dokumentace dopln\u011Bny o ob\u011B novinky (dynamick\xFD filtr, sn\xEDmky) a o u\u017Eivatelsk\xE9 glob\xE1ln\xED presety."
-    ]
-  },
-  {
-    "version": "1.10.0",
-    "date": "2026-08-12",
-    "text": "Ulo\u017Een\xE9 roz\u0161\xED\u0159en\xE9 filtry lze zobrazit jako tla\u010D\xEDtka. Bez breaking changes.",
-    "items": [
-      'Roz\u0161\xED\u0159en\xFD filtr \u2013 \u201Ejako tla\u010D\xEDtko". U ulo\u017Een\xE9ho filtru (lok\xE1ln\xEDho i glob\xE1ln\xEDho) lze za\u0161krtnout, \u017Ee se m\xE1 vykreslit jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami v prav\xE9m z\xE1hlav\xED tabulky, m\xEDsto polo\u017Eky v\u2026'
     ]
   }
 ];
@@ -9338,6 +9338,7 @@ var Renderer = class {
   destroy() {
     window.removeEventListener("resize", this._onResize);
     this._ro?.disconnect();
+    this._overlayRo?.disconnect();
     this.grid.range?.destroy();
     clear(this.grid.el);
     this.grid.el.classList.remove("lattice");
@@ -11512,9 +11513,29 @@ var Renderer = class {
     o.className = "lattice-overlay is-" + kind;
     o.textContent = text;
     o.style.display = "flex";
+    this.nodes.root.classList.add("has-overlay");
+    this._placeOverlay();
+    if (!this._overlayRo && typeof ResizeObserver !== "undefined") {
+      const { root, viewport, header } = this.nodes;
+      this._overlayRo = new ResizeObserver(() => this._placeOverlay());
+      for (const n of [root, viewport, header]) this._overlayRo.observe(n);
+    }
   }
   hideOverlay() {
     this.nodes.overlay.style.display = "none";
+    this.nodes.root.classList.remove("has-overlay");
+    this._overlayRo?.disconnect();
+    this._overlayRo = null;
+  }
+  /** Umístí závoj přesně na viditelnou část viewportu pod sticky hlavičkou. */
+  _placeOverlay() {
+    const { overlay, viewport, header } = this.nodes;
+    if (overlay.style.display === "none") return;
+    const h = header.offsetHeight;
+    overlay.style.top = viewport.offsetTop + h + "px";
+    overlay.style.left = viewport.offsetLeft + "px";
+    overlay.style.width = viewport.clientWidth + "px";
+    overlay.style.height = Math.max(0, viewport.clientHeight - h) + "px";
   }
   /* -------- vzhled instance (density/font/layout) -------- */
   applyInstanceStyles() {

@@ -1562,8 +1562,11 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
 
 /* ---------- overlay (loading / empty / error) ---------- */
 .lattice-overlay {
+  /* top/left/width/height dopočítá Renderer._placeOverlay — závoj kryje jen
+     datovou oblast pod hlavičkou, ne toolbar, filtry ani pagery */
   position: absolute;
-  inset: 40px 0 0 0;
+  top: 0; left: 0;
+  z-index: 2;
   display: none;
   align-items: center;
   justify-content: center;
@@ -1573,6 +1576,8 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   font-size: 0.95em;
 }
 .lattice-overlay.is-error { color: var(--lattice-danger); }
+/* prázdné tělo potřebuje místo, aby hláška (Žádné záznamy / Načítám…) měla kam */
+.lattice.has-overlay .lattice-body { min-height: 72px; }
 
 /* ---------- panely (gear / nastavení) ---------- */
 .lattice-panel {
