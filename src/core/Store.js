@@ -23,6 +23,8 @@ export function emptyState() {
     presets: [],   // [{ id, name, state:{columns,sort,filters} }] lokální presety (per-uživatel)
     advanced: null, // aktivní rozšířený filtr (strom pravidel) nebo null
     advancedFilters: [], // [{ id, name, tree }] uložené rozšířené filtry
+    filterOrder: [], // id uložených filtrů v uživatelském pořadí (lokální i globální)
+    presetOrder: [], // id pohledů (presetů) v uživatelském pořadí (lokální i globální)
     groups: [],    // hodnoty sbalených skupin řádků (row grouping)
     colGroups: [], // názvy sbalených skupin sloupců (column grouping)
     tree: [],      // klíče rozbalených uzlů (tree data)
@@ -66,6 +68,8 @@ export class Store {
         presets: Array.isArray(parsed.presets) ? parsed.presets : base.presets,
         advanced: parsed.advanced || base.advanced,
         advancedFilters: Array.isArray(parsed.advancedFilters) ? parsed.advancedFilters : base.advancedFilters,
+        filterOrder: Array.isArray(parsed.filterOrder) ? parsed.filterOrder : base.filterOrder,
+        presetOrder: Array.isArray(parsed.presetOrder) ? parsed.presetOrder : base.presetOrder,
         groups: Array.isArray(parsed.groups) ? parsed.groups : base.groups,
         colGroups: Array.isArray(parsed.colGroups) ? parsed.colGroups : base.colGroups,
         tree: Array.isArray(parsed.tree) ? parsed.tree : base.tree,

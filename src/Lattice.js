@@ -24,6 +24,7 @@ import { Gear } from './features/gear.js';
 import { InstanceSettings } from './features/instanceSettings.js';
 import { Pagination } from './features/pagination.js';
 import { PresetStore, normalizeDisplay } from './features/presets.js';
+import { applyOrder, moveId } from './util/order.js';
 import { normalizeGroup } from './util/groups.js';
 import { normalizeTips, pickTip } from './features/tips.js';
 import { measureColumnWidth } from './features/resize.js';
@@ -1091,10 +1092,27 @@ export class Lattice {
     this.renderer.renderToolbar();
   }
 
-  /** Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'). */
+  /**
+   * Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'),
+   * v uživatelském pořadí (viz `moveSavedFilter`).
+   */
   listAdvanced() {
     const loc = (this.state.advancedFilters || []).map((f) => ({ ...f, scope: 'local' }));
-    return [...loc, ...this.globalAdvanced];
+    return applyOrder([...loc, ...this.globalAdvanced], this.state.filterOrder);
+  }
+
+  /**
+   * Přesune uložený filtr před / za jiný (`where` = 'before' | 'after') — tažením
+   * v panelu uložených filtrů. Pořadí je per-uživatel (lokální blob) a platí pro panel,
+   * řadu tlačítek i rozbalovací výběr v toolbaru. `@v1.24.0`
+   */
+  moveSavedFilter(fromId, toId, where = 'before') {
+    const ids = moveId(this.listAdvanced(), fromId, toId, where);
+    if (!ids) return false;
+    this.state.filterOrder = ids;
+    this.store.save(this.state);
+    this.renderer.renderToolbar();
+    return true;
   }
 
   /** Je uložená položka snímkem sloupcových filtrů (vs. rozšířený strom)? */
@@ -2528,6 +2546,14 @@ export class Lattice {
   /** Presety označené k zobrazení v rozbalovacím výběru v toolbaru. `@v1.14.0` */
   selectPresets() {
     return this.presets ? this.presets.selects() : [];
+  }
+
+  /**
+   * Přesune pohled (preset) před / za jiný (`where` = 'before' | 'after'). Pořadí je
+   * per-uživatel a platí pro panel „Sloupce", řadu tlačítek i rozbalovací výběr. `@v1.24.0`
+   */
+  movePreset(fromId, toId, where = 'before') {
+    return this.presets ? this.presets.move(fromId, toId, where) : false;
   }
 
   /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */

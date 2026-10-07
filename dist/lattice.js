@@ -18,6 +18,10 @@ function emptyState() {
     // aktivní rozšířený filtr (strom pravidel) nebo null
     advancedFilters: [],
     // [{ id, name, tree }] uložené rozšířené filtry
+    filterOrder: [],
+    // id uložených filtrů v uživatelském pořadí (lokální i globální)
+    presetOrder: [],
+    // id pohledů (presetů) v uživatelském pořadí (lokální i globální)
     groups: [],
     // hodnoty sbalených skupin řádků (row grouping)
     colGroups: [],
@@ -63,6 +67,8 @@ var Store = class {
         presets: Array.isArray(parsed.presets) ? parsed.presets : base.presets,
         advanced: parsed.advanced || base.advanced,
         advancedFilters: Array.isArray(parsed.advancedFilters) ? parsed.advancedFilters : base.advancedFilters,
+        filterOrder: Array.isArray(parsed.filterOrder) ? parsed.filterOrder : base.filterOrder,
+        presetOrder: Array.isArray(parsed.presetOrder) ? parsed.presetOrder : base.presetOrder,
         groups: Array.isArray(parsed.groups) ? parsed.groups : base.groups,
         colGroups: Array.isArray(parsed.colGroups) ? parsed.colGroups : base.colGroups,
         tree: Array.isArray(parsed.tree) ? parsed.tree : base.tree,
@@ -2822,7 +2828,7 @@ function normHex(v) {
 }
 
 // src/version.js
-var VERSION = "1.23.1";
+var VERSION = "1.24.0";
 var HOMEPAGE = "https://lattice.rudolfsvatek.cz/";
 var HELP_URL = HOMEPAGE + "prirucka/";
 var DEMO_URL = HOMEPAGE + "demo/";
@@ -2832,6 +2838,17 @@ var LICENSE = "MIT";
 
 // src/releases.js
 var RELEASES = [
+  {
+    "version": "1.24.0",
+    "date": "2026-10-07",
+    "text": "Ulo\u017Een\xE9 filtry i pohledy jde p\u0159erovnat ta\u017Een\xEDm my\u0161\xED. V\u0161e aditivn\xED, bez breaking changes.",
+    "items": [
+      "Po\u0159ad\xED ulo\u017Een\xFDch filtr\u016F a pohled\u016F ta\u017Een\xEDm. Ka\u017Ed\xFD \u0159\xE1dek v panelu *Ulo\u017Een\xE9 filtry* a v seznamu pohled\u016F v dialogu *Sloupce* m\xE1 vlevo \xFAchyt \u22EE\u22EE \u2014 za n\u011Bj se \u0159\xE1dek p\u0159et\xE1hne jinam (modr\xE1 linka ukazuje, kam\u2026",
+      "Po\u0159ad\xED je per-u\u017Eivatel \u2014 dr\u017E\xED se v localStorage blobu (filterOrder, presetOrder = pole id), tak\u017Ee si ka\u017Ed\xFD m\u016F\u017Ee srovnat po sv\xE9m i glob\xE1ln\xED polo\u017Eky a aplikace nemus\xED nic m\u011Bnit. Polo\u017Eka, kterou seznam\u2026",
+      "API: grid.moveSavedFilter(fromId, toId, where) a grid.movePreset(fromId, toId, where) (resp. grid.presets.move(...)), where = 'before' | 'after'. listAdvanced() a presets.all() (a s nimi\u2026",
+      'Dialog \u201ESloupce" se zav\xEDral po p\u0159epnut\xED tla\u010D\xEDtko/v\xFDb\u011Br u pohledu. Zm\u011Bna p\u0159ekreslila toolbar, dialog ztratil kotv\xEDc\xED tla\u010D\xEDtko a refresh() ho zav\u0159el. Nov\u011B se otev\u0159en\xFD dialog p\u0159ekotv\xED na nov\xE9 tla\u010D\xEDtko\u2026'
+    ]
+  },
   {
     "version": "1.23.1",
     "date": "2026-09-22",
@@ -3067,17 +3084,6 @@ var RELEASES = [
       'Na\u0161ept\xE1va\u010D u dynamick\xE9ho filtru. U pole je tla\u010D\xEDtko \u201E?" s hotov\xFDmi obdob\xEDmi (Dnes, Minul\xFD t\xFDden, Tento m\u011Bs\xEDc\u2026) \u2014 klik v\xFDraz vypln\xED a rovnou aplikuje; plus stru\u010Dn\xE1 reference z\xE1pisu.',
       `Dynamick\xE1 obdob\xED v date-range pickeru. P\u0159ep\xEDna\u010D \u201Edynamick\xE9 obdob\xED" v dialogu: zapnut\xFD \u2192 klik na preset ulo\u017E\xED token ({from:'sow-1w', to:'eow-1w'}) m\xEDsto pevn\xFDch dat, tak\u017Ee ulo\u017Een\xFD filtr/preset/sn\xEDmek\u2026`,
       "Demo, p\u0159\xEDru\u010Dka a API dokumentace dopln\u011Bny o hranice obdob\xED, na\u0161ept\xE1va\u010D a dynamick\xE9 date-range presety."
-    ]
-  },
-  {
-    "version": "1.11.0",
-    "date": "2026-08-12",
-    "text": 'Dynamick\xFD datumov\xFD filtr a ukl\xE1d\xE1n\xED \u201Enaklikan\xFDch" sloupcov\xFDch filtr\u016F. Bez breaking changes.',
-    "items": [
-      'Filtr sloupce \u2013 \u201EDynamick\xE9" (u datumov\xFDch sloupc\u016F). T\u0159et\xED typ vedle \u201EDatum (rozsah)" a \u201EDatum (Od / Do)": do jednoho pole se nap\xED\u0161e vlastn\xED v\xFDraz s oper\xE1tory > < >= <= =, spojkami AND/OR (AND v\xE1\u017Ee\u2026',
-      'Ulo\u017Een\xED \u201Enaklikan\xFDch" sloupcov\xFDch filtr\u016F (sn\xEDmek). Nov\xE1 ikona v toolbaru (trycht\xFD\u0159 + disketa, viditeln\xE1 jen kdy\u017E n\u011Bjak\xFD sloupcov\xFD filtr plat\xED) ulo\u017E\xED aktu\xE1ln\xED filtry z hlavi\u010Dky pod n\xE1zvem \u2014 lok\xE1ln\u011B\u2026',
-      'Sjednocen\xED velikosti filtr ikon. Trycht\xFD\u0159e \u201Eulo\u017Eit filtry" a \u201Eroz\u0161\xED\u0159en\xFD filtr" m\u011Bly men\u0161\xED tvar; srovn\xE1ny na stejn\xFD jako \u201Ezru\u0161it filtry".',
-      "Demo + p\u0159\xEDru\u010Dka + API dokumentace dopln\u011Bny o ob\u011B novinky (dynamick\xFD filtr, sn\xEDmky) a o u\u017Eivatelsk\xE9 glob\xE1ln\xED presety."
     ]
   }
 ];
@@ -3680,6 +3686,65 @@ function groupField(existing, { value = "", placeholder = "", title = "" } = {})
   return { el: el("span.lattice-group-field", {}, [input, dl]), input };
 }
 
+// src/util/order.js
+function applyOrder(items, ids) {
+  if (!Array.isArray(ids) || !ids.length) return items;
+  const pos = new Map(ids.map((id, i) => [id, i]));
+  const rank = (it) => pos.has(it.id) ? pos.get(it.id) : Infinity;
+  return items.map((it, i) => [it, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]);
+}
+function moveId(items, fromId, toId, where = "before") {
+  const ids = items.map((it) => it.id);
+  if (fromId === toId || !ids.includes(fromId) || !ids.includes(toId)) return null;
+  const out = ids.filter((id) => id !== fromId);
+  const at = out.indexOf(toId) + (where === "after" ? 1 : 0);
+  out.splice(at, 0, fromId);
+  return out;
+}
+function wireReorder(row, grip, item, ctx, onMove) {
+  const group = normalizeGroup(item.group);
+  grip.addEventListener("mousedown", () => {
+    row.draggable = true;
+  });
+  grip.addEventListener("mouseup", () => {
+    row.draggable = false;
+  });
+  row.addEventListener("dragstart", (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    try {
+      e.dataTransfer.setData("text/plain", item.id);
+    } catch {
+    }
+    ctx.drag = { id: item.id, group };
+    row.classList.add("is-dragging");
+  });
+  row.addEventListener("dragend", () => {
+    row.draggable = false;
+    row.classList.remove("is-dragging");
+    ctx.drag = null;
+  });
+  const half = (e) => {
+    const r = row.getBoundingClientRect();
+    return e.clientY < r.top + r.height / 2 ? "before" : "after";
+  };
+  row.addEventListener("dragover", (e) => {
+    const d = ctx.drag;
+    if (!d || d.id === item.id || d.group !== group) return;
+    e.preventDefault();
+    const where = half(e);
+    row.classList.toggle("drop-before", where === "before");
+    row.classList.toggle("drop-after", where === "after");
+  });
+  row.addEventListener("dragleave", () => row.classList.remove("drop-before", "drop-after"));
+  row.addEventListener("drop", (e) => {
+    const d = ctx.drag;
+    row.classList.remove("drop-before", "drop-after");
+    if (!d || d.id === item.id || d.group !== group) return;
+    e.preventDefault();
+    onMove(d.id, item.id, half(e));
+  });
+}
+
 // src/features/gear.js
 var PRESET_PARTS = ["columns", "filters", "instance"];
 var cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
@@ -3708,7 +3773,7 @@ var Gear = class {
     positionUnder(panel, anchor);
     this.panel = panel;
     this.off = onOutside(panel, (e) => {
-      if (anchor.contains(e.target)) return;
+      if (this.anchor?.contains(e.target)) return;
       if (e.target.closest && e.target.closest(".lattice-menu")) return;
       this.close();
     });
@@ -3774,6 +3839,7 @@ var Gear = class {
       wrap.appendChild(el("div.lattice-preset-empty", { text: t("presets.none") }));
     } else {
       const list = el("div.lattice-preset-list");
+      this._presetDrag = {};
       for (const bucket of groupItems(presets)) {
         if (bucket.group) list.appendChild(el("div.lattice-saved-group", { text: bucket.group }));
         for (const p of bucket.items) list.appendChild(this.buildPresetRow(p));
@@ -3874,6 +3940,11 @@ var Gear = class {
       class: active ? "is-active" : "",
       // Tooltip říká, co preset obnoví — u částečného presetu je to podstatné.
       title: preset.name + " \u2014 " + partsSummary(contents, t)
+    });
+    const grip = el("span.lattice-grip", { text: "\u22EE\u22EE", title: t("presets.reorder") });
+    row.appendChild(grip);
+    wireReorder(row, grip, preset, this._presetDrag, (from, to, where) => {
+      if (grid.movePreset(from, to, where)) this.refresh();
     });
     const name = el("span.lattice-preset-name", { text: preset.name });
     name.addEventListener("click", () => grid.applyPreset(preset));
@@ -6241,6 +6312,7 @@ var cs_default = {
     asButtonHint: "Zobrazit tento pohled jako tla\u010D\xEDtko v \u0159ad\u011B nad ikonami (klik = pou\u017E\xEDt).",
     asSelect: "v\xFDb\u011Br",
     asSelectHint: "Nab\xEDdnout tento pohled v rozbalovac\xEDm v\xFDb\u011Bru pohled\u016F v z\xE1hlav\xED tabulky.",
+    reorder: "P\u0159eta\u017Een\xEDm zm\u011Bn\xEDte po\u0159ad\xED pohledu (plat\xED i pro tla\u010D\xEDtka a v\xFDb\u011Br v z\xE1hlav\xED)",
     groupPlaceholder: "Skupina\u2026",
     groupHint: "Voliteln\xE1 skupina ve v\xFDb\u011Bru (\u201EProdeje\u201C, \u201EFaktury\u201C\u2026) \u2014 pohledy se stejnou skupinou se ve v\xFDb\u011Bru sdru\u017E\xED pod spole\u010Dn\xFD nadpis."
   },
@@ -6548,6 +6620,7 @@ var cs_default = {
     asButtonHint: "Zobrazit tento ulo\u017Een\xFD filtr jako tla\u010D\xEDtko vlevo od filtra\u010Dn\xEDch ikon (klik = zapnout/vypnout).",
     asSelect: "v\xFDb\u011Br",
     asSelectHint: "Nab\xEDdnout tento filtr v rozbalovac\xEDm v\xFDb\u011Bru ulo\u017Een\xFDch filtr\u016F v z\xE1hlav\xED tabulky.",
+    reorder: "P\u0159eta\u017Een\xEDm zm\u011Bn\xEDte po\u0159ad\xED filtru (plat\xED i pro tla\u010D\xEDtka a v\xFDb\u011Br v z\xE1hlav\xED)",
     groupPlaceholder: "Skupina\u2026",
     groupHint: "Voliteln\xE1 skupina ve v\xFDb\u011Bru (\u201EProdeje\u201C, \u201EFaktury\u201C\u2026) \u2014 filtry se stejnou skupinou se ve v\xFDb\u011Bru sdru\u017E\xED pod spole\u010Dn\xFD nadpis.",
     save: "Ulo\u017Eit",
@@ -6865,6 +6938,7 @@ var en_default = {
     asButtonHint: "Show this view as a button in the row above the icons (click to apply).",
     asSelect: "select",
     asSelectHint: "Offer this view in the views dropdown in the table header.",
+    reorder: "Drag to reorder this view (also applies to the header buttons and dropdown)",
     groupPlaceholder: "Group\u2026",
     groupHint: 'Optional group in the dropdown ("Sales", "Invoices"\u2026) \u2014 views sharing a group are listed under one heading.'
   },
@@ -7172,6 +7246,7 @@ var en_default = {
     asButtonHint: "Show this saved filter as a button left of the filter icons (click to toggle on/off).",
     asSelect: "select",
     asSelectHint: "Offer this filter in the saved-filters dropdown in the table header.",
+    reorder: "Drag to reorder this filter (also applies to the header buttons and dropdown)",
     groupPlaceholder: "Group\u2026",
     groupHint: 'Optional group in the dropdown ("Sales", "Invoices"\u2026) \u2014 filters sharing a group are listed under one heading.',
     save: "Save",
@@ -11463,6 +11538,7 @@ var Renderer = class {
       const gearBtn = el("button.lattice-tool-btn.lattice-gear-btn", { type: "button", title: this.grid.i18n.t("columns.manage"), html: this.icon("columns", GEAR_SVG) });
       gearBtn.addEventListener("click", () => this.grid.gear.toggle(gearBtn));
       toolbar.appendChild(gearBtn);
+      if (this.grid.gear && this.grid.gear.panel) this.grid.gear.anchor = gearBtn;
     }
     if (f.instanceSettings !== false) {
       const setBtn = el("button.lattice-tool-btn", { type: "button", title: this.grid.i18n.t("instance.title"), html: this.icon("settings", COG_SVG) });
@@ -11802,10 +11878,23 @@ var PresetStore = class {
     this.globalsLoaded = true;
     return this.globals;
   }
-  /** Sjednocený seznam pro UI (lokální + globální), každý se `scope`. */
+  /** Sjednocený seznam pro UI (lokální + globální), každý se `scope`, v uživatelském pořadí. */
   all() {
     const loc = this.local().map((p) => ({ ...p, scope: "local" }));
-    return [...loc, ...this.globals];
+    return applyOrder([...loc, ...this.globals], this.grid.state.presetOrder);
+  }
+  /**
+   * Přesune pohled před / za jiný (`where` = 'before' | 'after') — tažením v panelu
+   * „Sloupce". Pořadí je per-uživatel (lokální blob), platí pro seznam, řadu tlačítek
+   * i rozbalovací výběr. `@v1.24.0`
+   */
+  move(fromId, toId, where = "before") {
+    const ids = moveId(this.all(), fromId, toId, where);
+    if (!ids) return false;
+    this.grid.state.presetOrder = ids;
+    this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
+    return true;
   }
   /** Presety označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */
   buttons() {
@@ -12309,6 +12398,7 @@ var SaveFiltersPanel = class {
     }
     const activeId = grid.activeSavedId();
     this._rows = [];
+    this._drag = {};
     for (const bucket of groupItems(saved)) {
       if (bucket.group) list.appendChild(el("div.lattice-saved-group", { text: bucket.group }));
       for (const item of bucket.items) list.appendChild(this.buildRow(item, activeId));
@@ -12320,6 +12410,11 @@ var SaveFiltersPanel = class {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const row = el("div.lattice-savefilters-row");
+    const grip = el("span.lattice-grip", { text: "\u22EE\u22EE", title: t("saveFilters.reorder") });
+    row.appendChild(grip);
+    wireReorder(row, grip, item, this._drag, (from, to, where) => {
+      if (grid.moveSavedFilter(from, to, where)) this.renderList();
+    });
     const apply = el("button.lattice-savefilters-name" + (item.id === activeId ? ".is-active" : ""), {
       type: "button",
       text: (item.scope === "global" ? "\u{1F310} " : "") + item.name,
@@ -12399,6 +12494,7 @@ var SaveFiltersPanel = class {
     });
     const wrap = el("span.lattice-savefilters-edit", {}, [input, grp.el]);
     row.replaceChild(wrap, nameBtn);
+    row.draggable = false;
     input.focus();
     input.select();
     let done = false;
@@ -14813,10 +14909,26 @@ var Lattice = class {
     this.store.save(this.state);
     this.renderer.renderToolbar();
   }
-  /** Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'). */
+  /**
+   * Uložené rozšířené filtry pro UI: lokální (scope:'local') + globální (scope:'global'),
+   * v uživatelském pořadí (viz `moveSavedFilter`).
+   */
   listAdvanced() {
     const loc = (this.state.advancedFilters || []).map((f) => ({ ...f, scope: "local" }));
-    return [...loc, ...this.globalAdvanced];
+    return applyOrder([...loc, ...this.globalAdvanced], this.state.filterOrder);
+  }
+  /**
+   * Přesune uložený filtr před / za jiný (`where` = 'before' | 'after') — tažením
+   * v panelu uložených filtrů. Pořadí je per-uživatel (lokální blob) a platí pro panel,
+   * řadu tlačítek i rozbalovací výběr v toolbaru. `@v1.24.0`
+   */
+  moveSavedFilter(fromId, toId, where = "before") {
+    const ids = moveId(this.listAdvanced(), fromId, toId, where);
+    if (!ids) return false;
+    this.state.filterOrder = ids;
+    this.store.save(this.state);
+    this.renderer.renderToolbar();
+    return true;
   }
   /** Je uložená položka snímkem sloupcových filtrů (vs. rozšířený strom)? */
   _isSnapshot(item) {
@@ -16195,6 +16307,13 @@ var Lattice = class {
   /** Presety označené k zobrazení v rozbalovacím výběru v toolbaru. `@v1.14.0` */
   selectPresets() {
     return this.presets ? this.presets.selects() : [];
+  }
+  /**
+   * Přesune pohled (preset) před / za jiný (`where` = 'before' | 'after'). Pořadí je
+   * per-uživatel a platí pro panel „Sloupce", řadu tlačítek i rozbalovací výběr. `@v1.24.0`
+   */
+  movePreset(fromId, toId, where = "before") {
+    return this.presets ? this.presets.move(fromId, toId, where) : false;
   }
   /** Aplikuje preset — sestaví sloupce/řazení/filtry/nastavení ze snapshotu a překreslí. */
   applyPreset(preset) {

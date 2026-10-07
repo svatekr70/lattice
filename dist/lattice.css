@@ -1949,6 +1949,12 @@ body.lattice-resizing { cursor: col-resize; user-select: none; }
   padding: 4px 6px; border-radius: var(--lattice-control-radius); cursor: default;
 }
 .lattice-preset-row:hover { background: var(--lattice-header-bg, #f1f3f6); }
+.lattice-preset-row.is-dragging,
+.lattice-savefilters-row.is-dragging { opacity: 0.5; }
+.lattice-preset-row.drop-before,
+.lattice-savefilters-row.drop-before { box-shadow: 0 -2px 0 var(--lattice-accent, #2563eb); }
+.lattice-preset-row.drop-after,
+.lattice-savefilters-row.drop-after { box-shadow: 0 2px 0 var(--lattice-accent, #2563eb); }
 .lattice-preset-row.is-active { background: var(--lattice-accent-soft, #dbeafe); }
 .lattice-preset-name { flex: 1 1 auto; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lattice-preset-row.is-active .lattice-preset-name { font-weight: 600; color: var(--lattice-accent, #2563eb); }

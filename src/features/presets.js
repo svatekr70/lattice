@@ -17,6 +17,7 @@
  */
 
 import { normalizeGroup } from '../util/groups.js';
+import { applyOrder, moveId } from '../util/order.js';
 
 /**
  * Kam se má uložená položka (preset / filtr) v toolbaru propsat. Přijímá:
@@ -74,10 +75,24 @@ export class PresetStore {
     return this.globals;
   }
 
-  /** Sjednocený seznam pro UI (lokální + globální), každý se `scope`. */
+  /** Sjednocený seznam pro UI (lokální + globální), každý se `scope`, v uživatelském pořadí. */
   all() {
     const loc = this.local().map((p) => ({ ...p, scope: 'local' }));
-    return [...loc, ...this.globals];
+    return applyOrder([...loc, ...this.globals], this.grid.state.presetOrder);
+  }
+
+  /**
+   * Přesune pohled před / za jiný (`where` = 'before' | 'after') — tažením v panelu
+   * „Sloupce". Pořadí je per-uživatel (lokální blob), platí pro seznam, řadu tlačítek
+   * i rozbalovací výběr. `@v1.24.0`
+   */
+  move(fromId, toId, where = 'before') {
+    const ids = moveId(this.all(), fromId, toId, where);
+    if (!ids) return false;
+    this.grid.state.presetOrder = ids;
+    this.grid.saveState();
+    this.grid.renderer?.renderToolbar();
+    return true;
   }
 
   /** Presety označené k zobrazení jako tlačítko (řada nad ikonami v toolbaru). */

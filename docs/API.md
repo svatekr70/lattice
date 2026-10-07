@@ -20,25 +20,25 @@ kompletní referenční přehled — options, sloupce, typy, filtry, metody, cal
 
 **CDN (jeden request, bez buildu):**
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.23.1/dist/lattice.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.24.0/dist/lattice.css">
 <div id="grid"></div>
 <script type="module">
-  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.23.1/dist/lattice.min.js';
+  import { Lattice } from 'https://cdn.jsdelivr.net/gh/svatekr70/lattice@v1.24.0/dist/lattice.min.js';
   new Lattice('#grid', { id: 'moje', columns, data });
 </script>
 ```
-Pro produkci připni verzi (`@v1.23.1`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
+Pro produkci připni verzi (`@v1.24.0`) nebo commit; `@main` je „vždy nejnovější" (jsDelivr
 cachuje větev ~12 h).
 
 **npm — přímo z GitHubu** (na npmjs.com knihovna publikovaná není):
 ```bash
-npm i github:svatekr70/lattice#v1.23.1
+npm i github:svatekr70/lattice#v1.24.0
 ```
 ```js
 import { Lattice } from 'lattice';
 import 'lattice/css';
 ```
-Bez `#v1.23.1` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
+Bez `#v1.24.0` se nainstaluje aktuální `main`. `dist/` je součástí repa, takže se nic nebuilduje.
 
 > ⚠️ **`npm i lattice` stáhne cizí balíček** stejného jména z npm registru, ne tuhle knihovnu.
 > Instaluj vždy přes `github:svatekr70/lattice`.
@@ -539,7 +539,8 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `setQuickSearch(term)` | Rychlé hledání. |
 | `applyAdvanced(tree)` / `clearAdvanced()` | Aplikace / zrušení rozšířeného filtru (strom pravidel). |
 | `saveAdvanced(name, tree, scope?, display?, group?)` | Uloží pojmenovaný filtr — `scope: 'local'` (výchozí, localStorage) nebo `'global'` (sdílené → callback). `display` (`@v1.14.0`) = kde se filtr v toolbaru ukáže: `{ button, select }` — pilulka v řadě ikon (vlevo od filtračních ikon) a/nebo položka v rozbalovacím výběru uložených filtrů. Legacy boolean (`asButton`, `@v1.10.0`) dál funguje: `true` = jen tlačítko, `false` = jen výběr. `group` (`@v1.20.1`) = štítek skupiny ve výběru (viz *Skupiny ve výběru*). |
-| `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`) / smazání (dle scope) / lze uložit globálně? |
+| `listAdvanced()` / `deleteAdvanced(id)` / `canSaveGlobalAdvanced()` | Seznam uložených filtrů (se `scope`, v uživatelském pořadí — viz `moveSavedFilter`) / smazání (dle scope) / lze uložit globálně? |
+| `moveSavedFilter(fromId, toId, where?)` | Přesune uložený filtr před / za jiný (`where` = `'before'` (výchozí) \| `'after'`) — totéž, co tažení za úchyt ⋮⋮ v panelu uložených filtrů. Pořadí je **per-uživatel** (localStorage blob, klíč `filterOrder` = pole `id`), platí i pro globální položky a propíše se do řady tlačítek i do výběru. Neznámé id → `false`. `@v1.24.0` |
 | `activeSavedId()` / `buttonAdvanced()` / `toggleSavedAdvanced(id)` | Id uloženého filtru odpovídajícího aktuálnímu stavu / uložené filtry označené jako tlačítko / přepínač uloženého filtru (aplikuje, nebo zruší když je aktivní). `@v1.10.0` |
 | `selectAdvanced()` | Uložené filtry patřící do rozbalovacího výběru v toolbaru. Položka bez `asSelect` (uložená před `v1.14.0`) se řídí postaru — co není tlačítko, je ve výběru. `@v1.14.0` |
 | `setAdvancedDisplay(id, key, on)` | Přepne u uloženého filtru zobrazení bez opětovného ukládání — `key` je `'asButton'` \| `'asSelect'`. U globálního filtru pošle změnu přes `onSaveGlobalAdvancedFilter`. `@v1.14.0` |
@@ -549,6 +550,7 @@ je `.lattice-row.is-highlighted` (stabilní; podbarvení řeší proměnné, tř
 | `saveFilterSnapshot(name, scope?, display?, group?)` | **Snímek sloupcových filtrů** — uloží aktuální „naklikané" filtry z hlavičky pod názvem (do stejného seznamu jako `saveAdvanced`, `scope`/`display`/`group` stejně). Vrací `null`, když žádný sloupcový filtr není aktivní. `@v1.11.0` (skupina `@v1.20.0`) |
 | `applyFiltersSnapshot(snap)` / `clearColumnFilters()` / `hasColumnFilters()` | Obnoví snímek zpět do políček hlavičky (a přefiltruje) / zruší jen sloupcové filtry / je aktivní aspoň jeden sloupcový filtr? `@v1.11.0` |
 | `applyPreset(preset)` / `buttonPresets()` / `selectPresets()` | Aplikuje preset / presety označené jako tlačítko / presety nabízené v rozbalovacím výběru v toolbaru. `@v1.14.0` |
+| `movePreset(fromId, toId, where?)` | Přesune pohled (preset) před / za jiný — jako `moveSavedFilter`, pořadí v blobu pod `presetOrder`. Totéž `grid.presets.move(...)`. `@v1.24.0` |
 | `togglePreset(preset)` | Přepínač presetu (klik na tlačítko v rychlé řadě): neaktivní aplikuje, u aktivního zavolá `resetView()`. `@v1.14.0` |
 | `nextTip()` / `hideTips()` / `tipsVisible()` | Vylosovat další tip / skrýt pruh s tipy (= `instance.showTips: false`) / ukazuje se pruh? `@v1.20.0` |
 | `resetView()` | **Výchozí zobrazení** — sloupce a nastavení tabulky jako po startu bez presetu (výchozí ← `options.instance`). Filtry (sloupcové, univerzální, rozšířený), řazení i rychlé hledání zůstávají v platnosti. `@v1.14.0` |
@@ -886,8 +888,9 @@ Bordel
   skupiny, ale zapsat jde cokoli. U uloženého filtru se dá změnit i dodatečně (tužka /
   dvojklik na název → druhé políčko vedle názvu).
 - **Pořadí:** nezařazené položky jsou vždy nahoře, skupiny následují v pořadí prvního výskytu
-  v seznamu — knihovna je nepřerovnává (abecedně ani jinak), pořadí drží aplikace / pořadí
-  ukládání. Uvnitř skupiny zůstává pořadí položek.
+  v seznamu — knihovna je nepřerovnává (abecedně ani jinak), pořadí drží pořadí ukládání,
+  resp. uživatelské pořadí z tažení (viz *Pořadí uložených položek*, `@v1.24.0`). Uvnitř skupiny
+  zůstává pořadí položek.
 - **Programově:** `saveAdvanced(name, tree, scope, display, group)`,
   `saveFilterSnapshot(name, scope, display, group)`, `setAdvancedGroup(id, group)`,
   `renameSavedFilter(id, name, group)`; u pohledů `presets.saveLocal(name, parts, display, group)`,
@@ -899,6 +902,20 @@ Bordel
   změny — jsou prostě „bez skupiny".
 - **Tlačítka (pilulky) skupiny neřeší** — řada tlačítek nad ikonami zůstává plochá; skupiny
   jsou nástroj pro delší nabídky ve výběru.
+
+### Pořadí uložených položek — `@v1.24.0`
+
+Uložené filtry i pohledy si uživatel přerovná **tažením za úchyt ⋮⋮** v panelu *Uložené filtry*,
+resp. v seznamu pohledů v dialogu *Sloupce*. Pořadí platí pro panel, řadu tlačítek i výběr.
+
+- **Per-uživatel:** pořadí je pole `id` v localStorage blobu (`filterOrder`, `presetOrder`), takže
+  si každý srovná i **globální** položky po svém — aplikace nic neukládá a kontrakt globálních
+  callbacků se nemění. Položka, kterou pole nezná (nově uložená, nově dodaná v `globalAdvancedFilters`
+  / `globalPresets`), jde **na konec**; id smazané položky v poli nevadí.
+- **Uvnitř skupiny:** pustit jde jen na řádek téže skupiny, skupina se tažením nemění. Pořadí skupin
+  ve výběru dál určuje první výskyt — přesunem první položky skupiny se tak dá posunout i skupina.
+- **Programově:** `grid.moveSavedFilter(fromId, toId, 'before' | 'after')`,
+  `grid.movePreset(fromId, toId, where)` / `grid.presets.move(...)`.
 
 ### Rozsah výběru: „Stránka" vs „Všechny záznamy" — `@v1.16.0`
 

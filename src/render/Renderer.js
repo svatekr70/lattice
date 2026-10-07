@@ -2302,6 +2302,8 @@ export class Renderer {
       const gearBtn = el('button.lattice-tool-btn.lattice-gear-btn', { type: 'button', title: this.grid.i18n.t('columns.manage'), html: this.icon('columns', GEAR_SVG) });
       gearBtn.addEventListener('click', () => this.grid.gear.toggle(gearBtn));
       toolbar.appendChild(gearBtn);
+      // otevřený panel „Sloupce“ se překotví na nové tlačítko (jinak by ho refresh zavřel)
+      if (this.grid.gear && this.grid.gear.panel) this.grid.gear.anchor = gearBtn;
     }
     if (f.instanceSettings !== false) {
       const setBtn = el('button.lattice-tool-btn', { type: 'button', title: this.grid.i18n.t('instance.title'), html: this.icon('settings', COG_SVG) });

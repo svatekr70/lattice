@@ -4,6 +4,17 @@
  */
 export const RELEASES = [
   {
+    "version": "1.24.0",
+    "date": "2026-10-07",
+    "text": "Uložené filtry i pohledy jde přerovnat tažením myší. Vše aditivní, bez breaking changes.",
+    "items": [
+      "Pořadí uložených filtrů a pohledů tažením. Každý řádek v panelu *Uložené filtry* a v seznamu pohledů v dialogu *Sloupce* má vlevo úchyt ⋮⋮ — za něj se řádek přetáhne jinam (modrá linka ukazuje, kam…",
+      "Pořadí je per-uživatel — drží se v localStorage blobu (filterOrder, presetOrder = pole id), takže si každý může srovnat po svém i globální položky a aplikace nemusí nic měnit. Položka, kterou seznam…",
+      "API: grid.moveSavedFilter(fromId, toId, where) a grid.movePreset(fromId, toId, where) (resp. grid.presets.move(...)), where = 'before' | 'after'. listAdvanced() a presets.all() (a s nimi…",
+      "Dialog „Sloupce\" se zavíral po přepnutí tlačítko/výběr u pohledu. Změna překreslila toolbar, dialog ztratil kotvící tlačítko a refresh() ho zavřel. Nově se otevřený dialog překotví na nové tlačítko…"
+    ]
+  },
+  {
     "version": "1.23.1",
     "date": "2026-09-22",
     "text": "Oprava prázdného stavu: závoj „Žádné záznamy\" (i „Načítám…\" a chybová hláška) ležel přes celý grid a ovládací prvky pod ním vypadaly zakázaně — zrovna když je uživatel potřebuje, aby se z prázdného výsledku dostal ven. Bez změny API.",
@@ -238,17 +249,6 @@ export const RELEASES = [
       "Našeptávač u dynamického filtru. U pole je tlačítko „?\" s hotovými obdobími (Dnes, Minulý týden, Tento měsíc…) — klik výraz vyplní a rovnou aplikuje; plus stručná reference zápisu.",
       "Dynamická období v date-range pickeru. Přepínač „dynamické období\" v dialogu: zapnutý → klik na preset uloží token ({from:'sow-1w', to:'eow-1w'}) místo pevných dat, takže uložený filtr/preset/snímek…",
       "Demo, příručka a API dokumentace doplněny o hranice období, našeptávač a dynamické date-range presety."
-    ]
-  },
-  {
-    "version": "1.11.0",
-    "date": "2026-08-12",
-    "text": "Dynamický datumový filtr a ukládání „naklikaných\" sloupcových filtrů. Bez breaking changes.",
-    "items": [
-      "Filtr sloupce – „Dynamické\" (u datumových sloupců). Třetí typ vedle „Datum (rozsah)\" a „Datum (Od / Do)\": do jednoho pole se napíše vlastní výraz s operátory > < >= <= =, spojkami AND/OR (AND váže…",
-      "Uložení „naklikaných\" sloupcových filtrů (snímek). Nová ikona v toolbaru (trychtýř + disketa, viditelná jen když nějaký sloupcový filtr platí) uloží aktuální filtry z hlavičky pod názvem — lokálně…",
-      "Sjednocení velikosti filtr ikon. Trychtýře „uložit filtry\" a „rozšířený filtr\" měly menší tvar; srovnány na stejný jako „zrušit filtry\".",
-      "Demo + příručka + API dokumentace doplněny o obě novinky (dynamický filtr, snímky) a o uživatelské globální presety."
     ]
   }
 ];

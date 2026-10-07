@@ -10,6 +10,7 @@
 import { el, onOutside } from '../util/dom.js';
 import { positionUnder } from './gear.js';
 import { groupField, groupItems } from '../util/groups.js';
+import { wireReorder } from '../util/order.js';
 
 export class SaveFiltersPanel {
   constructor(grid) {
@@ -133,6 +134,7 @@ export class SaveFiltersPanel {
     }
     const activeId = grid.activeSavedId();
     this._rows = [];
+    this._drag = {}; // sdílený stav tažení řádků (pořadí uložených filtrů)
     // Filtry se skupinou se seřadí pod nadpis skupiny (stejně jako v rozbalovacím
     // výběru); nezařazené zůstanou nahoře.
     for (const bucket of groupItems(saved)) {
@@ -147,6 +149,13 @@ export class SaveFiltersPanel {
     const grid = this.grid;
     const t = grid.i18n.t.bind(grid.i18n);
     const row = el('div.lattice-savefilters-row');
+
+    // Úchyt: tažením se mění pořadí (v rámci skupiny) — platí i pro tlačítka a výběr v toolbaru.
+    const grip = el('span.lattice-grip', { text: '⋮⋮', title: t('saveFilters.reorder') });
+    row.appendChild(grip);
+    wireReorder(row, grip, item, this._drag, (from, to, where) => {
+      if (grid.moveSavedFilter(from, to, where)) this.renderList();
+    });
 
     const apply = el('button.lattice-savefilters-name' + (item.id === activeId ? '.is-active' : ''), {
       type: 'button', text: (item.scope === 'global' ? '🌐 ' : '') + item.name,
@@ -222,6 +231,7 @@ export class SaveFiltersPanel {
     });
     const wrap = el('span.lattice-savefilters-edit', {}, [input, grp.el]);
     row.replaceChild(wrap, nameBtn);
+    row.draggable = false;
     input.focus();
     input.select();
     let done = false;

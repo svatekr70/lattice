@@ -21,6 +21,7 @@ import { DATE_PARTS } from '../core/dateParts.js';
 import { validateFormula, compileFormula, FORMULA_CATALOG, validateAggregate, compileAggregate, AGGREGATE_CATALOG } from '../core/formula.js';
 import { openHeaderColorPicker, openColorPicker } from './headerColor.js';
 import { groupField, groupItems } from '../util/groups.js';
+import { wireReorder } from '../util/order.js';
 
 /** Části stavu, které si uživatel může vybrat do presetu. */
 const PRESET_PARTS = ['columns', 'filters', 'instance'];
@@ -56,7 +57,7 @@ export class Gear {
     positionUnder(panel, anchor);
     this.panel = panel;
     this.off = onOutside(panel, (e) => {
-      if (anchor.contains(e.target)) return;
+      if (this.anchor?.contains(e.target)) return;
       // Klik do vlastního pod-popoveru (souhrn / formát / skupina / vzorec / menu)
       // panel nezavírá — ať zůstane „Sloupce" otevřený a kotva popoveru se neutrhne.
       if (e.target.closest && e.target.closest('.lattice-menu')) return;
@@ -143,6 +144,7 @@ export class Gear {
       wrap.appendChild(el('div.lattice-preset-empty', { text: t('presets.none') }));
     } else {
       const list = el('div.lattice-preset-list');
+      this._presetDrag = {}; // sdílený stav tažení řádků (pořadí pohledů)
       // Pohledy se skupinou se seřadí pod nadpis skupiny (stejně jako v rozbalovacím
       // výběru v záhlaví); nezařazené zůstanou nahoře.
       for (const bucket of groupItems(presets)) {
@@ -246,6 +248,13 @@ export class Gear {
       class: active ? 'is-active' : '',
       // Tooltip říká, co preset obnoví — u částečného presetu je to podstatné.
       title: preset.name + ' — ' + partsSummary(contents, t),
+    });
+
+    // Úchyt: tažením se mění pořadí (v rámci skupiny) — platí i pro tlačítka a výběr v toolbaru.
+    const grip = el('span.lattice-grip', { text: '⋮⋮', title: t('presets.reorder') });
+    row.appendChild(grip);
+    wireReorder(row, grip, preset, this._presetDrag, (from, to, where) => {
+      if (grid.movePreset(from, to, where)) this.refresh();
     });
 
     const name = el('span.lattice-preset-name', { text: preset.name });

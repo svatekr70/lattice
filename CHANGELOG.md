@@ -4,6 +4,30 @@ Všechny podstatné změny v tomto projektu. Formát vychází z
 [Keep a Changelog](https://keepachangelog.com/cs/1.1.0/); projekt používá
 [sémantické verzování](https://semver.org/lang/cs/).
 
+## [1.24.0] – 2026-10-07
+
+Uložené filtry i pohledy jde **přerovnat tažením myší**. Vše aditivní, bez breaking changes.
+
+### Přidáno
+- **Pořadí uložených filtrů a pohledů tažením.** Každý řádek v panelu *Uložené filtry* a v seznamu
+  pohledů v dialogu *Sloupce* má vlevo úchyt **⋮⋮** — za něj se řádek přetáhne jinam (modrá linka
+  ukazuje, kam dopadne). Nové pořadí platí **všude**: v panelu, v řadě tlačítek v toolbaru
+  i v rozbalovacím výběru. Táhne se jen za úchyt, takže klik na název, dvojklik (přejmenování)
+  i ikony v řádku fungují jako dřív. Přesouvá se **uvnitř skupiny** — skupinu tažení nemění
+  (na to je dál tužka).
+- **Pořadí je per-uživatel** — drží se v localStorage blobu (`filterOrder`, `presetOrder` = pole `id`),
+  takže si každý může srovnat po svém i **globální** položky a aplikace nemusí nic měnit. Položka,
+  kterou seznam nezná (nově uložená, nově přidaná globální), jde na konec.
+- **API:** `grid.moveSavedFilter(fromId, toId, where)` a `grid.movePreset(fromId, toId, where)`
+  (resp. `grid.presets.move(...)`), `where` = `'before'` | `'after'`. `listAdvanced()`
+  a `presets.all()` (a s nimi `buttonAdvanced`/`selectAdvanced`/`buttonPresets`/`selectPresets`)
+  vrací položky v uživatelském pořadí.
+
+### Opraveno
+- **Dialog „Sloupce" se zavíral po přepnutí tlačítko/výběr u pohledu.** Změna překreslila toolbar,
+  dialog ztratil kotvící tlačítko a `refresh()` ho zavřel. Nově se otevřený dialog překotví na nové
+  tlačítko (stejně jako panel uložených filtrů) a zůstane otevřený — i při přerovnávání tažením.
+
 ## [1.23.1] – 2026-09-22
 
 Oprava prázdného stavu: závoj „Žádné záznamy" (i „Načítám…" a chybová hláška) ležel přes
